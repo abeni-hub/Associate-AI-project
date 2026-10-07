@@ -34,6 +34,11 @@ def run_cli() -> None:
 
         response = ask_ai(messages)
 
+        if response.startswith("Error:"):
+            print(f"\n{response}\n")
+            messages.pop()
+            continue
+
         messages.append(
             {
                 "role": "assistant",
