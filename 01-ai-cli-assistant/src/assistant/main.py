@@ -1,9 +1,8 @@
-from .ai import ask_ai
+from .cli import run_cli
 
 
 def main() -> None:
-    response = ask_ai("Explain what an API is in one sentence.")
-    print(response)
+    run_cli()
 
 
 if __name__ == "__main__":
