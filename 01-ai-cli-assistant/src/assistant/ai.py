@@ -1,10 +1,6 @@
 import requests
 
-from .config import GROQ_API_KEY
-
-
-API_URL = "https://api.groq.com/openai/v1/chat/completions"
-MODEL = "openai/gpt-oss-120b"
+from .config import GROQ_API_KEY, GROQ_MODEL, GROQ_API_URL
 
 
 def ask_ai(messages: list[dict[str, str]]) -> str:
@@ -14,13 +10,13 @@ def ask_ai(messages: list[dict[str, str]]) -> str:
     }
 
     payload = {
-        "model": MODEL,
+        "model": GROQ_MODEL,
         "messages": messages,
     }
 
     try:
         response = requests.post(
-            API_URL,
+            GROQ_API_URL,
             headers=headers,
             json=payload,
             timeout=60,
