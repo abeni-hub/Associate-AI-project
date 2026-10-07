@@ -7,7 +7,7 @@ API_URL = "https://api.groq.com/openai/v1/chat/completions"
 MODEL = "openai/gpt-oss-120b"
 
 
-def ask_ai(message: str) -> str:
+def ask_ai(messages: list[dict[str, str]]) -> str:
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json",
@@ -15,12 +15,7 @@ def ask_ai(message: str) -> str:
 
     payload = {
         "model": MODEL,
-        "messages": [
-            {
-                "role": "user",
-                "content": message,
-            }
-        ],
+        "messages": messages,
     }
 
     response = requests.post(
