@@ -15,10 +15,16 @@ def run_cli() -> None:
         }
     ]
 
+    total_input_tokens = 0
+    total_output_tokens = 0
+
     while True:
         user_input = input("You: ").strip()
 
         if user_input.lower() == "exit":
+            print("\nSession usage:")
+            print(f"Input tokens: {total_input_tokens}")
+            print(f"Output tokens: {total_output_tokens}")
             print("Goodbye!")
             break
 
@@ -32,7 +38,7 @@ def run_cli() -> None:
             }
         )
 
-        response = ask_ai(messages)
+        response, usage = ask_ai(messages)
 
         if response.startswith("Error:"):
             print(f"\n{response}\n")
@@ -45,5 +51,8 @@ def run_cli() -> None:
                 "content": response,
             }
         )
+
+        total_input_tokens += usage.get("prompt_tokens", 0)
+        total_output_tokens += usage.get("completion_tokens", 0)
 
         print(f"\nAssistant: {response}\n")
