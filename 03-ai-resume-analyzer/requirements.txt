@@ -1,0 +1,25 @@
+# API framework
+
+fastapi
+uvicorn[standard]
+python-multipart
+
+# PDF processing
+
+pypdf
+
+# Data validation and configuration
+
+pydantic
+python-dotenv
+email-validator
+
+# AI provider
+
+groq
+
+# Testing
+
+pytest
+httpx
+reportlab
