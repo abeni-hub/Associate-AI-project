@@ -1,5 +1,7 @@
 from io import BytesIO
+import json
 
+from resume_analyzer.models.analysis import JobRequirement
 from fastapi.testclient import TestClient
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -166,3 +168,77 @@ def test_rejects_encrypted_pdf():
     assert response.json()["detail"] == (
         "Password-protected PDFs are not supported."
     )
+
+
+def test_rank_resumes_returns_ranked_candidates(monkeypatch):
+    """Test ranking through the API without making a Groq request."""
+
+    class FakeExtractor:
+        def __init__(self, provider):
+            pass
+
+        def extract(self, resume_text):
+            assert "Alex Morgan" in resume_text
+            return Resume.model_validate(
+                {
+                    "candidate": {"name": "Alex Morgan"},
+                    "skills": ["Python", "FastAPI"],
+                }
+            )
+
+    monkeypatch.setattr(routes, "ResumeExtractor", FakeExtractor)
+    monkeypatch.setattr(routes, "GroqProvider", lambda: object())
+
+    job = {
+        "title": "Python Backend Engineer",
+        "description": "Build backend services.",
+        "minimum_score": 50,
+        "requirements": [
+            {
+                "name": "Python",
+                "description": "Python programming",
+                "required": True,
+                "weight": 100,
+            }
+        ],
+    }
+
+    response = client.post(
+        "/api/v1/resumes/rank",
+        data={"job": json.dumps(job)},
+        files=[
+            (
+                "files",
+                ("resume.pdf", create_pdf(), "application/pdf"),
+            )
+        ],
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["job_title"] == "Python Backend Engineer"
+    assert len(data["candidates"]) == 1
+    assert data["candidates"][0]["rank"] == 1
+    assert data["candidates"][0]["match"]["candidate_name"] == "Alex Morgan"
+    assert data["candidates"][0]["match"]["overall_score"] == 100
+    assert (
+        data["candidates"][0]["match"]["requirement_matches"][0]["evidence_status"]
+        == "supported"
+    )
+
+
+def test_rank_resumes_rejects_invalid_job_json():
+    response = client.post(
+        "/api/v1/resumes/rank",
+        data={"job": '{"title":'},
+        files=[
+            (
+                "files",
+                ("resume.pdf", create_pdf(), "application/pdf"),
+            )
+        ],
+    )
+
+    assert response.status_code == 422
+
