@@ -28,7 +28,7 @@ class ResumeExtractor:
             data = self.provider.generate_json(prompt)
 
             # Normalize nullable technologies lists returned by the AI.
-            # The Resume schema expects a list, not None.
+            # The Resume schema expects a list,
             if isinstance(data, dict):
                 projects = data.get("projects")
 
