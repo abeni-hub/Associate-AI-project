@@ -45,8 +45,8 @@ export type AnalysisStatus = (typeof ANALYSIS_STATUSES)[number]['value'];
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number]['value'];
 export type OrgRole = (typeof ORG_ROLES)[number]['value'];
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() || 'http://127.0.0.1:8000';
 
 export const MAX_UPLOAD_FILES = 20;
-export const MAX_FILE_SIZE_MB = 10;
+export const MAX_FILE_SIZE_MB = 5;
 export const ACCEPTED_FILE_TYPES = '.pdf,application/pdf';

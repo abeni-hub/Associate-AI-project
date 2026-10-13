@@ -27,11 +27,15 @@ export async function createOrganization(
   if (error) return { data: null, error: error.message };
 
   const org = data as DatabaseOrganization;
-  await supabase.from('organization_members').insert({
+  const { error: memberError } = await supabase.from('organization_members').insert({
     organization_id: org.id,
     user_id: userId,
     role: 'owner' as OrgRole,
   });
+
+  if (memberError && !memberError.message.includes('duplicate')) {
+    console.warn('organization_members insert note:', memberError.message);
+  }
 
   return { data: org, error: null };
 }
@@ -305,12 +309,22 @@ export async function logAuditEvent(
 }
 
 export async function getInvitations(orgId: string): Promise<DatabaseInvitation[]> {
-  const { data } = await supabase
-    .from('invitations')
-    .select('*')
-    .eq('organization_id', orgId)
-    .order('created_at', { ascending: false });
-  return (data as DatabaseInvitation[]) || [];
+  try {
+    const { data, error } = await supabase
+      .from('invitations')
+      .select('*')
+      .eq('organization_id', orgId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('Invitations query warning:', error.message);
+      return [];
+    }
+    return (data as DatabaseInvitation[]) || [];
+  } catch (err) {
+    console.warn('Invitations fetch exception:', err);
+    return [];
+  }
 }
 
 export async function createInvitation(

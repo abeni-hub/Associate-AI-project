@@ -1,26 +1,49 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   Check, FileSearch, Upload, FileText, X, AlertCircle, Loader2,
-  ArrowRight, ArrowLeft, Briefcase, RefreshCw,
+  ArrowRight, ArrowLeft, Briefcase, RefreshCw, Sparkles, User,
+  Mail, Phone, MapPin, Linkedin, Github, GraduationCap, Award,
+  FolderGit2, Globe, CheckCircle2, XCircle, HelpCircle, Save,
+  ChevronDown, ChevronUp, Code2
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useOrganization } from '@/contexts/org-context';
 import { getJobs, createCandidates } from '@/lib/services';
-import type { JobWithCandidateCount, ApiRankCandidate } from '@/lib/types';
+import type {
+  JobWithCandidateCount,
+  ApiResume,
+  ApiCandidateRankingResponse,
+  ApiRankedCandidateItem,
+} from '@/lib/types';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { EmptyState } from '@/components/empty-states';
 import { JobStatusBadge, EmploymentTypeBadge } from '@/components/status-badges';
+import { ScoreRing } from '@/components/score-display';
 import { formatFileSize } from '@/lib/format';
-import { rankResumes, ApiError } from '@/lib/api';
-import { MAX_UPLOAD_FILES, MAX_FILE_SIZE_MB, ACCEPTED_FILE_TYPES, API_BASE_URL } from '@/lib/constants';
+import {
+  rankResumes,
+  analyzeResume,
+  checkApiHealth,
+  buildValidJobDescription,
+  ApiError,
+} from '@/lib/api';
+import {
+  MAX_UPLOAD_FILES,
+  MAX_FILE_SIZE_MB,
+  ACCEPTED_FILE_TYPES,
+  API_BASE_URL,
+} from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-type Stage = 'select' | 'upload' | 'review' | 'processing' | 'results' | 'error';
+type BatchStage = 'select' | 'upload' | 'review' | 'processing' | 'results' | 'error';
 
 interface UploadedFile {
   file: File;
@@ -28,10 +51,10 @@ interface UploadedFile {
   error?: string;
 }
 
-const STEPS: { key: Stage; label: string }[] = [
-  { key: 'select', label: 'Select Job' },
-  { key: 'upload', label: 'Upload Resumes' },
-  { key: 'review', label: 'Review & Analyze' },
+const BATCH_STEPS: { key: BatchStage; label: string }[] = [
+  { key: 'select', label: '1. Select Job' },
+  { key: 'upload', label: '2. Upload Resumes' },
+  { key: 'review', label: '3. Review & Rank' },
 ];
 
 export function AnalysisPage() {
@@ -42,15 +65,50 @@ export function AnalysisPage() {
   const [searchParams] = useSearchParams();
   const presetJobId = searchParams.get('jobId');
 
-  const [stage, setStage] = useState<Stage>('select');
+  // Backend Health State
+  const [apiOnline, setApiOnline] = useState<boolean | null>(null);
+  const [apiStatusMsg, setApiStatusMsg] = useState<string>('');
+  const [checkingHealth, setCheckingHealth] = useState(false);
+
+  // Tab State: 'ranking' | 'single'
+  const [activeTab, setActiveTab] = useState<'ranking' | 'single'>('ranking');
+
+  // Single Resume Analysis State
+  const [singleFile, setSingleFile] = useState<File | null>(null);
+  const [singleAnalyzing, setSingleAnalyzing] = useState(false);
+  const [singleResult, setSingleResult] = useState<ApiResume | null>(null);
+  const [singleError, setSingleError] = useState<string | null>(null);
+  const [showSingleRawJson, setShowSingleRawJson] = useState(false);
+  const singleInputRef = useRef<HTMLInputElement>(null);
+
+  // Batch Ranking State
+  const [batchStage, setBatchStage] = useState<BatchStage>('select');
   const [jobs, setJobs] = useState<JobWithCandidateCount[]>([]);
   const [selectedJob, setSelectedJob] = useState<JobWithCandidateCount | null>(null);
-  const [files, setFiles] = useState<UploadedFile[]>([]);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [results, setResults] = useState<ApiRankCandidate[]>([]);
-  const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [batchFiles, setBatchFiles] = useState<UploadedFile[]>([]);
+  const [batchError, setBatchError] = useState<string | null>(null);
+  const [rankingResponse, setRankingResponse] = useState<ApiCandidateRankingResponse | null>(null);
+  const [batchDragActive, setBatchDragActive] = useState(false);
+  const [singleDragActive, setSingleDragActive] = useState(false);
+  const [savingCandidates, setSavingCandidates] = useState(false);
+  const [candidatesSaved, setCandidatesSaved] = useState(false);
+  const [expandedCandidateIndex, setExpandedCandidateIndex] = useState<number | null>(0);
+  const batchInputRef = useRef<HTMLInputElement>(null);
 
+  // Verify Backend Health
+  const verifyBackend = useCallback(async () => {
+    setCheckingHealth(true);
+    const health = await checkApiHealth();
+    setApiOnline(health.ok);
+    setApiStatusMsg(health.ok ? 'FastAPI is online and reachable' : (health.message || 'FastAPI backend unavailable'));
+    setCheckingHealth(false);
+  }, []);
+
+  useEffect(() => {
+    verifyBackend();
+  }, [verifyBackend]);
+
+  // Load Jobs
   useEffect(() => {
     if (!currentOrg) return;
     getJobs(currentOrg.id).then((data) => {
@@ -59,464 +117,1044 @@ export function AnalysisPage() {
         const preset = data.find((j) => j.id === presetJobId);
         if (preset) {
           setSelectedJob(preset);
-          setStage('upload');
+          setBatchStage('upload');
         }
       }
     });
   }, [currentOrg, presetJobId]);
 
-  const validFiles = files.filter((f) => !f.error);
+  // -------------------------------------------------------------
+  // Single Resume Handlers
+  // -------------------------------------------------------------
+  const handleSingleFileSelect = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid file format',
+        description: 'Only standard PDF documents are supported.',
+      });
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      toast({
+        variant: 'destructive',
+        title: 'File too large',
+        description: `The file exceeds the maximum limit of ${MAX_FILE_SIZE_MB} MB.`,
+      });
+      return;
+    }
+    setSingleFile(file);
+    setSingleResult(null);
+    setSingleError(null);
+  };
 
-  const handleFileSelect = useCallback((fileList: FileList | null) => {
+  const runSingleAnalysis = async () => {
+    if (!singleFile) return;
+    setSingleAnalyzing(true);
+    setSingleError(null);
+    setSingleResult(null);
+
+    try {
+      const result = await analyzeResume(singleFile);
+      setSingleResult(result);
+      toast({
+        title: 'Resume analysis successful',
+        description: `Extracted structured profile for ${result.candidate.name || 'Candidate'}.`,
+      });
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : (err as Error).message;
+      setSingleError(msg || 'Failed to extract structured data from PDF.');
+    } finally {
+      setSingleAnalyzing(false);
+    }
+  };
+
+  // -------------------------------------------------------------
+  // Batch Ranking Handlers
+  // -------------------------------------------------------------
+  const validBatchFiles = batchFiles.filter((f) => !f.error);
+
+  const handleBatchFileSelect = useCallback((fileList: FileList | null) => {
     if (!fileList) return;
     const newFiles: UploadedFile[] = [];
     for (const file of Array.from(fileList)) {
-      if (files.length + newFiles.length >= MAX_UPLOAD_FILES) {
-        toast({ variant: 'destructive', title: 'Upload limit reached', description: `Maximum ${MAX_UPLOAD_FILES} files per analysis.` });
+      if (batchFiles.length + newFiles.length >= MAX_UPLOAD_FILES) {
+        toast({
+          variant: 'destructive',
+          title: 'Upload limit reached',
+          description: `Maximum ${MAX_UPLOAD_FILES} files can be ranked in one request.`,
+        });
         break;
       }
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
       const tooLarge = file.size > MAX_FILE_SIZE_MB * 1024 * 1024;
-      const isDuplicate = files.some((f) => f.file.name === file.name && f.file.size === file.size);
+      const isDuplicate = batchFiles.some((f) => f.file.name === file.name && f.file.size === file.size);
 
       newFiles.push({
         file,
         id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
-        error: !isPdf ? 'Only PDF files are supported' : tooLarge ? `File exceeds ${MAX_FILE_SIZE_MB}MB limit` : isDuplicate ? 'Duplicate file' : undefined,
+        error: !isPdf
+          ? 'Only PDF files are supported'
+          : tooLarge
+          ? `File exceeds ${MAX_FILE_SIZE_MB} MB limit`
+          : isDuplicate
+          ? 'Duplicate file'
+          : undefined,
       });
     }
-    setFiles((prev) => [...prev, ...newFiles]);
-  }, [files, toast]);
+    setBatchFiles((prev) => [...prev, ...newFiles]);
+  }, [batchFiles, toast]);
 
-  const removeFile = (id: string) => {
-    setFiles((prev) => prev.filter((f) => f.id !== id));
+  const removeBatchFile = (id: string) => {
+    setBatchFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragActive(false);
-    handleFileSelect(e.dataTransfer.files);
-  };
+  const runBatchRanking = async () => {
+    if (!selectedJob) return;
+    setBatchStage('processing');
+    setBatchError(null);
+    setCandidatesSaved(false);
 
-  const runAnalysis = async () => {
-    if (!selectedJob || !currentOrg || !user) return;
-    setStage('processing');
-    setAnalysisError(null);
-
-    const jobPayload = {
+    // Build the strictly formatted job description matching FastAPI JobDescription model
+    const jobPayload = buildValidJobDescription({
       title: selectedJob.title,
-      department: selectedJob.department,
       description: selectedJob.description,
       required_skills: selectedJob.required_skills,
       preferred_skills: selectedJob.preferred_skills,
-      min_experience_years: selectedJob.min_experience_years,
-      education_requirements: selectedJob.education_requirements,
-      evaluation_criteria: selectedJob.evaluation_criteria,
-    };
+      minimum_score: 0,
+    });
 
     try {
-      const ranked = await rankResumes({
+      const response = await rankResumes({
         job: jobPayload,
-        files: validFiles.map((f) => f.file),
+        files: validBatchFiles.map((f) => f.file),
       });
 
-      // Save candidates to database
-      const candidateInputs = ranked.map((c) => ({
-        job_id: selectedJob.id,
-        name: c.name || 'Unknown Candidate',
-        email: c.email || null,
-        phone: c.phone || null,
-        current_title: c.current_title || null,
-        summary: c.summary || null,
-        skills: c.skills || [],
-        experience_years: c.experience_years ?? null,
-        education: c.education || null,
-        projects: c.projects || null,
-        match_score: c.match_score ?? null,
-        matched_skills: c.matched_skills || [],
-        missing_skills: c.missing_skills || [],
-        match_evidence: c.match_evidence || null,
-        analysis_result: c as unknown as Record<string, unknown>,
-        analysis_status: 'completed',
-        resume_filename: c.resume_filename || validFiles.find((f) => f.file.name.includes(c.name?.split(' ')[0] || ''))?.file.name || null,
-      }));
-
-      const { data: savedCandidates, error: saveError } = await createCandidates(currentOrg.id, candidateInputs);
-
-      if (saveError) {
-        setAnalysisError(`Analysis completed but saving results failed: ${saveError}`);
-        setStage('error');
-        return;
-      }
-
-      setResults(ranked);
-      setStage('results');
+      setRankingResponse(response);
+      setBatchStage('results');
       toast({
-        title: 'Analysis complete',
-        description: `${ranked.length} candidate${ranked.length !== 1 ? 's' : ''} analyzed and saved.`,
+        title: 'Ranking complete',
+        description: `Successfully scored and ranked ${response.candidates.length} candidate(s).`,
       });
     } catch (err) {
-      if (err instanceof ApiError) {
-        setAnalysisError(err.message);
-      } else if (err instanceof Error) {
-        setAnalysisError(err.message);
-      } else {
-        setAnalysisError('An unexpected error occurred during analysis.');
-      }
-      setStage('error');
+      const msg = err instanceof ApiError ? err.message : (err as Error).message;
+      setBatchError(msg || 'An error occurred during candidate ranking.');
+      setBatchStage('error');
     }
   };
 
-  const reset = () => {
-    setStage('select');
-    setSelectedJob(null);
-    setFiles([]);
-    setResults([]);
-    setAnalysisError(null);
+  const saveResultsToWorkspace = async () => {
+    if (!rankingResponse || !selectedJob || !currentOrg) return;
+    setSavingCandidates(true);
+
+    try {
+      const candidateInputs = rankingResponse.candidates.map((item, idx) => {
+        const match = item.match;
+        const matchedSkills = match.requirement_matches
+          .filter((rm) => rm.evidence_status === 'supported')
+          .map((rm) => ({ skill: rm.requirement_name, evidence: rm.evidence.join('; ') }));
+
+        const missingSkills = match.requirement_matches
+          .filter((rm) => rm.evidence_status === 'not_established')
+          .map((rm) => rm.requirement_name);
+
+        const matchEvidence = match.requirement_matches.map((rm) => ({
+          requirement: rm.requirement_name,
+          status: rm.evidence_status === 'supported' ? 'matched' : rm.evidence_status === 'partial' ? 'partial' : 'missing',
+          evidence: rm.evidence.join('; ') || undefined,
+          detail: rm.explanation,
+        }));
+
+        const matchedFileName = validBatchFiles[idx]?.file.name || null;
+
+        return {
+          job_id: selectedJob.id,
+          name: match.candidate_name || `Candidate #${item.rank}`,
+          email: null,
+          phone: null,
+          current_title: null,
+          summary: match.summary,
+          skills: matchedSkills.map((s) => s.skill),
+          experience_years: null,
+          education: null,
+          projects: null,
+          match_score: match.overall_score,
+          matched_skills: matchedSkills,
+          missing_skills: missingSkills,
+          match_evidence: matchEvidence,
+          analysis_result: match as unknown as Record<string, unknown>,
+          analysis_status: 'completed',
+          resume_filename: matchedFileName,
+        };
+      });
+
+      const { error } = await createCandidates(currentOrg.id, candidateInputs);
+      if (error) {
+        toast({ variant: 'destructive', title: 'Failed to save', description: error });
+      } else {
+        setCandidatesSaved(true);
+        toast({
+          title: 'Candidates saved',
+          description: `${candidateInputs.length} candidates were saved to your workspace candidates directory.`,
+        });
+      }
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Save error', description: (err as Error).message });
+    } finally {
+      setSavingCandidates(false);
+    }
   };
 
-  const stepIndex = STEPS.findIndex((s) => s.key === stage);
-  const currentStep = stage === 'processing' || stage === 'results' || stage === 'error' ? 2 : stepIndex;
+  const resetBatch = () => {
+    setBatchStage('select');
+    setSelectedJob(null);
+    setBatchFiles([]);
+    setRankingResponse(null);
+    setBatchError(null);
+    setCandidatesSaved(false);
+  };
+
+  const currentStepNumber = batchStage === 'processing' || batchStage === 'results' || batchStage === 'error'
+    ? 3
+    : batchStage === 'review'
+    ? 3
+    : batchStage === 'upload'
+    ? 2
+    : 1;
 
   return (
     <AppLayout
-      title="Resume Analysis"
+      title="AI Resume Analysis & Matching"
       breadcrumbs={[{ label: 'Resume Analysis' }]}
-    >
-      {/* Step indicator */}
-      <div className="mb-6 flex items-center gap-2">
-        {STEPS.map((step, i) => {
-          const completed = i < currentStep;
-          const active = i === currentStep;
-          return (
-            <div key={step.key} className="flex items-center gap-2">
-              <div className={cn(
-                'flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
-                active && 'bg-primary text-primary-foreground',
-                completed && 'text-primary',
-                !active && !completed && 'text-muted-foreground',
-              )}>
-                <span className={cn(
-                  'flex h-5 w-5 items-center justify-center rounded-full text-xs',
-                  active && 'bg-primary-foreground/20',
-                  completed && 'bg-primary/10',
-                  !active && !completed && 'bg-muted',
-                )}>
-                  {completed ? <Check className="h-3 w-3" /> : i + 1}
-                </span>
-                {step.label}
-              </div>
-              {i < STEPS.length - 1 && <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40" />}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Stage: Select job */}
-      {stage === 'select' && (
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold">Select a job to analyze against</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Choose an existing job opening. The job's requirements will be used to match and rank candidates.</p>
+      actions={
+        <div className="flex items-center gap-2">
+          {/* Health indicator */}
+          <div
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
+              apiOnline === true
+                ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400'
+                : apiOnline === false
+                ? 'bg-destructive/10 text-destructive border-destructive/20'
+                : 'bg-muted text-muted-foreground border-border'
+            )}
+            title={apiStatusMsg}
+          >
+            <span
+              className={cn(
+                'h-2 w-2 rounded-full',
+                apiOnline === true ? 'bg-emerald-500' : apiOnline === false ? 'bg-destructive' : 'bg-muted-foreground'
+              )}
+            />
+            <span>{apiOnline ? 'FastAPI Online' : 'FastAPI Offline'}</span>
+            <button
+              onClick={verifyBackend}
+              disabled={checkingHealth}
+              className="ml-1 hover:opacity-80 p-0.5"
+              aria-label="Refresh status"
+            >
+              <RefreshCw className={cn('h-3 w-3', checkingHealth && 'animate-spin')} />
+            </button>
           </div>
+        </div>
+      }
+    >
+      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'ranking' | 'single')} className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4">
+          <TabsList className="grid grid-cols-2 w-full sm:w-[420px]">
+            <TabsTrigger value="ranking" className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              <span>Multi-Resume Ranking</span>
+            </TabsTrigger>
+            <TabsTrigger value="single" className="flex items-center gap-2">
+              <FileSearch className="h-4 w-4" />
+              <span>Single Resume Extraction</span>
+            </TabsTrigger>
+          </TabsList>
 
-          {jobs.length === 0 ? (
-            <Card className="border-dashed">
-              <EmptyState
-                icon={<Briefcase className="h-6 w-6" />}
-                title="No jobs available"
-                description="Create a job first to define what you're hiring for, then come back to analyze resumes."
-                action={<Button onClick={() => navigate('/jobs/new')}><Briefcase className="mr-2 h-4 w-4" /> Create a job</Button>}
-              />
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {jobs.map((job) => (
-                <button
-                  key={job.id}
-                  onClick={() => { setSelectedJob(job); setStage('upload'); }}
-                  className={cn(
-                    'text-left rounded-lg border-2 p-4 transition-all hover:shadow-sm',
-                    selectedJob?.id === job.id ? 'border-primary bg-accent' : 'border-border bg-card hover:border-primary/20',
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-medium text-foreground truncate">{job.title}</p>
-                      <p className="text-sm text-muted-foreground mt-0.5">{job.department} · {job.location}</p>
+          <p className="text-xs text-muted-foreground">
+            Target API: <code className="bg-muted px-1.5 py-0.5 rounded text-[11px]">{API_BASE_URL || 'Not Configured'}</code>
+          </p>
+        </div>
+
+        {/* ------------------------------------------------------------- */}
+        {/* TAB 1: MULTI-RESUME RANKING                                    */}
+        {/* ------------------------------------------------------------- */}
+        <TabsContent value="ranking" className="space-y-6 focus-visible:outline-none">
+          {/* Step indicator */}
+          {batchStage !== 'processing' && batchStage !== 'results' && (
+            <div className="flex items-center gap-2">
+              {BATCH_STEPS.map((step, i) => {
+                const stepNum = i + 1;
+                const completed = stepNum < currentStepNumber;
+                const active = stepNum === currentStepNumber;
+                return (
+                  <div key={step.key} className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        'flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                        active && 'bg-primary text-primary-foreground',
+                        completed && 'text-primary bg-primary/10',
+                        !active && !completed && 'text-muted-foreground bg-muted'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'flex h-4 w-4 items-center justify-center rounded-full text-[10px]',
+                          active && 'bg-primary-foreground/20 text-primary-foreground',
+                          completed && 'bg-primary text-primary-foreground',
+                          !active && !completed && 'bg-muted-foreground/20'
+                        )}
+                      >
+                        {completed ? <Check className="h-2.5 w-2.5" /> : stepNum}
+                      </span>
+                      {step.label}
                     </div>
-                    <JobStatusBadge status={job.status} />
+                    {i < BATCH_STEPS.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground/40" />}
                   </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <EmploymentTypeBadge type={job.employment_type} />
-                    {job.required_skills.slice(0, 3).map((s) => (
-                      <span key={s} className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{s}</span>
-                    ))}
-                    {job.required_skills.length > 3 && <span className="text-xs text-muted-foreground">+{job.required_skills.length - 3} more</span>}
-                  </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
           )}
-        </div>
-      )}
 
-      {/* Stage: Upload */}
-      {stage === 'upload' && selectedJob && (
-        <div className="space-y-6">
-          {/* Selected job summary */}
-          <Card className="bg-accent/50">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                    <Briefcase className="h-3.5 w-3.5" /> Selected job
-                  </div>
-                  <p className="font-medium">{selectedJob.title}</p>
-                  <p className="text-sm text-muted-foreground mt-0.5">{selectedJob.department} · {selectedJob.location}</p>
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => setStage('select')}>Change</Button>
+          {/* Stage 1: Select Job */}
+          {batchStage === 'select' && (
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight">Select a Job for Candidate Ranking</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  The candidates' resumes will be extracted with AI and scored against this job's requirements using the backend phrase-matching engine.
+                </p>
               </div>
-              {selectedJob.required_skills.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {selectedJob.required_skills.map((s) => (
-                    <span key={s} className="text-xs bg-success/10 text-success px-1.5 py-0.5 rounded">{s}</span>
+
+              {jobs.length === 0 ? (
+                <Card className="border-dashed">
+                  <EmptyState
+                    icon={<Briefcase className="h-6 w-6" />}
+                    title="No jobs created yet"
+                    description="Create a job first to define the title, description, and required skills for ranking."
+                    action={
+                      <Button onClick={() => navigate('/jobs/new')}>
+                        <Briefcase className="mr-2 h-4 w-4" /> Create a Job
+                      </Button>
+                    }
+                  />
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {jobs.map((job) => (
+                    <button
+                      key={job.id}
+                      onClick={() => {
+                        setSelectedJob(job);
+                        setBatchStage('upload');
+                      }}
+                      className={cn(
+                        'text-left rounded-lg border p-4 transition-all hover:border-primary/40 hover:shadow-sm bg-card',
+                        selectedJob?.id === job.id && 'border-primary ring-1 ring-primary'
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-foreground truncate">{job.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{job.department} · {job.location}</p>
+                        </div>
+                        <JobStatusBadge status={job.status} />
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        <EmploymentTypeBadge type={job.employment_type} />
+                        {job.required_skills.slice(0, 3).map((s) => (
+                          <span key={s} className="text-[11px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                            {s}
+                          </span>
+                        ))}
+                        {job.required_skills.length > 3 && (
+                          <span className="text-[11px] text-muted-foreground">+{job.required_skills.length - 3}</span>
+                        )}
+                      </div>
+                    </button>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          )}
 
-          {/* Upload area */}
-          <div>
-            <h2 className="text-lg font-semibold">Upload resumes</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Drag and drop PDF files or browse to select. Maximum {MAX_UPLOAD_FILES} files, {MAX_FILE_SIZE_MB}MB each.</p>
-          </div>
+          {/* Stage 2: Upload Resumes */}
+          {batchStage === 'upload' && selectedJob && (
+            <div className="space-y-6">
+              <Card className="bg-muted/40">
+                <CardContent className="p-4 flex items-center justify-between gap-4">
+                  <div>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1.5 mb-0.5">
+                      <Briefcase className="h-3 w-3" /> Evaluating against
+                    </span>
+                    <p className="font-semibold text-foreground">{selectedJob.title}</p>
+                    <p className="text-xs text-muted-foreground">{selectedJob.department} · {selectedJob.location}</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setBatchStage('select')}>
+                    Change Job
+                  </Button>
+                </CardContent>
+              </Card>
 
-          <div
-            onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-            onDragLeave={() => setDragActive(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={cn(
-              'flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-12 cursor-pointer transition-colors',
-              dragActive ? 'border-primary bg-accent' : 'border-border hover:border-primary/30 hover:bg-muted/30',
-            )}
-          >
-            <Upload className="h-8 w-8 text-muted-foreground/50 mb-3" />
-            <p className="text-sm font-medium">Drop PDF files here or click to browse</p>
-            <p className="text-xs text-muted-foreground mt-1">PDF files only · Up to {MAX_UPLOAD_FILES} files</p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ACCEPTED_FILE_TYPES}
-              multiple
-              className="hidden"
-              onChange={(e) => { handleFileSelect(e.target.files); e.target.value = ''; }}
-            />
-          </div>
-
-          {/* File list */}
-          {files.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">{validFiles.length} valid file{validFiles.length !== 1 ? 's' : ''} ready</p>
-                <Button variant="ghost" size="sm" onClick={() => setFiles([])}>Clear all</Button>
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight">Upload Resumes for Ranking</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Select between 1 and {MAX_UPLOAD_FILES} PDF resumes (up to {MAX_FILE_SIZE_MB} MB each).
+                </p>
               </div>
-              <div className="space-y-1.5">
-                {files.map((f) => (
-                  <div
-                    key={f.id}
-                    className={cn(
-                      'flex items-center gap-3 rounded-md border p-3',
-                      f.error ? 'border-destructive/30 bg-destructive/5' : 'border-border bg-card',
-                    )}
-                  >
-                    <FileText className={cn('h-5 w-5 shrink-0', f.error ? 'text-destructive/50' : 'text-primary/60')} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{f.file.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatFileSize(f.file.size)}</p>
-                      {f.error && (
-                        <p className="text-xs text-destructive flex items-center gap-1 mt-0.5">
-                          <AlertCircle className="h-3 w-3" /> {f.error}
-                        </p>
-                      )}
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeFile(f.id)}>
-                      <X className="h-4 w-4" />
+
+              <div
+                onDragOver={(e) => { e.preventDefault(); setBatchDragActive(true); }}
+                onDragLeave={() => setBatchDragActive(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setBatchDragActive(false);
+                  handleBatchFileSelect(e.dataTransfer.files);
+                }}
+                onClick={() => batchInputRef.current?.click()}
+                className={cn(
+                  'flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-10 cursor-pointer transition-colors',
+                  batchDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-muted/30'
+                )}
+              >
+                <Upload className="h-8 w-8 text-muted-foreground/60 mb-2" />
+                <p className="text-sm font-medium">Drop PDF resumes here or click to browse</p>
+                <p className="text-xs text-muted-foreground mt-1">PDF format only · Max {MAX_UPLOAD_FILES} files · {MAX_FILE_SIZE_MB} MB limit per file</p>
+                <input
+                  ref={batchInputRef}
+                  type="file"
+                  accept={ACCEPTED_FILE_TYPES}
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    handleBatchFileSelect(e.target.files);
+                    e.target.value = '';
+                  }}
+                />
+              </div>
+
+              {batchFiles.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <p className="font-medium text-foreground">
+                      {validBatchFiles.length} valid file(s) ready for analysis
+                    </p>
+                    <Button variant="ghost" size="sm" onClick={() => setBatchFiles([])}>
+                      Clear All
                     </Button>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
 
-          {/* API config warning */}
-          {!API_BASE_URL && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                The AI analysis service is not configured. Set <code className="text-xs bg-muted px-1 py-0.5 rounded">VITE_API_BASE_URL</code> in your environment to connect the backend. You can still proceed — results will show an error from the service.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Actions */}
-          <div className="flex items-center justify-between">
-            <Button variant="outline" onClick={() => setStage('select')}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back
-            </Button>
-            <Button disabled={validFiles.length === 0} onClick={() => setStage('review')}>
-              Continue with {validFiles.length} file{validFiles.length !== 1 ? 's' : ''}
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Stage: Review */}
-      {stage === 'review' && selectedJob && (
-        <div className="max-w-2xl space-y-6">
-          <div>
-            <h2 className="text-lg font-semibold">Review and start analysis</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Confirm the details below, then start the analysis. This may take a few minutes depending on the number of resumes.</p>
-          </div>
-
-          <Card>
-            <CardContent className="p-6 space-y-4">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Job</p>
-                <p className="font-medium">{selectedJob.title}</p>
-                <p className="text-sm text-muted-foreground">{selectedJob.department}</p>
-              </div>
-              <div className="border-t border-border pt-4">
-                <p className="text-xs text-muted-foreground mb-2">Resumes to analyze ({validFiles.length})</p>
-                <div className="space-y-1.5 max-h-48 overflow-y-auto scrollbar-thin">
-                  {validFiles.map((f) => (
-                    <div key={f.id} className="flex items-center gap-2 text-sm">
-                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span className="truncate">{f.file.name}</span>
-                      <span className="text-muted-foreground text-xs shrink-0">{formatFileSize(f.file.size)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="border-t border-border pt-4">
-                <p className="text-xs text-muted-foreground mb-2">Matching criteria</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedJob.required_skills.map((s) => (
-                    <span key={s} className="text-xs bg-success/10 text-success px-1.5 py-0.5 rounded">{s}</span>
-                  ))}
-                  {selectedJob.preferred_skills.map((s) => (
-                    <span key={s} className="text-xs bg-info/10 text-info px-1.5 py-0.5 rounded">{s}</span>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="flex items-center justify-between">
-            <Button variant="outline" onClick={() => setStage('upload')}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back
-            </Button>
-            <Button onClick={runAnalysis}>
-              <FileSearch className="mr-2 h-4 w-4" /> Start analysis
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Stage: Processing */}
-      {stage === 'processing' && (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="relative">
-            <div className="h-16 w-16 rounded-full border-4 border-muted" />
-            <div className="absolute inset-0 h-16 w-16 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-          </div>
-          <h2 className="mt-6 text-lg font-semibold">Analyzing resumes…</h2>
-          <p className="mt-1.5 text-sm text-muted-foreground text-center max-w-md">
-            The AI service is extracting candidate information and comparing it against the job requirements. This may take a few minutes.
-          </p>
-          <div className="mt-6 space-y-2 text-sm text-muted-foreground">
-            <p className="flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Extracting resume data…</p>
-            <p className="flex items-center gap-2 text-muted-foreground/50">Matching against job requirements…</p>
-            <p className="flex items-center gap-2 text-muted-foreground/50">Ranking candidates…</p>
-          </div>
-        </div>
-      )}
-
-      {/* Stage: Results */}
-      {stage === 'results' && (
-        <div className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success/10 text-success">
-              <Check className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold">Analysis complete</h2>
-              <p className="text-sm text-muted-foreground">{results.length} candidates analyzed and saved to your workspace.</p>
-            </div>
-          </div>
-
-          {results.length > 0 && (
-            <Card className="overflow-hidden p-0">
-              <div className="divide-y divide-border">
-                {results.map((c, i) => (
-                  <div key={i} className="flex items-center gap-4 p-4">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground shrink-0">
-                      {i + 1}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-foreground truncate">{c.name || 'Unknown'}</p>
-                      <p className="text-sm text-muted-foreground truncate">{c.current_title || '—'}</p>
-                    </div>
-                    {c.match_score !== undefined && c.match_score !== null && (
-                      <div className="text-right shrink-0">
-                        <p className="text-lg font-semibold tabular-nums">{Math.round(c.match_score)}</p>
-                        <p className="text-xs text-muted-foreground">match score</p>
+                  <div className="space-y-2 max-h-72 overflow-y-auto scrollbar-thin">
+                    {batchFiles.map((item) => (
+                      <div
+                        key={item.id}
+                        className={cn(
+                          'flex items-center justify-between gap-3 p-3 rounded-md border text-sm',
+                          item.error ? 'border-destructive/30 bg-destructive/5' : 'border-border bg-card'
+                        )}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <FileText className={cn('h-5 w-5 shrink-0', item.error ? 'text-destructive' : 'text-primary/70')} />
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{item.file.name}</p>
+                            <p className="text-xs text-muted-foreground">{formatFileSize(item.file.size)}</p>
+                            {item.error && (
+                              <p className="text-xs text-destructive flex items-center gap-1 mt-0.5">
+                                <AlertCircle className="h-3 w-3" /> {item.error}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeBatchFile(item.id)}>
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-2">
+                <Button variant="outline" onClick={() => setBatchStage('select')}>
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                </Button>
+                <Button disabled={validBatchFiles.length === 0} onClick={() => setBatchStage('review')}>
+                  Review & Rank ({validBatchFiles.length}) <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Stage 3: Review */}
+          {batchStage === 'review' && selectedJob && (
+            <div className="max-w-2xl space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight">Review Parameters Before Ranking</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  The backend will parse each PDF, run AI extraction via Groq, evaluate against the requirements below, and return scored rankings.
+                </p>
+              </div>
+
+              <Card>
+                <CardContent className="p-5 space-y-4">
+                  <div>
+                    <span className="text-xs text-muted-foreground">Target Role</span>
+                    <p className="font-semibold text-base">{selectedJob.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{selectedJob.description}</p>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <span className="text-xs text-muted-foreground mb-2 block">Evaluation Criteria & Weighted Requirements</span>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedJob.required_skills.map((skill) => (
+                        <Badge key={skill} variant="secondary" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                          {skill} (Required)
+                        </Badge>
+                      ))}
+                      {selectedJob.preferred_skills.map((skill) => (
+                        <Badge key={skill} variant="outline">
+                          {skill} (Preferred)
+                        </Badge>
+                      ))}
+                      {selectedJob.required_skills.length === 0 && selectedJob.preferred_skills.length === 0 && (
+                        <span className="text-xs text-muted-foreground">Core job description proficiency</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <span className="text-xs text-muted-foreground mb-1 block">
+                      Resumes to Process ({validBatchFiles.length})
+                    </span>
+                    <ul className="text-xs space-y-1 text-muted-foreground max-h-36 overflow-y-auto">
+                      {validBatchFiles.map((f) => (
+                        <li key={f.id} className="flex items-center gap-2">
+                          <FileText className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{f.file.name}</span>
+                          <span className="opacity-60">({formatFileSize(f.file.size)})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex items-center justify-between">
+                <Button variant="outline" onClick={() => setBatchStage('upload')}>
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back to Files
+                </Button>
+                <Button onClick={runBatchRanking} disabled={!apiOnline}>
+                  <Sparkles className="mr-2 h-4 w-4" /> Run Candidate Ranking
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Stage: Processing */}
+          {batchStage === 'processing' && (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="relative mb-6">
+                <div className="h-16 w-16 rounded-full border-4 border-muted" />
+                <div className="absolute inset-0 h-16 w-16 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+              </div>
+              <h2 className="text-lg font-semibold tracking-tight">Extracting & Ranking Resumes…</h2>
+              <p className="mt-1.5 text-sm text-muted-foreground max-w-md">
+                FastAPI is extracting text with PyPDF, executing Groq schema extraction, and performing transparent evidence scoring.
+              </p>
+              <div className="mt-6 space-y-2 text-xs text-muted-foreground bg-muted/40 p-4 rounded-lg max-w-sm w-full text-left">
+                <p className="flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> Processing uploaded PDF buffers</p>
+                <p className="flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> Groq AI candidate extraction</p>
+                <p className="flex items-center gap-2"><Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> Transparent weighted requirement matching</p>
+              </div>
+            </div>
+          )}
+
+          {/* Stage: Results */}
+          {batchStage === 'results' && rankingResponse && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    <span>Ranking Completed for {rankingResponse.job_title}</span>
+                  </div>
+                  <h2 className="text-xl font-semibold tracking-tight">
+                    {rankingResponse.candidates.length} Candidate(s) Ranked
+                  </h2>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {currentOrg && (
+                    <Button
+                      variant={candidatesSaved ? 'secondary' : 'default'}
+                      size="sm"
+                      onClick={saveResultsToWorkspace}
+                      disabled={savingCandidates || candidatesSaved}
+                    >
+                      {savingCandidates ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…
+                        </>
+                      ) : candidatesSaved ? (
+                        <>
+                          <Check className="mr-2 h-4 w-4" /> Saved to Workspace
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" /> Save Candidates to Workspace
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={resetBatch}>
+                    <RefreshCw className="mr-2 h-4 w-4" /> Rank New Batch
+                  </Button>
+                </div>
+              </div>
+
+              {/* Disclaimer */}
+              <Alert className="bg-muted/30 border-border">
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                <AlertDescription className="text-xs text-muted-foreground">
+                  Scores are calculated via transparent phrase-matching against candidate evidence. These provide objective decision-support signals, not autonomous hiring or rejection decisions.
+                </AlertDescription>
+              </Alert>
+
+              {/* Candidates list */}
+              <div className="space-y-4">
+                {rankingResponse.candidates.map((item: ApiRankedCandidateItem, idx: number) => {
+                  const match = item.match;
+                  const isExpanded = expandedCandidateIndex === idx;
+
+                  return (
+                    <Card key={idx} className="overflow-hidden">
+                      <div
+                        className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer hover:bg-muted/20 transition-colors"
+                        onClick={() => setExpandedCandidateIndex(isExpanded ? null : idx)}
+                      >
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-sm">
+                            #{item.rank}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-base text-foreground truncate">
+                              {match.candidate_name || `Candidate #${item.rank}`}
+                            </p>
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                              {match.summary}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-6 shrink-0">
+                          <div className="text-right">
+                            <ScoreRing score={match.overall_score} size={48} showLabel />
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Expanded requirement matches breakdown */}
+                      {isExpanded && (
+                        <div className="border-t border-border bg-muted/10 p-5 space-y-4">
+                          <div>
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                              Requirement Evidence Breakdown
+                            </h4>
+                            <div className="space-y-2">
+                              {match.requirement_matches.map((rm, rIdx) => (
+                                <div key={rIdx} className="rounded-md border border-border p-3 text-xs bg-card space-y-1.5">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                      {rm.evidence_status === 'supported' ? (
+                                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                                      ) : rm.evidence_status === 'partial' ? (
+                                        <HelpCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                                      ) : (
+                                        <XCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                                      )}
+                                      <span className="font-semibold text-foreground">{rm.requirement_name}</span>
+                                      {rm.required ? (
+                                        <Badge variant="secondary" className="text-[10px] py-0 px-1.5">Required</Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-[10px] py-0 px-1.5">Optional</Badge>
+                                      )}
+                                    </div>
+                                    <span className="font-medium tabular-nums text-muted-foreground">
+                                      Score: {rm.score} / 100 (Weight: {rm.weight}%)
+                                    </span>
+                                  </div>
+
+                                  <p className="text-muted-foreground">{rm.explanation}</p>
+
+                                  {rm.evidence && rm.evidence.length > 0 && (
+                                    <div className="bg-muted/40 p-2 rounded text-[11px] font-mono text-foreground space-y-1">
+                                      <p className="text-[10px] uppercase font-sans text-muted-foreground font-semibold">Matched Evidence:</p>
+                                      {rm.evidence.map((ev, eIdx) => (
+                                        <p key={eIdx} className="truncate">• {ev}</p>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {match.limitations && match.limitations.length > 0 && (
+                            <div className="text-xs text-muted-foreground bg-muted/30 p-3 rounded-md">
+                              <span className="font-semibold block mb-1">Assessment Limitations:</span>
+                              <ul className="list-disc list-inside space-y-0.5">
+                                {match.limitations.map((lim, lIdx) => (
+                                  <li key={lIdx}>{lim}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Stage: Error */}
+          {batchStage === 'error' && (
+            <div className="max-w-lg mx-auto py-12">
+              <Card className="border-destructive/30">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive shrink-0">
+                      <AlertCircle className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">Analysis Request Failed</h3>
+                      <p className="text-sm text-muted-foreground mt-1">{batchError}</p>
+                    </div>
+                  </div>
+                  <div className="mt-6 flex items-center gap-3">
+                    <Button onClick={() => setBatchStage('review')}>
+                      <RefreshCw className="mr-2 h-4 w-4" /> Try Again
+                    </Button>
+                    <Button variant="outline" onClick={resetBatch}>
+                      Reset
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ------------------------------------------------------------- */}
+        {/* TAB 2: SINGLE RESUME EXTRACTION                              */}
+        {/* ------------------------------------------------------------- */}
+        <TabsContent value="single" className="space-y-6 focus-visible:outline-none">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight">Structured AI Resume Extraction</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Extract candidate contact details, skills, employment history, education, certifications, and projects using <code>POST /api/v1/resumes/analyze</code>.
+            </p>
+          </div>
+
+          {/* Upload card */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-1 space-y-4">
+              <div
+                onDragOver={(e) => { e.preventDefault(); setSingleDragActive(true); }}
+                onDragLeave={() => setSingleDragActive(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setSingleDragActive(false);
+                  handleSingleFileSelect(e.dataTransfer.files);
+                }}
+                onClick={() => singleInputRef.current?.click()}
+                className={cn(
+                  'flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 cursor-pointer transition-colors text-center',
+                  singleDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-muted/30'
+                )}
+              >
+                <FileSearch className="h-8 w-8 text-muted-foreground/60 mb-2" />
+                <p className="text-sm font-medium">Drop single PDF here</p>
+                <p className="text-xs text-muted-foreground mt-1">PDF format · Max {MAX_FILE_SIZE_MB} MB</p>
+                <input
+                  ref={singleInputRef}
+                  type="file"
+                  accept={ACCEPTED_FILE_TYPES}
+                  className="hidden"
+                  onChange={(e) => {
+                    handleSingleFileSelect(e.target.files);
+                    e.target.value = '';
+                  }}
+                />
+              </div>
+
+              {singleFile && (
+                <Card>
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText className="h-4 w-4 text-primary shrink-0" />
+                        <span className="text-xs font-medium truncate">{singleFile.name}</span>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSingleFile(null)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Size: {formatFileSize(singleFile.size)}</p>
+                    <Button
+                      className="w-full"
+                      size="sm"
+                      onClick={runSingleAnalysis}
+                      disabled={singleAnalyzing || !apiOnline}
+                    >
+                      {singleAnalyzing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Extracting Data…
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" /> Extract Candidate Profile
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {singleError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle className="text-xs font-semibold">Extraction Failed</AlertTitle>
+                  <AlertDescription className="text-xs">{singleError}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+
+            {/* Structured Result Display */}
+            <div className="md:col-span-2">
+              {singleResult ? (
+                <div className="space-y-6">
+                  {/* Candidate header card */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <CardTitle className="text-xl flex items-center gap-2">
+                            <User className="h-5 w-5 text-primary" />
+                            {singleResult.candidate.name || 'Unnamed Candidate'}
+                          </CardTitle>
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-2">
+                            {singleResult.candidate.email && (
+                              <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {singleResult.candidate.email}</span>
+                            )}
+                            {singleResult.candidate.phone && (
+                              <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {singleResult.candidate.phone}</span>
+                            )}
+                            {singleResult.candidate.location && (
+                              <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {singleResult.candidate.location}</span>
+                            )}
+                            {singleResult.candidate.linkedin && (
+                              <a href={singleResult.candidate.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-primary hover:underline">
+                                <Linkedin className="h-3 w-3" /> LinkedIn
+                              </a>
+                            )}
+                            {singleResult.candidate.github && (
+                              <a href={singleResult.candidate.github} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-primary hover:underline">
+                                <Github className="h-3 w-3" /> GitHub
+                              </a>
+                            )}
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowSingleRawJson(!showSingleRawJson)}
+                          className="text-xs"
+                        >
+                          <Code2 className="mr-1.5 h-3.5 w-3.5" />
+                          {showSingleRawJson ? 'Hide Raw JSON' : 'Inspect JSON'}
+                        </Button>
+                      </div>
+                    </CardHeader>
+
+                    {singleResult.professional_summary && (
+                      <CardContent className="pt-0">
+                        <Separator className="mb-3" />
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Professional Summary</h4>
+                        <p className="text-sm text-foreground/90 leading-relaxed">{singleResult.professional_summary}</p>
+                      </CardContent>
+                    )}
+                  </Card>
+
+                  {/* Raw JSON toggle */}
+                  {showSingleRawJson && (
+                    <Card className="bg-muted/40 font-mono text-xs">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-xs font-mono">Raw Backend JSON Payload</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <pre className="max-h-72 overflow-y-auto scrollbar-thin p-2 bg-background rounded border text-[11px]">
+                          {JSON.stringify(singleResult, null, 2)}
+                        </pre>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Skills */}
+                  {singleResult.skills && singleResult.skills.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Award className="h-4 w-4 text-primary" /> Extracted Skills
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-1.5">
+                          {singleResult.skills.map((skill, sIdx) => (
+                            <Badge key={sIdx} variant="secondary" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Work Experience */}
+                  {singleResult.work_experience && singleResult.work_experience.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Briefcase className="h-4 w-4 text-primary" /> Work Experience
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {singleResult.work_experience.map((exp, expIdx) => (
+                          <div key={expIdx} className="border-l-2 border-primary/40 pl-4 space-y-1">
+                            <div className="flex items-baseline justify-between gap-2">
+                              <p className="font-semibold text-sm">{exp.job_title || 'Position'}</p>
+                              <span className="text-xs text-muted-foreground">
+                                {exp.start_date || '—'} – {exp.is_current ? 'Present' : exp.end_date || '—'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">{exp.company}{exp.location ? ` · ${exp.location}` : ''}</p>
+                            {exp.responsibilities && exp.responsibilities.length > 0 && (
+                              <ul className="list-disc list-inside text-xs text-muted-foreground mt-2 space-y-1">
+                                {exp.responsibilities.map((r, rIdx) => (
+                                  <li key={rIdx}>{r}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Education & Certifications */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {singleResult.education && singleResult.education.length > 0 && (
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <GraduationCap className="h-4 w-4 text-primary" /> Education
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {singleResult.education.map((edu, eIdx) => (
+                            <div key={eIdx} className="text-xs space-y-0.5">
+                              <p className="font-semibold text-foreground">{edu.degree || edu.field_of_study || 'Degree'}</p>
+                              <p className="text-muted-foreground">{edu.institution}</p>
+                              <p className="text-[11px] text-muted-foreground/70">{edu.graduation_date || edu.start_date || ''}</p>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {singleResult.certifications && singleResult.certifications.length > 0 && (
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Award className="h-4 w-4 text-primary" /> Certifications
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {singleResult.certifications.map((cert, cIdx) => (
+                            <div key={cIdx} className="text-xs space-y-0.5">
+                              <p className="font-semibold text-foreground">{cert.name}</p>
+                              {cert.issuing_organization && <p className="text-muted-foreground">{cert.issuing_organization}</p>}
+                              {cert.issue_date && <p className="text-[11px] text-muted-foreground/70">{cert.issue_date}</p>}
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
                     )}
                   </div>
-                ))}
-              </div>
-            </Card>
-          )}
 
-          <div className="flex items-center gap-3">
-            <Button onClick={() => navigate('/candidates')}>
-              View all candidates <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-            <Button variant="outline" onClick={reset}>
-              <RefreshCw className="mr-2 h-4 w-4" /> Run another analysis
-            </Button>
+                  {/* Projects */}
+                  {singleResult.projects && singleResult.projects.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <FolderGit2 className="h-4 w-4 text-primary" /> Projects
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {singleResult.projects.map((proj, pIdx) => (
+                          <div key={pIdx} className="text-xs space-y-1">
+                            <div className="flex items-center justify-between">
+                              <p className="font-semibold text-foreground">{proj.name || 'Project'}</p>
+                              {proj.url && (
+                                <a href={proj.url} target="_blank" rel="noreferrer" className="text-primary hover:underline text-[11px]">
+                                  View
+                                </a>
+                              )}
+                            </div>
+                            {proj.description && <p className="text-muted-foreground">{proj.description}</p>}
+                            {proj.technologies && proj.technologies.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {proj.technologies.map((t, tIdx) => (
+                                  <span key={tIdx} className="bg-muted px-1.5 py-0.5 rounded text-[10px] text-muted-foreground">
+                                    {t}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              ) : (
+                <Card className="border-dashed h-full min-h-[300px] flex items-center justify-center">
+                  <div className="p-8 text-center max-w-sm">
+                    <FileSearch className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+                    <h3 className="font-semibold text-foreground text-sm">No Resume Extracted Yet</h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Upload a PDF on the left and click "Extract Candidate Profile" to see structured output.
+                    </p>
+                  </div>
+                </Card>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Stage: Error */}
-      {stage === 'error' && (
-        <div className="max-w-lg mx-auto py-12">
-          <Card className="border-destructive/30">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive shrink-0">
-                  <AlertCircle className="h-5 w-5" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-lg font-semibold">Analysis failed</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">{analysisError}</p>
-                </div>
-              </div>
-              <div className="mt-6 flex items-center gap-3">
-                <Button onClick={() => setStage('review')}>
-                  <RefreshCw className="mr-2 h-4 w-4" /> Try again
-                </Button>
-                <Button variant="outline" onClick={reset}>Start over</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
     </AppLayout>
   );
 }

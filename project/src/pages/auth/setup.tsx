@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';
+import { useOrganization } from '@/contexts/org-context';
 import { createOrganization } from '@/lib/services';
 import { AuthShell } from './auth-shell';
 import { Button } from '@/components/ui/button';
@@ -11,10 +12,18 @@ import { Loader2, Building2, AlertCircle } from 'lucide-react';
 
 export function WorkspaceSetupPage() {
   const { user } = useAuth();
+  const { organizations, setCurrentOrg, refresh } = useOrganization();
   const navigate = useNavigate();
   const [orgName, setOrgName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // If user already has an active workspace, forward directly to overview
+  useEffect(() => {
+    if (organizations && organizations.length > 0) {
+      navigate('/overview', { replace: true });
+    }
+  }, [organizations, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,15 +34,27 @@ export function WorkspaceSetupPage() {
       return;
     }
 
+    if (!orgName.trim()) {
+      setError('Please enter a company name.');
+      return;
+    }
+
     setLoading(true);
-    const { error } = await createOrganization(orgName, user.id);
-    setLoading(false);
+    const { data: newOrg, error } = await createOrganization(orgName.trim(), user.id);
 
     if (error) {
+      setLoading(false);
       setError(error);
-    } else {
-      navigate('/overview', { replace: true });
+      return;
     }
+
+    if (newOrg) {
+      setCurrentOrg(newOrg);
+    }
+
+    await refresh();
+    setLoading(false);
+    navigate('/overview', { replace: true });
   };
 
   return (
