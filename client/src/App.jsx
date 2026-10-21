@@ -1,5 +1,9 @@
 import { useEffect, useLayoutEffect, useState } from 'react'
 import './App.css'
+import HomeNewsEvents from './components/HomeNewsEvents.jsx'
+import NewsEventsPage from './pages/NewsEventsPage.jsx'
+import ItemDetailPage from './pages/ItemDetailPage.jsx'
+import './styles/newsEvents.css'
 
 const amharicCopy = {
   'One clear place to plan your next public service visit': 'ለሚቀጥለው የመንግሥት አገልግሎት ጉብኝትዎ የሚያስፈልግዎትን ሁሉ በአንድ ቦታ',
@@ -215,6 +219,15 @@ const amharicCopy = {
   'Spatial plan information': 'የቦታ ፕላን መረጃ', 'Request information or clarification about a spatial plan.': 'ስለ ቦታ ፕላን መረጃ ወይም ማብራሪያ ይጠይቁ።',
   'City statistics and documentation': 'የከተማ ስታቲስቲክስና ሰነዶች', 'Request social and economic statistics or documentation.': 'ማህበራዊና ኢኮኖሚያዊ ስታቲስቲክስ ወይም ሰነዶች ይጠይቁ።',
   'Plan implementation information': 'የፕላን አፈጻጸም መረጃ', 'Ask about plan implementation and related city services.': 'ስለ ፕላን አፈጻጸምና ተያያዥ የከተማ አገልግሎቶች ይጠይቁ።',
+  'Latest News': 'የወቅቱ ዜናዎች',
+  'Upcoming Events': 'መጪ ዝግጅቶች',
+  'Explore All News': 'ሁሉንም ዜናዎች ይመልከቱ',
+  'Explore All Events': 'ሁሉንም ዝግጅቶች ይመልከቱ',
+  'News & Events Hub': 'የዜና እና ዝግጅቶች መድረክ',
+  'Back to CivicLink Guide': 'ወደ ሲቪክሊንክ መመሪያ ተመለስ',
+  'All Feeds': 'ሁሉም መረጃዎች',
+  'News & Notices': 'ዜና እና ማስታወቂያ',
+  'Events & Town Halls': 'ዝግጅቶችና መድረኮች',
 }
 
 function translate(text, language) {
@@ -455,6 +468,69 @@ function App() {
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [satisfaction, setSatisfaction] = useState(0)
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
+  const [detailItemId, setDetailItemId] = useState(() => {
+    const hash = window.location.hash
+    const match = hash.match(/^#\/(news|event)\/([^/?#]+)/i)
+    return match ? match[2] : null
+  })
+  const [currentView, setCurrentView] = useState(() => {
+    const hash = window.location.hash.toLowerCase()
+    if (hash.startsWith('#/news/') || hash.startsWith('#/event/')) {
+      return 'detail'
+    }
+    if (hash.startsWith('#/news') || hash.startsWith('#/events') || hash === '#/news-events') {
+      return 'news-events'
+    }
+    return 'home'
+  })
+  const [newsEventsTab, setNewsEventsTab] = useState(() => {
+    const hash = window.location.hash.toLowerCase()
+    if (hash === '#/events') return 'events'
+    if (hash === '#/news') return 'news'
+    return 'all'
+  })
+
+  function navigateToDetail(item) {
+    const route = item.type === 'event' ? `#/event/${item.id}` : `#/news/${item.id}`
+    setDetailItemId(item.id)
+    setCurrentView('detail')
+    window.location.hash = route
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    function onHashChange() {
+      const hash = window.location.hash
+      const detailMatch = hash.match(/^#\/(news|event)\/([^/?#]+)/i)
+      if (detailMatch) {
+        setDetailItemId(detailMatch[2])
+        setCurrentView('detail')
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        return
+      }
+
+      const lower = hash.toLowerCase()
+      if (lower === '#/news-events') {
+        setCurrentView('news-events')
+        setNewsEventsTab('all')
+        setDetailItemId(null)
+      } else if (lower === '#/news') {
+        setCurrentView('news-events')
+        setNewsEventsTab('news')
+        setDetailItemId(null)
+      } else if (lower === '#/events') {
+        setCurrentView('news-events')
+        setNewsEventsTab('events')
+        setDetailItemId(null)
+      } else if (lower === '#/' || lower === '' || lower === '#top' || lower.startsWith('#find') || lower.startsWith('#how') || lower.startsWith('#feedback') || lower.startsWith('#news')) {
+        setCurrentView('home')
+        setDetailItemId(null)
+      }
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
   const t = (text) => translate(text, language)
 
   const activeServiceList = serviceCatalog[bureauId] ?? []
@@ -542,28 +618,165 @@ function App() {
   }
 
   return (
-    <div className="site-shell" lang={language}>
-      <div className="announcement-bar"><span className="announcement-dot" /><span className="announcement-copy">{t('One clear place to plan your next public service visit')}</span><a href="#find-service">{t('Explore the guide')} <Icon name="arrow" size={14} /></a></div>
+    <div className={`site-shell ${currentView === 'news-events' ? 'site-shell-hub' : currentView === 'detail' ? 'site-shell-detail' : ''}`} lang={language}>
+      <div className="announcement-bar">
+        <span className="announcement-dot" />
+        <span className="announcement-copy">{t('One clear place to plan your next public service visit')}</span>
+        <a
+          href="#find-service"
+          onClick={(e) => {
+            if (currentView !== 'home') {
+              e.preventDefault()
+              setCurrentView('home')
+              window.location.hash = '#find-service'
+              setTimeout(() => {
+                document.getElementById('find-service')?.scrollIntoView({ behavior: 'smooth' })
+              }, 60)
+            }
+          }}
+        >
+          {t('Explore the guide')} <Icon name="arrow" size={14} />
+        </a>
+      </div>
 
-      <header className="site-header">
-        <a className="brand" href="#top" aria-label={t('CivicLink home')}>
+      <header className={`site-header ${currentView === 'detail' ? 'site-header-solid' : ''}`}>
+        <a
+          className="brand"
+          href="#top"
+          aria-label={t('CivicLink home')}
+          onClick={(e) => {
+            e.preventDefault()
+            setCurrentView('home')
+            window.location.hash = '#/'
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }}
+        >
           <BrandMark />
           <span className="brand-copy"><strong>Civic<span>Link</span></strong><small>{t('ETHIOPIA · CITIZEN SERVICES')}</small></span>
         </a>
-        <button className="mobile-menu-button" type="button" aria-label={t(menuOpen ? 'Close navigation' : 'Open navigation')} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>
+
+        <button
+          className="mobile-menu-button"
+          type="button"
+          aria-label={t(menuOpen ? 'Close navigation' : 'Open navigation')}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
           <Icon name={menuOpen ? 'close' : 'menu'} size={22} />
         </button>
+
         <nav className={menuOpen ? 'main-nav is-open' : 'main-nav'} aria-label={t('Main navigation')}>
-          <a href="#find-service" onClick={() => setMenuOpen(false)}>{t('Find a service')}</a>
-          <a href="#how-it-works" onClick={() => setMenuOpen(false)}>{t('How it works')}</a>
-          <a href="#news" onClick={() => setMenuOpen(false)}>{t('News & events')}</a>
-          <button className="language-toggle" type="button" aria-label={t(language === 'en' ? 'Switch language to Amharic' : 'Switch language to English')} onClick={() => setLanguage((current) => current === 'en' ? 'am' : 'en')}><span lang={language === 'en' ? 'am' : 'en'}>{language === 'en' ? 'አማርኛ' : 'English'}</span></button>
-          <button className="nav-feedback" type="button" onClick={goToFeedback}>{t('Share feedback')} <Icon name="arrow" size={16} /></button>
+          <a
+            href="#find-service"
+            onClick={(e) => {
+              setMenuOpen(false)
+              if (currentView !== 'home') {
+                e.preventDefault()
+                setCurrentView('home')
+                window.location.hash = '#find-service'
+                setTimeout(() => {
+                  document.getElementById('find-service')?.scrollIntoView({ behavior: 'smooth' })
+                }, 60)
+              }
+            }}
+          >
+            {t('Find a service')}
+          </a>
+
+          <a
+            href="#how-it-works"
+            onClick={(e) => {
+              setMenuOpen(false)
+              if (currentView !== 'home') {
+                e.preventDefault()
+                setCurrentView('home')
+                window.location.hash = '#how-it-works'
+                setTimeout(() => {
+                  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })
+                }, 60)
+              }
+            }}
+          >
+            {t('How it works')}
+          </a>
+
+          <a
+            href="#/news-events"
+            style={currentView === 'news-events' || currentView === 'detail' ? { color: 'var(--ink, #002730)', fontWeight: '800' } : {}}
+            onClick={(e) => {
+              e.preventDefault()
+              setMenuOpen(false)
+              setCurrentView('news-events')
+              setNewsEventsTab('all')
+              window.location.hash = '#/news-events'
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+          >
+            {t('News & events')}
+          </a>
+
+          <button
+            className="language-toggle"
+            type="button"
+            aria-label={t(language === 'en' ? 'Switch language to Amharic' : 'Switch language to English')}
+            onClick={() => setLanguage((current) => current === 'en' ? 'am' : 'en')}
+          >
+            <span lang={language === 'en' ? 'am' : 'en'}>{language === 'en' ? 'አማርኛ' : 'English'}</span>
+          </button>
+
+          <button
+            className="nav-feedback"
+            type="button"
+            onClick={() => {
+              setMenuOpen(false)
+              if (currentView !== 'home') {
+                setCurrentView('home')
+                window.location.hash = '#feedback'
+                setTimeout(() => {
+                  goToFeedback()
+                }, 60)
+              } else {
+                goToFeedback()
+              }
+            }}
+          >
+            {t('Share feedback')} <Icon name="arrow" size={16} />
+          </button>
         </nav>
       </header>
 
-      <main id="top">
-        <section className="hero-section">
+      {currentView === 'detail' && detailItemId ? (
+        <ItemDetailPage
+          itemId={detailItemId}
+          language={language}
+          onBackToHub={() => {
+            setCurrentView('news-events')
+            window.location.hash = '#/news-events'
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }}
+          onBackToHome={() => {
+            setCurrentView('home')
+            window.location.hash = '#/'
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }}
+          onNavigateToDetail={(item) => navigateToDetail(item)}
+          onLanguageToggle={() => setLanguage((current) => current === 'en' ? 'am' : 'en')}
+        />
+      ) : currentView === 'news-events' ? (
+        <NewsEventsPage
+          language={language}
+          initialTab={newsEventsTab}
+          onBackToHome={() => {
+            setCurrentView('home')
+            window.location.hash = '#/'
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }}
+          onNavigateToDetail={(item) => navigateToDetail(item)}
+          onLanguageToggle={() => setLanguage((current) => current === 'en' ? 'am' : 'en')}
+        />
+      ) : (
+        <main id="top">
+          <section className="hero-section">
           <div className="hero-copy">
             <div className="eyebrow"><span className="eyebrow-line" /> {t(activeHeroSlide.bureau)}</div>
             <h1>{t('Know where to go.')}<br /><em>{t('Arrive ready.')}</em></h1>
@@ -626,13 +839,24 @@ function App() {
         </section>
 
         <section className="news-section section-wrap" id="news">
-          <div className="news-header scroll-reveal"><div><div className="section-kicker"><span>04</span> {t('FROM YOUR COMMUNITY')}</div><h2>{t('What’s happening')}<br /><em>{t('near you.')}</em></h2></div><div className="update-source"><Icon name="building" size={16} /> {t('Published by sub-city admins')}</div></div>
-          <div className="news-grid scroll-reveal-group" id="news-cards">
-            <article className="news-feature"><div className="news-photo"><div className="sun-disc" /><div className="city-silhouette"><span /><span /><span /><span /><span /><span /><span /></div><div className="news-photo-label"><Icon name="news" size={15} /> {t('COMMUNITY UPDATE')}</div></div><div className="news-meta"><span>{t('PUBLIC NOTICE')}</span><span>·</span><span>{t('EXAMPLE')}</span></div><h3>{t('Sub-city announcements, all in one place.')}</h3><p>{t('Find community updates and public notices shared by your local sub-city.')}</p></article>
-            <article className="news-small-card"><div className="news-small-icon news-icon-green"><Icon name="calendar" size={20} /></div><div className="news-meta"><span>{t('UPCOMING EVENT')}</span><span>·</span><span>{t('EXAMPLE')}</span></div><h3>{t('Keep up with public events and service updates.')}</h3><p>{t('Important dates and announcements from your community, in one easy-to-find place.')}</p><div className="news-card-decoration decoration-lines" /></article>
-            <article className="news-small-card news-small-dark"><div className="news-small-icon news-icon-gold"><Icon name="building" size={20} /></div><div className="news-meta"><span>{t('LOCAL SERVICES')}</span><span>·</span><span>{t('EXAMPLE')}</span></div><h3>{t('One guide to the services your bureau provides.')}</h3><p>{t('Understand what each office does and where to get the support you need.')}</p><div className="news-card-decoration decoration-circles" /></article>
+          <div className="news-header scroll-reveal">
+            <div>
+              <div className="section-kicker"><span>04</span> {t('FROM YOUR COMMUNITY')}</div>
+              <h2>{t('What’s happening')}<br /><em>{t('near you.')}</em></h2>
+            </div>
+            <div className="update-source"><Icon name="building" size={16} /> {t('Published by sub-city admins')}</div>
           </div>
-          <p className="sample-disclaimer news-disclaimer scroll-reveal">{t('News cards shown as layout examples. Official notices will be published by your local sub-city.')}</p>
+          
+          <HomeNewsEvents
+            language={language}
+            onNavigateToHub={(tab) => {
+              setNewsEventsTab(tab || 'all')
+              setCurrentView('news-events')
+              window.location.hash = '#/' + (tab || 'news-events')
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+            onSelectItem={(item) => navigateToDetail(item)}
+          />
         </section>
 
         <section className="feedback-section" id="feedback">
@@ -665,6 +889,7 @@ function App() {
 
         <section className="admin-strip section-wrap scroll-reveal"><div className="admin-strip-icon"><Icon name="building" size={23} /></div><div><span className="admin-strip-kicker">{t('FOR PUBLIC SERVICE TEAMS')}</span><h3>{t('Manage information where it belongs.')}</h3><p>{t('Sub-city and bureau admins keep service guides, room routes, news, and feedback up to date.')}</p></div><div className="admin-strip-roles"><span>{t('SUPER ADMIN')}</span><i /> <span>{t('SUB-CITY')}</span><i /> <span>{t('BUREAU')}</span></div></section>
       </main>
+      )}
 
       <footer className="site-footer"><div className="footer-main section-wrap scroll-reveal-group"><a className="brand footer-brand" href="#top"><BrandMark /><span className="brand-copy"><strong>Civic<span>Link</span></strong><small>{t('ETHIOPIA · CITIZEN SERVICES')}</small></span></a><p>{t('Clearer information for every visit.')}<br />{t('A more responsive public service.')}</p><div className="footer-nav"><a href="#find-service">{t('Find a service')}</a><a href="#how-it-works">{t('How it works')}</a><a href="#news">{t('News & events')}</a><a href="#feedback">{t('Share feedback')}</a></div></div><div className="footer-bottom section-wrap scroll-reveal"><span>{t('© 2026 CivicLink Ethiopia · Public service information platform')}</span><span>{t('Built for citizens, maintained by bureaus.')}</span></div></footer>
     </div>
