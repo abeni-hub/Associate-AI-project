@@ -4,7 +4,7 @@
   --ink-soft: #3d6670;
   --link: #00485a;
   --muted: #73837d;
-  --paper: #f8f9f5;
+  --paper: #f8f9f4;
   --paper-alt: #eef3f2;
   --line: #dce6e5;
   --green: #00485a;
@@ -130,10 +130,10 @@ a { color: var(--link); }
   height: 210px;
   background: linear-gradient(
     180deg,
-    #f2f3f1 0,
-    #f2f3f1 40%,
-    rgba(242,243,241,.72) 61%,
-    rgba(242,243,241,0) 100%
+    #f8f9f4 0,
+    #f8f9f4 40%,
+    rgba(248,249,244,.72) 61%,
+    rgba(248,249,244,0) 100%
   );
   pointer-events: none;
 }
@@ -684,12 +684,12 @@ a { color: var(--link); }
   .announcement-bar { justify-content: flex-start; padding-inline: 18px; font-size: 9px; }
   .announcement-bar a { margin-left: auto; white-space: nowrap; }
   .site-header { width: calc(100% - 36px); height: 70px; top: 30px; }
-  .hero-section::before { background: linear-gradient(180deg, #f2f3f1 0, #f2f3f1 70px, rgba(242,243,241,.72) 115px, rgba(242,243,241,0) 198px); }
+  .hero-section::before { background: linear-gradient(180deg, #f8f9f4 0, #f8f9f4 70px, rgba(248,249,244,.72) 115px, rgba(248,249,244,0) 198px); }
   .brand-mark { width: 38px; height: 38px; }
   .brand-copy strong { font-size: 17px; }
   .brand-copy small { font-size: 7px; }
   .mobile-menu-button { width: 38px; height: 38px; display: grid; place-items: center; padding: 0; border: 1px solid rgba(255,255,255,.45); border-radius: 4px; background: rgba(255,255,255,.1); color: white; backdrop-filter: blur(8px); cursor: pointer; }
-  .main-nav { display: none; position: absolute; top: 62px; left: 0; right: 0; padding: 14px; background: white; border: 1px solid #e3e9e0; box-shadow: var(--shadow-soft); flex-direction: column; align-items: stretch; gap: 0; }
+  .main-nav { display: none; position: absolute; top: 62px; left: 0; right: 0; padding: 14px; background: #f8f9f4; border: 1px solid #e3e9e0; box-shadow: var(--shadow-soft); flex-direction: column; align-items: stretch; gap: 0; }
   .main-nav.is-open { display: flex; }
   .main-nav > a { padding: 12px 8px; border-bottom: 1px solid #edf0eb; color: var(--ink); font-size: 12px; }
   .nav-feedback { justify-content: space-between; margin-top: 10px; border-color: #ced8ce; background: transparent; color: var(--ink); }
