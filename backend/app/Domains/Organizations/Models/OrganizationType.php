@@ -55,6 +55,14 @@ class OrganizationType extends Model
     }
 
     /**
+     * Alias for allowedParents to match resource naming.
+     */
+    public function allowedParentTypes(): BelongsToMany
+    {
+        return $this->allowedParents();
+    }
+
+    /**
      * Organization types that this type is allowed to have as children.
      */
     public function allowedChildren(): BelongsToMany

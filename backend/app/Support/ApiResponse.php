@@ -56,12 +56,15 @@ class ApiResponse
     public static function paginated(
         LengthAwarePaginator $paginator,
         string $message = 'Data retrieved successfully.',
-        int $statusCode = 200
+        int $statusCode = 200,
+        ?string $resourceClass = null
     ): JsonResponse {
+        $items = $resourceClass ? $resourceClass::collection($paginator->items()) : $paginator->items();
+
         return response()->json([
             'success' => true,
             'message' => $message,
-            'data' => $paginator->items(),
+            'data' => $items,
             'errors' => null,
             'meta' => [
                 'current_page' => $paginator->currentPage(),

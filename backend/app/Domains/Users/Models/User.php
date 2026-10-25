@@ -7,6 +7,7 @@ namespace App\Domains\Users\Models;
 use App\Domains\AuditLogs\Models\AuditLog;
 use App\Domains\Authorization\Models\Role;
 use App\Domains\Organizations\Models\Organization;
+use App\Domains\Organizations\Traits\HasOrganizationScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,7 +18,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, HasOrganizationScope, Notifiable, SoftDeletes;
 
     protected $table = 'users';
 

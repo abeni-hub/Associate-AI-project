@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Organizations\Models;
 
 use App\Domains\AuditLogs\Models\AuditLog;
+use App\Domains\Organizations\Traits\HasOrganizationScope;
 use App\Domains\Users\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Organization extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasOrganizationScope, SoftDeletes;
 
     protected $table = 'organizations';
 
