@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --ink: #00485a;
+  --ink-deep: #003946;
+  --ink-soft: #3d6670;
+  --link: #00485a;
+  --muted: #73837d;
+  --paper: #f8f9f4;
+  --paper-alt: #eef3f2;
+  --line: #dce6e5;
+  --green: #00485a;
+  --green-bright: #76a6a5;
+  --gold: #d6a854;
+  --gold-pale: #f5eddb;
+  --white: #fff;
+  --shadow-soft: 0 16px 40px rgba(0, 55, 68, .07);
+  --shadow-card: 0 28px 60px rgba(0, 48, 59, .12);
+  font-family: 'DM Sans', 'Noto Sans Ethiopic', 'Nyala', 'Abyssinica SIL', 'Segoe UI', sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* { box-sizing: border-box; }
+html { min-width: 320px; min-height: 100%; background: var(--paper); }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input, select, textarea { font: inherit; }
+button, a, select { -webkit-tap-highlight-color: transparent; }
+button { color: inherit; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid #b28b47; outline-offset: 3px; }
+::selection { color: #15372e; background: #e3d4a8; }
