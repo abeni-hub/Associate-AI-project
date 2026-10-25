@@ -38,11 +38,19 @@ Checks application health, API version, and database connectivity.
 
 ## 2. Authentication & Session Management
 
-Authentication uses **Laravel Sanctum's first-party stateful SPA cookie authentication**.
+Authentication supports both **Bearer API Tokens** (recommended for Postman, Mobile, and API clients) and **Laravel Sanctum Stateful SPA Cookies** (for web SPAs).
 
-Before calling authenticated endpoints from a browser/SPA:
+#### Using Bearer Tokens (Postman / Mobile / API clients):
+1. Call `POST /api/v1/auth/login`. The response includes a `token` (and `token_type: "Bearer"`).
+2. For all subsequent requests, add the header:
+   ```http
+   Authorization: Bearer <your_token_here>
+   ```
+
+#### Using Stateful SPA Cookies:
 1. Initialize CSRF protection: `GET /sanctum/csrf-cookie` (sets `XSRF-TOKEN` cookie).
-2. Pass the `X-XSRF-TOKEN` header on all mutation requests (`POST`, `PUT`, `DELETE`).
+2. Pass the `Referer` header matching the allowed stateful domain (e.g. `Referer: http://127.0.0.1:8000`).
+3. Pass the `X-XSRF-TOKEN` header on all mutation requests (`POST`, `PUT`, `DELETE`).
 
 ### `POST /api/v1/auth/login`
 Authenticates user credentials and establishes a session.
@@ -86,10 +94,14 @@ Authenticates user credentials and establishes a session.
       "name": "Sub-City Admin",
       "slug": "sub_city_admin"
     },
-    "created_at": "2026-10-25T00:00:00+03:00"
+    "created_at": "2026-10-25T00:00:00+03:00",
+    "token": "1|abcdef1234567890abcdef...",
+    "token_type": "Bearer"
   },
   "errors": null,
   "meta": {
+    "token": "1|abcdef1234567890abcdef...",
+    "token_type": "Bearer",
     "must_change_password": false
   }
 }
@@ -292,3 +304,181 @@ Completes password reset using a secure token.
   "errors": null
 }
 ```
+
+---
+
+## 3. Authorization & Role Management
+
+Protected endpoints for managing roles, permissions, and organization-scoped authorization.
+
+### `GET /api/v1/roles`
+List all platform roles along with their permission counts.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `roles.view` (or Super Admin)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Roles retrieved successfully.",
+  "data": [
+    {
+      "id": 1,
+      "name": "Super Admin",
+      "slug": "super_admin",
+      "description": "Platform-wide administrator with full authority across all modules.",
+      "is_system": true,
+      "is_active": true,
+      "permissions_count": 35,
+      "created_at": "2026-10-25T00:00:00+03:00"
+    },
+    {
+      "id": 2,
+      "name": "Sub-City Admin",
+      "slug": "sub_city_admin",
+      "description": "Sub-City level administrator managing own organization and descendant Woredas/Bureaus.",
+      "is_system": true,
+      "is_active": true,
+      "permissions_count": 22,
+      "created_at": "2026-10-25T00:00:00+03:00"
+    }
+  ],
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/roles/{id}`
+Retrieve full details of a specific role including its complete permissions list.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `roles.view` (or Super Admin)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Role retrieved successfully.",
+  "data": {
+    "id": 2,
+    "name": "Sub-City Admin",
+    "slug": "sub_city_admin",
+    "description": "Sub-City level administrator managing own organization and descendant Woredas/Bureaus.",
+    "is_system": true,
+    "is_active": true,
+    "permissions": [
+      {
+        "id": 1,
+        "key": "organizations.view",
+        "name": "View Organizations",
+        "group": "organizations",
+        "description": "View organization profiles and hierarchy."
+      },
+      {
+        "id": 5,
+        "key": "users.create",
+        "name": "Create Users",
+        "group": "users",
+        "description": "Create staff or administrative users."
+      }
+    ],
+    "created_at": "2026-10-25T00:00:00+03:00"
+  },
+  "errors": null
+}
+```
+
+---
+
+### `PUT /api/v1/roles/{id}/permissions`
+Synchronize and update permissions assigned to a role.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `roles.manage` (or Super Admin)
+- **Request Body**:
+```json
+{
+  "permission_ids": [1, 2, 5, 8, 12]
+}
+```
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Role permissions updated successfully.",
+  "data": {
+    "id": 5,
+    "name": "Staff",
+    "slug": "staff",
+    "description": "Operational government staff member.",
+    "is_system": true,
+    "is_active": true,
+    "permissions": [
+      {
+        "id": 1,
+        "key": "organizations.view",
+        "name": "View Organizations",
+        "group": "organizations",
+        "description": "View organization profiles and hierarchy."
+      }
+    ],
+    "created_at": "2026-10-25T00:00:00+03:00"
+  },
+  "errors": null
+}
+```
+- **Error Response — Super Admin Protection (422)**:
+```json
+{
+  "success": false,
+  "message": "Super Admin permissions cannot be modified.",
+  "data": null,
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/permissions`
+List all platform permissions grouped by domain.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `roles.view` (or Super Admin)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Permissions retrieved successfully.",
+  "data": [
+    {
+      "id": 1,
+      "key": "organizations.view",
+      "name": "View Organizations",
+      "group": "organizations",
+      "description": "View organization profiles and hierarchy."
+    },
+    {
+      "id": 2,
+      "key": "organizations.create",
+      "name": "Create Organizations",
+      "group": "organizations",
+      "description": "Create new government organizations."
+    }
+  ],
+  "errors": null
+}
+```
+
+---
+
+## 4. Organization Data Scoping Architecture
+
+The platform applies strict hierarchy-aware data scoping across all modules:
+
+1. **Super Admin**: Platform-wide unrestricted scope (`getAllowedOrganizationIds` returns `null`).
+2. **Sub-City Admin**: 
+   - Scoped to own Sub-City.
+   - For modules with descendant visibility (e.g. Feedback, Users, Services), scope automatically includes all descendant Woredas and Bureaus.
+   - Cannot view or manage other Sub-Cities or their descendant units.
+3. **Woreda Admin**:
+   - Scoped to own Woreda and its descendant Bureaus.
+   - Cannot view or modify parent Sub-City or sibling Woredas.
+4. **Bureau Admin / Staff**:
+   - Strictly isolated to own Bureau (`organization_id`).
+

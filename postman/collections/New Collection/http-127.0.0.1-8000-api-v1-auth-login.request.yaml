@@ -1,18 +1,25 @@
 $kind: http-request
 name: http://127.0.0.1:8000/api/v1/auth/login
 description: ""
-url: http://127.0.0.1:8000/api/v1/auth/login
-method: POST
+url: http://127.0.0.1:8000/api/v1/auth/change-password
+method: PUT
 headers:
-  X-XSRF-TOKEN: eyJpdiI6IjlDR3hGbkpLRStrUXFmZzZRdFM2R2c9PSIsInZhbHVlIjoiYThsaCtScFZ2dU9VdzQyWFVLVXZvTlJHTGlJM1RHK3ZLWWtnMVhqOFB1Y2s5QzNIWFZ4NUJnUVdYeHdkN291aWpDbzdHT2RRdndyakRPYk55WlpRU1lFNmp4bExkbGN1bkdMK3g0dDVKSWhyL0J5dVVZY3FUNlNkY1FOd25rWjEiLCJtYWMiOiI4MDg0MDk1MGMxZTMwZjc3YzAxMzViNDIxNWU4NDRiMThmMjIxNTk0OTU2YmM0MjkzOGRiYTRlNDljZjZlZDhlIiwidGFnIjoiIn0%3D
-  laravel_session: eyJpdiI6Ik9yQVRoY2lLUFhpWkxlNGtBNUpuc0E9PSIsInZhbHVlIjoiMEhEZjdaUjcydkhLekpiS1N6YVdLNG1PVkxKVndZV1BPYStRT0wySjRVQ1RaNFBITTgyRXRnZURpUG44citXQkNZNXI4TE9JUURZRXNnMnFhSXRkK0ppY1RYZjRqdm1xUEhmUXIzYytsWDRJN2ZONk01VDNKTkx4WkJIamE4c2EiLCJtYWMiOiI3YWY3Yjk4OWIyY2NhMmNjNTEwMWU1YjUxOGIyZjViMDRiZGUwNTM3MzY0OWM4NDRlNjYzMzc5ODU2ZTJkYWZlIiwidGFnIjoiIn0%3D
+  Accept: application/json
+  Content-Type: application/json
+  X-XSRF-TOKEN: eyJpdiI6IjlDR3hGbkpLRStrUXFmZzZRdFM2R2c9PSIsInZhbHVlIjoiYThsaCtScFZ2dU9VdzQyWFVLVXZvTlJHTGlJM1RHK3ZLWWtnMVhqOFB1Y2s5QzNIWFZ4NUJnUVdYeHdkN291aWpDbzdHT2RRdndyakRPYk55WlpRU1lFNmp4bExkbGN1bkdMK3g0dDVKSWhyL0J5dVVZY3FUNlNkY1FOd25rWjEiLCJtYWMiOiI4MDg0MDk1MGMxZTMwZjc3YzAxMzViNDIxNWU4NDRiMThmMjIxNTk0OTU2YmM0MjkzOGRiYTRlNDljZjZlZDhlIiwidGFnIjoiIn0
 body:
   type: json
   content: "{\r
 
-    \  \"username\": \"abebe.k\",\r
+    \  \"current_password\": \"CorrectPassword123!\",\r
 
-    \  \"password\": \"CorrectPassword123!\"\r
+    \  \"new_password\": \"NewSecurePassword456!\",\r
+
+    \  \"new_password_confirmation\": \"NewSecurePassword456!\"\r
 
     }"
+auth:
+  type: bearer
+  credentials:
+    token: 1|8WF1sCAMuvYKcgZby3rg77VosG2uso97RjyYwi673d364752
 order: 1000

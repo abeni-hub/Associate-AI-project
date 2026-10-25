@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
         $middleware->alias([
             'account.active' => EnsureAccountIsActive::class,
+            'permission' => \App\Http\Middleware\EnsureHasPermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

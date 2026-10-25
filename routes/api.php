@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\PasswordResetController;
+use App\Http\Controllers\Api\V1\Authorization\PermissionController;
+use App\Http\Controllers\Api\V1\Authorization\RoleController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
@@ -52,11 +54,30 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('/reset-password/{token}', [PasswordResetController::class, 'resetPassword'])
             ->name('password.reset');
 
-        // Authenticated Session Endpoints (Stateful SPA)
+        // Authenticated Session Endpoints (Stateful SPA / Bearer Token)
         Route::middleware(['auth:sanctum', 'account.active'])->group(function () {
             Route::get('/me', [AuthController::class, 'me'])->name('me');
             Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
             Route::put('/change-password', [AuthController::class, 'changePassword'])->name('change-password');
         });
+    });
+
+    // Authorization & Role Management
+    Route::middleware(['auth:sanctum', 'account.active'])->group(function () {
+        Route::prefix('roles')->name('roles.')->group(function () {
+            Route::get('/', [RoleController::class, 'index'])
+                ->middleware('permission:roles.view')
+                ->name('index');
+            Route::get('/{role}', [RoleController::class, 'show'])
+                ->middleware('permission:roles.view')
+                ->name('show');
+            Route::put('/{role}/permissions', [RoleController::class, 'updatePermissions'])
+                ->middleware('permission:roles.manage')
+                ->name('update-permissions');
+        });
+
+        Route::get('/permissions', [PermissionController::class, 'index'])
+            ->middleware('permission:roles.view')
+            ->name('permissions.index');
     });
 });

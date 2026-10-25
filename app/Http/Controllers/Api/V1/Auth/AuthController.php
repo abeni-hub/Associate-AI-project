@@ -27,10 +27,18 @@ class AuthController extends Controller
             request: $request
         );
 
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        $userData = (new UserResource($user))->toArray($request);
+        $userData['token'] = $token;
+        $userData['token_type'] = 'Bearer';
+
         return ApiResponse::success(
-            data: new UserResource($user),
+            data: $userData,
             message: 'Logged in successfully.',
             meta: [
+                'token' => $token,
+                'token_type' => 'Bearer',
                 'must_change_password' => (bool) $user->must_change_password,
             ]
         );
