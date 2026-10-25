@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Auth\PasswordResetController;
 use App\Http\Controllers\Api\V1\Authorization\PermissionController;
 use App\Http\Controllers\Api\V1\Authorization\RoleController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\News\NewsController;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -79,5 +80,19 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('/permissions', [PermissionController::class, 'index'])
             ->middleware('permission:roles.view')
             ->name('permissions.index');
+
+        // News Management (Organization-scoped Edit/Delete)
+        Route::put('/news/{news}', [NewsController::class, 'update'])
+            ->middleware('permission:news.update')
+            ->name('news.update');
+        Route::delete('/news/{news}', [NewsController::class, 'destroy'])
+            ->middleware('permission:news.delete')
+            ->name('news.destroy');
     });
+
+    // Public News (no authentication required)
+    Route::get('/news', [NewsController::class, 'index'])
+        ->name('news.index');
+    Route::get('/news/{news}', [NewsController::class, 'show'])
+        ->name('news.show');
 });
