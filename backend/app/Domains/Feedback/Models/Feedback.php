@@ -19,6 +19,10 @@ class Feedback extends Model
         'feedback_for_organization',
         'feedback_content',
         'feedback_type',
+        'tracking_number',
+        'full_name',
+        'phone_number',
+        'email',
     ];
 
     /**

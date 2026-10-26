@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\PasswordResetController;
 use App\Http\Controllers\Api\V1\Authorization\PermissionController;
 use App\Http\Controllers\Api\V1\Authorization\RoleController;
+use App\Http\Controllers\Api\V1\Feedback\FeedbackController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\News\NewsController;
 use App\Support\ApiResponse;
@@ -81,6 +82,11 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             ->middleware('permission:roles.view')
             ->name('permissions.index');
 
+        // Feedback Retrieval (Organization-scoped, own or descendant units)
+        Route::get('/feedbacks', [FeedbackController::class, 'index'])
+            ->middleware('permission:feedback.view_own,feedback.view_descendants')
+            ->name('feedbacks.index');
+
         // News Management (Organization-scoped Edit/Delete)
         Route::put('/news/{news}', [NewsController::class, 'update'])
             ->middleware('permission:news.update')
@@ -95,4 +101,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->name('news.index');
     Route::get('/news/{news}', [NewsController::class, 'show'])
         ->name('news.show');
+
+    // Public Feedback Submission (no authentication required)
+    Route::post('/feedbacks', [FeedbackController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('feedbacks.store');
 });
