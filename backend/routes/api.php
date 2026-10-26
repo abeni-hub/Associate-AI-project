@@ -7,15 +7,14 @@ use App\Http\Controllers\Api\V1\Auth\PasswordResetController;
 use App\Http\Controllers\Api\V1\Authorization\PermissionController;
 use App\Http\Controllers\Api\V1\Authorization\RoleController;
 use App\Http\Controllers\Api\V1\Documents\DocumentController;
+use App\Http\Controllers\Api\V1\Feedback\FeedbackController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\News\NewsController;
 use App\Http\Controllers\Api\V1\Organizations\OrganizationController;
 use App\Http\Controllers\Api\V1\Organizations\OrganizationTypeController;
 use App\Http\Controllers\Api\V1\Services\ServiceController;
 use App\Http\Controllers\Api\V1\Services\ServiceStepController;
 use App\Http\Controllers\Api\V1\Users\UserController;
-use App\Support\ApiResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -95,12 +94,11 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             ->middleware('permission:roles.view')
             ->name('permissions.index');
 
-        // Organization Management
+                // Organization Management
         Route::get('/organization-types', [OrganizationTypeController::class, 'index'])
             ->middleware('permission:organizations.view')
             ->name('organization-types.index');
 
-        // Support both singular /organization and plural /organizations
         Route::get('/organization', [OrganizationController::class, 'index'])
             ->middleware('permission:organizations.view');
 
@@ -194,5 +192,29 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 ->middleware('permission:service_steps.manage')
                 ->name('destroy');
         });
+
+        // Feedback Retrieval
+        Route::get('/feedbacks', [FeedbackController::class, 'index'])
+            ->middleware('permission:feedback.view_own,feedback.view_descendants')
+            ->name('feedbacks.index');
+
+        // News Management
+        Route::put('/news/{news}', [NewsController::class, 'update'])
+            ->middleware('permission:news.update')
+            ->name('news.update');
+        Route::delete('/news/{news}', [NewsController::class, 'destroy'])
+            ->middleware('permission:news.delete')
+            ->name('news.destroy');
     });
+
+    // Public News (no authentication required)
+    Route::get('/news', [NewsController::class, 'index'])
+        ->name('news.index');
+    Route::get('/news/{news}', [NewsController::class, 'show'])
+        ->name('news.show');
+
+    // Public Feedback Submission (no authentication required)
+    Route::post('/feedbacks', [FeedbackController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('feedbacks.store');
 });
