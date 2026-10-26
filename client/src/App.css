@@ -38,9 +38,10 @@ button { color: inherit; }
 a { color: var(--link); }
 
 .site-shell { overflow: hidden; width: 100%; }
-.site-shell[lang="am"] { font-family: 'Noto Sans Ethiopic', 'Nyala', 'Abyssinica SIL', 'DM Sans', 'Segoe UI', sans-serif; }
+.site-shell[lang="am"] { font-family: 'Noto Sans Ethiopic', 'Nyala', 'Abyssinica SIL', 'DM Sans', 'Segoe UI', sans-serif; line-height: 1.35; }
 .site-shell[lang="am"] :is(h1, h2, h3, h4, .eyebrow, .section-kicker, .panel-overline, .hero-bureau-tag, .form-eyebrow, .admin-strip-kicker, .news-meta, .sample-badge, .journey-index) { letter-spacing: 0; }
-.site-shell[lang="am"] :is(.hero-copy h1, .hero-lede, .hero-carousel-caption h2, .hero-carousel-caption p, .section-intro h2, .section-intro > p, .guide-card-top h3, .guide-card-top p, .document-list li, .route-description b, .route-description small, .journey-card h3, .journey-card p, .news-header h2, .news-feature h3, .news-feature p, .news-small-card h3, .news-small-card p, .feedback-copy h2, .feedback-copy > p, .feedback-quote p, .feedback-step-title h4, .admin-strip h3, .admin-strip p) { line-height: 1.5; }
+.site-shell[lang="am"] :is(h1, h2, h3, h4, h5, h6) { line-height: 1.2; }
+.site-shell[lang="am"] :is(p, li, blockquote, small, label, textarea) { line-height: 1.35; }
 
 .announcement-bar {
   min-height: 30px;
@@ -911,3 +912,204 @@ a { color: var(--link); }
 .guide-card-bottom {
   font-size: 12px;
 }
+
+/* Amharic-only font-size reduction: 10% */
+:where(.site-shell[lang="am"]) .announcement-bar { font-size: calc((11px) * 0.9); }
+:where(.site-shell[lang="am"]) .brand-copy strong { font-size: calc((19px) * 0.9); }
+:where(.site-shell[lang="am"]) .brand-copy small { font-size: calc((8px) * 0.9); }
+:where(.site-shell[lang="am"]) .main-nav > a { font-size: calc((12px) * 0.9); }
+:where(.site-shell[lang="am"]) .nav-feedback { font-size: calc((12px) * 0.9); }
+:where(.site-shell[lang="am"]) .language-toggle { font-size: calc((12px) * 0.9); }
+:where(.site-shell[lang="am"]) .eyebrow, :where(.site-shell[lang="am"]) .section-kicker { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .hero-copy h1 { font-size: calc((clamp(58px, 6.5vw, 88px)) * 0.9); }
+:where(.site-shell[lang="am"]) .hero-lede { font-size: calc((15px) * 0.9); }
+:where(.site-shell[lang="am"]) .button { font-size: calc((12px) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-play { font-size: calc((12px) * 0.9); }
+:where(.site-shell[lang="am"]) .hero-slide-count { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .hero-bureau-tag { font-size: calc((7px) * 0.9); }
+:where(.site-shell[lang="am"]) .hero-carousel-caption h2 { font-size: calc((clamp(24px, 2.3vw, 34px)) * 0.9); }
+:where(.site-shell[lang="am"]) .hero-carousel-caption p { font-size: calc((10px) * 0.9); }
+:where(.site-shell[lang="am"]) .hero-photo-credit { font-size: calc((7px) * 0.9); }
+:where(.site-shell[lang="am"]) .section-kicker > span { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .quick-search-heading h2 { font-size: calc((18px) * 0.9); }
+:where(.site-shell[lang="am"]) .quick-search-heading p { font-size: calc((11px) * 0.9); }
+:where(.site-shell[lang="am"]) .select-field { font-size: calc((11px) * 0.9); }
+:where(.site-shell[lang="am"]) .select-wrap select, :where(.site-shell[lang="am"]) .feedback-select-wrap select { font-size: calc((13px) * 0.9); }
+:where(.site-shell[lang="am"]) .search-button { font-size: calc((11px) * 0.9); }
+:where(.site-shell[lang="am"]) .search-footnote { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .section-intro h2, :where(.site-shell[lang="am"]) .news-header h2 { font-size: calc((clamp(34px, 4vw, 49px)) * 0.9); }
+:where(.site-shell[lang="am"]) .section-intro > p { font-size: calc((12px) * 0.9); }
+:where(.site-shell[lang="am"]) .guide-location { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .guide-card-top h3 { font-size: calc((23px) * 0.9); }
+:where(.site-shell[lang="am"]) .guide-card-top p { font-size: calc((10px) * 0.9); }
+:where(.site-shell[lang="am"]) .sample-badge { font-size: calc((7px) * 0.9); }
+:where(.site-shell[lang="am"]) .panel-overline { font-size: calc((7px) * 0.9); }
+:where(.site-shell[lang="am"]) .panel-title h4 { font-size: calc((13px) * 0.9); }
+:where(.site-shell[lang="am"]) .document-list li { font-size: calc((10px) * 0.9); }
+:where(.site-shell[lang="am"]) .expectations-note { font-size: calc((8px) * 0.9); }
+:where(.site-shell[lang="am"]) .route-number { font-size: calc((8px) * 0.9); }
+:where(.site-shell[lang="am"]) .room-pill { font-size: calc((8px) * 0.9); }
+:where(.site-shell[lang="am"]) .route-description b { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .route-description small { font-size: calc((8px) * 0.9); }
+:where(.site-shell[lang="am"]) .guide-card-bottom { font-size: calc((8px) * 0.9); }
+:where(.site-shell[lang="am"]) .sample-disclaimer { font-size: calc((8px) * 0.9); }
+:where(.site-shell[lang="am"]) .journey-index { font-size: calc((8px) * 0.9); }
+:where(.site-shell[lang="am"]) .journey-card h3 { font-size: calc((20px) * 0.9); }
+:where(.site-shell[lang="am"]) .journey-card p { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .journey-card > a, :where(.site-shell[lang="am"]) .journey-card > button { font-size: calc((10px) * 0.9); }
+:where(.site-shell[lang="am"]) .art-route span { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .art-stars span { font-size: calc((24px) * 0.9); }
+:where(.site-shell[lang="am"]) .qr-note p { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .qr-note button { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .update-source { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .news-photo-label { font-size: calc((7px) * 0.9); }
+:where(.site-shell[lang="am"]) .news-meta { font-size: calc((7px) * 0.9); }
+:where(.site-shell[lang="am"]) .news-feature h3, :where(.site-shell[lang="am"]) .news-small-card h3 { font-size: calc((16px) * 0.9); }
+:where(.site-shell[lang="am"]) .news-feature p, :where(.site-shell[lang="am"]) .news-small-card p { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .news-feature > a, :where(.site-shell[lang="am"]) .news-small-card > a { font-size: calc((10px) * 0.9); }
+:where(.site-shell[lang="am"]) .news-small-card h3 { font-size: calc((17px) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-copy h2 { font-size: calc((clamp(36px, 4vw, 50px)) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-copy > p { font-size: calc((11px) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-points { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .quote-mark { font-size: calc((36px) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-quote p { font-size: calc((12px) * 0.9); }
+:where(.site-shell[lang="am"]) .form-eyebrow { font-size: calc((7px) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-form-heading h3 { font-size: calc((19px) * 0.9); }
+:where(.site-shell[lang="am"]) .form-step-count { font-size: calc((15px) * 0.9); }
+:where(.site-shell[lang="am"]) .form-step-count i { font-size: calc((11px) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-step-title > span { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-step-title h4 { font-size: calc((14px) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-type-option b { font-size: calc((11px) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-type-option small { font-size: calc((10px) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-select-label { font-size: calc((11px) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-select-wrap select { font-size: calc((13px) * 0.9); }
+:where(.site-shell[lang="am"]) .message-label { font-size: calc((11px) * 0.9); }
+:where(.site-shell[lang="am"]) .message-label textarea { font-size: calc((12px) * 0.9); }
+:where(.site-shell[lang="am"]) .rating-field legend { font-size: calc((11px) * 0.9); }
+:where(.site-shell[lang="am"]) .rating-options button { font-size: calc((18px) * 0.9); }
+:where(.site-shell[lang="am"]) .rating-hint { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .privacy-note { font-size: calc((10px) * 0.9); }
+:where(.site-shell[lang="am"]) .form-next-button { font-size: calc((11px) * 0.9); }
+:where(.site-shell[lang="am"]) .back-step-button { font-size: calc((11px) * 0.9); }
+:where(.site-shell[lang="am"]) .form-required-note { font-size: calc((10px) * 0.9); }
+:where(.site-shell[lang="am"]) .demo-note { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-form-footer { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-success h3 { font-size: calc((24px) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-success p { font-size: calc((12px) * 0.9); }
+:where(.site-shell[lang="am"]) .feedback-success .button { font-size: calc((11px) * 0.9); }
+:where(.site-shell[lang="am"]) .admin-strip-kicker { font-size: calc((7px) * 0.9); }
+:where(.site-shell[lang="am"]) .admin-strip h3 { font-size: calc((13px) * 0.9); }
+:where(.site-shell[lang="am"]) .admin-strip p { font-size: calc((9px) * 0.9); }
+:where(.site-shell[lang="am"]) .admin-strip-roles { font-size: calc((7px) * 0.9); }
+:where(.site-shell[lang="am"]) .footer-main > p { font-size: calc((11px) * 0.9); }
+:where(.site-shell[lang="am"]) .footer-nav a { font-size: calc((8px) * 0.9); }
+:where(.site-shell[lang="am"]) .footer-bottom { font-size: calc((7px) * 0.9); }
+@media (max-width: 760px) {
+  :where(.site-shell[lang="am"]) .announcement-bar { font-size: calc((9px) * 0.9); }
+  :where(.site-shell[lang="am"]) .brand-copy strong { font-size: calc((17px) * 0.9); }
+  :where(.site-shell[lang="am"]) .brand-copy small { font-size: calc((7px) * 0.9); }
+  :where(.site-shell[lang="am"]) .main-nav > a { font-size: calc((12px) * 0.9); }
+  :where(.site-shell[lang="am"]) .hero-copy h1 { font-size: calc((clamp(46px, 10vw, 68px)) * 0.9); }
+  :where(.site-shell[lang="am"]) .hero-lede { font-size: calc((13px) * 0.9); }
+  :where(.site-shell[lang="am"]) .button { font-size: calc((10px) * 0.9); }
+  :where(.site-shell[lang="am"]) .hero-photo-credit { font-size: calc((6px) * 0.9); }
+  :where(.site-shell[lang="am"]) .quick-search-heading h2 { font-size: calc((17px) * 0.9); }
+  :where(.site-shell[lang="am"]) .select-wrap select { font-size: calc((13px) * 0.9); }
+  :where(.site-shell[lang="am"]) .search-form .search-button { font-size: calc((11px) * 0.9); }
+  :where(.site-shell[lang="am"]) .search-footnote { font-size: calc((8px) * 0.9); }
+  :where(.site-shell[lang="am"]) .section-intro h2, :where(.site-shell[lang="am"]) .news-header h2 { font-size: calc((39px) * 0.9); }
+  :where(.site-shell[lang="am"]) .section-intro > p { font-size: calc((10px) * 0.9); }
+  :where(.site-shell[lang="am"]) .guide-card-top h3 { font-size: calc((19px) * 0.9); }
+  :where(.site-shell[lang="am"]) .guide-location { font-size: calc((8px) * 0.9); }
+  :where(.site-shell[lang="am"]) .sample-badge { font-size: calc((6px) * 0.9); }
+  :where(.site-shell[lang="am"]) .document-list li { font-size: calc((9px) * 0.9); }
+  :where(.site-shell[lang="am"]) .route-description small { font-size: calc((7px) * 0.9); }
+  :where(.site-shell[lang="am"]) .guide-card-bottom { font-size: calc((7px) * 0.9); }
+  :where(.site-shell[lang="am"]) .sample-disclaimer { font-size: calc((7px) * 0.9); }
+  :where(.site-shell[lang="am"]) .journey-card h3 { font-size: calc((19px) * 0.9); }
+  :where(.site-shell[lang="am"]) .journey-card p { font-size: calc((9px) * 0.9); }
+  :where(.site-shell[lang="am"]) .news-small-card h3 { font-size: calc((17px) * 0.9); }
+  :where(.site-shell[lang="am"]) .feedback-copy h2 { font-size: calc((39px) * 0.9); }
+  :where(.site-shell[lang="am"]) .feedback-copy > p { font-size: calc((10px) * 0.9); }
+  :where(.site-shell[lang="am"]) .feedback-form-heading h3 { font-size: calc((17px) * 0.9); }
+  :where(.site-shell[lang="am"]) .feedback-form-card .form-next-button { font-size: calc((11px) * 0.9); }
+  :where(.site-shell[lang="am"]) .feedback-form-card .feedback-success .button { font-size: calc((11px) * 0.9); }
+  :where(.site-shell[lang="am"]) .admin-strip h3 { font-size: calc((11px) * 0.9); }
+  :where(.site-shell[lang="am"]) .admin-strip p { font-size: calc((8px) * 0.9); }
+  :where(.site-shell[lang="am"]) .footer-main > p { font-size: calc((10px) * 0.9); }
+  :where(.site-shell[lang="am"]) .footer-bottom { font-size: calc((7px) * 0.9); }
+}
+@media (max-width: 390px) {
+  :where(.site-shell[lang="am"]) .announcement-bar { font-size: calc((8px) * 0.9); }
+  :where(.site-shell[lang="am"]) .announcement-bar a { font-size: calc((8px) * 0.9); }
+  :where(.site-shell[lang="am"]) .hero-copy h1 { font-size: calc((43px) * 0.9); }
+  :where(.site-shell[lang="am"]) .section-intro h2, :where(.site-shell[lang="am"]) .news-header h2, :where(.site-shell[lang="am"]) .feedback-copy h2 { font-size: calc((35px) * 0.9); }
+  :where(.site-shell[lang="am"]) .guide-card-top h3 { font-size: calc((17px) * 0.9); }
+  :where(.site-shell[lang="am"]) .sample-badge { font-size: calc((5px) * 0.9); }
+  :where(.site-shell[lang="am"]) .room-pill { font-size: calc((7px) * 0.9); }
+}
+.site-shell:where([lang="am"]) :is(
+  small,
+  .announcement-bar,
+  .announcement-bar a,
+  .eyebrow,
+  .section-kicker,
+  .section-kicker > span,
+  .hero-slide-count,
+  .hero-bureau-tag,
+  .hero-carousel-caption p,
+  .hero-photo-credit,
+  .quick-search-heading p,
+  .select-field,
+  .search-footnote,
+  .section-intro > p,
+  .guide-location,
+  .guide-card-top p,
+  .sample-badge,
+  .panel-overline,
+  .document-list li,
+  .expectations-note,
+  .route-number,
+  .room-pill,
+  .route-description b,
+  .route-description small,
+  .guide-card-bottom,
+  .sample-disclaimer,
+  .journey-index,
+  .journey-card p,
+  .journey-card > a,
+  .journey-card > button,
+  .qr-note p,
+  .qr-note button,
+  .update-source,
+  .news-photo-label,
+  .news-meta,
+  .news-feature p,
+  .news-small-card p,
+  .news-feature > a,
+  .news-small-card > a,
+  .feedback-copy > p,
+  .feedback-points,
+  .form-eyebrow,
+  .feedback-step-title > span,
+  .feedback-type-option b,
+  .feedback-type-option small,
+  .feedback-select-label,
+  .message-label,
+  .rating-field legend,
+  .rating-hint,
+  .privacy-note,
+  .form-next-button,
+  .back-step-button,
+  .form-required-note,
+  .demo-note,
+  .feedback-form-footer,
+  .admin-strip-kicker,
+  .admin-strip p,
+  .admin-strip-roles,
+  .footer-main > p,
+  .footer-nav a,
+  .footer-bottom
+) { font-size: calc((11px) * 0.9); }
+.site-shell:where([lang="am"]) .button { font-size: calc((max(11px, .75rem)) * 0.9); }
+:where(.site-shell[lang="am"]) .guide-card .panel-overline, :where(.site-shell[lang="am"]) .guide-card .document-list li, :where(.site-shell[lang="am"]) .guide-card .expectations-note, :where(.site-shell[lang="am"]) .guide-card .route-description b, :where(.site-shell[lang="am"]) .guide-card .route-description small, :where(.site-shell[lang="am"]) .guide-card-bottom { font-size: calc((12px) * 0.9); }
