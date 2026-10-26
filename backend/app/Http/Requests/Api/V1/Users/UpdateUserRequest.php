@@ -102,6 +102,16 @@ class UpdateUserRequest extends FormRequest
                 }
             }
 
+            // Prevent deactivating last active super admin
+            if ($this->has('status') && $this->input('status') !== 'active' && $targetUser->isSuperAdmin()) {
+                $activeSuperAdminCount = User::whereHas('role', fn ($q) => $q->where('slug', 'super_admin'))
+                    ->where('status', 'active')
+                    ->count();
+                if ($activeSuperAdminCount <= 1) {
+                    $validator->errors()->add('status', 'Cannot deactivate the last remaining active Super Admin in the system.');
+                }
+            }
+
             // 4. Reassignment organization scope check
             if ($this->has('organization_id')) {
                 $newOrgId = $this->input('organization_id') !== null ? (int) $this->input('organization_id') : null;

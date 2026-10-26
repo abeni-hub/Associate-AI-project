@@ -22,6 +22,10 @@ class User extends Authenticatable
 
     protected $table = 'users';
 
+    protected $attributes = [
+        'status' => 'active',
+    ];
+
     protected $fillable = [
         'organization_id',
         'role_id',
@@ -107,6 +111,6 @@ class User extends Authenticatable
      */
     public function isActive(): bool
     {
-        return $this->status === 'active';
+        return ($this->status ?? 'active') === 'active';
     }
 }

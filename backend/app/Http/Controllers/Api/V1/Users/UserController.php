@@ -173,7 +173,11 @@ class UserController extends Controller
             }
 
             $superAdminCount = User::whereHas('role', fn ($q) => $q->where('slug', 'super_admin'))->count();
-            if ($superAdminCount <= 1) {
+            $activeSuperAdminCount = User::whereHas('role', fn ($q) => $q->where('slug', 'super_admin'))
+                ->where('status', 'active')
+                ->count();
+
+            if ($superAdminCount <= 1 || ($user->isActive() && $activeSuperAdminCount <= 1)) {
                 return ApiResponse::error(
                     message: 'Cannot delete the last remaining Super Admin in the system.',
                     statusCode: 422
