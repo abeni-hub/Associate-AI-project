@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\AuditLogs\Actions;
 
 use App\Domains\AuditLogs\Models\AuditLog;
+use App\Domains\Organizations\Models\Organization;
 use App\Domains\Users\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -35,7 +36,9 @@ class RecordAuditLogAction
         $orgId = null;
         if (isset($entity->organization_id)) {
             $orgId = (int) $entity->organization_id;
-        } elseif ($entity instanceof \App\Domains\Organizations\Models\Organization) {
+        } elseif (isset($entity->feedback_for_organization)) {
+            $orgId = (int) $entity->feedback_for_organization;
+        } elseif ($entity instanceof Organization) {
             $orgId = (int) $entity->id;
         } elseif ($actor && isset($actor->organization_id)) {
             $orgId = (int) $actor->organization_id;
@@ -63,7 +66,16 @@ class RecordAuditLogAction
      */
     private function sanitizePayload(array $payload): array
     {
-        $sensitiveKeys = ['password', 'remember_token', 'token', 'secret'];
+        $sensitiveKeys = [
+            'password',
+            'password_confirmation',
+            'remember_token',
+            'token',
+            'secret',
+            'api_key',
+            'access_token',
+            'bearer_token',
+        ];
 
         foreach ($sensitiveKeys as $key) {
             if (array_key_exists($key, $payload)) {

@@ -4,10 +4,30 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api\V1;
 
+use App\Support\ApiResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class ApiResponseFormatTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Register in-memory test route fixture for API validation contract testing
+        Route::post('/api/v1/test-validation-fixture', function (Request $request) {
+            $validated = $request->validate([
+                'test_field' => ['required', 'string', 'min:3'],
+            ]);
+
+            return ApiResponse::success(
+                data: $validated,
+                message: 'Validation passed successfully.'
+            );
+        });
+    }
+
     public function test_api_success_response_conforms_to_contract(): void
     {
         $response = $this->getJson('/api/v1/health');
@@ -24,7 +44,7 @@ class ApiResponseFormatTest extends TestCase
 
     public function test_api_validation_error_response_conforms_to_contract(): void
     {
-        $response = $this->postJson('/api/v1/test-validation', [
+        $response = $this->postJson('/api/v1/test-validation-fixture', [
             'test_field' => 'ab', // Below min 3
         ]);
 
@@ -46,7 +66,7 @@ class ApiResponseFormatTest extends TestCase
 
     public function test_api_validation_success_returns_data(): void
     {
-        $response = $this->postJson('/api/v1/test-validation', [
+        $response = $this->postJson('/api/v1/test-validation-fixture', [
             'test_field' => 'valid-string',
         ]);
 
@@ -59,5 +79,15 @@ class ApiResponseFormatTest extends TestCase
                 ],
                 'errors' => null,
             ]);
+    }
+
+    public function test_temporary_test_validation_endpoint_is_not_accessible(): void
+    {
+        $response = $this->postJson('/api/v1/test-validation', [
+            'test_field' => 'valid-string',
+        ]);
+
+        $response->assertStatus(404);
+        $this->assertNull(Route::getRoutes()->getByName('api.v1.test.validation'));
     }
 }

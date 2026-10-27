@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('feedbacks', function (Blueprint $table) {
-            $table->string('tracking_number')->nullable();
+            if (! Schema::hasColumn('feedbacks', 'tracking_number')) {
+                $table->string('tracking_number')->nullable()->unique();
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('feedbacks', function (Blueprint $table) {
-            $table->dropColumn('tracking_number');
+            if (Schema::hasColumn('feedbacks', 'tracking_number')) {
+                $table->dropColumn('tracking_number');
+            }
         });
     }
 };

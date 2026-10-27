@@ -19,17 +19,20 @@ class UserSeeder extends Seeder
         $superAdminRole = Role::where('slug', 'super_admin')->firstOrFail();
         $subCityAdminRole = Role::where('slug', 'sub_city_admin')->first() ?? $superAdminRole;
 
+        $initialAdminPassword = env('INITIAL_SUPER_ADMIN_PASSWORD', 'Admin123!Secure');
+        $requireChange = empty(env('INITIAL_SUPER_ADMIN_PASSWORD')) || app()->isProduction();
+
         // 1. Super Admin Account
         User::updateOrCreate(
             ['username' => 'admin'],
             [
                 'name' => 'System Administrator',
                 'email' => 'admin@government.et',
-                'password' => Hash::make('Admin123!Secure'),
+                'password' => Hash::make($initialAdminPassword),
                 'role_id' => $superAdminRole->id,
                 'status' => 'active',
                 'phone' => '+251911000000',
-                'must_change_password' => false,
+                'must_change_password' => $requireChange,
             ]
         );
 

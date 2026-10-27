@@ -1014,6 +1014,577 @@ Reorder sequential step numbers in batch.
 ```
 - **Response (200 OK)**: Returns reordered array of `ServiceStepResource`.
 
+---
+
+## 10. News Management
+
+Public discovery and administrative management of official municipal announcements, press releases, and notices with ordered content blocks.
+
+---
+
+### `GET /api/v1/news`
+List all published news articles ordered newest first.
+- **Authentication**: None (Public)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "News retrieved successfully.",
+  "data": [
+    {
+      "id": 1,
+      "organization_id": 1,
+      "news_title": "City Administration Announces Digital Transformation Initiative",
+      "created_at": "2026-10-26T10:00:00+00:00",
+      "updated_at": "2026-10-26T10:00:00+00:00",
+      "organization": {
+        "id": 1,
+        "name": "Bole Sub-City",
+        "code": "subcity-bole"
+      },
+      "contents": [
+        {
+          "id": 1,
+          "news_id": 1,
+          "content": "The initiative aims to streamline citizen service delivery across all municipal bureaus.",
+          "content_type": "text",
+          "order": 1,
+          "created_at": "2026-10-26T10:00:00+00:00",
+          "updated_at": "2026-10-26T10:00:00+00:00"
+        },
+        {
+          "id": 2,
+          "news_id": 1,
+          "content": "Citizens can now track requests and view room instructions online.",
+          "content_type": "text",
+          "order": 2,
+          "created_at": "2026-10-26T10:00:00+00:00",
+          "updated_at": "2026-10-26T10:00:00+00:00"
+        }
+      ]
+    }
+  ],
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/news/{id}`
+Retrieve a single news article with its organization context and ordered content blocks.
+- **Authentication**: None (Public)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "News retrieved successfully.",
+  "data": {
+    "id": 1,
+    "organization_id": 1,
+    "news_title": "City Administration Announces Digital Transformation Initiative",
+    "created_at": "2026-10-26T10:00:00+00:00",
+    "updated_at": "2026-10-26T10:00:00+00:00",
+    "organization": {
+      "id": 1,
+      "name": "Bole Sub-City",
+      "code": "subcity-bole"
+    },
+    "contents": [
+      {
+        "id": 1,
+        "news_id": 1,
+        "content": "The initiative aims to streamline citizen service delivery across all municipal bureaus.",
+        "content_type": "text",
+        "order": 1,
+        "created_at": "2026-10-26T10:00:00+00:00",
+        "updated_at": "2026-10-26T10:00:00+00:00"
+      }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `POST /api/v1/news`
+Draft and create a new news article with ordered content blocks.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `news.create`
+- **Request Body**:
+```json
+{
+  "news_title": "Clean City Campaign Kickoff",
+  "organization_id": 1,
+  "contents": [
+    {
+      "content": "Volunteers and public officials are gathering at Bole Square this Saturday at 8:00 AM.",
+      "content_type": "text",
+      "order": 1
+    },
+    {
+      "content": "All community members are encouraged to participate in the environmental initiative.",
+      "content_type": "text",
+      "order": 2
+    }
+  ]
+}
+```
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "News created successfully.",
+  "data": {
+    "id": 2,
+    "organization_id": 1,
+    "news_title": "Clean City Campaign Kickoff",
+    "created_at": "2026-10-26T10:15:00+00:00",
+    "updated_at": "2026-10-26T10:15:00+00:00",
+    "organization": {
+      "id": 1,
+      "name": "Bole Sub-City",
+      "code": "subcity-bole"
+    },
+    "contents": [
+      {
+        "id": 3,
+        "news_id": 2,
+        "content": "Volunteers and public officials are gathering at Bole Square this Saturday at 8:00 AM.",
+        "content_type": "text",
+        "order": 1,
+        "created_at": "2026-10-26T10:15:00+00:00",
+        "updated_at": "2026-10-26T10:15:00+00:00"
+      }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `PUT /api/v1/news/{id}`
+Update a news article's title and/or replace its content blocks.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `news.update`
+- **Scope Restriction**: Only allowed for the authoring organization, its ancestor hierarchy, or Super Admin.
+- **Request Body**:
+```json
+{
+  "news_title": "Updated: Clean City Campaign Kickoff Location and Details",
+  "contents": [
+    {
+      "content": "Due to weather forecasts, gathering is rescheduled to 9:00 AM at Bole Central Park.",
+      "content_type": "text",
+      "order": 1
+    }
+  ]
+}
+```
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "News updated successfully.",
+  "data": {
+    "id": 2,
+    "organization_id": 1,
+    "news_title": "Updated: Clean City Campaign Kickoff Location and Details",
+    "created_at": "2026-10-26T10:15:00+00:00",
+    "updated_at": "2026-10-26T11:00:00+00:00",
+    "organization": {
+      "id": 1,
+      "name": "Bole Sub-City",
+      "code": "subcity-bole"
+    },
+    "contents": [
+      {
+        "id": 4,
+        "news_id": 2,
+        "content": "Due to weather forecasts, gathering is rescheduled to 9:00 AM at Bole Central Park.",
+        "content_type": "text",
+        "order": 1,
+        "created_at": "2026-10-26T11:00:00+00:00",
+        "updated_at": "2026-10-26T11:00:00+00:00"
+      }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `DELETE /api/v1/news/{id}`
+Delete a news article and its associated content blocks.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `news.delete`
+- **Scope Restriction**: Authoring organization, ancestor hierarchy, or Super Admin.
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "News deleted successfully.",
+  "data": null,
+  "errors": null
+}
+```
+
+---
+
+## 11. Citizen Feedback
+
+Public submission of citizen feedback, complaints, and satisfaction ratings with automatic 10-digit tracking numbers, alongside organization-scoped administrative review.
+
+---
+
+### `POST /api/v1/feedbacks`
+Submit citizen feedback, complaint, or satisfaction rating directed to a government organization.
+- **Authentication**: None (Public)
+- **Rate Limit**: 10 submissions per minute per client IP (`throttle:10,1`)
+- **Feedback Types**:
+  - `complaint`: Generates a random, unique 10-digit tracking number (`tracking_number`) for tracking.
+  - `feedback`: General feedback or recommendation.
+  - `satisfaction`: Service satisfaction rating.
+- **Request Body**:
+```json
+{
+  "feedback_for_organization": 1,
+  "feedback_content": "The intake officer at Room 102 was courteous and processed our documents in under 15 minutes.",
+  "feedback_type": "satisfaction",
+  "full_name": "Abebe Bikila",
+  "phone_number": "+251911223344",
+  "email": "abebe.bikila@example.et"
+}
+```
+- **Complaint Request Body Example (with Tracking Number)**:
+```json
+{
+  "feedback_for_organization": 2,
+  "feedback_content": "The fee cashier desk was closed without notice during official operating hours.",
+  "feedback_type": "complaint",
+  "full_name": "Tigist Haile",
+  "phone_number": "+251922334455",
+  "email": "tigist.haile@example.et"
+}
+```
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Feedback submitted successfully.",
+  "data": {
+    "id": 14,
+    "feedback_for_organization": 2,
+    "feedback_content": "The fee cashier desk was closed without notice during official operating hours.",
+    "feedback_type": "complaint",
+    "tracking_number": "5482910482",
+    "full_name": "Tigist Haile",
+    "phone_number": "+251922334455",
+    "email": "tigist.haile@example.et",
+    "created_at": "2026-10-26T14:30:00+00:00",
+    "updated_at": "2026-10-26T14:30:00+00:00"
+  },
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/feedbacks`
+List feedback submissions scoped to the authenticated user's organization hierarchy.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `feedback.view_own` or `feedback.view_descendants`
+- **Data Scoping Rules**:
+  - **Super Admin**: Views all feedback across the platform.
+  - **Sub-City Admin (with `feedback.view_descendants`)**: Views feedback for Sub-City + all child Woredas and Bureaus.
+  - **Bureau Admin / Staff (with `feedback.view_own`)**: Views feedback submitted strictly to own organization.
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Feedback retrieved successfully.",
+  "data": [
+    {
+      "id": 14,
+      "feedback_for_organization": 2,
+      "feedback_content": "The fee cashier desk was closed without notice during official operating hours.",
+      "feedback_type": "complaint",
+      "tracking_number": "5482910482",
+      "full_name": "Tigist Haile",
+      "phone_number": "+251922334455",
+      "email": "tigist.haile@example.et",
+      "created_at": "2026-10-26T14:30:00+00:00",
+      "updated_at": "2026-10-26T14:30:00+00:00",
+      "organization": {
+        "id": 2,
+        "name": "Woreda 01",
+        "code": "woreda-01-bole"
+      }
+    }
+  ],
+  "errors": null
+}
+```
+
+---
+
+## 12. Dashboards & Reporting
+
+Role-aware and organization-scoped metrics and reporting queries. Scoped to the authenticated user's organization hierarchy level:
+- **Super Admin**: Unrestricted global visibility across all platform entities.
+- **Sub-City Admin**: Scoped to the Sub-City and all descendant Woredas and Bureaus.
+- **Woreda Admin**: Scoped to the Woreda and all descendant Bureaus.
+- **Bureau Admin / Staff**: Scoped strictly to own assigned organization.
+
+---
+
+### `GET /api/v1/dashboard/overview`
+Retrieve high-level KPI metrics across organizations, users, services, documents, feedback, and news.
+- **Alias**: `GET /api/v1/dashboard/stats`
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `dashboard.view`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Dashboard overview retrieved successfully.",
+  "data": {
+    "scope": {
+      "role": "sub_city_admin",
+      "organization_id": 1,
+      "organization_name": "Bole Sub-City",
+      "is_global": false,
+      "accessible_organizations_count": 15
+    },
+    "organizations": {
+      "total": 15,
+      "active": 14,
+      "inactive": 1,
+      "by_type": {
+        "sub_city": 1,
+        "woreda": 4,
+        "bureau": 10
+      }
+    },
+    "users": {
+      "total": 45,
+      "active": 43,
+      "inactive": 2,
+      "must_change_password": 3,
+      "by_role": {
+        "sub_city_admin": 2,
+        "woreda_admin": 4,
+        "bureau_admin": 10,
+        "staff": 29
+      }
+    },
+    "services": {
+      "total_catalog": 30,
+      "active_catalog": 28,
+      "master_services": 12,
+      "subservices": 18,
+      "offered_services_in_scope": 22
+    },
+    "documents": {
+      "total": 25,
+      "active": 25,
+      "mandatory_links_count": 48
+    },
+    "feedback": {
+      "total": 142,
+      "by_type": {
+        "feedback": 58,
+        "complaint": 34,
+        "satisfaction": 50
+      },
+      "recent_last_30_days": 42
+    },
+    "news": {
+      "total": 8,
+      "recent_last_30_days": 3
+    }
+  },
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/dashboard/reports/feedback`
+Detailed citizen feedback metrics, type distributions, top feedback receiving organizations, and recent entries.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `dashboard.view`
+- **Query Parameters**:
+  - `start_date` (optional, date format `YYYY-MM-DD`)
+  - `end_date` (optional, date format `YYYY-MM-DD`)
+  - `organization_id` (optional, integer, must be within caller's hierarchy scope)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Feedback report retrieved successfully.",
+  "data": {
+    "summary": {
+      "total_feedback": 142,
+      "complaints_count": 34,
+      "general_feedback_count": 58,
+      "satisfaction_count": 50,
+      "complaints_percentage": 23.9
+    },
+    "type_breakdown": [
+      { "type": "complaint", "label": "Complaints", "count": 34, "percentage": 23.9 },
+      { "type": "feedback", "label": "General Feedback", "count": 58, "percentage": 40.8 },
+      { "type": "satisfaction", "label": "Satisfaction Ratings", "count": 50, "percentage": 35.2 }
+    ],
+    "top_organizations": [
+      {
+        "organization_id": 2,
+        "organization_name": "Woreda 01",
+        "organization_code": "woreda-01-bole",
+        "count": 48
+      }
+    ],
+    "recent_feedback": [
+      {
+        "id": 105,
+        "tracking_number": "5482910482",
+        "feedback_type": "complaint",
+        "content_snippet": "Water billing counter was closed during morning hours...",
+        "full_name": "Abebe Kebede",
+        "organization": {
+          "id": 2,
+          "name": "Woreda 01",
+          "code": "woreda-01-bole"
+        },
+        "created_at": "2026-10-27T08:30:00+03:00"
+      }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/dashboard/reports/services`
+Service catalog metrics, estimated duration averages, fee distributions, and offering office coverage.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `dashboard.view`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Services report retrieved successfully.",
+  "data": {
+    "summary": {
+      "total_services": 30,
+      "master_services": 12,
+      "subservices": 18,
+      "active_services": 28,
+      "total_steps": 85,
+      "average_steps_per_service": 2.8
+    },
+    "fees_analysis": {
+      "free_services_count": 18,
+      "paid_services_count": 12,
+      "average_fee": 125.50,
+      "max_fee": 500.00,
+      "currency": "ETB"
+    },
+    "duration_analysis": {
+      "average_duration_minutes": 38.5,
+      "min_duration_minutes": 10,
+      "max_duration_minutes": 180
+    },
+    "top_offered_services": [
+      {
+        "service_id": 1,
+        "name": "Birth Certificate Issuance",
+        "code": "service-birth-certificate",
+        "offering_organizations_count": 14
+      }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/dashboard/reports/organizations`
+Hierarchical coverage, administrative level distribution, and staffing summary.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `dashboard.view`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Organizations report retrieved successfully.",
+  "data": {
+    "summary": {
+      "total_organizations": 15,
+      "active": 14,
+      "inactive": 1,
+      "suspended": 0,
+      "root_units": 1,
+      "child_units": 14
+    },
+    "type_distribution": [
+      { "type_id": 1, "name": "Sub-City", "code": "sub_city", "count": 1, "percentage": 6.7 },
+      { "type_id": 2, "name": "Woreda", "code": "woreda", "count": 4, "percentage": 26.7 },
+      { "type_id": 3, "name": "Bureau", "code": "bureau", "count": 10, "percentage": 66.7 }
+    ],
+    "top_by_users": [
+      { "id": 1, "name": "Bole Sub-City", "code": "subcity-bole", "users_count": 12 }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/dashboard/recent-activity`
+Recent administrative audit trails within the user's organization scope.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `dashboard.view`
+- **Query Parameters**:
+  - `limit` (optional, integer 1–50, default: 15)
+  - `entity_type` (optional, string, e.g. `User`, `Organization`, `Service`)
+  - `action` (optional, string, e.g. `created`, `updated`, `deleted`)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Recent activity retrieved successfully.",
+  "data": [
+    {
+      "id": 142,
+      "action": "created",
+      "entity_type": "User",
+      "entity_id": "89",
+      "actor": {
+        "id": 2,
+        "name": "Bole Admin",
+        "username": "bole.admin",
+        "email": "admin@bole.gov.et"
+      },
+      "organization": {
+        "id": 1,
+        "name": "Bole Sub-City",
+        "code": "subcity-bole"
+      },
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-27T08:45:12+03:00"
+    }
+  ],
+  "errors": null
+}
+```
+
+
 
 
 

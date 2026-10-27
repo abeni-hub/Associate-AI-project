@@ -283,4 +283,77 @@ class OrganizationManagementTest extends TestCase
             'entity_id' => (string) $leafOrg->id,
         ]);
     }
+
+    public function test_organizations_index_supports_pagination_with_metadata(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->getJson('/api/v1/organizations?per_page=1&page=1');
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Organizations retrieved successfully.',
+            ])
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => ['id', 'name', 'code', 'status'],
+                ],
+                'meta' => [
+                    'current_page',
+                    'last_page',
+                    'per_page',
+                    'total',
+                    'from',
+                    'to',
+                ],
+            ]);
+
+        $this->assertCount(1, $response->json('data'));
+        $this->assertSame(1, $response->json('meta.per_page'));
+        $this->assertGreaterThanOrEqual(2, $response->json('meta.total'));
+    }
+
+    public function test_organizations_index_enforces_maximum_page_size(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->getJson('/api/v1/organizations?per_page=250');
+
+        $response->assertStatus(200);
+        $this->assertSame(100, $response->json('meta.per_page'));
+    }
+
+    public function test_organizations_index_filters_by_search_query(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->getJson('/api/v1/organizations?search=Bole');
+
+        $response->assertStatus(200);
+        $names = collect($response->json('data'))->pluck('name')->all();
+
+        $this->assertContains('Bole Sub-City', $names);
+    }
+
+    public function test_organizations_index_filters_by_status(): void
+    {
+        $inactiveOrg = Organization::create([
+            'organization_type_id' => $this->subCityType->id,
+            'name' => 'Inactive Sub-City',
+            'code' => 'subcity-inactive',
+            'status' => 'inactive',
+        ]);
+
+        $responseActive = $this->actingAs($this->superAdmin)
+            ->getJson('/api/v1/organizations?status=active');
+
+        $responseActive->assertStatus(200);
+        $activeIds = collect($responseActive->json('data'))->pluck('id')->all();
+        $this->assertNotContains($inactiveOrg->id, $activeIds);
+
+        $responseInactive = $this->actingAs($this->superAdmin)
+            ->getJson('/api/v1/organizations?status=inactive');
+
+        $responseInactive->assertStatus(200);
+        $inactiveIds = collect($responseInactive->json('data'))->pluck('id')->all();
+        $this->assertContains($inactiveOrg->id, $inactiveIds);
+    }
 }

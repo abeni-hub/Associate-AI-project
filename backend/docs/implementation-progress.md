@@ -11,9 +11,9 @@
 | **Phase 5** | Organization and User Management | **Completed & Verified** | 2026-10-25 |
 | **Phase 6** | Services, Subservices, and Required Documents | **Completed & Verified** | 2026-10-25 |
 | **Phase 7** | Room-by-Room Service Instructions | **Completed & Verified** | 2026-10-26 |
-| **Phase 8** | News and Events Management | Pending | — |
-| **Phase 9** | Citizen Feedback and QR Code Management | Pending | — |
-| **Phase 10** | Dashboards and Reporting | Pending | — |
+| **Phase 8** | News and Events Management | **Integrated & Verified** | 2026-10-26 |
+| **Phase 9** | Citizen Feedback and QR Code Management | **Integrated & Verified** | 2026-10-26 |
+| **Phase 10** | Dashboards and Reporting | **Completed & Verified** | 2026-10-27 |
 | **Phase 11** | Final Integration, Security & Production Readiness | Pending | — |
 
 ---
@@ -182,6 +182,35 @@
   - Verified `GET http://127.0.0.1:8000/api/v1/services/birth-certificate/steps` returning all 4 steps.
   - Verified `GET http://127.0.0.1:8000/api/v1/services/birth-certificate` returning steps embedded with counts.
 - [x] Documentation updated in `docs/api.md` (Section 9) and `docs/implementation-progress.md`.
+
+---
+
+## Phase 10 Detail — Dashboards and Reporting
+
+### Completed Milestones
+- [x] Domain Architecture:
+  - `App\Domains\Dashboard\Services\DashboardMetricsService`: Role-aware and organization-scoped metrics and analytics calculation service across Organizations, Users, Services, Documents, Feedback, News, and AuditLogs.
+- [x] Administrative Dashboard & Reporting Endpoints (Protected by `auth:sanctum` + `account.active` + `permission:dashboard.view`):
+  - `GET /api/v1/dashboard/overview`: High-level KPI overview across all platform domains, strictly scoped to caller's administrative hierarchy (Super Admin global; Sub-City, Woreda, Bureau hierarchy-scoped).
+  - `GET /api/v1/dashboard/stats`: Functional alias for overview.
+  - `GET /api/v1/dashboard/reports/feedback`: Detailed feedback metrics, complaint percentages, type distribution, top feedback receiving organizations, and recent entries with date and organization filters.
+  - `GET /api/v1/dashboard/reports/services`: Service catalog delivery metrics, duration averages, fee analysis, and top offered services.
+  - `GET /api/v1/dashboard/reports/organizations`: Hierarchical coverage, administrative level distribution (Sub-City, Woreda, Bureau), root vs child ratio, and top staffing units.
+  - `GET /api/v1/dashboard/recent-activity`: Scoped administrative audit trails with entity, action, actor, and organization details.
+- [x] Form Requests & Scope Validation:
+  - `FeedbackReportRequest`: Validates date range constraints and validates that optional `organization_id` filters belong to the user's accessible hierarchy (`OrganizationScopeService::canAccessOrganization`).
+  - `RecentActivityRequest`: Validates limit (1-50), entity type, and action filters.
+- [x] Transport Layer:
+  - `App\Http\Controllers\Api\V1\Dashboard\DashboardController`: Handles overview, feedback, services, organizations, and recent activity routes adhering to the unified `ApiResponse::success(...)` envelope.
+- [x] Comprehensive Automated Tests on PostgreSQL:
+  - `Tests\Feature\Api\V1\Dashboard\DashboardApiTest`: 11 tests, 46 assertions (100% passed).
+  - Tests 401 unauthenticated access, 403 inactive account access, Super Admin global scope, Sub-City Admin hierarchy scope, Woreda Admin isolation, stats alias, feedback filtering and foreign organization rejection, services report, organizations report, and recent activity scoping.
+- [x] Overall Backend Test Suite:
+  - 108 tests, 767 assertions (100% passed).
+- [x] Code Quality:
+  - Formatted and verified with Laravel Pint (`vendor/bin/pint`).
+- [x] Documentation updated in `docs/api.md` (Section 11) and `docs/implementation-progress.md`.
+
 
 
 

@@ -16,6 +16,7 @@ use App\Http\Resources\Api\V1\ServiceResource;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ServiceController extends Controller
 {
@@ -218,16 +219,18 @@ class ServiceController extends Controller
             ];
         }
 
-        $service->requiredDocuments()->sync($syncData);
-        $service->load('requiredDocuments');
+        DB::transaction(function () use ($service, $syncData, $request) {
+            $service->requiredDocuments()->sync($syncData);
+            $service->load('requiredDocuments');
 
-        $this->auditLogAction->execute(
-            action: 'synced_documents',
-            entity: $service,
-            actor: $request->user(),
-            newValues: $syncData,
-            request: $request
-        );
+            $this->auditLogAction->execute(
+                action: 'synced_documents',
+                entity: $service,
+                actor: $request->user(),
+                newValues: $syncData,
+                request: $request
+            );
+        });
 
         return ApiResponse::success(
             data: new ServiceResource($service),
@@ -248,16 +251,18 @@ class ServiceController extends Controller
             ];
         }
 
-        $service->offeringOrganizations()->sync($syncData);
-        $service->load('offeringOrganizations');
+        DB::transaction(function () use ($service, $syncData, $request) {
+            $service->offeringOrganizations()->sync($syncData);
+            $service->load('offeringOrganizations');
 
-        $this->auditLogAction->execute(
-            action: 'synced_organizations',
-            entity: $service,
-            actor: $request->user(),
-            newValues: $syncData,
-            request: $request
-        );
+            $this->auditLogAction->execute(
+                action: 'synced_organizations',
+                entity: $service,
+                actor: $request->user(),
+                newValues: $syncData,
+                request: $request
+            );
+        });
 
         return ApiResponse::success(
             data: new ServiceResource($service),

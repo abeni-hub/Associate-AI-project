@@ -4,32 +4,60 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\News;
 
+use App\Domains\AuditLogs\Actions\RecordAuditLogAction;
+use App\Domains\News\Actions\CreateNewsAction;
+use App\Domains\News\Actions\DeleteNewsAction;
+use App\Domains\News\Actions\UpdateNewsAction;
+use App\Domains\News\DTOs\NewsData;
 use App\Domains\News\Models\News;
 use App\Domains\Organizations\Services\OrganizationScopeService;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\News\StoreNewsRequest;
+use App\Http\Requests\Api\V1\News\UpdateNewsRequest;
+use App\Http\Resources\Api\V1\NewsResource;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class NewsController extends Controller
 {
+    public function __construct(
+        private readonly OrganizationScopeService $scopeService,
+        private readonly CreateNewsAction $createAction,
+        private readonly UpdateNewsAction $updateAction,
+        private readonly DeleteNewsAction $deleteAction,
+        private readonly RecordAuditLogAction $auditLogAction,
+    ) {}
+
     /**
      * List all news items, newest first.
      *
      * Publicly accessible without authentication.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $news = News::query()
+        $query = News::query()
             ->with([
-                'organization',
+                'organization:id,name,code',
                 'contents' => fn ($builder) => $builder->orderBy('order'),
-            ])
-            ->orderByDesc('created_at')
-            ->get();
+            ]);
 
-        return ApiResponse::success(
-            data: $news,
+        if ($request->filled('search')) {
+            $search = (string) $request->input('search');
+            $query->where('news_title', 'ilike', "%{$search}%");
+        }
+
+        if ($request->filled('organization_id')) {
+            $query->where('organization_id', (int) $request->input('organization_id'));
+        }
+
+        $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
+        $paginator = $query->orderByDesc('created_at')->paginate($perPage);
+
+        return ApiResponse::paginated(
+            paginator: $paginator,
+            resourceClass: NewsResource::class,
             message: 'News retrieved successfully.'
         );
     }
@@ -41,13 +69,13 @@ class NewsController extends Controller
      */
     public function show(News $news): JsonResponse
     {
-        $news->load([
-            'organization',
+        $news->loadMissing([
+            'organization:id,name,code',
             'contents' => fn ($builder) => $builder->orderBy('order'),
         ]);
 
         return ApiResponse::success(
-            data: $news,
+            data: new NewsResource($news),
             message: 'News retrieved successfully.'
         );
     }
@@ -55,49 +83,45 @@ class NewsController extends Controller
     /**
      * Create a news item with optional ordered content blocks.
      */
-    public function store(Request $request, OrganizationScopeService $scopeService): JsonResponse
+    public function store(StoreNewsRequest $request): JsonResponse
     {
         $user = $request->user();
-        $validated = $request->validate([
-            'news_title' => ['required', 'string'],
-            'organization_id' => ['sometimes', 'integer', 'exists:organizations,id'],
-            'contents' => ['sometimes', 'array'],
-            'contents.*.content' => ['required_with:contents', 'string'],
-            'contents.*.content_type' => ['sometimes', 'string'],
-            'contents.*.order' => ['sometimes', 'integer', 'min:1'],
-        ]);
+        $validated = $request->validated();
 
-        if (! $user->isSuperAdmin()) {
-            $validated['organization_id'] = $user->organization_id;
-        }
+        $targetOrgId = $validated['organization_id'] ?? $user->organization_id;
 
-        if (empty($validated['organization_id'])) {
+        if (empty($targetOrgId)) {
             return ApiResponse::error(
                 message: 'An organization must be assigned to create news.',
                 statusCode: 422
             );
         }
 
-        if (! $scopeService->canAccessOrganization($user, (int) $validated['organization_id'])) {
+        if (! $this->scopeService->canAccessOrganization($user, (int) $targetOrgId, allowDescendants: true)) {
             return ApiResponse::error(
                 message: 'You do not have permission to create news for this organization.',
                 statusCode: 403
             );
         }
 
-        $news = News::create([
-            'organization_id' => $validated['organization_id'],
-            'news_title' => $validated['news_title'],
-        ]);
+        $newsData = NewsData::fromRequest($request, (int) $targetOrgId);
 
-        $this->replaceContents($news, $validated['contents'] ?? []);
-        $news->load([
-            'organization',
-            'contents' => fn ($builder) => $builder->orderBy('order'),
-        ]);
+        $news = DB::transaction(function () use ($newsData, $user, $request) {
+            $news = $this->createAction->execute($newsData);
+
+            $this->auditLogAction->execute(
+                action: 'created',
+                entity: $news,
+                actor: $user,
+                newValues: $news->toArray(),
+                request: $request
+            );
+
+            return $news;
+        });
 
         return ApiResponse::success(
-            data: $news,
+            data: new NewsResource($news),
             message: 'News created successfully.',
             statusCode: 201
         );
@@ -109,41 +133,46 @@ class NewsController extends Controller
      * Only allowed for the organization that created the news, any
      * ancestor organization above it, or a platform-wide Super Admin.
      */
-    public function update(Request $request, News $news, OrganizationScopeService $scopeService): JsonResponse
+    public function update(UpdateNewsRequest $request, News $news): JsonResponse
     {
         $user = $request->user();
 
-        if (! $scopeService->canAccessOrganization($user, $news->organization_id, allowDescendants: true)) {
+        if (! $this->scopeService->canAccessOrganization($user, $news->organization_id, allowDescendants: true)) {
             return ApiResponse::error(
                 message: 'You do not have permission to update this news item.',
                 statusCode: 403
             );
         }
 
-        $validated = $request->validate([
-            'news_title' => ['sometimes', 'string'],
-            'contents' => ['sometimes', 'array'],
-            'contents.*.content' => ['required_with:contents', 'string'],
-            'contents.*.content_type' => ['sometimes', 'string'],
-            'contents.*.order' => ['sometimes', 'integer', 'min:1'],
-        ]);
+        $validated = $request->validated();
 
-        if (array_key_exists('news_title', $validated)) {
-            $news->news_title = $validated['news_title'];
-            $news->save();
+        if (array_key_exists('organization_id', $validated)) {
+            if (! $this->scopeService->canAccessOrganization($user, (int) $validated['organization_id'], allowDescendants: true)) {
+                return ApiResponse::error(
+                    message: 'You do not have permission to reassign news to this organization.',
+                    statusCode: 403
+                );
+            }
         }
 
-        if (array_key_exists('contents', $validated)) {
-            $this->replaceContents($news, $validated['contents']);
-        }
+        $updated = DB::transaction(function () use ($news, $validated, $user, $request) {
+            $oldValues = $news->toArray();
+            $updated = $this->updateAction->execute($news, $validated);
 
-        $news->load([
-            'organization',
-            'contents' => fn ($builder) => $builder->orderBy('order'),
-        ]);
+            $this->auditLogAction->execute(
+                action: 'updated',
+                entity: $updated,
+                actor: $user,
+                oldValues: $oldValues,
+                newValues: $updated->toArray(),
+                request: $request
+            );
+
+            return $updated;
+        });
 
         return ApiResponse::success(
-            data: $news,
+            data: new NewsResource($updated),
             message: 'News updated successfully.'
         );
     }
@@ -154,39 +183,33 @@ class NewsController extends Controller
      * Only allowed for the organization that created the news, any
      * ancestor organization above it, or a platform-wide Super Admin.
      */
-    public function destroy(Request $request, News $news, OrganizationScopeService $scopeService): JsonResponse
+    public function destroy(Request $request, News $news): JsonResponse
     {
-        if (! $scopeService->canAccessOrganization($request->user(), $news->organization_id, allowDescendants: true)) {
+        $user = $request->user();
+
+        if (! $this->scopeService->canAccessOrganization($user, $news->organization_id, allowDescendants: true)) {
             return ApiResponse::error(
                 message: 'You do not have permission to delete this news item.',
                 statusCode: 403
             );
         }
 
-        $news->contents()->delete();
-        $news->delete();
+        DB::transaction(function () use ($news, $user, $request) {
+            $oldValues = $news->toArray();
+            $this->deleteAction->execute($news);
+
+            $this->auditLogAction->execute(
+                action: 'deleted',
+                entity: $news,
+                actor: $user,
+                oldValues: $oldValues,
+                request: $request
+            );
+        });
 
         return ApiResponse::success(
             data: null,
             message: 'News deleted successfully.'
         );
-    }
-
-    /**
-     * Replace all content blocks of a news item with the given set.
-     *
-     * @param  array<int, array<string, mixed>>  $contents
-     */
-    private function replaceContents(News $news, array $contents): void
-    {
-        $news->contents()->delete();
-
-        foreach ($contents as $index => $block) {
-            $news->contents()->create([
-                'content' => $block['content'],
-                'content_type' => $block['content_type'] ?? 'text',
-                'order' => $block['order'] ?? $index + 1,
-            ]);
-        }
     }
 }

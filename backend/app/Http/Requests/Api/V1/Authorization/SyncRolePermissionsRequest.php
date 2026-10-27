@@ -6,6 +6,7 @@ namespace App\Http\Requests\Api\V1\Authorization;
 
 use App\Domains\Authorization\Models\Role;
 use App\Support\ApiResponse;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
@@ -42,7 +43,7 @@ class SyncRolePermissionsRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {

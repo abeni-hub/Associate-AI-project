@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\PasswordResetController;
 use App\Http\Controllers\Api\V1\Authorization\PermissionController;
 use App\Http\Controllers\Api\V1\Authorization\RoleController;
+use App\Http\Controllers\Api\V1\Dashboard\DashboardController;
 use App\Http\Controllers\Api\V1\Documents\DocumentController;
 use App\Http\Controllers\Api\V1\Feedback\FeedbackController;
 use App\Http\Controllers\Api\V1\HealthController;
@@ -31,18 +32,6 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->name('api.v1.')->group(function () {
     // Health & Status
     Route::get('/health', HealthController::class)->name('health');
-
-    // Validation verification endpoint for testing Phase 1 error handling
-    Route::post('/test-validation', function (Request $request) {
-        $validated = $request->validate([
-            'test_field' => ['required', 'string', 'min:3'],
-        ]);
-
-        return ApiResponse::success(
-            data: $validated,
-            message: 'Validation passed successfully.'
-        );
-    })->name('test.validation');
 
     // Public Citizen Service Discovery Endpoints
     Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
@@ -97,7 +86,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             ->middleware('permission:roles.view')
             ->name('permissions.index');
 
-                // Organization Management
+        // Organization Management
         Route::get('/organization-types', [OrganizationTypeController::class, 'index'])
             ->middleware('permission:organizations.view')
             ->name('organization-types.index');
@@ -196,18 +185,57 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 ->name('destroy');
         });
 
-        // Feedback Retrieval
-        Route::get('/feedbacks', [FeedbackController::class, 'index'])
-            ->middleware('permission:feedback.view_own,feedback.view_descendants')
-            ->name('feedbacks.index');
+        // Feedback Management
+        Route::prefix('feedbacks')->name('feedbacks.')->group(function () {
+            Route::get('/', [FeedbackController::class, 'index'])
+                ->middleware('permission:feedback.view_own,feedback.view_descendants')
+                ->name('index');
+            Route::get('/{feedback}', [FeedbackController::class, 'show'])
+                ->middleware('permission:feedback.view_own,feedback.view_descendants')
+                ->name('show');
+            Route::put('/{feedback}', [FeedbackController::class, 'update'])
+                ->middleware('permission:feedback.update_status')
+                ->name('update');
+            Route::post('/{feedback}/respond', [FeedbackController::class, 'respond'])
+                ->middleware('permission:feedback.update_status')
+                ->name('respond');
+            Route::delete('/{feedback}', [FeedbackController::class, 'destroy'])
+                ->middleware('permission:feedback.update_status')
+                ->name('destroy');
+        });
 
         // News Management
+        Route::post('/news', [NewsController::class, 'store'])
+            ->middleware('permission:news.create')
+            ->name('news.store');
         Route::put('/news/{news}', [NewsController::class, 'update'])
             ->middleware('permission:news.update')
             ->name('news.update');
         Route::delete('/news/{news}', [NewsController::class, 'destroy'])
             ->middleware('permission:news.delete')
             ->name('news.destroy');
+
+        // Dashboards & Reporting
+        Route::prefix('dashboard')->name('dashboard.')->group(function () {
+            Route::get('/overview', [DashboardController::class, 'overview'])
+                ->middleware('permission:dashboard.view')
+                ->name('overview');
+            Route::get('/stats', [DashboardController::class, 'overview'])
+                ->middleware('permission:dashboard.view')
+                ->name('stats');
+            Route::get('/reports/feedback', [DashboardController::class, 'feedbackReport'])
+                ->middleware('permission:dashboard.view')
+                ->name('reports.feedback');
+            Route::get('/reports/services', [DashboardController::class, 'servicesReport'])
+                ->middleware('permission:dashboard.view')
+                ->name('reports.services');
+            Route::get('/reports/organizations', [DashboardController::class, 'organizationsReport'])
+                ->middleware('permission:dashboard.view')
+                ->name('reports.organizations');
+            Route::get('/recent-activity', [DashboardController::class, 'recentActivity'])
+                ->middleware('permission:dashboard.view')
+                ->name('recent-activity');
+        });
     });
 
     // Public News (no authentication required)
@@ -218,6 +246,6 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
     // Public Feedback Submission (no authentication required)
     Route::post('/feedbacks', [FeedbackController::class, 'store'])
-        ->middleware('throttle:10,1')
+        ->middleware('throttle:feedback-submit')
         ->name('feedbacks.store');
 });
