@@ -8,7 +8,22 @@ import QuickSearchSection from '../components/homepage/QuickSearchSection.jsx'
 import ServiceGuideSection from '../components/homepage/ServiceGuideSection.jsx'
 import { bureauOptions, heroSlides, serviceCatalog, serviceFor, subCityOptions } from '../data/homePageData.js'
 
-export default function HomePage({ language, t, onNavigateToHub, onSelectItem }) {
+export default function HomePage({ language, t, onNavigateToHub, onSelectItem, cmsConfig, documentRef }) {
+  const pageDocument = documentRef || document
+  const configuredSlides = cmsConfig?.hero?.slides
+  const slides = configuredSlides?.length
+    ? configuredSlides.map((slide, index) => {
+        const fallback = heroSlides[index % heroSlides.length]
+        return {
+          ...fallback,
+          ...slide,
+          bureau: slide.bureau || fallback.bureau,
+          title: slide.title || fallback.title,
+          description: slide.category || slide.description || fallback.description,
+        }
+      })
+    : heroSlides
+
   const [heroSlideIndex, setHeroSlideIndex] = useState(0)
   const [heroCarouselPlaying, setHeroCarouselPlaying] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [subCity, setSubCity] = useState('Bole')
@@ -19,20 +34,24 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem })
   const activeServiceList = serviceCatalog[bureauId] ?? []
   const guideService = serviceFor(serviceGuide.bureauId, serviceGuide.serviceId)
   const guideBureau = bureauOptions.find((bureau) => bureau.id === serviceGuide.bureauId)
-  const activeHeroSlide = heroSlides[heroSlideIndex]
+  const activeHeroSlide = slides[heroSlideIndex] || slides[0]
+
+  useEffect(() => {
+    setHeroSlideIndex((index) => Math.min(index, slides.length - 1))
+  }, [slides.length])
 
   useEffect(() => {
     if (!heroCarouselPlaying) return undefined
     const timer = window.setInterval(() => {
-      setHeroSlideIndex((index) => (index + 1) % heroSlides.length)
+      setHeroSlideIndex((index) => (index + 1) % slides.length)
     }, 7000)
     return () => window.clearInterval(timer)
-  }, [heroCarouselPlaying])
+  }, [heroCarouselPlaying, slides.length])
 
   function handleFindService(event) {
     event.preventDefault()
     setServiceGuide({ subCity, bureauId, serviceId })
-    window.setTimeout(() => document.getElementById('service-guide')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30)
+    window.setTimeout(() => pageDocument.getElementById('service-guide')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30)
   }
 
   function changeBureau(nextBureau) {
@@ -41,7 +60,7 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem })
   }
 
   function goToFeedback() {
-    document.getElementById('feedback')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    pageDocument.getElementById('feedback')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   return (
@@ -54,6 +73,9 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem })
         onPlayingChange={() => setHeroCarouselPlaying((playing) => !playing)}
         onGoToFeedback={goToFeedback}
         t={t}
+        heroContent={cmsConfig?.hero}
+        language={language}
+        slides={slides}
       />
       <QuickSearchSection
         t={t}
@@ -69,7 +91,7 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem })
         bureauOptions={bureauOptions}
       />
       <ServiceGuideSection t={t} serviceGuide={serviceGuide} guideService={guideService} guideBureau={guideBureau} />
-      <JourneySection t={t} onGoToFeedback={goToFeedback} />
+      <JourneySection t={t} onGoToFeedback={goToFeedback} journey={cmsConfig?.journey} />
       <HomeNewsSection
         language={language}
         t={t}

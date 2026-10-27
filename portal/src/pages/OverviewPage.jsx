@@ -5,7 +5,6 @@ import ActivityChart from '../components/overview/ActivityChart.jsx'
 import SatisfactionPanel from '../components/overview/SatisfactionPanel.jsx'
 import FeedbackFocusList from '../components/overview/FeedbackFocusList.jsx'
 import QuickActions from '../components/overview/QuickActions.jsx'
-import FeedbackTable from '../components/feedback/FeedbackTable.jsx'
 import { ROLE } from '../data/portalData.js'
 
 function OverviewPage({ role, onNavigate, feedback, onFeedback, onCreate }) {
@@ -50,13 +49,6 @@ function OverviewPage({ role, onNavigate, feedback, onFeedback, onCreate }) {
     <section className="dashboard-grid lower-grid">
       <FeedbackFocusList items={focus} onFeedback={onFeedback} onNavigate={onNavigate} />
       <QuickActions items={quick} onNavigate={onNavigate} onCreate={onCreate} />
-    </section>
-    <section className="panel table-panel overview-table">
-      <div className="panel-heading">
-        <div><span className="panel-eyebrow">LATEST RESPONSES</span><h2>Recent citizen feedback</h2></div>
-        <button className="panel-link" onClick={() => onNavigate('feedback')}>Open feedback inbox <Icon name="arrow" size={15} /></button>
-      </div>
-      <FeedbackTable items={feedback} onOpen={onFeedback} compact />
     </section>
     <p className="data-footnote">This dashboard shows illustrative sample information for the {ROLE[role].label.toLowerCase()} workspace.</p>
   </>

@@ -71,6 +71,18 @@ a { color: var(--link); }
   line-height: 1.2;
 }
 
+.announcement-tag {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(255,255,255,.14);
+  color: rgba(255,255,255,.9);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
 .announcement-bar a {
   display: inline-flex;
   align-items: center;

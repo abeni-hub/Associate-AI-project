@@ -36,7 +36,29 @@ const journeyCards = [
   },
 ]
 
-export default function JourneySection({ t, onGoToFeedback }) {
+function splitConfiguredTitle(title, fallbackLines) {
+  if (!title) return fallbackLines
+  if (title.trim() === fallbackLines.join(' ')) return fallbackLines
+
+  const words = title.trim().split(/\s+/)
+  if (words.length < 2) return [title.trim(), '']
+  const midpoint = Math.ceil(words.length / 2)
+  return [words.slice(0, midpoint).join(' '), words.slice(midpoint).join(' ')]
+}
+
+export default function JourneySection({ t, onGoToFeedback, journey }) {
+  const cards = journey?.steps?.length
+    ? journey.steps.map((step, index) => {
+        const fallback = journeyCards[index] || journeyCards[0]
+        return {
+          ...fallback,
+          index: step.step || fallback.index,
+          titleLines: splitConfiguredTitle(step.title, fallback.titleLines),
+          description: step.detail || fallback.description,
+        }
+      })
+    : journeyCards
+
   return (
     <section className="journey-section" id="how-it-works">
       <div className="section-wrap">
@@ -45,10 +67,10 @@ export default function JourneySection({ t, onGoToFeedback }) {
             <div className="section-kicker"><span>03</span> {t('SIMPLE FROM START TO FINISH')}</div>
             <h2>{t('Three moments.')}<br /><em>{t('One smoother journey.')}</em></h2>
           </div>
-          <p>{t('From the moment you start planning to the moment you share your experience, everything you need is easy to find.')}</p>
+          <p>{t(journey?.title || 'From the moment you start planning to the moment you share your experience, everything you need is easy to find.')}</p>
         </div>
         <div className="journey-cards scroll-reveal-group">
-          {journeyCards.map((card) => <JourneyCard key={card.index} card={card} t={t} onGoToFeedback={onGoToFeedback} />)}
+          {cards.map((card) => <JourneyCard key={card.index} card={card} t={t} onGoToFeedback={onGoToFeedback} />)}
         </div>
         <div className="qr-note scroll-reveal">
           <span className="qr-note-icon"><Icon name="qr" size={24} /></span>

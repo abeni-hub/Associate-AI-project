@@ -5,7 +5,7 @@ import MetricCard from '../components/ui/MetricCard.jsx'
 import SearchBox from '../components/ui/SearchBox.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
 
-function AccountsPage({ items, onAdd, search, setSearch }) {
+function AccountsPage({ items, onAdd, onEdit, search, setSearch }) {
   const [roleFilter, setRoleFilter] = useState('All roles')
   const filtered = items.filter((item) => (roleFilter === 'All roles' || item.role === roleFilter) && `${item.name} ${item.username} ${item.role} ${item.organization}`.toLowerCase().includes(search.toLowerCase()))
 
@@ -65,7 +65,12 @@ function AccountsPage({ items, onAdd, search, setSearch }) {
               <td><StatusPill>{item.status}</StatusPill></td>
               <td className="time-cell">{item.lastActive}</td>
               <td>
-                <button className="row-more" aria-label={`Account options for ${item.name}`}><Icon name="dots" /></button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
+                  <button type="button" className="button secondary small-button" onClick={() => onEdit?.(item)}>
+                    Edit
+                  </button>
+                  <button type="button" className="row-more" aria-label={`Account options for ${item.name}`}><Icon name="dots" /></button>
+                </div>
               </td>
             </tr>)}
           </tbody>

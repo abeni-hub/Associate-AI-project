@@ -1,18 +1,26 @@
 import Icon from '../ui/Icon.jsx'
 
-export default function AnnouncementBar({ t, onNavigateToHomeSection }) {
+export default function AnnouncementBar({ t, onNavigateToHomeSection, announcement }) {
+  if (announcement?.enabled === false) return null
+
+  const message = announcement?.message || 'One clear place to plan your next public service visit'
+  const linkText = announcement?.linkText || 'Explore the guide'
+  const linkUrl = announcement?.linkUrl || '#find-service'
+
   return (
     <div className="announcement-bar">
       <span className="announcement-dot" />
-      <span className="announcement-copy">{t('One clear place to plan your next public service visit')}</span>
+      {announcement?.tag && <span className="announcement-tag">{announcement.tag}</span>}
+      <span className="announcement-copy">{t(message)}</span>
       <a
-        href="#find-service"
+        href={linkUrl}
         onClick={(event) => {
+          if (!onNavigateToHomeSection || !linkUrl.startsWith('#')) return
           event.preventDefault()
-          onNavigateToHomeSection('find-service')
+          onNavigateToHomeSection(linkUrl.startsWith('#/') ? 'news' : linkUrl.slice(1))
         }}
       >
-        {t('Explore the guide')} <Icon name="arrow" size={14} />
+        {t(linkText)} <Icon name="arrow" size={14} />
       </a>
     </div>
   )

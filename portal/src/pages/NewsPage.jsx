@@ -4,7 +4,7 @@ import PageHeading from '../components/ui/PageHeading.jsx'
 import SearchBox from '../components/ui/SearchBox.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
 
-function NewsPage({ items, onAdd, search, setSearch, onTogglePublish }) {
+function NewsPage({ items, onAdd, onEdit, search, setSearch, onTogglePublish }) {
   const [typeFilter, setTypeFilter] = useState('All types')
   const filtered = items.filter((item) => (typeFilter === 'All types' || item.type === typeFilter) && `${item.title} ${item.type} ${item.audience} ${item.excerpt}`.toLowerCase().includes(search.toLowerCase()))
 
@@ -65,6 +65,9 @@ function NewsPage({ items, onAdd, search, setSearch, onTogglePublish }) {
           </div>
           <div className="news-row-actions">
             <StatusPill>{item.status}</StatusPill>
+            <button type="button" className="button secondary small-button" onClick={() => onEdit?.(item)}>
+              Edit
+            </button>
             <button className="button secondary small-button" onClick={() => onTogglePublish(item.id)}>
               {item.status === 'Published' ? 'Unpublish' : 'Publish'}
             </button>

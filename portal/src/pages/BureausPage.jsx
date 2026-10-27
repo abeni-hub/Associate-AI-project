@@ -39,7 +39,6 @@ function BureausPage({ items, onAdd, search, setSearch }) {
               <th>BUREAU / OFFICE</th>
               <th>ADMINISTRATOR</th>
               <th>SERVICES</th>
-              <th>GUIDE COMPLETION</th>
               <th>STATUS</th>
               <th />
             </tr>
@@ -59,12 +58,6 @@ function BureausPage({ items, onAdd, search, setSearch }) {
                 </span>
               </td>
               <td>{item.services} guides</td>
-              <td>
-                <div className="progress-cell">
-                  <span className="progress-track"><i style={{ width: `${item.completion}%` }} /></span>
-                  <small>{item.completion}%</small>
-                </div>
-              </td>
               <td><StatusPill>{item.status}</StatusPill></td>
               <td>
                 <button className="row-more" aria-label={`Options for ${item.name}`}><Icon name="dots" /></button>
