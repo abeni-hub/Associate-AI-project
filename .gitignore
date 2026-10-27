@@ -1,0 +1,31 @@
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies
+**/vendor/
+**/node_modules/
+
+# Build output
+/client/dist/
+/portal/dist/
+/backend/public/build/
+
+# Laravel generated files
+/backend/public/hot
+/backend/storage/*.key
+/backend/storage/logs/
+/backend/storage/framework/
+/backend/bootstrap/cache/*.php
+
+# Local database data - NEVER COMMIT
+**/database/data/
+
+# Test caches and logs
+**/.phpunit.result.cache
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
