@@ -8,7 +8,7 @@ function Modal({ modal, onClose }) {
   if (!modal) return null
   return createPortal(
     <div className="modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <section className={`modal-card modal-${modal.kind}`} role="dialog" aria-modal="true" aria-label={modal.title || modal.item?.type || 'Workspace dialog'}>
+      <section className={`modal-card modal-${modal.kind}${modal.size ? ` modal-${modal.size}` : ''}`} role="dialog" aria-modal="true" aria-label={modal.title || modal.item?.type || 'Workspace dialog'}>
         {modal.kind === 'form' ? (
           <ModalForm modal={modal} onClose={onClose} />
         ) : modal.kind === 'route' ? (

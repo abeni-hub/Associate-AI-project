@@ -36,8 +36,10 @@ export default function NewsEventCard({ item, language, onOpen }) {
   const summary = isAm && item.summaryAm ? item.summaryAm : item.summary
   const category = isAm && item.categoryAm ? item.categoryAm : item.category
   const bureau = isAm && item.bureauAm ? item.bureauAm : item.bureau
-  const subCity = isAm && item.subCityAm ? item.subCityAm : item.subCity
   const isEvent = item.type === 'event'
+  const englishSubCity = item.subCity || item.location?.subCity
+  const amharicSubCity = item.subCityAm || item.location?.subCityAm
+  const subCity = isAm && amharicSubCity ? amharicSubCity : englishSubCity
 
   function openItem() {
     if (onOpen) {

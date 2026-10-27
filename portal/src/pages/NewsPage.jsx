@@ -4,86 +4,112 @@ import PageHeading from '../components/ui/PageHeading.jsx'
 import SearchBox from '../components/ui/SearchBox.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
 
+function formatDate(value) {
+  if (!value) return 'Date not set'
+  const date = new Date(`${value}T00:00:00`)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-ET', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function getSubCity(item) {
+  return item.type === 'event' ? item.location?.subCity : item.subCity
+}
+
+function getPublishedStatus(item) {
+  return item.isPublished === false ? 'Draft' : 'Published'
+}
+
 function NewsPage({ items, onAdd, onEdit, search, setSearch, onTogglePublish }) {
-  const [typeFilter, setTypeFilter] = useState('All types')
-  const filtered = items.filter((item) => (typeFilter === 'All types' || item.type === typeFilter) && `${item.title} ${item.type} ${item.audience} ${item.excerpt}`.toLowerCase().includes(search.toLowerCase()))
+  const [typeFilter, setTypeFilter] = useState('all')
+  const [publicationFilter, setPublicationFilter] = useState('all')
+  const publishedCount = items.filter((item) => item.isPublished !== false).length
+  const eventCount = items.filter((item) => item.type === 'event').length
+  const filtered = items.filter((item) => {
+    const matchesType = typeFilter === 'all' || item.type === typeFilter
+    const matchesPublication = publicationFilter === 'all' || (publicationFilter === 'published' ? item.isPublished !== false : item.isPublished === false)
+    const searchable = [item.title, item.titleAm, item.type, item.summary, item.summaryAm, item.content, item.contentAm, item.category, item.categoryAm, item.bureau, item.bureauAm, getSubCity(item)]
+      .filter(Boolean).join(' ').toLowerCase()
+    return matchesType && matchesPublication && searchable.includes(search.toLowerCase())
+  })
 
   return <>
     <PageHeading
       eyebrow="PUBLIC INFORMATION"
       title="News & events"
-      subtitle="Keep residents informed with timely updates from Lemi Kura Sub-city."
+      subtitle="Manage the bilingual updates and public events shown to residents in the client app."
       action="Create an update"
       onAction={onAdd}
     />
     <div className="news-feature">
       <div className="news-feature-content">
-        <span className="news-feature-kicker"><Icon name="news" size={15} /> SUB-CITY NOTICEBOARD</span>
+        <span className="news-feature-kicker"><Icon name="news" size={15} /> PUBLIC CLIENT FEED</span>
         <h2>Good information<br /><em>brings us closer.</em></h2>
-        <p>Your updates appear on the public citizen landing page. Review content before publishing so residents always have clear, current information.</p>
+        <p>Published updates appear in the public news and events feed. Keep titles, summaries, and full content clear in English and Amharic.</p>
         <div className="news-feature-stats">
-          <span><b>{items.length + 12}</b><small>updates this year</small></span>
-          <span><b>94%</b><small>published on time</small></span>
+          <span><b>{items.length}</b><small>total updates</small></span>
+          <span><b>{publishedCount}</b><small>published</small></span>
+          <span><b>{eventCount}</b><small>events</small></span>
         </div>
       </div>
-      <div className="news-feature-art">
+      <div className="news-feature-art" aria-hidden="true">
         <span className="art-sun" />
         <span className="art-hill hill-back" />
         <span className="art-hill hill-front" />
         <span className="art-building"><i /><i /><i /><i /><b /></span>
-        <span className="art-caption">LEMI KURA · COMMUNITY</span>
+        <span className="art-caption">CIVICLINK · COMMUNITY</span>
       </div>
     </div>
     <section className="panel table-panel news-list-panel">
       <div className="table-toolbar">
         <div>
-          <h2>Published updates & drafts</h2>
-          <p>Manage community news and upcoming public events.</p>
+          <h2>News and event content</h2>
+          <p>Search, edit, and control publication for client feed items.</p>
         </div>
         <div className="toolbar-tools">
-          <SearchBox value={search} onChange={setSearch} placeholder="Search updates" />
-          <select className="filter-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} aria-label="Filter news by type">
-            <option>All types</option>
-            <option>News</option>
-            <option>Event</option>
+          <SearchBox value={search} onChange={setSearch} placeholder="Search content, bureau, sub-city" />
+          <select className="filter-select" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Filter by content type">
+            <option value="all">All types</option>
+            <option value="news">News</option>
+            <option value="event">Events</option>
+          </select>
+          <select className="filter-select" value={publicationFilter} onChange={(event) => setPublicationFilter(event.target.value)} aria-label="Filter by publication status">
+            <option value="all">All statuses</option>
+            <option value="published">Published</option>
+            <option value="draft">Drafts</option>
           </select>
         </div>
       </div>
       <div className="news-list">
-        {filtered.map((item) => <article className="news-row" key={item.id}>
-          <span className={`news-type-icon ${item.type.toLowerCase()}`}>
-            <Icon name={item.type === 'Event' ? 'calendar' : 'news'} size={18} />
-          </span>
-          <div className="news-row-copy">
-            <div>
-              <span className="service-category">{item.type}</span>
-              <span className="news-row-date">{item.date}</span>
+        {filtered.map((item) => {
+          const isEvent = item.type === 'event'
+          const subCity = getSubCity(item)
+          const publishedStatus = getPublishedStatus(item)
+          const date = isEvent ? item.eventDate : item.publishedAt
+          return <article className="news-row" key={item.id}>
+            <span className={`news-type-icon${isEvent ? ' event' : ''}`}>
+              <Icon name={isEvent ? 'calendar' : 'news'} size={18} />
+            </span>
+            <div className="news-row-copy">
+              <div>
+                <span className="service-category">{isEvent ? 'Event' : 'News'}</span>
+                <span className="news-row-date">{formatDate(date)}</span>
+              </div>
+              <h3>{item.title}</h3>
+              <p>{item.summary}</p>
+              <small>{[item.bureau, subCity, item.category].filter(Boolean).join(' · ')}</small>
             </div>
-            <h3>{item.title}</h3>
-            <p>{item.excerpt}</p>
-            <small>Audience: {item.audience}</small>
-          </div>
-          <div className="news-row-actions">
-            <StatusPill>{item.status}</StatusPill>
-            <button type="button" className="button secondary small-button" onClick={() => onEdit?.(item)}>
-              Edit
-            </button>
-            <button className="button secondary small-button" onClick={() => onTogglePublish(item.id)}>
-              {item.status === 'Published' ? 'Unpublish' : 'Publish'}
-            </button>
-            <button className="row-more" aria-label={`More actions for ${item.title}`}>
-              <Icon name="dots" />
-            </button>
-          </div>
-        </article>)}
-        {!filtered.length && <div className="empty-state"><b>No updates found</b><p>Try another search.</p></div>}
+            <div className="news-row-actions">
+              <StatusPill>{publishedStatus}</StatusPill>
+              <button type="button" className="button secondary small-button" onClick={() => onEdit?.(item)}>Edit</button>
+              <button type="button" className="button secondary small-button" onClick={() => onTogglePublish(item.id)}>
+                {publishedStatus === 'Published' ? 'Unpublish' : 'Publish'}
+              </button>
+            </div>
+          </article>
+        })}
+        {!filtered.length && <div className="empty-state"><b>No updates found</b><p>Try another search or change the filters.</p></div>}
       </div>
       <div className="table-footer">
-        <span>Showing <b>{filtered.length}</b> updates</span>
-        <div>
-          <button disabled>Previous</button>
-          <button>Next <Icon name="arrow" size={13} /></button>
-        </div>
+        <span>Showing <b>{filtered.length}</b> of <b>{items.length}</b> updates</span>
       </div>
     </section>
   </>

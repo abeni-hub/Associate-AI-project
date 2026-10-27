@@ -4,6 +4,7 @@ import FeedbackFormActions from './FeedbackFormActions.jsx'
 import FeedbackStepContent from './FeedbackStepContent.jsx'
 import FeedbackSuccess from './FeedbackSuccess.jsx'
 import { serviceCatalog } from '../../data/homePageData.js'
+import { createFeedbackTrackingNumber } from '../../utils/feedbackTracking.js'
 
 const stepTitles = [
   'What would you like to share?',
@@ -22,6 +23,7 @@ export default function FeedbackFormCard({ t }) {
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [satisfaction, setSatisfaction] = useState(0)
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false)
+  const [submittedFeedback, setSubmittedFeedback] = useState(null)
 
   const feedback = {
     type: feedbackType,
@@ -47,6 +49,7 @@ export default function FeedbackFormCard({ t }) {
   function handleSubmit(event) {
     event.preventDefault()
     if (!feedbackMessage.trim() || (feedbackType === 'Satisfaction' && !satisfaction)) return
+    setSubmittedFeedback({ ...feedback, trackingNumber: createFeedbackTrackingNumber() })
     setFeedbackSubmitted(true)
   }
 
@@ -56,6 +59,7 @@ export default function FeedbackFormCard({ t }) {
     setFeedbackType('')
     setFeedbackMessage('')
     setSatisfaction(0)
+    setSubmittedFeedback(null)
   }
 
   return (
@@ -83,7 +87,7 @@ export default function FeedbackFormCard({ t }) {
           <div className="demo-note">{t('Interactive preview · Connect to your feedback system to receive submissions')}</div>
         </>
       ) : (
-        <FeedbackSuccess t={t} onReset={handleReset} />
+        <FeedbackSuccess t={t} onReset={handleReset} trackingNumber={submittedFeedback?.trackingNumber} />
       )}
       <div className="feedback-form-footer"><span><Icon name="shield" size={14} /> {t('Your privacy is important')}</span><span>{t(`STEP ${feedbackStep} OF 5`)}</span></div>
     </div>

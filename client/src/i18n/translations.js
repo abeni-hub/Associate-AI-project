@@ -145,7 +145,12 @@ export const amharicCopy = {
   'Interactive preview · Connect to your feedback system to receive submissions': 'የሚሰራ ቅድመ እይታ · አስተያየቶችን ለመቀበል ከአስተያየት ስርዓትዎ ጋር ያገናኙ',
   'THANK YOU FOR SPEAKING UP': 'አስተያየትዎን ስላጋሩ እናመሰግናለን',
   'Your voice matters.': 'ድምፅዎ ዋጋ አለው።',
-  'This interactive preview has completed. Connect the form to your feedback system to securely route submissions to bureau admins.': 'ይህ ቅድመ እይታ ተጠናቋል። አስተያየቶችን በደህና ወደ ቢሮ አስተዳዳሪዎች ለማድረስ ቅጹን ከአስተያየት ስርዓትዎ ጋር ያገናኙ።',
+  'YOUR TRACKING NUMBER': 'የክትትል ቁጥርዎ',
+  'Copy tracking number': 'የክትትል ቁጥሩን ቅዳ',
+  'Copy number': 'ቁጥሩን ቅዳ',
+  'Copied': 'ተቀድቷል',
+  'Save this number to check on your feedback with the office.': 'ስለ አስተያየትዎ ከቢሮው ለመጠየቅ ይህን ቁጥር ያስቀምጡ።',
+  'This preview creates a tracking reference. Connect the feedback system for live status updates.': 'ይህ ቅድመ እይታ የክትትል ቁጥር ይፈጥራል። የቀጥታ የሁኔታ ዝመናዎችን ለማግኘት የአስተያየት ስርዓቱን ያገናኙ።',
   'Send another response': 'ሌላ አስተያየት ላክ',
   'Your privacy is important': 'የግል መረጃዎ ጥበቃ አስፈላጊ ነው',
   'FOR PUBLIC SERVICE TEAMS': 'ለህዝብ አገልግሎት ቡድኖች',
@@ -226,4 +231,3 @@ export const amharicCopy = {
 export function translate(text, language) {
   return language === 'am' ? (amharicCopy[text] ?? text) : text
 }
-

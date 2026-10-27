@@ -1,3 +1,5 @@
+import { MOCK_EVENTS, MOCK_NEWS } from '../../../client/src/services/newsEventsService.js'
+
 export const ROLE = {
   super: { label: 'Super admin', title: 'Platform administration', organization: 'CivicLink Ethiopia', name: 'Mekdes Tadesse', initials: 'MT' },
   subcity: { label: 'Sub-city admin', title: 'Sub-city administration', organization: 'Lemi Kura Sub-city', name: 'Aster Bekele', initials: 'AB' },
@@ -31,13 +33,13 @@ export const INITIAL_OFFICES = [
   { id: 1, typeId: 1, name: 'Lemi Kura', parentId: null, admin: 'Aster Bekele', services: 32, completion: 88, status: 'Active', updated: 'Today' },
   { id: 2, typeId: 1, name: 'Bole', parentId: null, admin: 'Henok Girma', services: 41, completion: 92, status: 'Active', updated: 'Yesterday' },
   { id: 3, typeId: 1, name: 'Yeka', parentId: null, admin: 'Mimi Tesfaye', services: 27, completion: 84, status: 'Active', updated: 'Oct 20, 2026' },
-  { id: 4, typeId: 1, name: 'Kirkos', parentId: null, admin: 'Solomon Worku', services: 36, completion: 70, status: 'Setup', updated: 'Oct 19, 2026' },
+  { id: 4, typeId: 1, name: 'Kirkos', parentId: null, admin: 'Solomon Worku', services: 36, completion: 70, status: 'Inactive', updated: 'Oct 19, 2026' },
   { id: 5, typeId: 1, name: 'Arada', parentId: null, admin: 'Rahel Kebede', services: 24, completion: 80, status: 'Active', updated: 'Oct 18, 2026' },
   { id: 6, typeId: 2, name: 'Revenues Bureau', parentId: 1, admin: 'Dawit Alemu', services: 8, completion: 92, status: 'Active', updated: 'Today' },
   { id: 7, typeId: 2, name: 'Civil Registration Office', parentId: 1, admin: 'Meseret Hailu', services: 12, completion: 84, status: 'Active', updated: 'Oct 19, 2026' },
-  { id: 8, typeId: 2, name: 'Land Administration', parentId: 1, admin: 'Tewodros Kassa', services: 6, completion: 68, status: 'Needs attention', updated: 'Oct 18, 2026' },
+  { id: 8, typeId: 2, name: 'Land Administration', parentId: 1, admin: 'Tewodros Kassa', services: 6, completion: 68, status: 'Inactive', updated: 'Oct 18, 2026' },
   { id: 9, typeId: 2, name: 'Trade & Industry Office', parentId: 1, admin: 'Selamawit Abate', services: 9, completion: 100, status: 'Active', updated: 'Oct 17, 2026' },
-  { id: 10, typeId: 2, name: 'Planning & Development', parentId: 1, admin: 'Biruk Getachew', services: 5, completion: 56, status: 'In progress', updated: 'Oct 16, 2026' },
+  { id: 10, typeId: 2, name: 'Planning & Development', parentId: 1, admin: 'Biruk Getachew', services: 5, completion: 56, status: 'Inactive', updated: 'Oct 16, 2026' },
   { id: 11, typeId: 3, name: 'Woreda 04 Service Desk', parentId: 6, admin: 'Liya Getu', services: 4, completion: 75, status: 'Active', updated: 'Oct 15, 2026' },
 ]
 
@@ -184,7 +186,7 @@ export const INITIAL_ACCOUNTS = [
   { id: 2, name: 'Dawit Alemu', username: 'd.alemu', role: 'Bureau admin', organization: 'Revenues Bureau · Lemi Kura', status: 'Active', lastActive: 'Today, 9:18 AM' },
   { id: 3, name: 'Henok Girma', username: 'h.girma', role: 'Sub-city admin', organization: 'Bole', status: 'Active', lastActive: 'Yesterday' },
   { id: 4, name: 'Mimi Tesfaye', username: 'm.tesfaye', role: 'Sub-city admin', organization: 'Yeka', status: 'Active', lastActive: 'Oct 20, 2026' },
-  { id: 5, name: 'Tewodros Kassa', username: 't.kassa', role: 'Bureau admin', organization: 'Land Administration · Lemi Kura', status: 'Pending', lastActive: 'Never' },
+  { id: 5, name: 'Tewodros Kassa', username: 't.kassa', role: 'Bureau admin', organization: 'Land Administration · Lemi Kura', status: 'Inactive', lastActive: 'Never' },
 ]
 
 export const INITIAL_SERVICES = [
@@ -203,19 +205,15 @@ export const INITIAL_ROUTES = [
 ]
 
 export const INITIAL_FEEDBACK = [
-  { id: 'FB-2048', type: 'Complaint', rating: null, service: 'Business license renewal', bureau: 'Revenues Bureau', subcity: 'Lemi Kura', message: 'I had to visit two desks before finding out one supporting paper was missing. A clearer checklist at the entrance would help.', status: 'Open', priority: 'High', time: 'Today · 9:24 AM' },
-  { id: 'FB-2047', type: 'Satisfaction', rating: 5, service: 'Birth registration', bureau: 'Civil Registration Office', subcity: 'Lemi Kura', message: 'The room guide was very clear and the staff helped us finish in one visit. Thank you.', status: 'Resolved', priority: 'Low', time: 'Today · 8:51 AM' },
-  { id: 'FB-2046', type: 'Suggestion', rating: null, service: 'Landholding record correction', bureau: 'Land Administration', subcity: 'Lemi Kura', message: 'Could the office list the accepted document formats on the public guide?', status: 'In review', priority: 'Normal', time: 'Yesterday · 3:16 PM' },
-  { id: 'FB-2045', type: 'Complaint', rating: null, service: 'e-TIN registration', bureau: 'Revenues Bureau', subcity: 'Bole', message: 'The payment desk was closed during the posted opening hours.', status: 'Open', priority: 'Normal', time: 'Yesterday · 1:40 PM' },
-  { id: 'FB-2044', type: 'Satisfaction', rating: 4, service: 'Residence ID card', bureau: 'Civil Registration Office', subcity: 'Yeka', message: 'Clear instructions and a friendly team. The wait was a little longer than expected.', status: 'Resolved', priority: 'Low', time: 'Oct 20 · 11:03 AM' },
-  { id: 'FB-2043', type: 'Suggestion', rating: null, service: 'Business license renewal', bureau: 'Revenues Bureau', subcity: 'Lemi Kura', message: 'An example of a completed renewal form would make it easier to prepare.', status: 'In review', priority: 'Normal', time: 'Oct 20 · 10:17 AM' },
+  { id: 'FB-2048', trackingNumber: 'CL-2026-7M4P2Q', type: 'Complaint', rating: null, service: 'Business license renewal', bureau: 'Revenues Bureau', subcity: 'Lemi Kura', message: 'I had to visit two desks before finding out one supporting paper was missing. A clearer checklist at the entrance would help.', status: 'Open', priority: 'High', time: 'Today · 9:24 AM' },
+  { id: 'FB-2047', trackingNumber: 'CL-2026-8H6R3C', type: 'Satisfaction', rating: 5, service: 'Birth registration', bureau: 'Civil Registration Office', subcity: 'Lemi Kura', message: 'The room guide was very clear and the staff helped us finish in one visit. Thank you.', status: 'Resolved', priority: 'Low', time: 'Today · 8:51 AM' },
+  { id: 'FB-2046', trackingNumber: 'CL-2026-5T9K4D', type: 'Suggestion', rating: null, service: 'Landholding record correction', bureau: 'Land Administration', subcity: 'Lemi Kura', message: 'Could the office list the accepted document formats on the public guide?', status: 'In review', priority: 'Normal', time: 'Yesterday · 3:16 PM' },
+  { id: 'FB-2045', trackingNumber: 'CL-2026-3N7W8B', type: 'Complaint', rating: null, service: 'e-TIN registration', bureau: 'Revenues Bureau', subcity: 'Bole', message: 'The payment desk was closed during the posted opening hours.', status: 'Open', priority: 'Normal', time: 'Yesterday · 1:40 PM' },
+  { id: 'FB-2044', trackingNumber: 'CL-2026-6C2M9F', type: 'Satisfaction', rating: 4, service: 'Residence ID card', bureau: 'Civil Registration Office', subcity: 'Yeka', message: 'Clear instructions and a friendly team. The wait was a little longer than expected.', status: 'Resolved', priority: 'Low', time: 'Oct 20 · 11:03 AM' },
+  { id: 'FB-2043', trackingNumber: 'CL-2026-4Q8J5X', type: 'Suggestion', rating: null, service: 'Business license renewal', bureau: 'Revenues Bureau', subcity: 'Lemi Kura', message: 'An example of a completed renewal form would make it easier to prepare.', status: 'In review', priority: 'Normal', time: 'Oct 20 · 10:17 AM' },
 ]
 
-export const INITIAL_POSTS = [
-  { id: 1, type: 'News', title: 'New service hours for the public holiday week', excerpt: 'All sub-city service desks will open from 8:30 AM to 4:30 PM during the upcoming public holiday week.', date: 'Oct 21, 2026', status: 'Published', audience: 'All residents' },
-  { id: 2, type: 'Event', title: 'Community services information day', excerpt: 'Meet local bureau teams and learn how to prepare for the most requested services.', date: 'Oct 29, 2026', status: 'Published', audience: 'Lemi Kura residents' },
-  { id: 3, type: 'News', title: 'Updated document checklist for business renewals', excerpt: 'The business license renewal guide now includes the latest supporting document requirements.', date: 'Oct 24, 2026', status: 'Draft', audience: 'Business owners' },
-]
+export const INITIAL_POSTS = [...MOCK_NEWS, ...MOCK_EVENTS].map((item) => ({ ...item, isPublished: true }))
 
 export const INITIAL_ACTIVITIES = [
   {

@@ -4,20 +4,21 @@ import PageHeading from '../components/ui/PageHeading.jsx'
 import SearchBox from '../components/ui/SearchBox.jsx'
 import StatusPill from '../components/ui/StatusPill.jsx'
 import MetricCard from '../components/ui/MetricCard.jsx'
+import { getOfficeParentSummary, getOfficeSubcityId } from '../components/offices/officeHierarchy.js'
 
 function OfficesPage({ offices, officeTypes, role, onAddOffice, onEditOffice, search, setSearch }) {
   const [selectedTypeId, setSelectedTypeId] = useState('all')
 
   // Scope filter: if subcity admin, show only their sub-city and child offices
   const scopedOffices = role === 'subcity'
-    ? offices.filter((o) => o.name === 'Lemi Kura' || o.parentId === 1)
+    ? offices.filter((office) => getOfficeSubcityId(office, offices) === 1)
     : offices
 
   const filtered = scopedOffices.filter((item) => {
-    const parentOffice = offices.find((p) => p.id === item.parentId)
     const type = officeTypes.find((t) => t.id === item.typeId)
+    const parentSummary = getOfficeParentSummary(item, offices, officeTypes)
     const matchesType = selectedTypeId === 'all' || item.typeId === Number(selectedTypeId)
-    const query = `${item.name} ${item.admin} ${item.status} ${type?.name || ''} ${parentOffice?.name || ''}`.toLowerCase()
+    const query = `${item.name} ${item.admin} ${item.status} ${type?.name || ''} ${parentSummary}`.toLowerCase()
     return matchesType && query.includes(search.toLowerCase())
   })
 
@@ -83,10 +84,11 @@ function OfficesPage({ offices, officeTypes, role, onAddOffice, onEditOffice, se
         </div>
       </div>
 
-      <div className="filter-chips-bar" style={{ padding: '0.75rem 1.25rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="filter-chips-bar" role="group" aria-label="Filter offices by classification">
         <button
           type="button"
           className={`chip-button${selectedTypeId === 'all' ? ' active' : ''}`}
+          aria-pressed={selectedTypeId === 'all'}
           onClick={() => setSelectedTypeId('all')}
         >
           All classifications <span>{scopedOffices.length}</span>
@@ -98,6 +100,7 @@ function OfficesPage({ offices, officeTypes, role, onAddOffice, onEditOffice, se
               key={type.id}
               type="button"
               className={`chip-button${selectedTypeId === String(type.id) ? ' active' : ''}`}
+              aria-pressed={selectedTypeId === String(type.id)}
               onClick={() => setSelectedTypeId(String(type.id))}
             >
               {type.name} <span>{count}</span>
@@ -121,7 +124,7 @@ function OfficesPage({ offices, officeTypes, role, onAddOffice, onEditOffice, se
           <tbody>
             {filtered.map((item) => {
               const type = officeTypes.find((t) => t.id === item.typeId)
-              const parentOffice = offices.find((p) => p.id === item.parentId)
+              const parentSummary = getOfficeParentSummary(item, offices, officeTypes)
 
               return (
                 <tr key={item.id}>
@@ -132,16 +135,16 @@ function OfficesPage({ offices, officeTypes, role, onAddOffice, onEditOffice, se
                       </span>
                       <div>
                         <b>{item.name}</b>
-                        {parentOffice && (
-                          <span className="lineage-badge" style={{ display: 'block', fontSize: '0.72rem', color: 'var(--teal-soft)', marginTop: '2px' }}>
-                            ↳ Belongs to {parentOffice.name}
+                        {parentSummary && (
+                          <span className="lineage-badge">
+                            ↳ Parent office: {parentSummary}
                           </span>
                         )}
                       </div>
                     </div>
                   </td>
                   <td>
-                    <span className="role-tag" style={{ background: 'rgba(54, 123, 125, 0.12)', color: 'var(--teal-soft)' }}>
+                    <span className="role-tag office-classification-tag">
                       {type?.name || 'Office'}
                     </span>
                   </td>

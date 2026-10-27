@@ -22,7 +22,7 @@ function AccountsPage({ items, onAdd, onEdit, search, setSearch }) {
     <div className="metric-grid compact-metrics">
       <MetricCard icon="users" label="Total accounts" value={items.length + 84} note="Across all workspaces" tone="teal" />
       <MetricCard icon="check" label="Active accounts" value={items.length + 81} note="Access confirmed" tone="sage" />
-      <MetricCard icon="clock" label="Invitations pending" value="3" note="Awaiting first sign-in" tone="gold" />
+      <MetricCard icon="clock" label="Inactive accounts" value="3" note="Access currently disabled" tone="gold" />
       <MetricCard icon="shield" label="Access reviews" value="Due soon" note="3 reviews this month" tone="blue" />
     </div>
     <section className="panel table-panel">

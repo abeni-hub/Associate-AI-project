@@ -423,6 +423,14 @@ a { color: var(--link); }
 .feedback-success h3 { margin: 8px 0; color: #1a4b57; font: 700 24px 'Manrope', sans-serif; letter-spacing: -.05em; }
 .feedback-success p { max-width: 365px; margin: 4px 0 20px; color: #718077; font-size: 12px; line-height: 1.7; }
 .feedback-success .button { min-height: 42px; font-size: 11px; }
+.feedback-reference-card { width: min(100%, 365px); display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; margin: 0 0 17px; padding: 12px 13px; border: 1px solid #dce8dc; border-left: 2px solid #d6a854; border-radius: 5px; background: #f6f9f3; }
+.feedback-reference-card > div > span, .feedback-reference-card > div > strong { display: block; }
+.feedback-reference-card > div > span { margin-bottom: 5px; color: #829187; font-size: 9px; font-weight: 700; letter-spacing: .1em; }
+.feedback-reference-card > div > strong { color: #24545b; font: 700 16px/1.3 'Manrope', sans-serif; letter-spacing: .06em; }
+.feedback-reference-card > button { min-height: 31px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 9px; border: 1px solid #d9e4dc; border-radius: 4px; background: #fff; color: #557b78; font-size: 10px; font-weight: 700; cursor: pointer; }
+.feedback-reference-card > button:hover { border-color: #a9c2b7; color: #24545b; }
+.feedback-reference-card > button:disabled { opacity: .55; cursor: not-allowed; }
+.feedback-reference-card > small { grid-column: 1 / -1; color: #849187; font-size: 10px; line-height: 1.5; }
 
 .admin-strip { display: flex; align-items: center; gap: 17px; padding-block: 31px; }
 .admin-strip-icon { display: grid; place-items: center; width: 45px; height: 45px; color: #658669; background: #eaf0e6; border-radius: 5px; }

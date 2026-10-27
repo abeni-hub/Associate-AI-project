@@ -8,6 +8,7 @@ import FloatingBackToTop from '../components/news-events/FloatingBackToTop.jsx'
 import NewsEventsFeed from '../components/news-events/NewsEventsFeed.jsx'
 import NewsEventsFilterToolbar from '../components/news-events/NewsEventsFilterToolbar.jsx'
 import NewsEventsHero from '../components/news-events/NewsEventsHero.jsx'
+import { NEWS_EVENTS_STORAGE_KEY, NEWS_EVENTS_UPDATED_EVENT } from '../../../shared/newsEventsStorage.js'
 
 export default function NewsEventsPage({
   language = 'en',
@@ -28,6 +29,7 @@ export default function NewsEventsPage({
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
+  const [contentRevision, setContentRevision] = useState(0)
 
   // Floating Back-to-Top State
   const [showScrollTop, setShowScrollTop] = useState(false)
@@ -54,6 +56,18 @@ export default function NewsEventsPage({
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  useEffect(() => {
+    const refreshWhenContentChanges = (event) => {
+      if (event.type === NEWS_EVENTS_UPDATED_EVENT || event.key === NEWS_EVENTS_STORAGE_KEY) setContentRevision((revision) => revision + 1)
+    }
+    window.addEventListener('storage', refreshWhenContentChanges)
+    window.addEventListener(NEWS_EVENTS_UPDATED_EVENT, refreshWhenContentChanges)
+    return () => {
+      window.removeEventListener('storage', refreshWhenContentChanges)
+      window.removeEventListener(NEWS_EVENTS_UPDATED_EVENT, refreshWhenContentChanges)
+    }
   }, [])
 
   // Reset & fetch page 1 whenever filters change
@@ -95,7 +109,7 @@ export default function NewsEventsPage({
 
     resetAndFetch()
     return () => { ignore = true }
-  }, [activeType, selectedCategory, selectedSubCity, debouncedSearch])
+  }, [activeType, selectedCategory, selectedSubCity, debouncedSearch, contentRevision])
 
   // Load next page (YouTube-like infinite scroll)
   const loadNextPage = useCallback(async () => {

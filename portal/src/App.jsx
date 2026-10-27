@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router'
 import './App.css'
 
@@ -34,6 +34,8 @@ import QRPage from './pages/QRPage.jsx'
 import OfficePage from './pages/OfficePage.jsx'
 import ActivityPage from './pages/ActivityPage.jsx'
 import { parsePortalPath, PORTAL_PAGES_BY_ROLE, portalPagePath } from './routing/portalRoutes.js'
+import { createNewsEventModal } from './data/newsEventForm.js'
+import { NEWS_EVENTS_STORAGE_KEY, readSharedNewsEvents, writeSharedNewsEvents } from '../../shared/newsEventsStorage.js'
 
 function App() {
   const location = useLocation()
@@ -56,7 +58,7 @@ function App() {
   const [services, setServices] = useState(INITIAL_SERVICES)
   const [routes, setRoutes] = useState(INITIAL_ROUTES)
   const [feedback, setFeedback] = useState(INITIAL_FEEDBACK)
-  const [posts, setPosts] = useState(INITIAL_POSTS)
+  const [posts, setPosts] = useState(() => readSharedNewsEvents(INITIAL_POSTS))
   const [, setCopiedLink] = useState(false)
   const [bureauProfile, setBureauProfile] = useState({
     bureau: 'Revenues Bureau',
@@ -65,6 +67,18 @@ function App() {
     admin: 'Dawit Alemu',
     contact: '+251 11 000 0000',
   })
+
+  useEffect(() => {
+    writeSharedNewsEvents(posts)
+  }, [posts])
+
+  useEffect(() => {
+    const syncNewsEvents = (event) => {
+      if (event.key === NEWS_EVENTS_STORAGE_KEY) setPosts(readSharedNewsEvents(INITIAL_POSTS))
+    }
+    window.addEventListener('storage', syncNewsEvents)
+    return () => window.removeEventListener('storage', syncNewsEvents)
+  }, [])
 
   const resetSearch = () => { setSearch(''); setTypeFilter('All types'); setStatusFilter('All statuses') }
   const navigate = (page) => { routerNavigate(portalPagePath(role, page)); resetSearch() }
@@ -90,6 +104,11 @@ function App() {
   // CMS Handlers
   const handleSaveCms = (newConfig) => setCmsConfig(newConfig)
 
+  const openNewsEditor = (item = null) => openForm(createNewsEventModal(item, (record) => setPosts((list) => {
+    const exists = list.some((post) => post.id === record.id)
+    return exists ? list.map((post) => post.id === record.id ? record : post) : [record, ...list]
+  })))
+
   // Roles & Permissions Handlers
   const handleUpdateRolePermissions = (roleId, moduleId, newActions) => {
     setRoles((prev) => prev.map((r) => r.id === roleId ? {
@@ -105,9 +124,9 @@ function App() {
       setOfficeModal({ isOpen: true, office: null })
       return null
     }
-    if (page === 'accounts') return openForm({ eyebrow: 'ACCESS & PERMISSIONS', title: 'Create an account', description: 'Assign a role and organization to give an administrator the right workspace.', submit: 'Create account', fields: [{ name: 'name', label: 'Full name', required: true }, { name: 'username', label: 'Username', required: true }, { name: 'email', label: 'Work email', type: 'email', required: true }, { name: 'role', label: 'Admin role', type: 'select', required: true, options: ['Sub-city admin', 'Bureau admin', 'Public Communications Editor'] }, { name: 'organization', label: 'Organization', required: true }, { name: 'password', label: 'Temporary password', placeholder: 'Set a temporary password', required: true }], onSubmit: (v) => setAccounts((list) => [{ id: Date.now(), name: v.name, username: v.username, role: v.role, organization: v.organization, status: 'Pending', lastActive: 'Never' }, ...list]) })
+    if (page === 'accounts') return openForm({ eyebrow: 'ACCESS & PERMISSIONS', title: 'Create an account', description: 'Assign a role and organization to give an administrator the right workspace.', submit: 'Create account', fields: [{ name: 'name', label: 'Full name', required: true }, { name: 'username', label: 'Username', required: true }, { name: 'email', label: 'Work email', type: 'email', required: true }, { name: 'role', label: 'Admin role', type: 'select', required: true, options: ['Sub-city admin', 'Bureau admin', 'Public Communications Editor'] }, { name: 'organization', label: 'Organization', required: true }, { name: 'status', label: 'Account status', type: 'select', required: true, value: 'Active', options: ['Active', 'Inactive'] }, { name: 'password', label: 'Temporary password', placeholder: 'Set a temporary password', required: true }], onSubmit: (v) => setAccounts((list) => [{ id: Date.now(), name: v.name, username: v.username, role: v.role, organization: v.organization, status: v.status, lastActive: 'Never' }, ...list]) })
     if (page === 'services') return openForm({ eyebrow: 'SERVICE INFORMATION', title: 'Create a service standard', description: 'Define the service, required documents and expectations on both sides.', submit: 'Save service', fields: [{ name: 'name', label: 'Service name', required: true }, { name: 'serviceType', label: 'Service level', type: 'select', required: true, options: ['Main service', 'Sub-service'] }, { name: 'parentService', label: 'Parent service', placeholder: 'Required for a sub-service' }, { name: 'category', label: 'Category', placeholder: 'e.g. Civil registration' }, { name: 'description', label: 'What this service does', type: 'textarea', full: true, required: true }, { name: 'documents', label: 'Required documents', type: 'textarea', full: true, rows: 3, placeholder: 'Add one document per line' }, { name: 'customerExpectations', label: 'What the citizen should prepare or do', type: 'textarea', full: true, required: true }, { name: 'bureauExpectations', label: 'What the bureau commits to', type: 'textarea', full: true, required: true }], onSubmit: (v) => setServices((list) => [{ id: Date.now(), name: v.name, serviceType: v.serviceType, parentService: v.parentService, category: v.category || 'Public service', description: v.description, documents: (v.documents || '').split('\n').filter(Boolean), bureaus: 0, published: false, customerExpectations: v.customerExpectations, bureauExpectations: v.bureauExpectations }, ...list]) })
-    if (page === 'news') return openForm({ eyebrow: 'PUBLIC INFORMATION', title: 'Create an update', description: 'Share an official announcement or upcoming event with your community.', submit: 'Save update', fields: [{ name: 'type', label: 'Update type', type: 'select', required: true, options: ['News', 'Event'] }, { name: 'title', label: 'Title', required: true }, { name: 'date', label: 'Publish or event date', type: 'date', required: true }, { name: 'audience', label: 'Audience', placeholder: 'e.g. All residents' }, { name: 'excerpt', label: 'What residents should know', type: 'textarea', full: true, required: true }, { name: 'status', label: 'Save as', type: 'select', required: true, options: ['Draft', 'Published'] }], onSubmit: (v) => setPosts((list) => [{ id: Date.now(), type: v.type, title: v.title, excerpt: v.excerpt, date: v.date, status: v.status, audience: v.audience || 'All residents' }, ...list]) })
+    if (page === 'news') return openNewsEditor()
     if (page === 'routes') return setModal({ kind: 'route', route: routes[0], onSave: (steps) => setRoutes((list) => list.map((route) => route.id === routes[0]?.id ? { ...route, steps, status: 'Draft', updated: 'Just now' } : route)) })
     return null
   }
@@ -125,26 +144,12 @@ function App() {
       { name: 'email', label: 'Work email', type: 'email', required: true, value: item.email || `${item.username}@civiclink.gov.et` },
       { name: 'role', label: 'Admin role', type: 'select', required: true, value: item.role, options: ['Sub-city admin', 'Bureau admin', 'Public Communications Editor'] },
       { name: 'organization', label: 'Organization', required: true, value: item.organization },
-      { name: 'status', label: 'Account status', type: 'select', required: true, value: item.status || 'Active', options: ['Active', 'Pending', 'Inactive'] },
+      { name: 'status', label: 'Account status', type: 'select', required: true, value: item.status === 'Inactive' ? 'Inactive' : 'Active', options: ['Active', 'Inactive'] },
     ],
     onSubmit: (v) => setAccounts((list) => list.map((acc) => acc.id === item.id ? { ...acc, ...v } : acc)),
   })
 
-  const onEditNews = (item) => openForm({
-    eyebrow: 'PUBLIC INFORMATION',
-    title: 'Edit public update',
-    description: 'Update news announcement, upcoming event date, audience scope, or status.',
-    submit: 'Save update',
-    fields: [
-      { name: 'type', label: 'Update type', type: 'select', required: true, value: item.type, options: ['News', 'Event'] },
-      { name: 'title', label: 'Title', required: true, value: item.title },
-      { name: 'date', label: 'Publish or event date', type: 'date', required: true, value: item.date },
-      { name: 'audience', label: 'Audience', value: item.audience || 'All residents' },
-      { name: 'excerpt', label: 'What residents should know', type: 'textarea', full: true, required: true, value: item.excerpt },
-      { name: 'status', label: 'Save as', type: 'select', required: true, value: item.status, options: ['Draft', 'Published'] },
-    ],
-    onSubmit: (v) => setPosts((list) => list.map((post) => post.id === item.id ? { ...post, ...v } : post)),
-  })
+  const onEditNews = (item) => openNewsEditor(item)
 
   const onEditBureauProfile = () => openForm({
     eyebrow: 'BUREAU SETTINGS',
@@ -207,7 +212,7 @@ function App() {
       <FeedbackPage items={visibleFeedback} onOpen={openFeedback} search={search} setSearch={setSearch} typeFilter={typeFilter} setTypeFilter={setTypeFilter} statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
     )}
     {page === 'news' && (
-      <NewsPage items={posts} onAdd={() => createForPage('news')} onEdit={onEditNews} search={search} setSearch={setSearch} onTogglePublish={(id) => setPosts((list) => list.map((item) => item.id === id ? { ...item, status: item.status === 'Published' ? 'Draft' : 'Published' } : item))} />
+      <NewsPage items={posts} onAdd={() => createForPage('news')} onEdit={onEditNews} search={search} setSearch={setSearch} onTogglePublish={(id) => setPosts((list) => list.map((item) => item.id === id ? { ...item, isPublished: item.isPublished === false } : item))} />
     )}
     {page === 'routes' && role === 'bureau' && (
       <RoutesPage items={routes.filter((route) => route.bureau === 'Revenues Bureau')} onEdit={(route) => setModal({ kind: 'route', route, onSave: (steps) => setRoutes((list) => list.map((item) => item.id === route.id ? { ...item, steps, status: 'Draft', updated: 'Just now' } : item)) })} search={search} setSearch={setSearch} />

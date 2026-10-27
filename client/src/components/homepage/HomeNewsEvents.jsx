@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { getHomeHighlights } from '../../services/newsEventsService'
 import HomeNewsControls from './HomeNewsControls.jsx'
 import HomeNewsGrid from './HomeNewsGrid.jsx'
+import { NEWS_EVENTS_STORAGE_KEY, NEWS_EVENTS_UPDATED_EVENT } from '../../../../shared/newsEventsStorage.js'
 
 export default function HomeNewsEvents({
   language = 'en',
@@ -16,6 +17,19 @@ export default function HomeNewsEvents({
     totalEvents: 0,
   })
   const [loading, setLoading] = useState(true)
+  const [contentRevision, setContentRevision] = useState(0)
+
+  useEffect(() => {
+    const refreshWhenContentChanges = (event) => {
+      if (event.type === NEWS_EVENTS_UPDATED_EVENT || event.key === NEWS_EVENTS_STORAGE_KEY) setContentRevision((revision) => revision + 1)
+    }
+    window.addEventListener('storage', refreshWhenContentChanges)
+    window.addEventListener(NEWS_EVENTS_UPDATED_EVENT, refreshWhenContentChanges)
+    return () => {
+      window.removeEventListener('storage', refreshWhenContentChanges)
+      window.removeEventListener(NEWS_EVENTS_UPDATED_EVENT, refreshWhenContentChanges)
+    }
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -34,7 +48,7 @@ export default function HomeNewsEvents({
 
     loadData()
     return () => { mounted = false }
-  }, [])
+  }, [contentRevision])
 
   const items = activeTab === 'news' ? data.news.slice(0, 3) : data.events.slice(0, 3)
 
