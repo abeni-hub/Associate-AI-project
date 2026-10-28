@@ -39,25 +39,23 @@ function NewsPage({ items, onAdd, onEdit, search, setSearch, onTogglePublish }) 
       action="Create an update"
       onAction={onAdd}
     />
-    <div className="news-feature">
-      <div className="news-feature-content">
-        <span className="news-feature-kicker"><Icon name="news" size={15} /> PUBLIC CLIENT FEED</span>
-        <h2>Good information<br /><em>brings us closer.</em></h2>
-        <p>Published updates appear in the public news and events feed. Keep titles, summaries, and full content clear in English and Amharic.</p>
-        <div className="news-feature-stats">
-          <span><b>{items.length}</b><small>total updates</small></span>
-          <span><b>{publishedCount}</b><small>published</small></span>
-          <span><b>{eventCount}</b><small>events</small></span>
+    <section className="feed-overview" aria-labelledby="feed-overview-title">
+      <div className="feed-overview-intro">
+        <div className="feed-overview-heading">
+          <span className="feed-overview-icon"><Icon name="news" size={19} /></span>
+          <div>
+            <span className={`feed-live-status${publishedCount ? ' is-live' : ' is-empty'}`}><i />{publishedCount ? 'Live in the client app' : 'Nothing published yet'}</span>
+            <h2 id="feed-overview-title">Public feed overview</h2>
+          </div>
         </div>
+        <p>Keep titles, summaries, and full content clear in English and Amharic before publishing.</p>
       </div>
-      <div className="news-feature-art" aria-hidden="true">
-        <span className="art-sun" />
-        <span className="art-hill hill-back" />
-        <span className="art-hill hill-front" />
-        <span className="art-building"><i /><i /><i /><i /><b /></span>
-        <span className="art-caption">CIVICLINK · COMMUNITY</span>
-      </div>
-    </div>
+      <dl className="feed-overview-stats" aria-label="News and events totals">
+        <div><dt>Total updates</dt><dd>{items.length}</dd></div>
+        <div><dt>Published</dt><dd>{publishedCount}</dd></div>
+        <div><dt>Events</dt><dd>{eventCount}</dd></div>
+      </dl>
+    </section>
     <section className="panel table-panel news-list-panel">
       <div className="table-toolbar">
         <div>

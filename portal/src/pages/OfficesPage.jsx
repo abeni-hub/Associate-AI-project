@@ -79,34 +79,36 @@ function OfficesPage({ offices, officeTypes, role, onAddOffice, onEditOffice, se
           <h2>Government offices directory</h2>
           <p>Hierarchical relationships dictate access and citizen service routing.</p>
         </div>
-        <div className="toolbar-tools">
-          <SearchBox value={search} onChange={setSearch} placeholder="Search offices, bureaus, admins..." />
-        </div>
       </div>
 
-      <div className="filter-chips-bar" role="group" aria-label="Filter offices by classification">
-        <button
-          type="button"
-          className={`chip-button${selectedTypeId === 'all' ? ' active' : ''}`}
-          aria-pressed={selectedTypeId === 'all'}
-          onClick={() => setSelectedTypeId('all')}
-        >
-          All classifications <span>{scopedOffices.length}</span>
-        </button>
-        {officeTypes.map((type) => {
-          const count = scopedOffices.filter((o) => o.typeId === type.id).length
-          return (
-            <button
-              key={type.id}
-              type="button"
-              className={`chip-button${selectedTypeId === String(type.id) ? ' active' : ''}`}
-              aria-pressed={selectedTypeId === String(type.id)}
-              onClick={() => setSelectedTypeId(String(type.id))}
-            >
-              {type.name} <span>{count}</span>
-            </button>
-          )
-        })}
+      <div className="office-directory-controls">
+        <div className="filter-chips-bar" role="group" aria-label="Filter offices by classification">
+          <button
+            type="button"
+            className={`chip-button${selectedTypeId === 'all' ? ' active' : ''}`}
+            aria-pressed={selectedTypeId === 'all'}
+            onClick={() => setSelectedTypeId('all')}
+          >
+            All classifications <span>{scopedOffices.length}</span>
+          </button>
+          {officeTypes.map((type) => {
+            const count = scopedOffices.filter((o) => o.typeId === type.id).length
+            return (
+              <button
+                key={type.id}
+                type="button"
+                className={`chip-button${selectedTypeId === String(type.id) ? ' active' : ''}`}
+                aria-pressed={selectedTypeId === String(type.id)}
+                onClick={() => setSelectedTypeId(String(type.id))}
+              >
+                {type.name} <span>{count}</span>
+              </button>
+            )
+          })}
+        </div>
+        <div className="office-directory-search">
+          <SearchBox value={search} onChange={setSearch} placeholder="Search offices, bureaus, admins..." />
+        </div>
       </div>
 
       <div className="table-scroll">
