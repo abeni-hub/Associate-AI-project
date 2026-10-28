@@ -9,22 +9,25 @@ import NewsEventsFeed from '../components/news-events/NewsEventsFeed.jsx'
 import NewsEventsFilterToolbar from '../components/news-events/NewsEventsFilterToolbar.jsx'
 import NewsEventsHero from '../components/news-events/NewsEventsHero.jsx'
 import { NEWS_EVENTS_STORAGE_KEY, NEWS_EVENTS_UPDATED_EVENT } from '../../../shared/newsEventsStorage.js'
+import type { FeedFilterParams, FeedPage, FeedType, Language, NewsEventItem } from '../types/newsEvents'
 
-export default function NewsEventsPage({
-  language = 'en',
-  initialTab = 'all', // 'all' | 'news' | 'events'
-  onNavigateToDetail,
-}) {
+interface NewsEventsPageProps {
+  language?: Language;
+  initialTab?: FeedType;
+  onNavigateToDetail?: (item: NewsEventItem) => void;
+}
+
+export default function NewsEventsPage({ language = 'en', initialTab = 'all', onNavigateToDetail }: NewsEventsPageProps) {
 
   // Filter state
-  const [activeType, setActiveType] = useState(initialTab) // 'all' | 'news' | 'events'
+  const [activeType, setActiveType] = useState<FeedType>(initialTab)
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedSubCity, setSelectedSubCity] = useState('All Addis Ababa')
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
   // Infinite Scroll State (YouTube-like continuous loading)
-  const [items, setItems] = useState([])
+  const [items, setItems] = useState<NewsEventItem[]>([])
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
@@ -35,7 +38,7 @@ export default function NewsEventsPage({
   const [showScrollTop, setShowScrollTop] = useState(false)
 
   // Observer Sentinel for Infinite Scrolling
-  const sentinelRef = useRef(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   // Handle Search Debounce
   useEffect(() => {
@@ -59,8 +62,9 @@ export default function NewsEventsPage({
   }, [])
 
   useEffect(() => {
-    const refreshWhenContentChanges = (event) => {
-      if (event.type === NEWS_EVENTS_UPDATED_EVENT || event.key === NEWS_EVENTS_STORAGE_KEY) setContentRevision((revision) => revision + 1)
+    const refreshWhenContentChanges: EventListener = (rawEvent) => {
+      const event = rawEvent as StorageEvent
+      if (rawEvent.type === NEWS_EVENTS_UPDATED_EVENT || event.key === NEWS_EVENTS_STORAGE_KEY) setContentRevision((revision) => revision + 1)
     }
     window.addEventListener('storage', refreshWhenContentChanges)
     window.addEventListener(NEWS_EVENTS_UPDATED_EVENT, refreshWhenContentChanges)
@@ -78,8 +82,8 @@ export default function NewsEventsPage({
       setLoading(true)
       setPage(1)
       try {
-        let res
-        const filterParams = {
+        let res: FeedPage
+        const filterParams: FeedFilterParams = {
           page: 1,
           limit: 6,
           category: selectedCategory === 'all' ? '' : selectedCategory,
@@ -88,11 +92,11 @@ export default function NewsEventsPage({
         }
 
         if (activeType === 'news') {
-          res = await fetchNews(filterParams)
+          res = await fetchNews(filterParams) as FeedPage
         } else if (activeType === 'events') {
-          res = await fetchEvents(filterParams)
+          res = await fetchEvents(filterParams) as FeedPage
         } else {
-          res = await fetchCombinedFeed(filterParams)
+          res = await fetchCombinedFeed(filterParams) as FeedPage
         }
 
         if (!ignore) {
@@ -118,8 +122,8 @@ export default function NewsEventsPage({
     setLoading(true)
     const nextPage = page + 1
     try {
-      let res
-      const filterParams = {
+      let res: FeedPage
+      const filterParams: FeedFilterParams = {
         page: nextPage,
         limit: 6,
         category: selectedCategory === 'all' ? '' : selectedCategory,
@@ -128,11 +132,11 @@ export default function NewsEventsPage({
       }
 
       if (activeType === 'news') {
-        res = await fetchNews(filterParams)
+        res = await fetchNews(filterParams) as FeedPage
       } else if (activeType === 'events') {
-        res = await fetchEvents(filterParams)
+        res = await fetchEvents(filterParams) as FeedPage
       } else {
-        res = await fetchCombinedFeed(filterParams)
+        res = await fetchCombinedFeed(filterParams) as FeedPage
       }
 
       setItems((prev) => [...prev, ...res.items])

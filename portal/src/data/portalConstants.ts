@@ -10,6 +10,7 @@ import type {
   ServiceItem,
   SubcityItem,
 } from '../types/portal.types';
+import { MOCK_EVENTS, MOCK_NEWS } from '../../../client/src/services/newsEventsService.js';
 
 export const ROLE: Record<RoleKey, RoleMeta> = {
   super: {
@@ -147,8 +148,7 @@ export const INITIAL_FEEDBACK: FeedbackItem[] = [
   { id: 'FB-2043', type: 'Suggestion', rating: null, service: 'Business license renewal', bureau: 'Revenues Bureau', subcity: 'Lemi Kura', message: 'An example of a completed renewal form would make it easier to prepare.', status: 'In review', priority: 'Normal', time: 'Oct 20 · 10:17 AM' },
 ];
 
-export const INITIAL_POSTS: PostItem[] = [
-  { id: 1, type: 'News', title: 'New service hours for the public holiday week', excerpt: 'All sub-city service desks will open from 8:30 AM to 4:30 PM during the upcoming public holiday week.', date: 'Oct 21, 2026', status: 'Published', audience: 'All residents' },
-  { id: 2, type: 'Event', title: 'Community services information day', excerpt: 'Meet local bureau teams and learn how to prepare for the most requested services.', date: 'Oct 29, 2026', status: 'Published', audience: 'Lemi Kura residents' },
-  { id: 3, type: 'News', title: 'Updated document checklist for business renewals', excerpt: 'The business license renewal guide now includes the latest supporting document requirements.', date: 'Oct 24, 2026', status: 'Draft', audience: 'Business owners' },
-];
+export const INITIAL_POSTS: PostItem[] = [...MOCK_NEWS, ...MOCK_EVENTS].map((item) => ({
+  ...item,
+  isPublished: !('isPublished' in item) || item.isPublished !== false,
+}));

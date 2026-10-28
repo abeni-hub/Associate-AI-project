@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import AdminStrip from '../components/homepage/AdminStrip.jsx'
 import FeedbackSection from '../components/homepage/FeedbackSection.jsx'
 import HeroSection from '../components/homepage/HeroSection.jsx'
@@ -7,8 +7,24 @@ import JourneySection from '../components/homepage/JourneySection.jsx'
 import QuickSearchSection from '../components/homepage/QuickSearchSection.jsx'
 import ServiceGuideSection from '../components/homepage/ServiceGuideSection.jsx'
 import { bureauOptions, heroSlides, serviceCatalog, serviceFor, subCityOptions } from '../data/homePageData.js'
+import type { FeedType, LandingPageCmsConfig, Language, NewsEventItem } from '../types/newsEvents'
 
-export default function HomePage({ language, t, onNavigateToHub, onSelectItem, cmsConfig, documentRef }) {
+interface HomePageProps {
+  language: Language;
+  t: (text: string) => string;
+  onNavigateToHub: (tab?: FeedType) => void;
+  onSelectItem: (item: NewsEventItem) => void;
+  cmsConfig?: LandingPageCmsConfig | null;
+  documentRef?: Document;
+}
+type BureauId = keyof typeof serviceCatalog;
+interface ServiceGuideSelection {
+  subCity: string;
+  bureauId: BureauId;
+  serviceId: string;
+}
+
+export default function HomePage({ language, t, onNavigateToHub, onSelectItem, cmsConfig, documentRef }: HomePageProps) {
   const pageDocument = documentRef || document
   const configuredSlides = cmsConfig?.hero?.slides
   const slides = configuredSlides?.length
@@ -27,9 +43,9 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
   const [heroSlideIndex, setHeroSlideIndex] = useState(0)
   const [heroCarouselPlaying, setHeroCarouselPlaying] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [subCity, setSubCity] = useState('Bole')
-  const [bureauId, setBureauId] = useState('civil')
+  const [bureauId, setBureauId] = useState<BureauId>('civil')
   const [serviceId, setServiceId] = useState('birth-copy')
-  const [serviceGuide, setServiceGuide] = useState({ subCity: 'Bole', bureauId: 'civil', serviceId: 'birth-copy' })
+  const [serviceGuide, setServiceGuide] = useState<ServiceGuideSelection>({ subCity: 'Bole', bureauId: 'civil', serviceId: 'birth-copy' })
 
   const activeServiceList = serviceCatalog[bureauId] ?? []
   const guideService = serviceFor(serviceGuide.bureauId, serviceGuide.serviceId)
@@ -48,13 +64,13 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
     return () => window.clearInterval(timer)
   }, [heroCarouselPlaying, slides.length])
 
-  function handleFindService(event) {
+  function handleFindService(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setServiceGuide({ subCity, bureauId, serviceId })
     window.setTimeout(() => pageDocument.getElementById('service-guide')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30)
   }
 
-  function changeBureau(nextBureau) {
+  function changeBureau(nextBureau: BureauId) {
     setBureauId(nextBureau)
     setServiceId(serviceCatalog[nextBureau]?.[0]?.id ?? '')
   }

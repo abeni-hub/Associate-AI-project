@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react'
 import { getItemById, submitEventRsvp, getRelatedItems } from '../services/newsEventsService'
 import DetailArticleContent from '../components/item-detail/DetailArticleContent.jsx'
 import DetailBreadcrumbs from '../components/item-detail/DetailBreadcrumbs.jsx'
@@ -9,6 +9,15 @@ import DetailNotFound from '../components/item-detail/DetailNotFound.jsx'
 import DetailPageFooter from '../components/item-detail/DetailPageFooter.jsx'
 import DetailRelatedItems from '../components/item-detail/DetailRelatedItems.jsx'
 import EventSpecsCard from '../components/item-detail/EventSpecsCard.jsx'
+import type { Language, NewsEventItem } from '../types/newsEvents'
+
+interface ItemDetailPageProps {
+  itemId: string;
+  language?: Language;
+  onBackToHub?: () => void;
+  onBackToHome?: () => void;
+  onNavigateToDetail?: (item: NewsEventItem) => void;
+}
 
 export default function ItemDetailPage({
   itemId,
@@ -16,13 +25,13 @@ export default function ItemDetailPage({
   onBackToHub,
   onBackToHome,
   onNavigateToDetail,
-}) {
+}: ItemDetailPageProps) {
   const isAm = language === 'am'
-  const [item, setItem] = useState(null)
+  const [item, setItem] = useState<NewsEventItem | null>(null)
   const [loading, setLoading] = useState(true)
   const [rsvpName, setRsvpName] = useState('')
   const [rsvpPhone, setRsvpPhone] = useState('')
-  const [rsvpStatus, setRsvpStatus] = useState(null) // null | 'submitting' | 'success'
+  const [rsvpStatus, setRsvpStatus] = useState<'submitting' | 'success' | null>(null)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -45,7 +54,7 @@ export default function ItemDetailPage({
     return () => { mounted = false }
   }, [itemId])
 
-  async function handleRsvpSubmit(e) {
+  async function handleRsvpSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!item || !rsvpName.trim()) return
     setRsvpStatus('submitting')
@@ -79,7 +88,7 @@ export default function ItemDetailPage({
   const englishSubCity = item.subCity || item.location?.subCity
   const amharicSubCity = item.subCityAm || item.location?.subCityAm
   const subCity = isAm && amharicSubCity ? amharicSubCity : englishSubCity
-  const related = getRelatedItems ? getRelatedItems(item, 3) : []
+  const related = getRelatedItems ? getRelatedItems(item, 3) as NewsEventItem[] : []
 
   return (
     <div className="item-detail-page" lang={language}>
@@ -91,7 +100,7 @@ export default function ItemDetailPage({
 
         <DetailHeroMedia item={item} title={title} language={language} />
 
-        <EventSpecsCard isAm={isAm} item={item} language={language} rsvpStatus={rsvpStatus} rsvpName={rsvpName} rsvpPhone={rsvpPhone} onRsvpNameChange={(event) => setRsvpName(event.target.value)} onRsvpPhoneChange={(event) => setRsvpPhone(event.target.value)} onRsvpSubmit={handleRsvpSubmit} />
+        <EventSpecsCard isAm={isAm} item={item} language={language} rsvpStatus={rsvpStatus} rsvpName={rsvpName} rsvpPhone={rsvpPhone} onRsvpNameChange={(event: ChangeEvent<HTMLInputElement>) => setRsvpName(event.target.value)} onRsvpPhoneChange={(event: ChangeEvent<HTMLInputElement>) => setRsvpPhone(event.target.value)} onRsvpSubmit={handleRsvpSubmit} />
 
         <DetailArticleContent isAm={isAm} item={item} content={content} bureau={bureau} />
 

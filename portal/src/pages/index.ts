@@ -7,6 +7,7 @@ export * from './ServicesPage';
 export * from './RoutesPage';
 export * from './FeedbackPage';
 export * from './NewsPage';
+export * from './NewsDetailPage';
 export * from './QRPage';
 export * from './OfficePage';
 export * from './OfficesPage';

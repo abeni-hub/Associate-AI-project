@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { usePortal } from '../context';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
@@ -15,20 +16,24 @@ export interface NewsPageProps {
   onTogglePublish?: (id: number | string) => void;
 }
 
+function normalizeType(item: PostItem) {
+  return String(item.type).toLowerCase().includes('event') ? 'event' : 'news';
+}
+
+function isPublished(item: PostItem) {
+  return item.isPublished ?? (String(item.status || '').toLowerCase() !== 'draft');
+}
+
 function formatDate(value?: string) {
   if (!value) return 'Date not set';
-  const date = new Date(`${value}T00:00:00`);
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(value + 'T00:00:00') : new Date(value);
   return Number.isNaN(date.getTime())
     ? value
     : date.toLocaleDateString('en-ET', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function getSubCity(item: any) {
-  return item.type === 'event' ? item.location?.subCity : item.subCity;
-}
-
-function getPublishedStatus(item: any) {
-  return item.isPublished === false ? 'Draft' : 'Published';
+function getSubCity(item: PostItem) {
+  return normalizeType(item) === 'event' ? item.location?.subCity || item.subCity : item.subCity;
 }
 
 export const NewsPage: React.FC<NewsPageProps> = ({
@@ -49,40 +54,65 @@ export const NewsPage: React.FC<NewsPageProps> = ({
   const onAdd = propOnAdd || (() => portal.createForPage('news'));
   const onEdit =
     propOnEdit ||
-    ((item: any) => {
+    ((item: PostItem) => {
       portal.openForm({
         eyebrow: 'PUBLIC INFORMATION',
         title: 'Edit update',
-        description: 'Update news or event details.',
+        description: 'Keep the English and Amharic versions clear and consistent.',
         submit: 'Save changes',
         fields: [
-          { name: 'title', label: 'Title', required: true, value: item.title },
+          { name: 'title', label: 'Title in English', required: true, value: item.title },
+          { name: 'titleAm', label: 'Title in Amharic', value: item.titleAm },
           {
             name: 'summary',
-            label: 'Summary',
+            label: 'Summary in English',
             type: 'textarea',
             required: true,
             value: item.summary || item.excerpt,
           },
+          {
+            name: 'summaryAm',
+            label: 'Summary in Amharic',
+            type: 'textarea',
+            value: item.summaryAm,
+          },
+          {
+            name: 'content',
+            label: 'Full content in English',
+            type: 'textarea',
+            rows: 5,
+            full: true,
+            value: item.content,
+          },
+          {
+            name: 'contentAm',
+            label: 'Full content in Amharic',
+            type: 'textarea',
+            rows: 5,
+            full: true,
+            value: item.contentAm,
+          },
         ],
-        onSubmit: () => {},
+        onSubmit: (values) => {
+          portal.onUpdatePost(item.id, values);
+        },
       });
     });
 
   const onTogglePublish =
     propOnTogglePublish ||
-    ((id: any) => {
-      portal.onTogglePostPublish(Number(id));
+    ((id: number | string) => {
+      portal.onTogglePostPublish(id);
     });
 
-  const publishedCount = items.filter((item) => item.isPublished !== false).length;
-  const eventCount = items.filter((item) => item.type === 'event').length;
+  const publishedCount = items.filter(isPublished).length;
+  const eventCount = items.filter((item) => normalizeType(item) === 'event' && isPublished(item)).length;
 
   const filtered = items.filter((item) => {
-    const matchesType = typeFilter === 'all' || item.type === typeFilter;
+    const matchesType = typeFilter === 'all' || normalizeType(item) === typeFilter;
     const matchesPublication =
       publicationFilter === 'all' ||
-      (publicationFilter === 'published' ? item.isPublished !== false : item.isPublished === false);
+      (publicationFilter === 'published' ? isPublished(item) : !isPublished(item));
     const searchable = [
       item.title,
       item.titleAm,
@@ -96,6 +126,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({
       item.bureau,
       item.bureauAm,
       getSubCity(item),
+      item.location?.venue,
     ]
       .filter(Boolean)
       .join(' ')
@@ -112,60 +143,48 @@ export const NewsPage: React.FC<NewsPageProps> = ({
         action="Create an update"
         onAction={onAdd}
       />
-      <div className="news-feature">
-        <div className="news-feature-content">
-          <span className="news-feature-kicker">
-            <Icon name="news" size={15} /> PUBLIC CLIENT FEED
-          </span>
-          <h2>
-            Good information
-            <br />
-            <em>brings us closer.</em>
-          </h2>
-          <p>
-            Published updates appear in the public news and events feed. Keep titles, summaries, and full content clear in English and Amharic.
-          </p>
-          <div className="news-feature-stats">
-            <span>
-              <b>{items.length}</b>
-              <small>total updates</small>
+
+      <section className="feed-overview" aria-label="Public client feed status">
+        <div className="feed-overview-intro">
+          <div className="feed-overview-heading">
+            <span className="feed-overview-icon">
+              <Icon name="news" size={20} />
             </span>
-            <span>
-              <b>{publishedCount}</b>
-              <small>published</small>
-            </span>
-            <span>
-              <b>{eventCount}</b>
-              <small>events</small>
-            </span>
+            <div>
+              <span className={'feed-live-status' + (publishedCount ? '' : ' is-empty')}>
+                <i /> Public client feed
+              </span>
+              <h2>Updates residents can use</h2>
+            </div>
           </div>
+          <p>
+            Published notices appear in the client app. Preview each update in English and Amharic before it goes live.
+          </p>
         </div>
-        <div className="news-feature-art" aria-hidden="true">
-          <span className="art-sun" />
-          <span className="art-hill hill-back" />
-          <span className="art-hill hill-front" />
-          <span className="art-building">
-            <i />
-            <i />
-            <i />
-            <i />
-            <b />
-          </span>
-          <span className="art-caption">CIVICLINK · COMMUNITY</span>
-        </div>
-      </div>
+        <dl className="feed-overview-stats">
+          <div>
+            <dt>Total updates</dt>
+            <dd>{items.length}</dd>
+          </div>
+          <div>
+            <dt>Published</dt>
+            <dd>{publishedCount}</dd>
+          </div>
+          <div>
+            <dt>Published events</dt>
+            <dd>{eventCount}</dd>
+          </div>
+        </dl>
+      </section>
+
       <section className="panel table-panel news-list-panel">
         <div className="table-toolbar">
           <div>
-            <h2>News and event content</h2>
-            <p>Search, edit, and control publication for client feed items.</p>
+            <h2>Client feed content</h2>
+            <p>Browse public cards, open the full detail, and manage publication.</p>
           </div>
           <div className="toolbar-tools">
-            <SearchBox
-              value={search}
-              onChange={setSearch}
-              placeholder="Search content, bureau, sub-city"
-            />
+            <SearchBox value={search} onChange={setSearch} placeholder="Search updates, bureau, location" />
             <select
               className="filter-select"
               value={typeFilter}
@@ -188,28 +207,52 @@ export const NewsPage: React.FC<NewsPageProps> = ({
             </select>
           </div>
         </div>
-        <div className="news-list">
+
+        <div className="news-grid">
           {filtered.map((item) => {
-            const isEvent = item.type === 'event';
+            const isEvent = normalizeType(item) === 'event';
+            const date = isEvent ? item.eventDate || item.date : item.publishedAt || item.date;
             const subCity = getSubCity(item);
-            const publishedStatus = getPublishedStatus(item);
-            const date = isEvent ? item.eventDate : item.publishedAt;
+            const status = isPublished(item) ? 'Published' : 'Draft';
+            const summary = item.summary || item.excerpt || 'No summary has been added yet.';
+
             return (
-              <article className="news-row" key={item.id}>
-                <span className={`news-type-icon${isEvent ? ' event' : ''}`}>
-                  <Icon name={isEvent ? 'calendar' : 'news'} size={18} />
-                </span>
-                <div className="news-row-copy">
-                  <div>
-                    <span className="service-category">{isEvent ? 'Event' : 'News'}</span>
-                    <span className="news-row-date">{formatDate(date)}</span>
+              <article className="news-admin-card" key={item.id}>
+                <Link className="news-card-link" to={'/news/' + encodeURIComponent(String(item.id))}>
+                  <div className="news-card-media">
+                    {item.coverImage ? (
+                      <img src={item.coverImage} alt="" loading="lazy" />
+                    ) : (
+                      <span className="news-card-image-placeholder" aria-hidden="true">
+                        <Icon name={isEvent ? 'calendar' : 'news'} size={28} />
+                      </span>
+                    )}
+                    <span className="news-card-category">{item.category || (isEvent ? 'Community event' : 'Public notice')}</span>
+                    {isEvent && date && (
+                      <span className="news-card-date-badge">{formatDate(date)}</span>
+                    )}
                   </div>
-                  <h3>{item.title}</h3>
-                  <p>{item.summary}</p>
-                  <small>{[item.bureau, subCity, item.category].filter(Boolean).join(' · ')}</small>
-                </div>
-                <div className="news-row-actions">
-                  <StatusPill>{publishedStatus}</StatusPill>
+                  <div className="news-card-copy">
+                    <div className="news-card-meta">
+                      <span>{isEvent ? 'Event' : 'News'}</span>
+                      {!isEvent && <span>{formatDate(date)}</span>}
+                    </div>
+                    <h3>{item.title}</h3>
+                    <p>{summary}</p>
+                    <div className="news-card-byline">
+                      <span>{item.bureau || item.organizer || 'CivicLink Ethiopia'}</span>
+                      {subCity && <span>{subCity}</span>}
+                      {!isEvent && item.readTimeMinutes && (
+                        <span>{item.readTimeMinutes} min read</span>
+                      )}
+                    </div>
+                    <span className="news-card-read-link">
+                      View public detail <Icon name="arrow" size={15} />
+                    </span>
+                  </div>
+                </Link>
+                <div className="news-card-admin-actions">
+                  <StatusPill>{status}</StatusPill>
                   <button
                     type="button"
                     className="button secondary small-button"
@@ -222,14 +265,14 @@ export const NewsPage: React.FC<NewsPageProps> = ({
                     className="button secondary small-button"
                     onClick={() => onTogglePublish(item.id)}
                   >
-                    {publishedStatus === 'Published' ? 'Unpublish' : 'Publish'}
+                    {status === 'Published' ? 'Unpublish' : 'Publish'}
                   </button>
                 </div>
               </article>
             );
           })}
           {!filtered.length && (
-            <div className="empty-state">
+            <div className="empty-state news-empty-state">
               <b>No updates found</b>
               <p>Try another search or change the filters.</p>
             </div>

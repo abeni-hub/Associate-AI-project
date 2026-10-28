@@ -3,11 +3,11 @@ import './App.css'
 import AnnouncementBar from './components/layout/AnnouncementBar.jsx'
 import SiteFooter from './components/layout/SiteFooter.jsx'
 import SiteHeader from './components/layout/SiteHeader.jsx'
-import NewsEventsPage from './pages/NewsEventsPage.jsx'
-import ItemDetailPage from './pages/ItemDetailPage.jsx'
+import NewsEventsPage from './pages/NewsEventsPage'
+import ItemDetailPage from './pages/ItemDetailPage'
 import './styles/newsEvents.css'
 import { translate } from './i18n/translations.js'
-import HomePage from './pages/HomePage.jsx'
+import HomePage from './pages/HomePage'
 function App() {
   const [language, setLanguage] = useState(() => window.localStorage.getItem('civiclink-language') === 'am' ? 'am' : 'en')
   const [detailItemId, setDetailItemId] = useState(() => {

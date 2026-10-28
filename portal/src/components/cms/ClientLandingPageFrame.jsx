@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import { useEffect, useRef, useState } from 'react'
-import CmsLandingPreviewPage from '../../../../client/src/components/CmsLandingPreviewPage.jsx'
+import CmsLandingPreviewPage from '../../../../client/src/components/CmsLandingPreviewPage'
 import clientAppStyles from '../../../../client/src/App.css?inline'
 import clientIndexStyles from '../../../../client/src/index.css?inline'
 import clientNewsStyles from '../../../../client/src/styles/newsEvents.css?inline'

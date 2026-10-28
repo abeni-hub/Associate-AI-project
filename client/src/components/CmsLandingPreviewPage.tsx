@@ -3,14 +3,20 @@ import { translate } from '../i18n/translations.js'
 import AnnouncementBar from './layout/AnnouncementBar.jsx'
 import SiteFooter from './layout/SiteFooter.jsx'
 import SiteHeader from './layout/SiteHeader.jsx'
-import HomePage from '../pages/HomePage.jsx'
+import HomePage from '../pages/HomePage'
+import type { LandingPageCmsConfig, Language } from '../types/newsEvents'
 
-export default function CmsLandingPreviewPage({ cmsConfig, documentRef }) {
-  const [language, setLanguage] = useState('en')
-  const t = (text) => translate(text, language)
+interface CmsLandingPreviewPageProps {
+  cmsConfig?: LandingPageCmsConfig | null;
+  documentRef?: Document;
+}
+
+export default function CmsLandingPreviewPage({ cmsConfig, documentRef }: CmsLandingPreviewPageProps) {
+  const [language, setLanguage] = useState<Language>('en')
+  const t = (text: string) => translate(text, language)
   const pageDocument = documentRef || document
 
-  function scrollToSection(sectionId) {
+  function scrollToSection(sectionId: string) {
     const targetId = sectionId || 'top'
     pageDocument.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }

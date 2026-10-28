@@ -140,7 +140,34 @@ export interface PostItem {
   bureau?: string;
   bureauAm?: string;
   subCity?: string;
-  location?: { subCity?: string; address?: string };
+  subCityAm?: string;
+  location?: {
+    subCity?: string;
+    subCityAm?: string;
+    venue?: string;
+    venueAm?: string;
+    address?: string;
+    addressAm?: string;
+    isVirtual?: boolean;
+  };
+  coverImage?: string;
+  author?: {
+    name?: string;
+    nameAm?: string;
+    role?: string;
+    roleAm?: string;
+    avatar?: string;
+  };
+  tags?: string[];
+  readTimeMinutes?: number;
+  time?: string;
+  timeAm?: string;
+  organizer?: string;
+  organizerAm?: string;
+  capacity?: number;
+  rsvpCount?: number;
+  endDate?: string;
+  slug?: string;
   excerpt?: string;
   date?: string;
   eventDate?: string;

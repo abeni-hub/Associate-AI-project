@@ -339,31 +339,39 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         submit: 'Save update',
         fields: [
           { name: 'type', label: 'Update type', type: 'select', required: true, options: ['News', 'Event'] },
-          { name: 'title', label: 'Title', required: true },
+          { name: 'title', label: 'Title in English', required: true },
+          { name: 'titleAm', label: 'Title in Amharic' },
+          { name: 'summary', label: 'Summary in English', type: 'textarea', full: true, required: true },
+          { name: 'summaryAm', label: 'Summary in Amharic', type: 'textarea', full: true },
+          { name: 'content', label: 'Full content in English', type: 'textarea', full: true, rows: 5 },
+          { name: 'contentAm', label: 'Full content in Amharic', type: 'textarea', full: true, rows: 5 },
           { name: 'date', label: 'Publish or event date', type: 'date', required: true },
           { name: 'audience', label: 'Audience', placeholder: 'e.g. All residents' },
-          {
-            name: 'excerpt',
-            label: 'What residents should know',
-            type: 'textarea',
-            full: true,
-            required: true,
-          },
           { name: 'status', label: 'Save as', type: 'select', required: true, options: ['Draft', 'Published'] },
         ],
-        onSubmit: (v) =>
+        onSubmit: (v) => {
+          const isEvent = v.type.toLowerCase() === 'event';
+          const isPublished = v.status === 'Published';
           setPosts((list) => [
             {
-              id: Date.now(),
-              type: v.type,
+              id: 'news-' + Date.now(),
+              type: isEvent ? 'event' : 'news',
               title: v.title,
-              excerpt: v.excerpt,
+              titleAm: v.titleAm,
+              summary: v.summary,
+              summaryAm: v.summaryAm,
+              content: v.content,
+              contentAm: v.contentAm,
+              eventDate: isEvent ? v.date : undefined,
+              publishedAt: isEvent ? undefined : v.date,
               date: v.date,
-              status: v.status,
+              status: isPublished ? undefined : 'Draft',
+              isPublished,
               audience: v.audience || 'All residents',
             },
             ...list,
-          ]),
+          ]);
+        },
       });
     }
 
@@ -453,10 +461,24 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
   };
 
-  const onTogglePostPublish = (id: number) => {
+  const onUpdatePost = (id: number | string, updates: Partial<PostItem>) => {
+    setPosts((list) =>
+      list.map((item) => (item.id === id ? { ...item, ...updates } : item))
+    );
+  };
+
+  const onTogglePostPublish = (id: number | string) => {
     setPosts((list) =>
       list.map((item) =>
-        item.id === id ? { ...item, status: item.status === 'Published' ? 'Draft' : 'Published' } : item
+        item.id === id
+          ? {
+              ...item,
+              isPublished: !(
+                item.isPublished ??
+                (String(item.status || '').toLowerCase() !== 'draft')
+              ),
+            }
+          : item
       )
     );
   };
@@ -505,6 +527,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         createForPage,
         onUpdateService,
         onToggleServicePublish,
+        onUpdatePost,
         onTogglePostPublish,
         saveRouteSteps,
       }}
@@ -513,4 +536,3 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     </PortalContext.Provider>
   );
 };
-

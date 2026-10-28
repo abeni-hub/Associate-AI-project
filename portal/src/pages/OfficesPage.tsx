@@ -5,6 +5,7 @@ import { SearchBox } from '../components/shared/SearchBox';
 import { StatusPill } from '../components/shared/StatusPill';
 import { MetricCard } from '../components/shared/MetricCard';
 import { getOfficeParentSummary, getOfficeSubcityId } from '../components/offices/officeHierarchy';
+import { OfficeHierarchyTree } from '../components/offices/OfficeHierarchyTree';
 import { INITIAL_OFFICES, INITIAL_OFFICE_TYPES } from '../data/portalData';
 import { usePortal } from '../context';
 import type { OfficeItem, OfficeType } from '../types/portal.types';
@@ -31,6 +32,7 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
   const portal = usePortal();
   const [internalSearch, setInternalSearch] = useState('');
   const [selectedTypeId, setSelectedTypeId] = useState<string>('all');
+  const [selectedView, setSelectedView] = useState<'list' | 'tree'>('list');
 
   const offices = propOffices || INITIAL_OFFICES;
   const officeTypes = propOfficeTypes || INITIAL_OFFICE_TYPES;
@@ -143,12 +145,30 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
             <h2>Government offices directory</h2>
             <p>Hierarchical relationships dictate access and citizen service routing.</p>
           </div>
-          <div className="toolbar-tools">
-            <SearchBox value={search} onChange={setSearch} placeholder="Search offices, bureaus, admins..." />
+          <div className="office-view-switch" role="group" aria-label="Choose office directory view">
+            <button
+              type="button"
+              id="office-directory-tab"
+              aria-pressed={selectedView === 'list'}
+              className={selectedView === 'list' ? 'active' : ''}
+              onClick={() => setSelectedView('list')}
+            >
+              <Icon name="overview" size={15} /> Directory <span>{filtered.length}</span>
+            </button>
+            <button
+              type="button"
+              id="office-hierarchy-tab"
+              aria-pressed={selectedView === 'tree'}
+              className={selectedView === 'tree' ? 'active' : ''}
+              onClick={() => setSelectedView('tree')}
+            >
+              <Icon name="layers" size={15} /> Hierarchy <span>{filtered.length}</span>
+            </button>
           </div>
         </div>
 
-        <div className="filter-chips-bar" role="group" aria-label="Filter offices by classification">
+        <div className="office-directory-controls">
+          <div className="filter-chips-bar" role="group" aria-label="Filter offices by classification">
           <button
             type="button"
             className={`chip-button${selectedTypeId === 'all' ? ' active' : ''}`}
@@ -171,99 +191,118 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
               </button>
             );
           })}
+          </div>
+          <div className="office-directory-search">
+            <SearchBox value={search} onChange={setSearch} placeholder="Search offices, bureaus, admins..." />
+          </div>
         </div>
 
-        <div className="table-scroll">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>OFFICE / JURISDICTION</th>
-                <th>CLASSIFICATION</th>
-                <th>ADMINISTRATOR</th>
-                <th>SERVICES</th>
-                <th>STATUS</th>
-                <th>ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((item: OfficeItem) => {
-                const type = officeTypes.find((t: OfficeType) => t.id === item.typeId);
-                const parentSummary = getOfficeParentSummary(item, offices, officeTypes);
+        {selectedView === 'tree' ? (
+          <OfficeHierarchyTree
+            offices={scopedOffices}
+            officeTypes={officeTypes}
+            matchingOfficeIds={new Set(filtered.map((office: OfficeItem) => office.id))}
+            onEdit={handleOpenEdit}
+          />
+        ) : (
+          <div className="table-scroll" id="office-directory-panel" role="region" aria-labelledby="office-directory-tab" tabIndex={0}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>OFFICE / JURISDICTION</th>
+                  <th>CLASSIFICATION</th>
+                  <th>ADMINISTRATOR</th>
+                  <th>SERVICES</th>
+                  <th>STATUS</th>
+                  <th>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((item: OfficeItem) => {
+                  const type = officeTypes.find((t: OfficeType) => t.id === item.typeId);
+                  const parentSummary = getOfficeParentSummary(item, offices, officeTypes);
 
-                return (
-                  <tr key={item.id}>
-                    <td>
-                      <div className="entity-cell">
-                        <span className="entity-icon">
-                          <Icon
-                            name={item.typeId === 1 ? 'map' : item.typeId === 2 ? 'building' : 'sitemap'}
-                            size={17}
-                          />
-                        </span>
-                        <div>
-                          <b>{item.name}</b>
-                          {parentSummary && (
-                            <span className="lineage-badge">↳ Parent office: {parentSummary}</span>
-                          )}
+                  return (
+                    <tr key={item.id}>
+                      <td>
+                        <div className="entity-cell">
+                          <span className="entity-icon">
+                            <Icon
+                              name={item.typeId === 1 ? 'map' : item.typeId === 2 ? 'building' : 'layers'}
+                              size={17}
+                            />
+                          </span>
+                          <div>
+                            <b>{item.name}</b>
+                            {parentSummary && (
+                              <span className="lineage-badge">↳ Parent office: {parentSummary}</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="role-tag office-classification-tag">{type?.name || 'Office'}</span>
-                    </td>
-                    <td>
-                      <span className="table-person">
-                        <span className="mini-avatar">
-                          {item.admin
-                            .split(' ')
-                            .map((n: string) => n[0])
-                            .join('')}
+                      </td>
+                      <td>
+                        <span className="role-tag office-classification-tag">{type?.name || 'Office'}</span>
+                      </td>
+                      <td>
+                        <span className="table-person">
+                          <span className="mini-avatar">
+                            {item.admin
+                              .split(' ')
+                              .map((n: string) => n[0])
+                              .join('')}
+                          </span>
+                          <span>{item.admin}</span>
                         </span>
-                        <span>{item.admin}</span>
-                      </span>
-                    </td>
-                    <td>
-                      <b>{item.services}</b> guides
-                    </td>
-                    <td>
-                      <StatusPill>{item.status}</StatusPill>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="button secondary small-button"
-                        onClick={() => handleOpenEdit(item)}
-                      >
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td>
+                        <b>{item.services}</b> guides
+                      </td>
+                      <td>
+                        <StatusPill>{item.status}</StatusPill>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="button secondary small-button"
+                          onClick={() => handleOpenEdit(item)}
+                        >
+                          Edit
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
 
-          {!filtered.length && (
-            <div className="empty-state">
-              <span className="empty-icon">
-                <Icon name="sitemap" size={22} />
-              </span>
-              <b>No offices found</b>
-              <p>Try selecting another office type or adjusting your search terms.</p>
-            </div>
-          )}
-        </div>
+            {!filtered.length && (
+              <div className="empty-state">
+                <span className="empty-icon">
+                  <Icon name="layers" size={22} />
+                </span>
+                <b>No offices found</b>
+                <p>Try selecting another office type or adjusting your search terms.</p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="table-footer">
-          <span>
-            Showing <b>{filtered.length}</b> of <b>{scopedOffices.length}</b> registered offices
-          </span>
-          <div>
-            <button disabled>Previous</button>
-            <button>
-              Next <Icon name="arrow" size={13} />
-            </button>
-          </div>
+          {selectedView === 'tree' ? (
+            <span><b>{filtered.length}</b> matching offices; parent offices remain visible for context</span>
+          ) : (
+            <span>
+              Showing <b>{filtered.length}</b> of <b>{scopedOffices.length}</b> registered offices
+            </span>
+          )}
+          {selectedView === 'list' && (
+            <div>
+              <button disabled>Previous</button>
+              <button>
+                Next <Icon name="arrow" size={13} />
+              </button>
+            </div>
+          )}
         </div>
       </section>
 

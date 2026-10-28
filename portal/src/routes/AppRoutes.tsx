@@ -9,6 +9,7 @@ import {
   LandingPageCms,
   LoginPage,
   NewsPage,
+  NewsDetailPage,
   OfficePage,
   OfficesPage,
   OverviewPage,
@@ -92,6 +93,14 @@ export const AppRoutes: React.FC = () => {
         />
 
         {/* News & notices - Super admin & Sub-city admin */}
+        <Route
+          path="news/:id"
+          element={
+            <RoleGuard allowedRoles={['super', 'subcity']}>
+              <NewsDetailPage />
+            </RoleGuard>
+          }
+        />
         <Route
           path="news"
           element={

@@ -59,7 +59,8 @@ export interface PortalContextType {
   createForPage: (page: string) => void;
   onUpdateService: (item: ServiceItem) => void;
   onToggleServicePublish: (id: number) => void;
-  onTogglePostPublish: (id: number) => void;
+  onUpdatePost: (id: number | string, updates: Partial<PostItem>) => void;
+  onTogglePostPublish: (id: number | string) => void;
   saveRouteSteps: (routeId: number, steps: RouteStep[]) => void;
 }
 
