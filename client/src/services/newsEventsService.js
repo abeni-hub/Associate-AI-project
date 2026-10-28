@@ -1,3 +1,5 @@
+import { readSharedNewsEvents, writeSharedNewsEvents } from '../../../shared/newsEventsStorage.js'
+
 /**
  * CivicLink Ethiopia — News & Events Service
  * Ready for direct backend integration (REST or GraphQL).
@@ -11,6 +13,10 @@
 
 const USE_REAL_BACKEND = false;
 const API_BASE_URL = import.meta.env?.VITE_API_URL || '/api';
+
+function getPublishedNewsEvents() {
+  return readSharedNewsEvents([...MOCK_NEWS, ...MOCK_EVENTS]).filter((item) => item.isPublished !== false)
+}
 
 // Curated high quality photos relevant to Ethiopian civic affairs, municipal services, public forums, and community development
 export const MOCK_NEWS = [
@@ -859,15 +865,16 @@ function filterItems(items, { category = 'all', subCity = 'all', search = '' }) 
 
   if (category && category !== 'all') {
     filtered = filtered.filter(
-      (item) => item.category.toLowerCase() === category.toLowerCase()
+      (item) => (item.category || '').toLowerCase() === category.toLowerCase()
     );
   }
 
   if (subCity && subCity !== 'all') {
     filtered = filtered.filter(
-      (item) =>
-        item.subCity.toLowerCase().includes(subCity.toLowerCase()) ||
-        item.subCity.toLowerCase().includes('all')
+      (item) => {
+        const itemSubCity = item.subCity || item.location?.subCity || ''
+        return itemSubCity.toLowerCase().includes(subCity.toLowerCase()) || itemSubCity.toLowerCase().includes('all')
+      }
     );
   }
 
@@ -875,11 +882,11 @@ function filterItems(items, { category = 'all', subCity = 'all', search = '' }) 
     const q = search.toLowerCase().trim();
     filtered = filtered.filter(
       (item) =>
-        item.title.toLowerCase().includes(q) ||
+        (item.title || '').toLowerCase().includes(q) ||
         (item.titleAm && item.titleAm.includes(q)) ||
-        item.summary.toLowerCase().includes(q) ||
+        (item.summary || '').toLowerCase().includes(q) ||
         (item.summaryAm && item.summaryAm.includes(q)) ||
-        item.bureau.toLowerCase().includes(q) ||
+        (item.bureau || '').toLowerCase().includes(q) ||
         (item.tags && item.tags.some((tag) => tag.toLowerCase().includes(q)))
     );
   }
@@ -903,12 +910,15 @@ export async function getHomeHighlights() {
   // Simulated quick delay
   await new Promise((resolve) => setTimeout(resolve, 80));
 
+  const items = getPublishedNewsEvents()
+  const news = items.filter((item) => item.type === 'news')
+  const events = items.filter((item) => item.type === 'event')
   return {
-    news: MOCK_NEWS.slice(0, 3),
-    events: MOCK_EVENTS.slice(0, 3),
-    totalNews: MOCK_NEWS.length,
-    totalEvents: MOCK_EVENTS.length,
-  };
+    news: news.slice(0, 3),
+    events: events.slice(0, 3),
+    totalNews: news.length,
+    totalEvents: events.length,
+  }
 }
 
 /**
@@ -937,7 +947,7 @@ export async function fetchNews({
   // Simulated backend network delay (400ms - 600ms) for realistic YouTube-like loading feel
   await new Promise((resolve) => setTimeout(resolve, 450));
 
-  const filtered = filterItems(MOCK_NEWS, { category, subCity, search });
+  const filtered = filterItems(getPublishedNewsEvents().filter((item) => item.type === 'news'), { category, subCity, search });
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
   const items = filtered.slice(startIndex, endIndex);
@@ -980,7 +990,7 @@ export async function fetchEvents({
   // Simulated backend network delay
   await new Promise((resolve) => setTimeout(resolve, 450));
 
-  const filtered = filterItems(MOCK_EVENTS, { category, subCity, search });
+  const filtered = filterItems(getPublishedNewsEvents().filter((item) => item.type === 'event'), { category, subCity, search });
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
   const items = filtered.slice(startIndex, endIndex);
@@ -1010,7 +1020,7 @@ export async function fetchCombinedFeed({
   // Simulated delay
   await new Promise((resolve) => setTimeout(resolve, 450));
 
-  const allItems = [...MOCK_NEWS, ...MOCK_EVENTS].sort((a, b) => {
+  const allItems = getPublishedNewsEvents().sort((a, b) => {
     const dateA = a.type === 'event' ? a.eventDate : a.publishedAt;
     const dateB = b.type === 'event' ? b.eventDate : b.publishedAt;
     return new Date(dateB) - new Date(dateA);
@@ -1037,9 +1047,7 @@ export async function fetchCombinedFeed({
  * Lookup single item by ID
  */
 export async function getItemById(id) {
-  const item =
-    MOCK_NEWS.find((n) => n.id === id) ||
-    MOCK_EVENTS.find((e) => e.id === id);
+  const item = getPublishedNewsEvents().find((entry) => entry.id === id)
   return item || null;
 }
 
@@ -1048,7 +1056,7 @@ export async function getItemById(id) {
  */
 export function getRelatedItems(currentItem, count = 3) {
   if (!currentItem) return [];
-  const pool = currentItem.type === 'event' ? MOCK_EVENTS : MOCK_NEWS;
+  const pool = getPublishedNewsEvents().filter((item) => item.type === currentItem.type)
   return pool.filter((item) => item.id !== currentItem.id).slice(0, count);
 }
 
@@ -1068,9 +1076,11 @@ export async function submitEventRsvp(eventId, rsvpData) {
 
   await new Promise((resolve) => setTimeout(resolve, 600));
 
-  const event = MOCK_EVENTS.find((e) => e.id === eventId);
+  const storedItems = readSharedNewsEvents([...MOCK_NEWS, ...MOCK_EVENTS])
+  const event = storedItems.find((item) => item.id === eventId && item.type === 'event')
   if (event) {
     event.rsvpCount = (event.rsvpCount || 0) + 1;
+    writeSharedNewsEvents(storedItems)
   }
 
   return {
