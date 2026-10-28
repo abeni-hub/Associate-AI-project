@@ -1,0 +1,157 @@
+import React, { useState } from 'react';
+import { usePortal } from '../context';
+import { PageHeading } from '../components/shared/PageHeading';
+import { StatusPill } from '../components/shared/StatusPill';
+import { Icon } from '../components/shared/Icon';
+import { QRPattern } from '../components/shared/QRPattern';
+
+export const QRPage: React.FC = () => {
+  const { setModal } = usePortal();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard?.writeText('https://civiclink.gov.et/feedback/rev-001');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
+  const handleGenerate = () => {
+    setModal({
+      kind: 'qr',
+      onGenerate: () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      },
+    });
+  };
+
+  return (
+    <>
+      <PageHeading
+        eyebrow="CITIZEN ACCESS"
+        title="Feedback QR codes"
+        subtitle="Help citizens open the right feedback form from a poster or service desk."
+        action="Generate QR code"
+        onAction={handleGenerate}
+      />
+      <div className="qr-hero panel">
+        <div className="qr-hero-copy">
+          <span className="panel-eyebrow">YOUR BUREAU · REVENUES BUREAU</span>
+          <h2>
+            Make your voice
+            <br />
+            <em>easy to reach.</em>
+          </h2>
+          <p>
+            Print this code and place it at your service desks. Citizens can scan it to share a
+            complaint, suggestion or satisfaction rating about their visit.
+          </p>
+          <div className="qr-hero-actions">
+            <button className="button primary" onClick={() => window.print()}>
+              <Icon name="download" size={16} /> Print QR poster
+            </button>
+            <button className="button secondary" onClick={handleCopy}>
+              <Icon name="external" size={15} /> {copied ? 'Link copied' : 'Copy feedback link'}
+            </button>
+          </div>
+        </div>
+        <div className="qr-preview-card">
+          <span className="qr-corner corner-tl" />
+          <span className="qr-corner corner-tr" />
+          <span className="qr-corner corner-bl" />
+          <QRPattern />
+          <div className="qr-preview-caption">
+            <b>Share your experience</b>
+            <small>Scan to leave feedback</small>
+          </div>
+          <span className="qr-live">
+            <i /> ACTIVE
+          </span>
+        </div>
+        <div className="qr-hero-glow" />
+      </div>
+      <div className="qr-stats-grid">
+        <div className="panel qr-stat">
+          <span className="metric-icon teal">
+            <Icon name="qr" />
+          </span>
+          <span>
+            <b>QR-REV-001</b>
+            <small>Active code ID</small>
+          </span>
+          <StatusPill>Active</StatusPill>
+        </div>
+        <div className="panel qr-stat">
+          <span className="metric-icon gold">
+            <Icon name="message" />
+          </span>
+          <span>
+            <b>64 scans</b>
+            <small>Feedback visits this month</small>
+          </span>
+          <em>↗ 16%</em>
+        </div>
+        <div className="panel qr-stat">
+          <span className="metric-icon sage">
+            <Icon name="globe" />
+          </span>
+          <span>
+            <b>Public feedback form</b>
+            <small>civiclink.gov.et/feedback/rev-001</small>
+          </span>
+          <button
+            className="row-more"
+            aria-label="Copy feedback link"
+            onClick={handleCopy}
+          >
+            <Icon name="external" size={16} />
+          </button>
+        </div>
+      </div>
+      <div className="panel qr-instructions">
+        <div>
+          <span className="panel-eyebrow">A SIMPLE WAY TO LISTEN</span>
+          <h2>From scan to response</h2>
+          <p>
+            Your QR code takes citizens to a guided feedback form. Responses appear in your bureau
+            inbox and the sub-city dashboard.
+          </p>
+        </div>
+        <div className="qr-flow">
+          <div>
+            <span>01</span>
+            <Icon name="qr" />
+            <b>Citizen scans</b>
+            <small>At your office</small>
+          </div>
+          <i />
+          <div>
+            <span>02</span>
+            <Icon name="message" />
+            <b>They share</b>
+            <small>Feedback in minutes</small>
+          </div>
+          <i />
+          <div>
+            <span>03</span>
+            <Icon name="activity" />
+            <b>Your team responds</b>
+            <small>In the admin inbox</small>
+          </div>
+        </div>
+      </div>
+      <div className="tip-banner">
+        <span className="tip-icon">
+          <Icon name="shield" size={17} />
+        </span>
+        <span>
+          <b>Keep printed codes easy to find</b>
+          <small>
+            Place the QR poster near the exit or service desk, with clear instructions in the
+            languages your citizens use.
+          </small>
+        </span>
+      </div>
+    </>
+  );
+};
