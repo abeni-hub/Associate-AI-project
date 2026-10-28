@@ -1,16 +1,42 @@
 import React, { useState } from 'react';
 import { usePortal } from '../context';
+import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
 import { StatusPill } from '../components/shared/StatusPill';
-import { Icon } from '../components/shared/Icon';
+import type { ServiceItem } from '../types/portal.types';
 
-export const ServicesPage: React.FC = () => {
-  const { services, createForPage, onUpdateService, onToggleServicePublish, search, setSearch } =
-    usePortal();
+export interface ServicesPageProps {
+  items?: ServiceItem[];
+  onAdd?: () => void;
+  onEdit?: (item: ServiceItem) => void;
+  search?: string;
+  setSearch?: (s: string) => void;
+  onTogglePublish?: (id: number) => void;
+}
+
+export const ServicesPage: React.FC<ServicesPageProps> = ({
+  items: propItems,
+  onAdd: propOnAdd,
+  onEdit: propOnEdit,
+  search: propSearch,
+  setSearch: propSetSearch,
+  onTogglePublish: propOnTogglePublish,
+}) => {
+  const portal = usePortal();
   const [serviceFilter, setServiceFilter] = useState('All services');
 
-  const filtered = services.filter(
+  const items = propItems || portal.services || [];
+  const search = propSearch !== undefined ? propSearch : portal.search;
+  const setSearch = propSetSearch || portal.setSearch;
+  const onAdd = propOnAdd || (() => portal.createForPage('services'));
+
+  const onEdit = propOnEdit || ((item: ServiceItem) => portal.onUpdateService(item));
+
+  const onTogglePublish =
+    propOnTogglePublish || ((id: number) => portal.onToggleServicePublish(id));
+
+  const filtered = items.filter(
     (item) =>
       (serviceFilter === 'All services' ||
         (serviceFilter === 'Published' ? item.published : !item.published)) &&
@@ -26,7 +52,7 @@ export const ServicesPage: React.FC = () => {
         title="Service standards"
         subtitle="Set clear, consistent requirements and expectations for every bureau in your sub-city."
         action="Create a service"
-        onAction={() => createForPage('services')}
+        onAction={onAdd}
       />
       <div className="service-intro">
         <div className="service-intro-mark">
@@ -35,21 +61,16 @@ export const ServicesPage: React.FC = () => {
         <div>
           <b>One shared standard, every local office</b>
           <p>
-            These service definitions are shared with the bureaus below. Each bureau adds its own
-            room numbers and step-by-step route.
+            These service definitions are shared with the bureaus below. Each bureau adds its own room numbers and step-by-step route.
           </p>
         </div>
         <span className="service-intro-count">
-          <b>{services.length}</b>
+          <b>{items.length}</b>
           <small>standards</small>
         </span>
       </div>
       <div className="service-toolbar">
-        <SearchBox
-          value={search}
-          onChange={setSearch}
-          placeholder="Search service standards"
-        />
+        <SearchBox value={search} onChange={setSearch} placeholder="Search service standards" />
         <div>
           {['All services', 'Published', 'Drafts'].map((filter) => (
             <button
@@ -57,7 +78,7 @@ export const ServicesPage: React.FC = () => {
               className={`chip-button${serviceFilter === filter ? ' active' : ''}`}
               onClick={() => setServiceFilter(filter)}
             >
-              {filter} {filter === 'All services' && <span>{services.length}</span>}
+              {filter} {filter === 'All services' && <span>{items.length}</span>}
             </button>
           ))}
         </div>
@@ -95,23 +116,21 @@ export const ServicesPage: React.FC = () => {
                       {document}
                     </span>
                   ))}
-                  {item.documents.length > 3 && (
-                    <small>+{item.documents.length - 3} more</small>
-                  )}
+                  {item.documents.length > 3 && <small>+{item.documents.length - 3} more</small>}
                 </div>
               </div>
             </div>
             <div className="service-card-side">
               <button
                 className="button secondary small-button"
-                onClick={() => onUpdateService(item)}
+                onClick={() => onEdit(item)}
               >
                 Edit standard
               </button>
               <button
                 className={`publish-toggle${item.published ? ' is-on' : ''}`}
                 aria-label={item.published ? 'Unpublish service' : 'Publish service'}
-                onClick={() => onToggleServicePublish(item.id)}
+                onClick={() => onTogglePublish(item.id)}
               >
                 <i />
               </button>
@@ -150,3 +169,5 @@ export const ServicesPage: React.FC = () => {
     </>
   );
 };
+
+export default ServicesPage;

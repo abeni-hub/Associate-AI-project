@@ -1,15 +1,38 @@
 import React, { useState } from 'react';
-import type { FeedbackModalConfig } from '../../types/portal.types';
 import { Icon } from '../shared/Icon';
+import type { FeedbackItem, FeedbackModalConfig } from '../../types/portal.types';
 
 export interface FeedbackDetailProps {
-  modal: FeedbackModalConfig;
+  item?: FeedbackItem;
+  modal?: FeedbackModalConfig;
   onClose: () => void;
+  onUpdate?: (status: string) => void;
 }
 
-export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({ modal, onClose }) => {
-  const { item, onUpdate } = modal;
-  const [status, setStatus] = useState(item.status);
+export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
+  item: propItem,
+  modal,
+  onClose,
+  onUpdate: propOnUpdate,
+}) => {
+  const item = propItem || modal?.item;
+  const onUpdate = propOnUpdate || modal?.onUpdate || (() => {});
+
+  const [status, setStatus] = useState<string>(() => item?.status || 'Open');
+  const [trackingCopied, setTrackingCopied] = useState<boolean>(false);
+
+  if (!item) return null;
+
+  async function copyTrackingNumber() {
+    const clipboard = globalThis.navigator?.clipboard;
+    if (!item?.trackingNumber || !clipboard?.writeText) return;
+    try {
+      await clipboard.writeText(item.trackingNumber);
+      setTrackingCopied(true);
+    } catch {
+      setTrackingCopied(false);
+    }
+  }
 
   return (
     <div>
@@ -17,16 +40,38 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({ modal, onClose }
         <div>
           <span className="panel-eyebrow">CITIZEN RESPONSE · {item.id}</span>
           <h2>{item.type} received</h2>
-          <p>
-            {item.time} · {item.subcity}
-          </p>
+          <p>{item.time}</p>
+          <div className="feedback-tracking-ref">
+            <span>
+              <small>TRACKING NUMBER</small>
+              <b>{item.trackingNumber || 'Not assigned'}</b>
+            </span>
+            {item.trackingNumber && (
+              <button
+                type="button"
+                onClick={copyTrackingNumber}
+                disabled={!globalThis.navigator?.clipboard?.writeText}
+                aria-label="Copy tracking number"
+              >
+                <Icon name={trackingCopied ? 'check' : 'copy'} size={14} />
+                {trackingCopied ? 'Copied' : 'Copy'}
+              </button>
+            )}
+          </div>
         </div>
-        <button type="button" className="modal-close" onClick={onClose} aria-label="Close dialog">
+        <button
+          type="button"
+          className="modal-close"
+          onClick={onClose}
+          aria-label="Close dialog"
+        >
           <Icon name="close" />
         </button>
       </div>
       <div className="feedback-detail-body">
-        <div className="detail-context">
+        <div
+          className={`detail-context${item.rating ? ' has-rating' : ' no-rating'}`}
+        >
           <span>
             <small>SERVICE</small>
             <b>{item.service}</b>
@@ -35,20 +80,28 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({ modal, onClose }
             <small>BUREAU</small>
             <b>{item.bureau}</b>
           </span>
+          <span>
+            <small>SUB-CITY</small>
+            <b>{item.subcity || 'Not provided'}</b>
+          </span>
           {item.rating && (
             <span>
               <small>CITIZEN RATING</small>
               <b className="detail-stars">
                 {'★'.repeat(item.rating)}
-                <i>{'★'.repeat(5 - item.rating)}</i> <span>{item.rating}.0 / 5</span>
+                <i>{'★'.repeat(5 - item.rating)}</i>{' '}
+                <span>{item.rating}.0 / 5</span>
               </b>
             </span>
           )}
         </div>
-        <blockquote>“{item.message}”</blockquote>
+        <blockquote>"{item.message}"</blockquote>
         <label className="detail-status-label">
           Follow-up status
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+          <select
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+          >
             <option>Open</option>
             <option>In review</option>
             <option>Resolved</option>
@@ -69,7 +122,11 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({ modal, onClose }
           <Icon name="lock" size={14} /> Citizen details are kept private.
         </span>
         <div>
-          <button type="button" className="button secondary" onClick={onClose}>
+          <button
+            type="button"
+            className="button secondary"
+            onClick={onClose}
+          >
             Close
           </button>
           <button
@@ -87,3 +144,5 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({ modal, onClose }
     </div>
   );
 };
+
+export default FeedbackDetail;

@@ -1,15 +1,33 @@
 import React from 'react';
 import { usePortal } from '../context';
-import { PageHeading } from '../components/shared/PageHeading';
-import { SearchBox } from '../components/shared/SearchBox';
-import { MetricCard } from '../components/shared/MetricCard';
-import { StatusPill } from '../components/shared/StatusPill';
 import { Icon } from '../components/shared/Icon';
+import { PageHeading } from '../components/shared/PageHeading';
+import { MetricCard } from '../components/shared/MetricCard';
+import { SearchBox } from '../components/shared/SearchBox';
+import { StatusPill } from '../components/shared/StatusPill';
+import type { BureauItem } from '../types/portal.types';
 
-export const BureausPage: React.FC = () => {
-  const { bureaus, createForPage, search, setSearch } = usePortal();
+export interface BureausPageProps {
+  items?: BureauItem[];
+  onAdd?: () => void;
+  search?: string;
+  setSearch?: (s: string) => void;
+}
 
-  const filtered = bureaus.filter((item) =>
+export const BureausPage: React.FC<BureausPageProps> = ({
+  items: propItems,
+  onAdd: propOnAdd,
+  search: propSearch,
+  setSearch: propSetSearch,
+}) => {
+  const portal = usePortal();
+
+  const items = propItems || portal.bureaus || [];
+  const search = propSearch !== undefined ? propSearch : portal.search;
+  const setSearch = propSetSearch || portal.setSearch;
+  const onAdd = propOnAdd || (() => portal.createForPage('bureaus'));
+
+  const filtered = items.filter((item) =>
     `${item.name} ${item.category} ${item.admin} ${item.status}`
       .toLowerCase()
       .includes(search.toLowerCase())
@@ -22,13 +40,13 @@ export const BureausPage: React.FC = () => {
         title="Bureaus"
         subtitle="Manage bureau teams and track the information citizens can see."
         action="Add a bureau"
-        onAction={() => createForPage('bureaus')}
+        onAction={onAdd}
       />
       <div className="metric-grid compact-metrics">
         <MetricCard
           icon="building"
           label="Registered bureaus"
-          value={bureaus.length}
+          value={items.length}
           note="In this sub-city"
           tone="teal"
         />
@@ -74,7 +92,6 @@ export const BureausPage: React.FC = () => {
                 <th>BUREAU / OFFICE</th>
                 <th>ADMINISTRATOR</th>
                 <th>SERVICES</th>
-                <th>GUIDE COMPLETION</th>
                 <th>STATUS</th>
                 <th />
               </tr>
@@ -106,14 +123,6 @@ export const BureausPage: React.FC = () => {
                   </td>
                   <td>{item.services} guides</td>
                   <td>
-                    <div className="progress-cell">
-                      <span className="progress-track">
-                        <i style={{ width: `${item.completion}%` }} />
-                      </span>
-                      <small>{item.completion}%</small>
-                    </div>
-                  </td>
-                  <td>
                     <StatusPill>{item.status}</StatusPill>
                   </td>
                   <td>
@@ -128,7 +137,7 @@ export const BureausPage: React.FC = () => {
         </div>
         <div className="table-footer">
           <span>
-            Showing <b>{filtered.length}</b> of <b>{bureaus.length}</b> bureaus
+            Showing <b>{filtered.length}</b> of <b>{items.length}</b> bureaus
           </span>
           <div>
             <button disabled>Previous</button>
@@ -145,11 +154,12 @@ export const BureausPage: React.FC = () => {
         <span>
           <b>New bureau?</b>
           <small>
-            Create a bureau and assign its administrator. The bureau team can then set room-by-room
-            steps for shared services.
+            Create a bureau and assign its administrator. The bureau team can then set room-by-room steps for shared services.
           </small>
         </span>
       </div>
     </>
   );
 };
+
+export default BureausPage;

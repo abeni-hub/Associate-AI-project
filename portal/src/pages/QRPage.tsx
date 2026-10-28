@@ -1,29 +1,41 @@
 import React, { useState } from 'react';
 import { usePortal } from '../context';
+import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { StatusPill } from '../components/shared/StatusPill';
-import { Icon } from '../components/shared/Icon';
 import { QRPattern } from '../components/shared/QRPattern';
 
-export const QRPage: React.FC = () => {
-  const { setModal } = usePortal();
+export interface QRPageProps {
+  onGenerate?: () => void;
+  onCopy?: () => void;
+}
+
+export const QRPage: React.FC<QRPageProps> = ({
+  onGenerate: propOnGenerate,
+  onCopy: propOnCopy,
+}) => {
+  const portal = usePortal();
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard?.writeText('https://civiclink.gov.et/feedback/rev-001');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
-  };
-
-  const handleGenerate = () => {
-    setModal({
-      kind: 'qr',
-      onGenerate: () => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1800);
-      },
+  const onGenerate =
+    propOnGenerate ||
+    (() => {
+      portal.setModal({
+        kind: 'qr',
+        onGenerate: () => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        },
+      });
     });
-  };
+
+  const onCopy =
+    propOnCopy ||
+    (() => {
+      void navigator.clipboard?.writeText('https://civiclink.gov.et/feedback/rev-001');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    });
 
   return (
     <>
@@ -32,7 +44,7 @@ export const QRPage: React.FC = () => {
         title="Feedback QR codes"
         subtitle="Help citizens open the right feedback form from a poster or service desk."
         action="Generate QR code"
-        onAction={handleGenerate}
+        onAction={onGenerate}
       />
       <div className="qr-hero panel">
         <div className="qr-hero-copy">
@@ -43,14 +55,20 @@ export const QRPage: React.FC = () => {
             <em>easy to reach.</em>
           </h2>
           <p>
-            Print this code and place it at your service desks. Citizens can scan it to share a
-            complaint, suggestion or satisfaction rating about their visit.
+            Print this code and place it at your service desks. Citizens can scan it to share a complaint, suggestion or satisfaction rating about their visit.
           </p>
           <div className="qr-hero-actions">
             <button className="button primary" onClick={() => window.print()}>
               <Icon name="download" size={16} /> Print QR poster
             </button>
-            <button className="button secondary" onClick={handleCopy}>
+            <button
+              className="button secondary"
+              onClick={() => {
+                onCopy();
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1800);
+              }}
+            >
               <Icon name="external" size={15} /> {copied ? 'Link copied' : 'Copy feedback link'}
             </button>
           </div>
@@ -102,7 +120,10 @@ export const QRPage: React.FC = () => {
           <button
             className="row-more"
             aria-label="Copy feedback link"
-            onClick={handleCopy}
+            onClick={() => {
+              onCopy();
+              setCopied(true);
+            }}
           >
             <Icon name="external" size={16} />
           </button>
@@ -113,8 +134,7 @@ export const QRPage: React.FC = () => {
           <span className="panel-eyebrow">A SIMPLE WAY TO LISTEN</span>
           <h2>From scan to response</h2>
           <p>
-            Your QR code takes citizens to a guided feedback form. Responses appear in your bureau
-            inbox and the sub-city dashboard.
+            Your QR code takes citizens to a guided feedback form. Responses appear in your bureau inbox and the sub-city dashboard.
           </p>
         </div>
         <div className="qr-flow">
@@ -147,11 +167,12 @@ export const QRPage: React.FC = () => {
         <span>
           <b>Keep printed codes easy to find</b>
           <small>
-            Place the QR poster near the exit or service desk, with clear instructions in the
-            languages your citizens use.
+            Place the QR poster near the exit or service desk, with clear instructions in the languages your citizens use.
           </small>
         </span>
       </div>
     </>
   );
 };
+
+export default QRPage;

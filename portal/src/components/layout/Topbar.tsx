@@ -1,19 +1,33 @@
 import React, { useState } from 'react';
-import { usePortal } from '../../context';
-import { ROLE } from '../../data/portalConstants';
 import { Icon } from '../shared/Icon';
+import { ROLE } from '../../data/portalData.js';
+import { usePortal } from '../../context';
+import type { RoleKey } from '../../types/portal.types';
 
-export const Topbar: React.FC = () => {
-  const { role, signOut, setMobileOpen, authUser } = usePortal();
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
+export interface TopbarProps {
+  role?: RoleKey | string;
+  onMenu?: () => void;
+  onLogout?: () => void;
+}
+
+export const Topbar: React.FC<TopbarProps> = ({
+  role: propRole,
+  onMenu: propOnMenu,
+  onLogout: propOnLogout,
+}) => {
+  const portal = usePortal();
   const [profileOpen, setProfileOpen] = useState(false);
-  const data = ROLE[role];
 
-  const displayName = authUser?.name || data.name;
-  const displayOrg = authUser?.organization?.name || data.organization;
-  const displayRole = authUser?.role?.name || data.label;
-  const initials = authUser?.name
-    ? authUser.name
+  const role = (propRole || portal.role || 'super') as RoleKey;
+  const onMenu = propOnMenu || (() => portal.setMobileOpen(true));
+  const onLogout = propOnLogout || portal.signOut;
+
+  const data = ROLE[role] || ROLE.super;
+  const displayName = portal.authUser?.name || data.name;
+  const displayOrg = portal.authUser?.organization?.name || data.organization;
+  const displayRole = portal.authUser?.role?.name || data.label;
+  const initials = portal.authUser?.name
+    ? portal.authUser.name
         .split(' ')
         .map((part) => part[0])
         .filter(Boolean)
@@ -25,11 +39,7 @@ export const Topbar: React.FC = () => {
   return (
     <header className="topbar">
       <div className="topbar-left">
-        <button
-          className="mobile-menu"
-          onClick={() => setMobileOpen(true)}
-          aria-label="Open navigation"
-        >
+        <button className="mobile-menu" onClick={onMenu} aria-label="Open navigation">
           <Icon name="menu" />
         </button>
         <div className="breadcrumb">
@@ -39,54 +49,10 @@ export const Topbar: React.FC = () => {
         </div>
       </div>
       <div className="topbar-tools">
-        <span className="sample-badge">
-          <span style={authUser ? { background: '#2c7a51' } : undefined} />
-          {authUser ? 'Live connected' : 'Demo data'}
-        </span>
-        <button
-          className={`icon-button notification-button${notificationsOpen ? ' pressed' : ''}`}
-          onClick={() => {
-            setNotificationsOpen(!notificationsOpen);
-            setProfileOpen(false);
-          }}
-          aria-label="Notifications"
-        >
-          <Icon name="bell" size={18} />
-          <i />
-        </button>
-        {notificationsOpen && (
-          <div className="popover notification-popover">
-            <div className="popover-heading">
-              <b>Notifications</b>
-              <span>2 new</span>
-            </div>
-            <div className="notification-item">
-              <span className="notif-dot gold-bg" />
-              <span>
-                <b>Feedback needs attention</b>
-                <small>Two complaints were received today</small>
-              </span>
-            </div>
-            <div className="notification-item">
-              <span className="notif-dot sage-bg" />
-              <span>
-                <b>Service guide updated</b>
-                <small>Business renewal · 1 hour ago</small>
-              </span>
-            </div>
-            <button className="popover-link" onClick={() => setNotificationsOpen(false)}>
-              You're all caught up
-            </button>
-          </div>
-        )}
-        <span className="topbar-divider" />
         <div className="profile-anchor">
           <button
             className="top-profile"
-            onClick={() => {
-              setProfileOpen(!profileOpen);
-              setNotificationsOpen(false);
-            }}
+            onClick={() => setProfileOpen(!profileOpen)}
           >
             <span className="avatar small-avatar">{initials}</span>
             <span>
@@ -104,7 +70,13 @@ export const Topbar: React.FC = () => {
                   <small>{displayOrg}</small>
                 </span>
               </div>
-              <button className="popover-link" onClick={signOut}>
+              <button
+                className="popover-link"
+                onClick={() => {
+                  setProfileOpen(false);
+                  onLogout();
+                }}
+              >
                 <Icon name="logout" size={15} /> Sign out
               </button>
             </div>
@@ -114,3 +86,5 @@ export const Topbar: React.FC = () => {
     </header>
   );
 };
+
+export default Topbar;

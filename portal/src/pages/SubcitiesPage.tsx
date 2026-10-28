@@ -1,14 +1,32 @@
 import React from 'react';
 import { usePortal } from '../context';
+import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
 import { StatusPill } from '../components/shared/StatusPill';
-import { Icon } from '../components/shared/Icon';
+import type { SubcityItem } from '../types/portal.types';
 
-export const SubcitiesPage: React.FC = () => {
-  const { subcities, createForPage, search, setSearch } = usePortal();
+export interface SubcitiesPageProps {
+  items?: SubcityItem[];
+  onAdd?: () => void;
+  search?: string;
+  setSearch?: (s: string) => void;
+}
 
-  const filtered = subcities.filter((item) =>
+export const SubcitiesPage: React.FC<SubcitiesPageProps> = ({
+  items: propItems,
+  onAdd: propOnAdd,
+  search: propSearch,
+  setSearch: propSetSearch,
+}) => {
+  const portal = usePortal();
+
+  const items = propItems || portal.subcities || [];
+  const search = propSearch !== undefined ? propSearch : portal.search;
+  const setSearch = propSetSearch || portal.setSearch;
+  const onAdd = propOnAdd || (() => portal.createForPage('subcities'));
+
+  const filtered = items.filter((item) =>
     `${item.name} ${item.admin} ${item.status}`.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -19,7 +37,7 @@ export const SubcitiesPage: React.FC = () => {
         title="Sub-cities"
         subtitle="Create and oversee the local administrations connected to CivicLink."
         action="Add sub-city"
-        onAction={() => createForPage('subcities')}
+        onAction={onAdd}
       />
       <div className="directory-overview">
         <div className="directory-stat">
@@ -27,7 +45,7 @@ export const SubcitiesPage: React.FC = () => {
             <Icon name="map" />
           </span>
           <span>
-            <b>{subcities.length}</b>
+            <b>{items.length}</b>
             <small>Connected sub-cities</small>
           </span>
         </div>
@@ -129,7 +147,7 @@ export const SubcitiesPage: React.FC = () => {
         </div>
         <div className="table-footer">
           <span>
-            Showing <b>{filtered.length}</b> of <b>{subcities.length}</b> sub-cities
+            Showing <b>{filtered.length}</b> of <b>{items.length}</b> sub-cities
           </span>
           <div>
             <button disabled>Previous</button>
@@ -146,8 +164,7 @@ export const SubcitiesPage: React.FC = () => {
         <span>
           <b>Access stays in the right hands</b>
           <small>
-            Sub-city admins can manage only the bureaus, services and feedback in their own
-            organization.
+            Sub-city admins can manage only the bureaus, services and feedback in their own organization.
           </small>
         </span>
         <Icon name="arrow" size={15} />
@@ -155,3 +172,5 @@ export const SubcitiesPage: React.FC = () => {
     </>
   );
 };
+
+export default SubcitiesPage;

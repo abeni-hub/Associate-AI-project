@@ -1,22 +1,37 @@
 import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { usePortal } from '../context';
-import { ROLE } from '../data/portalConstants';
+import { ROLE } from '../data/portalData.js';
 import { Brand } from '../components/shared/Brand';
 import { Icon } from '../components/shared/Icon';
 import { useLoginMutation } from '../services/authApi';
 import type { RoleKey } from '../types/portal.types';
 
-export const LoginPage: React.FC = () => {
-  const { session, role, setRole, signInDemo, signInLive } = usePortal();
-  const [login, { isLoading }] = useLoginMutation();
+export interface LoginPageProps {
+  selectedRole?: RoleKey | string;
+  setSelectedRole?: (role: any) => void;
+  onLogin?: (role: any) => void;
+}
+
+export const LoginPage: React.FC<LoginPageProps> = ({
+  selectedRole: propSelectedRole,
+  setSelectedRole: propSetSelectedRole,
+  onLogin: propOnLogin,
+}) => {
+  const portal = usePortal();
+  const [login] = useLoginMutation();
   const navigate = useNavigate();
+
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  if (session) {
+  const selectedRole = propSelectedRole || portal.role || 'super';
+  const setSelectedRole = propSetSelectedRole || portal.setRole;
+  const onLogin = propOnLogin || portal.signInDemo;
+
+  if (portal.session) {
     return <Navigate to="/overview" replace />;
   }
 
@@ -26,11 +41,9 @@ export const LoginPage: React.FC = () => {
     const cleanPassword = password.trim();
 
     if (!cleanUsername || !cleanPassword) {
-      setError('Please enter your username and password.');
+      setError('Enter your username and password, or choose a demo workspace below.');
       return;
     }
-
-    setError('');
 
     try {
       const response = await login({
@@ -40,39 +53,14 @@ export const LoginPage: React.FC = () => {
       }).unwrap();
 
       if (response.success && response.data) {
-        signInLive(response.data, response.data.token);
+        portal.signInLive(response.data, response.data.token);
         navigate('/overview');
       } else {
         setError(response.message || 'Login failed. Please verify your credentials.');
       }
-    } catch (err: unknown) {
-      interface ApiErrorPayload {
-        success?: boolean;
-        message?: string;
-        errors?: Record<string, string[]>;
-      }
-
-      const apiErr = err as { status?: number; data?: ApiErrorPayload; error?: string };
-      const validationLogin = apiErr.data?.errors?.login?.[0];
-      const validationOther = apiErr.data?.errors
-        ? Object.values(apiErr.data.errors).flat()[0]
-        : undefined;
-      const apiMessage = apiErr.data?.message;
-
-      setError(
-        validationLogin ||
-          validationOther ||
-          apiMessage ||
-          apiErr.error ||
-          'Unable to sign in. Please verify your credentials or check your connection.'
-      );
+    } catch {
+      setError('Authentication failed. You can also explore the portal using the demo workspaces below.');
     }
-  };
-
-  const handleDemoSignIn = (key: RoleKey) => {
-    setRole(key);
-    signInDemo(key);
-    navigate('/overview');
   };
 
   return (
@@ -91,8 +79,7 @@ export const LoginPage: React.FC = () => {
               <em>Better informed.</em>
             </h1>
             <p>
-              One shared workspace for the people who keep public service information clear,
-              useful, and up to date.
+              One shared workspace for the people who keep public service information clear, useful, and up to date.
             </p>
           </div>
           <div className="story-card">
@@ -103,7 +90,7 @@ export const LoginPage: React.FC = () => {
                 <Icon name="route" size={19} />
               </span>
               <span>THE CITIZEN JOURNEY</span>
-              {/* <span className="live-dot" /> */}
+              <span className="live-dot" />
             </div>
             <div className="journey-track">
               <div className="journey-step">
@@ -188,7 +175,6 @@ export const LoginPage: React.FC = () => {
                 id="username"
                 autoComplete="username"
                 placeholder="Enter your username"
-                disabled={isLoading}
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
@@ -215,7 +201,6 @@ export const LoginPage: React.FC = () => {
                 autoComplete="current-password"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Enter your password"
-                disabled={isLoading}
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -226,7 +211,6 @@ export const LoginPage: React.FC = () => {
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
                 type="button"
                 className="input-action"
-                disabled={isLoading}
                 onClick={() => setShowPassword(!showPassword)}
               >
                 <Icon name="eye" size={17} />
@@ -237,12 +221,8 @@ export const LoginPage: React.FC = () => {
                 {error}
               </div>
             )}
-            <button
-              className="button primary login-submit"
-              type="submit"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Signing in...' : 'Sign in'} <Icon name="arrow" size={17} />
+            <button className="button primary login-submit" type="submit">
+              Sign in <Icon name="arrow" size={17} />
             </button>
           </form>
           <div className="login-divider">
@@ -252,12 +232,17 @@ export const LoginPage: React.FC = () => {
           </div>
           <p className="demo-prompt">Choose a role to preview its dashboard</p>
           <div className="demo-roles">
-            {(Object.entries(ROLE) as [RoleKey, (typeof ROLE)[RoleKey]][]).map(([key, r]) => (
+            {Object.entries(ROLE).map(([key, role]: [string, any]) => (
               <button
                 key={key}
                 type="button"
-                onClick={() => handleDemoSignIn(key)}
-                className={`demo-role${role === key ? ' selected' : ''}`}
+                onClick={() => {
+                  const roleKey = key as RoleKey;
+                  setSelectedRole(roleKey);
+                  onLogin(roleKey);
+                  navigate('/overview');
+                }}
+                className={`demo-role${selectedRole === key ? ' selected' : ''}`}
               >
                 <span className="demo-role-icon">
                   <Icon
@@ -266,7 +251,7 @@ export const LoginPage: React.FC = () => {
                   />
                 </span>
                 <span>
-                  <b>{r.label}</b>
+                  <b>{role.label}</b>
                   <small>
                     {key === 'super'
                       ? 'Platform-wide access'
@@ -280,8 +265,7 @@ export const LoginPage: React.FC = () => {
             ))}
           </div>
           <div className="prototype-note">
-            <span className="note-dot" /> Preview environment{' '}
-            <span className="note-separator">·</span> Sample information
+            <span className="note-dot" /> Preview environment <span className="note-separator">·</span> Sample information
           </div>
         </div>
         <div className="login-panel-footer">
@@ -292,3 +276,5 @@ export const LoginPage: React.FC = () => {
     </main>
   );
 };
+
+export default LoginPage;

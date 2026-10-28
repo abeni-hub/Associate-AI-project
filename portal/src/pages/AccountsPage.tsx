@@ -4,13 +4,72 @@ import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
 import { MetricCard } from '../components/shared/MetricCard';
 import { StatusPill } from '../components/shared/StatusPill';
-import { Icon } from '../components/shared/Icon';
+import type { AccountItem } from '../types/portal.types';
 
-export const AccountsPage: React.FC = () => {
-  const { accounts, createForPage, search, setSearch } = usePortal();
+export interface AccountsPageProps {
+  items?: AccountItem[];
+  onAdd?: () => void;
+  onEdit?: (item: AccountItem) => void;
+  search?: string;
+  setSearch?: (s: string) => void;
+}
+
+export const AccountsPage: React.FC<AccountsPageProps> = ({
+  items: propItems,
+  onAdd: propOnAdd,
+  onEdit: propOnEdit,
+  search: propSearch,
+  setSearch: propSetSearch,
+}) => {
+  const portal = usePortal();
   const [roleFilter, setRoleFilter] = useState('All roles');
 
-  const filtered = accounts.filter(
+  const items = propItems || portal.accounts || [];
+  const search = propSearch !== undefined ? propSearch : portal.search;
+  const setSearch = propSetSearch || portal.setSearch;
+  const onAdd = propOnAdd || (() => portal.createForPage('accounts'));
+  const onEdit =
+    propOnEdit ||
+    ((item: AccountItem) => {
+      portal.openForm({
+        eyebrow: 'ACCESS & PERMISSIONS',
+        title: 'Edit administrator account',
+        description:
+          'Update user permissions, work email, and organizational workspace assignment.',
+        submit: 'Save changes',
+        fields: [
+          { name: 'name', label: 'Full name', required: true, value: item.name },
+          { name: 'username', label: 'Username', required: true, value: item.username },
+          {
+            name: 'email',
+            label: 'Work email',
+            type: 'email',
+            required: true,
+            value: `${item.username}@civiclink.gov.et`,
+          },
+          {
+            name: 'role',
+            label: 'Admin role',
+            type: 'select',
+            required: true,
+            value: item.role,
+            options: ['Sub-city admin', 'Bureau admin', 'Public Communications Editor'],
+          },
+          { name: 'organization', label: 'Organization', required: true, value: item.organization },
+          {
+            name: 'status',
+            label: 'Account status',
+            type: 'select',
+            required: true,
+            value: item.status === 'Inactive' ? 'Inactive' : 'Active',
+            options: ['Active', 'Inactive'],
+          },
+        ],
+        onSubmit: () => {},
+      });
+    });
+
+  const filtered = items.filter(
     (item) =>
       (roleFilter === 'All roles' || item.role === roleFilter) &&
       `${item.name} ${item.username} ${item.role} ${item.organization}`
@@ -25,7 +84,7 @@ export const AccountsPage: React.FC = () => {
         title="Accounts"
         subtitle="Manage administrator access across every connected organization."
         action="Create account"
-        onAction={() => createForPage('accounts')}
+        onAction={onAdd}
         secondary="Export list"
         onSecondary={() => window.alert('Account list export is ready in this preview.')}
       />
@@ -33,22 +92,22 @@ export const AccountsPage: React.FC = () => {
         <MetricCard
           icon="users"
           label="Total accounts"
-          value={accounts.length + 84}
+          value={items.length + 84}
           note="Across all workspaces"
           tone="teal"
         />
         <MetricCard
           icon="check"
           label="Active accounts"
-          value={accounts.length + 81}
+          value={items.length + 81}
           note="Access confirmed"
           tone="sage"
         />
         <MetricCard
           icon="clock"
-          label="Invitations pending"
+          label="Inactive accounts"
           value="3"
-          note="Awaiting first sign-in"
+          note="Access currently disabled"
           tone="gold"
         />
         <MetricCard
@@ -109,19 +168,19 @@ export const AccountsPage: React.FC = () => {
                     </span>
                   </td>
                   <td>
-                    <span className="role-tag">{item.role}</span>
+                    <span className="badge role-badge">{item.role}</span>
                   </td>
                   <td>{item.organization}</td>
                   <td>
                     <StatusPill>{item.status}</StatusPill>
                   </td>
-                  <td className="time-cell">{item.lastActive}</td>
-                  <td>
+                  <td>{item.lastActive}</td>
+                  <td className="table-action-cell">
                     <button
-                      className="row-more"
-                      aria-label={`Account options for ${item.name}`}
+                      className="button secondary small-button"
+                      onClick={() => onEdit(item)}
                     >
-                      <Icon name="dots" />
+                      Edit
                     </button>
                   </td>
                 </tr>
@@ -129,27 +188,9 @@ export const AccountsPage: React.FC = () => {
             </tbody>
           </table>
         </div>
-        <div className="table-footer">
-          <span>
-            Showing <b>{filtered.length}</b> accounts
-          </span>
-          <div>
-            <button disabled>Previous</button>
-            <button>
-              Next <Icon name="arrow" size={13} />
-            </button>
-          </div>
-        </div>
       </section>
-      <div className="tip-banner">
-        <span className="tip-icon">
-          <Icon name="lock" size={17} />
-        </span>
-        <span>
-          <b>Temporary credentials should be shared securely</b>
-          <small>Ask new admins to change their password the first time they sign in.</small>
-        </span>
-      </div>
     </>
   );
 };
+
+export default AccountsPage;

@@ -1,21 +1,27 @@
 import React from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
 import { RoleGuard } from './RoleGuard';
 import {
   AccountsPage,
   ActivityPage,
-  BureausPage,
   FeedbackPage,
+  LandingPageCms,
   LoginPage,
   NewsPage,
   OfficePage,
+  OfficesPage,
   OverviewPage,
   QRPage,
+  RolesPermissionsPage,
   RoutesPage,
   ServicesPage,
-  SubcitiesPage,
 } from '../pages';
+
+const AdminRedirect: React.FC = () => {
+  const { page } = useParams<{ role?: string; page?: string }>();
+  return <Navigate to={`/${page || 'overview'}`} replace />;
+};
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -25,20 +31,54 @@ export const AppRoutes: React.FC = () => {
         <Route index element={<Navigate to="/overview" replace />} />
         <Route path="overview" element={<OverviewPage />} />
 
-        {/* Super admin routes */}
+        {/* Directory / Offices - Accessible by Super Admin & Sub-city Admin */}
         <Route
-          path="subcities"
+          path="offices"
           element={
-            <RoleGuard allowedRoles={['super']}>
-              <SubcitiesPage />
+            <RoleGuard allowedRoles={['super', 'subcity']}>
+              <OfficesPage />
             </RoleGuard>
           }
         />
+        <Route
+          path="subcities"
+          element={
+            <RoleGuard allowedRoles={['super', 'subcity']}>
+              <OfficesPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="bureaus"
+          element={
+            <RoleGuard allowedRoles={['super', 'subcity']}>
+              <OfficesPage />
+            </RoleGuard>
+          }
+        />
+
+        {/* Super admin routes */}
         <Route
           path="accounts"
           element={
             <RoleGuard allowedRoles={['super']}>
               <AccountsPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="roles"
+          element={
+            <RoleGuard allowedRoles={['super']}>
+              <RolesPermissionsPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="cms"
+          element={
+            <RoleGuard allowedRoles={['super']}>
+              <LandingPageCms />
             </RoleGuard>
           }
         />
@@ -51,28 +91,22 @@ export const AppRoutes: React.FC = () => {
           }
         />
 
-        {/* Sub-city admin routes */}
+        {/* News & notices - Super admin & Sub-city admin */}
         <Route
-          path="bureaus"
+          path="news"
           element={
-            <RoleGuard allowedRoles={['subcity']}>
-              <BureausPage />
+            <RoleGuard allowedRoles={['super', 'subcity']}>
+              <NewsPage />
             </RoleGuard>
           }
         />
+
+        {/* Sub-city admin routes */}
         <Route
           path="services"
           element={
             <RoleGuard allowedRoles={['subcity']}>
               <ServicesPage />
-            </RoleGuard>
-          }
-        />
-        <Route
-          path="news"
-          element={
-            <RoleGuard allowedRoles={['subcity']}>
-              <NewsPage />
             </RoleGuard>
           }
         />
@@ -106,6 +140,11 @@ export const AppRoutes: React.FC = () => {
         {/* Shared routes across all roles */}
         <Route path="feedback" element={<FeedbackPage />} />
       </Route>
+
+      {/* Admin path redirect for backwards-compatibility */}
+      <Route path="/admin/:role/:page" element={<AdminRedirect />} />
+      <Route path="/admin/:role" element={<Navigate to="/overview" replace />} />
+      <Route path="/admin" element={<Navigate to="/overview" replace />} />
 
       {/* Catch-all fallback */}
       <Route path="*" element={<Navigate to="/overview" replace />} />

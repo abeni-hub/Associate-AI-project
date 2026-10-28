@@ -1,35 +1,59 @@
 import React, { useState } from 'react';
-import type { RouteModalConfig, RouteStep } from '../../types/portal.types';
 import { Icon } from '../shared/Icon';
+import type { RouteItem, RouteStep, RouteModalConfig } from '../../types/portal.types';
 
 export interface RouteEditorProps {
-  modal: RouteModalConfig;
+  route?: RouteItem;
+  modal?: RouteModalConfig;
   onClose: () => void;
+  onSave?: (steps: RouteStep[]) => void;
 }
 
-export const RouteEditor: React.FC<RouteEditorProps> = ({ modal, onClose }) => {
-  const { route, onSave } = modal;
-  const [steps, setSteps] = useState<RouteStep[]>(() => route.steps.map((step) => ({ ...step })));
+export const RouteEditor: React.FC<RouteEditorProps> = ({
+  route: propRoute,
+  modal,
+  onClose,
+  onSave: propOnSave,
+}) => {
+  const route = propRoute || modal?.route;
+  const onSave = propOnSave || modal?.onSave || (() => {});
+
+  const [steps, setSteps] = useState<RouteStep[]>(() =>
+    route?.steps ? route.steps.map((step) => ({ ...step })) : []
+  );
 
   const update = (index: number, key: keyof RouteStep, value: string) =>
-    setSteps((items) => items.map((step, i) => (i === index ? { ...step, [key]: value } : step)));
+    setSteps((items) =>
+      items.map((step, i) => (i === index ? { ...step, [key]: value } : step))
+    );
+
+  if (!route) return null;
 
   return (
     <div>
       <div className="modal-header">
         <div>
-          <span className="panel-eyebrow">ROOM-BY-ROOM GUIDE · {route.category.toUpperCase()}</span>
+          <span className="panel-eyebrow">
+            ROOM-BY-ROOM GUIDE · {route.category.toUpperCase()}
+          </span>
           <h2>Edit route</h2>
           <p>{route.service}</p>
         </div>
-        <button type="button" className="modal-close" onClick={onClose} aria-label="Close dialog">
+        <button
+          type="button"
+          className="modal-close"
+          onClick={onClose}
+          aria-label="Close dialog"
+        >
           <Icon name="close" />
         </button>
       </div>
       <div className="route-editor-list">
         {steps.map((step, index) => (
           <div className="route-editor-step" key={index}>
-            <span className="route-editor-index">{String(index + 1).padStart(2, '0')}</span>
+            <span className="route-editor-index">
+              {String(index + 1).padStart(2, '0')}
+            </span>
             <label>
               <span>Room number</span>
               <input
@@ -50,7 +74,9 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({ modal, onClose }) => {
               type="button"
               className="remove-step"
               aria-label="Remove step"
-              onClick={() => setSteps((items) => items.filter((_, i) => i !== index))}
+              onClick={() =>
+                setSteps((items) => items.filter((_, i) => i !== index))
+              }
             >
               <Icon name="close" size={16} />
             </button>
@@ -68,7 +94,9 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({ modal, onClose }) => {
       <button
         type="button"
         className="add-step-button"
-        onClick={() => setSteps((items) => [...items, { room: '', title: '', detail: '' }])}
+        onClick={() =>
+          setSteps((items) => [...items, { room: '', title: '', detail: '' }])
+        }
       >
         <Icon name="plus" size={15} /> Add another step
       </button>
@@ -77,7 +105,11 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({ modal, onClose }) => {
           <Icon name="globe" size={14} /> Published guides appear on the citizen page.
         </span>
         <div>
-          <button type="button" className="button secondary" onClick={onClose}>
+          <button
+            type="button"
+            className="button secondary"
+            onClick={onClose}
+          >
             Cancel
           </button>
           <button
@@ -95,3 +127,5 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({ modal, onClose }) => {
     </div>
   );
 };
+
+export default RouteEditor;

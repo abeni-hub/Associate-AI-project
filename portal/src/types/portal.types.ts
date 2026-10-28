@@ -41,6 +41,37 @@ export interface BureauItem {
   status: string;
 }
 
+export interface OfficeType {
+  id: number;
+  name: string;
+  description: string;
+  level: number;
+}
+
+export interface OfficeItem {
+  id: number;
+  typeId: number;
+  name: string;
+  parentId: number | null;
+  admin: string;
+  services: number;
+  completion: number;
+  status: 'Active' | 'Inactive' | string;
+  updated: string;
+  parentTypeId?: number;
+  subcityId?: number | null;
+}
+
+export interface RoleItem {
+  id: string;
+  name: string;
+  description: string;
+  scope: string;
+  userCount: number;
+  isSystem: boolean;
+  permissions: Record<string, string[]>;
+}
+
 export interface AccountItem {
   id: number;
   name: string;
@@ -92,17 +123,42 @@ export interface FeedbackItem {
   status: 'Open' | 'In review' | 'Resolved' | string;
   priority: 'High' | 'Normal' | 'Low' | string;
   time: string;
+  trackingNumber?: string;
 }
 
 export interface PostItem {
-  id: number;
-  type: 'News' | 'Event' | string;
+  id: number | string;
+  type: 'News' | 'Event' | 'news' | 'event' | string;
   title: string;
-  excerpt: string;
-  date: string;
-  status: 'Published' | 'Draft' | string;
-  audience: string;
+  titleAm?: string;
+  summary?: string;
+  summaryAm?: string;
+  content?: string;
+  contentAm?: string;
+  category?: string;
+  categoryAm?: string;
+  bureau?: string;
+  bureauAm?: string;
+  subCity?: string;
+  location?: { subCity?: string; address?: string };
+  excerpt?: string;
+  date?: string;
+  eventDate?: string;
+  publishedAt?: string;
+  status?: 'Published' | 'Draft' | string;
+  isPublished?: boolean;
+  audience?: string;
 }
+
+export interface BureauProfile {
+  bureau: string;
+  hours: string;
+  location: string;
+  admin: string;
+  contact: string;
+}
+
+export type FormFieldOption = string | { value: string; label: string };
 
 export interface FormFieldConfig {
   name: string;
@@ -111,9 +167,10 @@ export interface FormFieldConfig {
   required?: boolean;
   placeholder?: string;
   value?: string;
-  options?: string[];
+  options?: FormFieldOption[];
   full?: boolean;
   rows?: number;
+  visibleWhen?: (values: Record<string, string>) => boolean;
 }
 
 export interface FormModalConfig {
@@ -122,6 +179,8 @@ export interface FormModalConfig {
   title: string;
   description?: string;
   submit?: string;
+  footerNote?: string;
+  size?: string;
   fields: FormFieldConfig[];
   onSubmit: (values: Record<string, string>) => void;
 }

@@ -1,17 +1,44 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePortal } from '../context';
-import { ROLE } from '../data/portalConstants';
 import { Icon } from '../components/shared/Icon';
 import { MetricCard } from '../components/shared/MetricCard';
-import { ActivityChart } from '../components/shared/ActivityChart';
-import { FeedbackTable } from '../components/shared/FeedbackTable';
-import { TypePill } from '../components/shared/TypePill';
+import ActivityChart from '../components/overview/ActivityChart.jsx';
+import SatisfactionPanel from '../components/overview/SatisfactionPanel.jsx';
+import FeedbackFocusList from '../components/overview/FeedbackFocusList.jsx';
+import QuickActions from '../components/overview/QuickActions.jsx';
+import { ROLE } from '../data/portalData.js';
+import type { FeedbackItem, RoleKey } from '../types/portal.types';
 
-export const OverviewPage: React.FC = () => {
-  const { role, visibleFeedback, openFeedback, createForPage } = usePortal();
+export interface OverviewPageProps {
+  role?: RoleKey | string;
+  onNavigate?: (path: string) => void;
+  feedback?: FeedbackItem[];
+  onFeedback?: (item: FeedbackItem) => void;
+  onCreate?: (targetPage?: string) => void;
+}
+
+export const OverviewPage: React.FC<OverviewPageProps> = ({
+  role: propRole,
+  onNavigate: propOnNavigate,
+  feedback: propFeedback,
+  onFeedback: propOnFeedback,
+  onCreate: propOnCreate,
+}) => {
+  const portal = usePortal();
   const navigate = useNavigate();
-  const [period, setPeriod] = useState<'This week' | 'Last week'>('This week');
+  const [period, setPeriod] = useState('This week');
+
+  const role = (propRole || portal.role || 'super') as RoleKey;
+  const onNavigate = propOnNavigate || ((path: string) => navigate(path.startsWith('/') ? path : `/${path}`));
+  const feedback = propFeedback || portal.feedback || [];
+  const onFeedback = propOnFeedback || ((item: FeedbackItem) => portal.openFeedback(item));
+  const onCreate =
+    propOnCreate ||
+    (() => {
+      const target = role === 'super' ? 'subcities' : role === 'subcity' ? 'bureaus' : 'routes';
+      portal.createForPage?.(target);
+    });
 
   const info =
     role === 'super'
@@ -50,26 +77,26 @@ export const OverviewPage: React.FC = () => {
   const quick =
     role === 'super'
       ? [
-          { text: 'Add a sub-city', icon: 'map', path: '/subcities', page: 'subcities' },
-          { text: 'Create an account', icon: 'users', path: '/accounts', page: 'accounts' },
-          { text: 'Review feedback', icon: 'message', path: '/feedback', page: 'feedback' },
+          { text: 'Add a sub-city', icon: 'map', page: 'subcities' },
+          { text: 'Create an account', icon: 'users', page: 'accounts' },
+          { text: 'Review feedback', icon: 'message', page: 'feedback' },
         ]
       : role === 'subcity'
         ? [
-            { text: 'Add a bureau', icon: 'building', path: '/bureaus', page: 'bureaus' },
-            { text: 'Create a service', icon: 'layers', path: '/services', page: 'services' },
-            { text: 'Post an update', icon: 'news', path: '/news', page: 'news' },
+            { text: 'Add a bureau', icon: 'building', page: 'bureaus' },
+            { text: 'Create a service', icon: 'layers', page: 'services' },
+            { text: 'Post an update', icon: 'news', page: 'news' },
           ]
         : [
-            { text: 'Update a room route', icon: 'route', path: '/routes', page: 'routes' },
-            { text: 'Review feedback', icon: 'message', path: '/feedback', page: 'feedback' },
-            { text: 'Open QR codes', icon: 'qr', path: '/qr', page: 'qr' },
+            { text: 'Update a room route', icon: 'route', page: 'routes' },
+            { text: 'Review feedback', icon: 'message', page: 'feedback' },
+            { text: 'Open QR codes', icon: 'qr', page: 'qr' },
           ];
 
   const focus =
     role === 'super'
-      ? visibleFeedback.filter((f) => f.status !== 'Resolved').slice(0, 3)
-      : visibleFeedback
+      ? feedback.filter((f) => f.status !== 'Resolved').slice(0, 3)
+      : feedback
           .filter(
             (f) =>
               f.status !== 'Resolved' &&
@@ -79,9 +106,7 @@ export const OverviewPage: React.FC = () => {
           )
           .slice(0, 3);
 
-  const handleCreateHeader = () => {
-    createForPage(role === 'super' ? 'subcities' : role === 'subcity' ? 'bureaus' : 'routes');
-  };
+  const roleMeta = ROLE[role] || ROLE.super;
 
   return (
     <>
@@ -104,7 +129,7 @@ export const OverviewPage: React.FC = () => {
           >
             <Icon name="download" size={16} /> Export report
           </button>
-          <button className="button primary" onClick={handleCreateHeader}>
+          <button className="button primary" onClick={() => onCreate()}>
             <Icon name="plus" size={16} />{' '}
             {role === 'super'
               ? 'New sub-city'
@@ -114,7 +139,6 @@ export const OverviewPage: React.FC = () => {
           </button>
         </div>
       </div>
-
       <section className="metric-grid">
         {info.metrics.map(([icon, label, value, note, trend], i) => (
           <MetricCard
@@ -124,11 +148,10 @@ export const OverviewPage: React.FC = () => {
             value={value}
             note={note}
             trend={trend}
-            tone={['teal', 'sage', 'gold', 'blue'][i]}
+            tone={(['teal', 'sage', 'gold', 'blue'] as const)[i]}
           />
         ))}
       </section>
-
       <section className="dashboard-grid">
         <article className="panel activity-panel">
           <div className="panel-heading">
@@ -147,146 +170,18 @@ export const OverviewPage: React.FC = () => {
           </div>
           <ActivityChart period={period} />
         </article>
-        <article className="panel satisfaction-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="panel-eyebrow">CITIZEN SENTIMENT</span>
-              <h2>Service satisfaction</h2>
-            </div>
-            <span className="subtle-icon">
-              <Icon name="spark" size={17} />
-            </span>
-          </div>
-          <div className="satisfaction-score">
-            <strong>4.6</strong>
-            <span className="score-out-of">/ 5</span>
-            <span className="score-stars">★★★★★</span>
-          </div>
-          <p className="satisfaction-copy">Average citizen rating from the last 30 days</p>
-          <div className="rating-bars">
-            {[
-              ['5', 68],
-              ['4', 19],
-              ['3', 8],
-              ['2', 3],
-              ['1', 2],
-            ].map(([n, width]) => (
-              <div className="rating-row" key={n}>
-                <span>
-                  {n} <i>★</i>
-                </span>
-                <div className="rating-track">
-                  <i style={{ width: `${width}%` }} />
-                </div>
-                <small>{width}%</small>
-              </div>
-            ))}
-          </div>
-          <button className="panel-link" onClick={() => navigate('/feedback')}>
-            Explore citizen feedback <Icon name="arrow" size={15} />
-          </button>
-        </article>
+        <SatisfactionPanel onNavigate={onNavigate} />
       </section>
-
       <section className="dashboard-grid lower-grid">
-        <article className="panel recent-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="panel-eyebrow">VOICE OF THE COMMUNITY</span>
-              <h2>Feedback needing attention</h2>
-            </div>
-            <button className="panel-link" onClick={() => navigate('/feedback')}>
-              View all <Icon name="arrow" size={15} />
-            </button>
-          </div>
-          <div className="focus-list">
-            {focus.map((item) => (
-              <button
-                key={item.id}
-                className="focus-item"
-                onClick={() => openFeedback(item)}
-              >
-                <span className={`focus-type ${item.type.toLowerCase()}`}>
-                  {item.type === 'Complaint' ? '!' : '↗'}
-                </span>
-                <span className="focus-copy">
-                  <span>
-                    <b>{item.id}</b>
-                    <TypePill type={item.type} />
-                  </span>
-                  <p>{item.message}</p>
-                  <small>
-                    {item.bureau} · {item.time}
-                  </small>
-                </span>
-                <span className={`priority-tag ${item.priority.toLowerCase()}`}>
-                  {item.priority}
-                </span>
-              </button>
-            ))}
-            {focus.length === 0 && (
-              <div className="quiet-state">
-                <Icon name="check" />
-                You’re all caught up.
-              </div>
-            )}
-          </div>
-        </article>
-        <article className="panel quick-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="panel-eyebrow">MOVE THINGS FORWARD</span>
-              <h2>Quick actions</h2>
-            </div>
-          </div>
-          <div className="quick-action-list">
-            {quick.map((action) => (
-              <button
-                key={action.text}
-                onClick={() => {
-                  navigate(action.path);
-                  if (
-                    action.page === 'subcities' ||
-                    action.page === 'bureaus' ||
-                    action.page === 'services' ||
-                    action.page === 'routes'
-                  ) {
-                    createForPage(action.page);
-                  }
-                }}
-              >
-                <span className="quick-action-icon">
-                  <Icon name={action.icon} size={17} />
-                </span>
-                <b>{action.text}</b>
-                <Icon name="arrow" size={15} />
-              </button>
-            ))}
-          </div>
-          <div className="quick-foot">
-            <span className="online-indicator" /> All systems operational{' '}
-            <span>Updated moments ago</span>
-          </div>
-        </article>
+        <FeedbackFocusList items={focus} onFeedback={onFeedback} onNavigate={onNavigate} />
+        <QuickActions items={quick} onNavigate={onNavigate} onCreate={onCreate} />
       </section>
-
-      <section className="panel table-panel overview-table">
-        <div className="panel-heading">
-          <div>
-            <span className="panel-eyebrow">LATEST RESPONSES</span>
-            <h2>Recent citizen feedback</h2>
-          </div>
-          <button className="panel-link" onClick={() => navigate('/feedback')}>
-            Open feedback inbox <Icon name="arrow" size={15} />
-          </button>
-        </div>
-        <FeedbackTable items={visibleFeedback} onOpen={openFeedback} compact />
-      </section>
-
       <p className="data-footnote">
-        This dashboard shows illustrative sample information for the {ROLE[role].label.toLowerCase()}{' '}
-        workspace.
+        This dashboard shows illustrative sample information for the{' '}
+        {roleMeta.label.toLowerCase()} workspace.
       </p>
     </>
   );
 };
+
+export default OverviewPage;

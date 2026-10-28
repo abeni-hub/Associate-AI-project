@@ -9,4 +9,7 @@ export * from './FeedbackPage';
 export * from './NewsPage';
 export * from './QRPage';
 export * from './OfficePage';
+export * from './OfficesPage';
+export * from './RolesPermissionsPage';
+export * from './LandingPageCms';
 export * from './ActivityPage';

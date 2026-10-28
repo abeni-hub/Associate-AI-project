@@ -1,26 +1,45 @@
 import React from 'react';
 import { usePortal } from '../context';
+import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
 import { StatusPill } from '../components/shared/StatusPill';
-import { Icon } from '../components/shared/Icon';
-import type { RouteItem } from '../types/portal.types';
+import type { RouteItem, RouteStep } from '../types/portal.types';
 
-export const RoutesPage: React.FC = () => {
-  const { routes, setModal, saveRouteSteps, search, setSearch } = usePortal();
+export interface RoutesPageProps {
+  items?: RouteItem[];
+  onEdit?: (item: RouteItem) => void;
+  search?: string;
+  setSearch?: (s: string) => void;
+}
 
-  const bureauRoutes = routes.filter((route) => route.bureau === 'Revenues Bureau');
-  const filtered = bureauRoutes.filter((item) =>
+export const RoutesPage: React.FC<RoutesPageProps> = ({
+  items: propItems,
+  onEdit: propOnEdit,
+  search: propSearch,
+  setSearch: propSetSearch,
+}) => {
+  const portal = usePortal();
+
+  const items = propItems || portal.routes || [];
+  const search = propSearch !== undefined ? propSearch : portal.search;
+  const setSearch = propSetSearch || portal.setSearch;
+
+  const onEdit =
+    propOnEdit ||
+    ((route: RouteItem) => {
+      portal.setModal({
+        kind: 'route',
+        route,
+        onSave: (steps: RouteStep[]) => {
+          portal.saveRouteSteps(route.id, steps);
+        },
+      });
+    });
+
+  const filtered = items.filter((item) =>
     `${item.service} ${item.category} ${item.status}`.toLowerCase().includes(search.toLowerCase())
   );
-
-  const handleEditRoute = (route: RouteItem) => {
-    setModal({
-      kind: 'route',
-      route,
-      onSave: (steps) => saveRouteSteps(route.id, steps),
-    });
-  };
 
   return (
     <>
@@ -30,9 +49,7 @@ export const RoutesPage: React.FC = () => {
         subtitle="Give citizens a clear path through your office, one room at a time."
         secondary="Preview public guide"
         onSecondary={() =>
-          window.alert(
-            'Public guide preview is available when a citizen-facing site is connected.'
-          )
+          window.alert('Public guide preview is available when a citizen-facing site is connected.')
         }
       />
       <div className="route-summary">
@@ -41,7 +58,7 @@ export const RoutesPage: React.FC = () => {
             <Icon name="route" />
           </span>
           <span>
-            <b>{bureauRoutes.length} service routes</b>
+            <b>{items.length} service routes</b>
             <small>Configured for Revenues Bureau</small>
           </span>
         </div>
@@ -83,7 +100,7 @@ export const RoutesPage: React.FC = () => {
             </p>
             <div className="mini-route">
               {item.steps.map((step, index) => (
-                <div className="mini-route-step" key={`${item.id}-${step.room}`}>
+                <div className="mini-route-step" key={`${item.id}-${step.room}-${index}`}>
                   <span className="mini-route-room">{step.room}</span>
                   <span className="mini-route-copy">
                     <b>{step.title}</b>
@@ -93,7 +110,7 @@ export const RoutesPage: React.FC = () => {
                 </div>
               ))}
             </div>
-            <button className="route-edit-button" onClick={() => handleEditRoute(item)}>
+            <button className="route-edit-button" onClick={() => onEdit(item)}>
               {item.status === 'Draft' ? 'Finish this route' : 'Edit room sequence'}{' '}
               <Icon name="arrow" size={15} />
             </button>
@@ -120,3 +137,5 @@ export const RoutesPage: React.FC = () => {
     </>
   );
 };
+
+export default RoutesPage;

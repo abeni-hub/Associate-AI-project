@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import type { ModalConfig } from '../../types/portal.types';
 import { ModalForm } from './ModalForm';
 import { RouteEditor } from './RouteEditor';
@@ -6,21 +7,17 @@ import { FeedbackDetail } from './FeedbackDetail';
 import { QRDialog } from './QRDialog';
 
 export interface ModalProps {
-  modal: ModalConfig;
+  modal: ModalConfig | any;
   onClose: () => void;
 }
 
 export const Modal: React.FC<ModalProps> = ({ modal, onClose }) => {
   if (!modal) return null;
 
-  const getTitle = () => {
-    if (modal.kind === 'form') return modal.title;
-    if (modal.kind === 'route') return 'Edit route';
-    if (modal.kind === 'feedback') return modal.item.type;
-    return 'Feedback QR code';
-  };
+  const ariaLabel =
+    modal.title || modal.item?.type || 'Workspace dialog';
 
-  return (
+  return createPortal(
     <div
       className="modal-overlay"
       onMouseDown={(e) => {
@@ -28,16 +25,38 @@ export const Modal: React.FC<ModalProps> = ({ modal, onClose }) => {
       }}
     >
       <section
-        className={`modal-card modal-${modal.kind}`}
+        className={`modal-card modal-${modal.kind}${modal.size ? ` modal-${modal.size}` : ''}`}
         role="dialog"
         aria-modal="true"
-        aria-label={getTitle()}
+        aria-label={ariaLabel}
       >
-        {modal.kind === 'form' && <ModalForm modal={modal} onClose={onClose} />}
-        {modal.kind === 'route' && <RouteEditor modal={modal} onClose={onClose} />}
-        {modal.kind === 'feedback' && <FeedbackDetail modal={modal} onClose={onClose} />}
-        {modal.kind === 'qr' && <QRDialog modal={modal} onClose={onClose} />}
+        {modal.kind === 'form' ? (
+          <ModalForm modal={modal} onClose={onClose} />
+        ) : modal.kind === 'route' ? (
+          <RouteEditor
+            route={modal.route}
+            modal={modal}
+            onClose={onClose}
+            onSave={modal.onSave}
+          />
+        ) : modal.kind === 'feedback' ? (
+          <FeedbackDetail
+            item={modal.item}
+            modal={modal}
+            onClose={onClose}
+            onUpdate={modal.onUpdate}
+          />
+        ) : (
+          <QRDialog
+            modal={modal}
+            onClose={onClose}
+            onGenerate={modal.onGenerate}
+          />
+        )}
       </section>
-    </div>
+    </div>,
+    document.body
   );
 };
+
+export default Modal;

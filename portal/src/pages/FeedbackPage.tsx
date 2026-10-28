@@ -1,28 +1,53 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePortal } from '../context';
-import { PageHeading } from '../components/shared/PageHeading';
-import { SearchBox } from '../components/shared/SearchBox';
-import { MetricCard } from '../components/shared/MetricCard';
-import { FeedbackTable } from '../components/shared/FeedbackTable';
 import { Icon } from '../components/shared/Icon';
+import { PageHeading } from '../components/shared/PageHeading';
+import { MetricCard } from '../components/shared/MetricCard';
+import { SearchBox } from '../components/shared/SearchBox';
+import { FeedbackTable } from '../components/shared/FeedbackTable';
+import type { FeedbackItem } from '../types/portal.types';
 
-export const FeedbackPage: React.FC = () => {
-  const {
-    visibleFeedback,
-    openFeedback,
-    search,
-    setSearch,
-    typeFilter,
-    setTypeFilter,
-    statusFilter,
-    setStatusFilter,
-  } = usePortal();
+export interface FeedbackPageProps {
+  items?: FeedbackItem[];
+  onOpen?: (item: FeedbackItem) => void;
+  search?: string;
+  setSearch?: (s: string) => void;
+  typeFilter?: string;
+  setTypeFilter?: (t: string) => void;
+  statusFilter?: string;
+  setStatusFilter?: (s: string) => void;
+}
 
-  const filtered = visibleFeedback.filter(
+export const FeedbackPage: React.FC<FeedbackPageProps> = ({
+  items: propItems,
+  onOpen: propOnOpen,
+  search: propSearch,
+  setSearch: propSetSearch,
+  typeFilter: propTypeFilter,
+  setTypeFilter: propSetTypeFilter,
+  statusFilter: propStatusFilter,
+  setStatusFilter: propSetStatusFilter,
+}) => {
+  const portal = usePortal();
+
+  const [localTypeFilter, setLocalTypeFilter] = useState('All types');
+  const [localStatusFilter, setLocalStatusFilter] = useState('All statuses');
+
+  const items = propItems || portal.feedback || [];
+  const search = propSearch !== undefined ? propSearch : portal.search;
+  const setSearch = propSetSearch || portal.setSearch;
+  const typeFilter = propTypeFilter !== undefined ? propTypeFilter : localTypeFilter;
+  const setTypeFilter = propSetTypeFilter || setLocalTypeFilter;
+  const statusFilter = propStatusFilter !== undefined ? propStatusFilter : localStatusFilter;
+  const setStatusFilter = propSetStatusFilter || setLocalStatusFilter;
+
+  const onOpen = propOnOpen || ((item: FeedbackItem) => portal.openFeedback(item));
+
+  const filtered = items.filter(
     (item) =>
       (typeFilter === 'All types' || item.type === typeFilter) &&
       (statusFilter === 'All statuses' || item.status === statusFilter) &&
-      `${item.id} ${item.message} ${item.service} ${item.bureau} ${item.subcity}`
+      `${item.id} ${item.message} ${item.service} ${item.bureau} ${item.subcity || ''}`
         .toLowerCase()
         .includes(search.toLowerCase())
   );
@@ -40,31 +65,25 @@ export const FeedbackPage: React.FC = () => {
         <MetricCard
           icon="message"
           label="All responses"
-          value={visibleFeedback.length + 48}
+          value={items.length + 48}
           note="This month"
           tone="teal"
         />
         <MetricCard
           icon="clock"
           label="Open"
-          value={visibleFeedback.filter((x) => x.status === 'Open').length + 14}
+          value={items.filter((x) => x.status === 'Open').length + 14}
           note="Waiting for a first response"
           tone="gold"
         />
         <MetricCard
           icon="activity"
           label="In review"
-          value={visibleFeedback.filter((x) => x.status === 'In review').length + 7}
+          value={items.filter((x) => x.status === 'In review').length + 7}
           note="Being followed up"
           tone="blue"
         />
-        <MetricCard
-          icon="check"
-          label="Resolved"
-          value="82%"
-          note="Closed this month"
-          tone="sage"
-        />
+        <MetricCard icon="check" label="Resolved" value="82%" note="Closed this month" tone="sage" />
       </div>
       <section className="panel table-panel feedback-inbox">
         <div className="table-toolbar">
@@ -96,7 +115,7 @@ export const FeedbackPage: React.FC = () => {
             </select>
           </div>
         </div>
-        <FeedbackTable items={filtered} onOpen={openFeedback} />
+        <FeedbackTable items={filtered} onOpen={onOpen} />
         <div className="table-footer">
           <span>
             Showing <b>{filtered.length}</b> responses
@@ -123,3 +142,5 @@ export const FeedbackPage: React.FC = () => {
     </>
   );
 };
+
+export default FeedbackPage;

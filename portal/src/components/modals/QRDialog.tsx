@@ -1,15 +1,22 @@
 import React from 'react';
-import type { QRModalConfig } from '../../types/portal.types';
 import { Icon } from '../shared/Icon';
 import { StatusPill } from '../shared/StatusPill';
 import { QRPattern } from '../shared/QRPattern';
+import type { QRModalConfig } from '../../types/portal.types';
 
 export interface QRDialogProps {
-  modal: QRModalConfig;
+  modal?: QRModalConfig;
   onClose: () => void;
+  onGenerate?: () => void;
 }
 
-export const QRDialog: React.FC<QRDialogProps> = ({ modal, onClose }) => {
+export const QRDialog: React.FC<QRDialogProps> = ({
+  modal,
+  onClose,
+  onGenerate: propOnGenerate,
+}) => {
+  const onGenerate = propOnGenerate || modal?.onGenerate || (() => {});
+
   return (
     <div>
       <div className="modal-header">
@@ -18,7 +25,12 @@ export const QRDialog: React.FC<QRDialogProps> = ({ modal, onClose }) => {
           <h2>Your QR code is ready</h2>
           <p>Use this code to guide citizens directly to the feedback form.</p>
         </div>
-        <button type="button" className="modal-close" onClick={onClose} aria-label="Close dialog">
+        <button
+          type="button"
+          className="modal-close"
+          onClick={onClose}
+          aria-label="Close dialog"
+        >
           <Icon name="close" />
         </button>
       </div>
@@ -35,14 +47,18 @@ export const QRDialog: React.FC<QRDialogProps> = ({ modal, onClose }) => {
           <Icon name="globe" size={14} /> Citizens can scan without an account.
         </span>
         <div>
-          <button type="button" className="button secondary" onClick={onClose}>
+          <button
+            type="button"
+            className="button secondary"
+            onClick={onClose}
+          >
             Close
           </button>
           <button
             type="button"
             className="button primary"
             onClick={() => {
-              modal.onGenerate();
+              onGenerate();
               onClose();
             }}
           >
@@ -53,3 +69,5 @@ export const QRDialog: React.FC<QRDialogProps> = ({ modal, onClose }) => {
     </div>
   );
 };
+
+export default QRDialog;

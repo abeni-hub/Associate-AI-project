@@ -1,21 +1,41 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { usePortal } from '../../context';
-import { NAV, ROLE } from '../../data/portalConstants';
-import { Brand } from '../shared/Brand';
+import { NavLink } from 'react-router-dom';
 import { Icon } from '../shared/Icon';
+import { Brand } from '../shared/Brand';
+import { ROLE, NAV } from '../../data/portalData.js';
+import { usePortal } from '../../context';
+import type { RoleKey } from '../../types/portal.types';
 
-export const Sidebar: React.FC = () => {
-  const { role, signOut, mobileOpen, setMobileOpen, resetSearch, authUser } = usePortal();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const data = ROLE[role];
+export interface SidebarProps {
+  role?: RoleKey | string;
+  onNavigate?: () => void;
+  onLogout?: () => void;
+  mobileOpen?: boolean;
+  setMobileOpen?: (open: boolean) => void;
+}
 
-  const displayName = authUser?.name || data.name;
-  const displayOrg = authUser?.organization?.name || data.organization;
-  const displayRole = authUser?.role?.name || data.label;
-  const initials = authUser?.name
-    ? authUser.name
+export const Sidebar: React.FC<SidebarProps> = ({
+  role: propRole,
+  onNavigate: propOnNavigate,
+  onLogout: propOnLogout,
+  mobileOpen: propMobileOpen,
+  setMobileOpen: propSetMobileOpen,
+}) => {
+  const portal = usePortal();
+
+  const role = (propRole || portal.role || 'super') as RoleKey;
+  const mobileOpen = propMobileOpen !== undefined ? propMobileOpen : portal.mobileOpen;
+  const setMobileOpen = propSetMobileOpen || portal.setMobileOpen;
+  const onNavigate = propOnNavigate || portal.resetSearch;
+  const onLogout = propOnLogout || portal.signOut;
+
+  const data = ROLE[role] || ROLE.super;
+  const navGroups = NAV[role] || [];
+
+  const displayName = portal.authUser?.name || data.name;
+  const displayRole = portal.authUser?.role?.name || data.label;
+  const initials = portal.authUser?.name
+    ? portal.authUser.name
         .split(' ')
         .map((part) => part[0])
         .filter(Boolean)
@@ -24,11 +44,7 @@ export const Sidebar: React.FC = () => {
         .toUpperCase()
     : data.initials;
 
-  const handleNav = (path: string) => {
-    navigate(path);
-    resetSearch();
-    setMobileOpen(false);
-  };
+  const getDestination = (itemId: string) => `/${itemId}`;
 
   return (
     <>
@@ -47,55 +63,32 @@ export const Sidebar: React.FC = () => {
             <Icon name="close" />
           </button>
         </div>
-        <div className="sidebar-workspace">
-          <span className="workspace-avatar">
-            <Icon
-              name={role === 'super' ? 'globe' : role === 'subcity' ? 'map' : 'building'}
-              size={17}
-            />
-          </span>
-          <span>
-            <small>YOUR WORKSPACE</small>
-            <b>{displayOrg.split(' · ')[0]}</b>
-          </span>
-          <Icon name="chevron" size={15} />
-        </div>
         <nav className="side-nav" aria-label="Admin navigation">
-          {NAV[role].map((group) => (
-            <div className="nav-group" key={group.label}>
-              <span className="nav-group-label">{group.label}</span>
-              {group.items.map((item) => {
-                const isActive = location.pathname === item.path;
-                return (
-                  <button
+          <div className="side-nav-groups">
+            {navGroups.map((group: any) => (
+              <div className="nav-group" key={group.items[0]?.id ?? group.label}>
+                {group.label && <span className="nav-group-label">{group.label}</span>}
+                {group.items.map((item: any) => (
+                  <NavLink
                     key={item.id}
-                    className={`nav-item${isActive ? ' active' : ''}`}
-                    onClick={() => handleNav(item.path)}
+                    to={getDestination(item.id)}
+                    end
+                    className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+                    onClick={() => {
+                      onNavigate();
+                      setMobileOpen(false);
+                    }}
                   >
                     <Icon name={item.icon} size={18} />
                     <span>{item.text}</span>
                     {item.badge && <span className="nav-badge">{item.badge}</span>}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+                  </NavLink>
+                ))}
+              </div>
+            ))}
+          </div>
         </nav>
         <div className="sidebar-bottom">
-          <div className="help-card">
-            <span className="help-card-icon">
-              <Icon name="spark" size={16} />
-            </span>
-            <b>Here to help</b>
-            <p>Need a hand with your workspace?</p>
-            <button
-              onClick={() =>
-                window.alert('Your system support team can help with workspace access and setup.')
-              }
-            >
-              Contact support <Icon name="arrow" size={14} />
-            </button>
-          </div>
           <div className="side-profile">
             <span className="avatar">{initials}</span>
             <span className="profile-copy">
@@ -104,7 +97,7 @@ export const Sidebar: React.FC = () => {
             </span>
             <button
               className="logout-button"
-              onClick={signOut}
+              onClick={onLogout}
               title="Sign out"
               aria-label="Sign out"
             >
@@ -116,3 +109,5 @@ export const Sidebar: React.FC = () => {
     </>
   );
 };
+
+export default Sidebar;
