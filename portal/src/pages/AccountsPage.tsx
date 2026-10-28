@@ -1,0 +1,196 @@
+import React, { useState } from 'react';
+import { usePortal } from '../context';
+import { PageHeading } from '../components/shared/PageHeading';
+import { SearchBox } from '../components/shared/SearchBox';
+import { MetricCard } from '../components/shared/MetricCard';
+import { StatusPill } from '../components/shared/StatusPill';
+import type { AccountItem } from '../types/portal.types';
+
+export interface AccountsPageProps {
+  items?: AccountItem[];
+  onAdd?: () => void;
+  onEdit?: (item: AccountItem) => void;
+  search?: string;
+  setSearch?: (s: string) => void;
+}
+
+export const AccountsPage: React.FC<AccountsPageProps> = ({
+  items: propItems,
+  onAdd: propOnAdd,
+  onEdit: propOnEdit,
+  search: propSearch,
+  setSearch: propSetSearch,
+}) => {
+  const portal = usePortal();
+  const [roleFilter, setRoleFilter] = useState('All roles');
+
+  const items = propItems || portal.accounts || [];
+  const search = propSearch !== undefined ? propSearch : portal.search;
+  const setSearch = propSetSearch || portal.setSearch;
+  const onAdd = propOnAdd || (() => portal.createForPage('accounts'));
+  const onEdit =
+    propOnEdit ||
+    ((item: AccountItem) => {
+      portal.openForm({
+        eyebrow: 'ACCESS & PERMISSIONS',
+        title: 'Edit administrator account',
+        description:
+          'Update user permissions, work email, and organizational workspace assignment.',
+        submit: 'Save changes',
+        fields: [
+          { name: 'name', label: 'Full name', required: true, value: item.name },
+          { name: 'username', label: 'Username', required: true, value: item.username },
+          {
+            name: 'email',
+            label: 'Work email',
+            type: 'email',
+            required: true,
+            value: `${item.username}@civiclink.gov.et`,
+          },
+          {
+            name: 'role',
+            label: 'Admin role',
+            type: 'select',
+            required: true,
+            value: item.role,
+            options: ['Sub-city admin', 'Bureau admin', 'Public Communications Editor'],
+          },
+          { name: 'organization', label: 'Organization', required: true, value: item.organization },
+          {
+            name: 'status',
+            label: 'Account status',
+            type: 'select',
+            required: true,
+            value: item.status === 'Inactive' ? 'Inactive' : 'Active',
+            options: ['Active', 'Inactive'],
+          },
+        ],
+        onSubmit: () => {},
+      });
+    });
+
+  const filtered = items.filter(
+    (item) =>
+      (roleFilter === 'All roles' || item.role === roleFilter) &&
+      `${item.name} ${item.username} ${item.role} ${item.organization}`
+        .toLowerCase()
+        .includes(search.toLowerCase())
+  );
+
+  return (
+    <>
+      <PageHeading
+        eyebrow="ACCESS & PERMISSIONS"
+        title="Accounts"
+        subtitle="Manage administrator access across every connected organization."
+        action="Create account"
+        onAction={onAdd}
+        secondary="Export list"
+        onSecondary={() => window.alert('Account list export is ready in this preview.')}
+      />
+      <div className="metric-grid compact-metrics">
+        <MetricCard
+          icon="users"
+          label="Total accounts"
+          value={items.length + 84}
+          note="Across all workspaces"
+          tone="teal"
+        />
+        <MetricCard
+          icon="check"
+          label="Active accounts"
+          value={items.length + 81}
+          note="Access confirmed"
+          tone="sage"
+        />
+        <MetricCard
+          icon="clock"
+          label="Inactive accounts"
+          value="3"
+          note="Access currently disabled"
+          tone="gold"
+        />
+        <MetricCard
+          icon="shield"
+          label="Access reviews"
+          value="Due soon"
+          note="3 reviews this month"
+          tone="blue"
+        />
+      </div>
+      <section className="panel table-panel">
+        <div className="table-toolbar">
+          <div>
+            <h2>Administrator accounts</h2>
+            <p>Role and organization determine what each admin can see and manage.</p>
+          </div>
+          <div className="toolbar-tools">
+            <SearchBox value={search} onChange={setSearch} placeholder="Search accounts" />
+            <select
+              className="filter-select"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              aria-label="Filter by admin role"
+            >
+              <option>All roles</option>
+              <option>Sub-city admin</option>
+              <option>Bureau admin</option>
+            </select>
+          </div>
+        </div>
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>ACCOUNT</th>
+                <th>ROLE</th>
+                <th>ORGANIZATION</th>
+                <th>STATUS</th>
+                <th>LAST ACTIVE</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((item) => (
+                <tr key={item.id}>
+                  <td>
+                    <span className="table-person">
+                      <span className="mini-avatar">
+                        {item.name
+                          .split(' ')
+                          .map((n) => n[0])
+                          .join('')}
+                      </span>
+                      <span>
+                        <b>{item.name}</b>
+                        <small>@{item.username}</small>
+                      </span>
+                    </span>
+                  </td>
+                  <td>
+                    <span className="badge role-badge">{item.role}</span>
+                  </td>
+                  <td>{item.organization}</td>
+                  <td>
+                    <StatusPill>{item.status}</StatusPill>
+                  </td>
+                  <td>{item.lastActive}</td>
+                  <td className="table-action-cell">
+                    <button
+                      className="button secondary small-button"
+                      onClick={() => onEdit(item)}
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
+  );
+};
+
+export default AccountsPage;
