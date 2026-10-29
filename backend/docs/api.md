@@ -1584,6 +1584,158 @@ Recent administrative audit trails within the user's organization scope.
 }
 ```
 
+---
+
+## 11. Landing Page CMS Management
+
+### `GET /api/v1/cms/landing-page`
+Publicly retrieves the complete 8-section citizen landing page configuration tree.
+- **Authentication**: None (Public)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Landing page CMS configuration retrieved successfully.",
+  "data": {
+    "announcement": {
+      "enabled": true,
+      "tag": "PUBLIC NOTICE",
+      "message": "Public services operate under standard working hours. Please prepare required documents before visiting bureaus.",
+      "linkText": "Explore the guide",
+      "linkUrl": "#guide"
+    },
+    "hero": {
+      "badge": "ETHIOPIA · CITIZEN SERVICES",
+      "titleEn": "One clear place to plan your next public service visit",
+      "titleAm": "ለሚቀጥለው የመንግሥት አገልግሎት ጉብኝትዎ የሚያስፈልግዎትን ሁሉ በአንድ ቦታ",
+      "subtitleEn": "The right information makes every visit easier.",
+      "subtitleAm": "ትክክለኛ መረጃ ጉብኝትዎን ቀላል ያደርገዋል።",
+      "primaryCtaText": "Find a service",
+      "primaryCtaUrl": "#guide",
+      "secondaryCtaText": "I've already visited",
+      "secondaryCtaUrl": "#feedback",
+      "slides": [
+        {
+          "id": 1,
+          "title": "Revenue services, made clearer.",
+          "bureau": "REVENUE BUREAU",
+          "category": "Revenue & Tax",
+          "image": "https://example.com/bureau.jpg",
+          "alt": "Local government building in Addis Ababa.",
+          "credit": "CivicLink",
+          "source": "https://example.com",
+          "tint": "#164d58"
+        }
+      ]
+    },
+    "quickSearch": {
+      "enabled": true,
+      "kicker": "START HERE",
+      "kickerNum": "01",
+      "title": "What do you need help with?",
+      "subtitle": "Choose a location and service to see your visit guide.",
+      "buttonText": "Show my guide",
+      "footnoteText": "Takes less than a minute · No account needed"
+    },
+    "serviceGuide": {
+      "enabled": true,
+      "kicker": "YOUR VISIT GUIDE",
+      "kickerNum": "02",
+      "titleLead": "A clearer path,",
+      "titleEmphasis": "step by step.",
+      "description": "Know what to bring and which room to visit, before you set off.",
+      "sampleBadgeText": "SAMPLE GUIDE",
+      "whatToBringTitle": "What to bring",
+      "expectationsNote": "Bring original documents where available.",
+      "routeHeading": "Your room-by-route",
+      "disclaimerText": "Service information can change. Confirm with your bureau if you are unsure."
+    },
+    "journey": {
+      "enabled": true,
+      "kicker": "SIMPLE FROM START TO FINISH",
+      "kickerNum": "03",
+      "title": "Three moments. One smoother journey.",
+      "steps": [
+        {
+          "step": "01 / BEFORE",
+          "title": "Prepare with confidence",
+          "detail": "Choose your service and see requirements before leaving home."
+        }
+      ]
+    },
+    "newsEvents": {
+      "enabled": true,
+      "kicker": "FROM YOUR COMMUNITY",
+      "kickerNum": "04",
+      "title": "What's happening near you.",
+      "sourceLabel": "Published by sub-city admins",
+      "showEvents": true,
+      "showNews": true,
+      "viewAllText": "View all community updates",
+      "emptyMessage": "No active announcements at this time."
+    },
+    "feedback": {
+      "enabled": true,
+      "kicker": "YOUR VOICE HELPS",
+      "kickerNum": "05",
+      "title": "Every experience can make things better.",
+      "description": "Tell us how your visit went.",
+      "pointOne": "Scan a bureau QR code.",
+      "pointTwo": "Clear guidance before your visit.",
+      "quote": "Clearer information for every visit."
+    },
+    "footer": {
+      "enabled": true,
+      "brandTagline": "Clearer information for every visit.",
+      "description": "Built for citizens, maintained by bureaus.",
+      "adminStripKicker": "FOR PUBLIC SERVICE TEAMS",
+      "adminStripTitle": "Manage information where it belongs.",
+      "adminStripDescription": "Sub-city and bureau admins keep guides up to date.",
+      "copyright": "© 2026 CivicLink Ethiopia",
+      "bottomNote": "Official citizen engagement portal.",
+      "helplinePhone": "7533"
+    }
+  },
+  "errors": null
+}
+```
+
+### `PUT /api/v1/cms/landing-page`
+Updates the landing page CMS configuration tree.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `cms.manage` (Super Admin)
+- **Request Body**: JSON configuration matching the 8 sections schema.
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Landing page CMS configuration updated successfully.",
+  "data": { ... },
+  "errors": null
+}
+```
+
+### `POST /api/v1/cms/upload-image`
+Uploads a hero or spotlight image file for CMS use.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `cms.manage` (Super Admin)
+- **Headers**: `Content-Type: multipart/form-data`
+- **Request Body**:
+  - `image` (file, required, image types: jpeg, png, jpg, webp, max: 5120 KB)
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "CMS image uploaded successfully.",
+  "data": {
+    "url": "http://localhost:8000/storage/cms/hero/20261029_192800_AbC123XyZ.jpg",
+    "filename": "20261029_192800_AbC123XyZ.jpg",
+    "path": "cms/hero/20261029_192800_AbC123XyZ.jpg"
+  },
+  "errors": null
+}
+```
+
 
 
 

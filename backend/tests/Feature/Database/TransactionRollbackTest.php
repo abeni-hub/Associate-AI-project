@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Database;
 
-use App\Domains\AuditLogs\Actions\RecordAuditLogAction;
 use App\Domains\Authorization\Models\Role;
+use App\Domains\Documents\Models\Document;
 use App\Domains\Feedback\Actions\SubmitFeedbackAction;
 use App\Domains\Feedback\DTOs\FeedbackData;
 use App\Domains\Feedback\Models\Feedback;
@@ -154,7 +154,7 @@ class TransactionRollbackTest extends TestCase
             'is_active' => true,
         ]);
 
-        $document = \App\Domains\Documents\Models\Document::create([
+        $document = Document::create([
             'name' => 'National ID',
             'code' => 'doc-nid',
             'is_active' => true,

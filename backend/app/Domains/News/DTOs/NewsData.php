@@ -9,7 +9,7 @@ use App\Http\Requests\Api\V1\News\StoreNewsRequest;
 readonly class NewsData
 {
     /**
-     * @param array<int, array{content: string, content_type?: string, order?: int}> $contents
+     * @param  array<int, array{content: string, content_type?: string, order?: int}>  $contents
      */
     public function __construct(
         public int $organizationId,
@@ -29,7 +29,7 @@ readonly class NewsData
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {

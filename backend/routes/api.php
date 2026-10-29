@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\PasswordResetController;
 use App\Http\Controllers\Api\V1\Authorization\PermissionController;
 use App\Http\Controllers\Api\V1\Authorization\RoleController;
+use App\Http\Controllers\Api\V1\Cms\CmsController;
 use App\Http\Controllers\Api\V1\Dashboard\DashboardController;
 use App\Http\Controllers\Api\V1\Documents\DocumentController;
 use App\Http\Controllers\Api\V1\Feedback\FeedbackController;
@@ -17,7 +18,6 @@ use App\Http\Controllers\Api\V1\Services\ServiceController;
 use App\Http\Controllers\Api\V1\Services\ServiceStepController;
 use App\Http\Controllers\Api\V1\Users\UserController;
 use App\Support\ApiResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -30,8 +30,21 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
+    // API Root
+    Route::get('/', function () {
+        return ApiResponse::success([
+            'service' => 'CivicLink Government Citizen Engagement Platform API',
+            'version' => 'v1',
+            'health' => url('/api/v1/health'),
+            'cms' => url('/api/v1/cms/landing-page'),
+        ], 'CivicLink API v1 is active.');
+    })->name('root');
+
     // Health & Status
     Route::get('/health', HealthController::class)->name('health');
+
+    // Public Landing Page CMS (no authentication required)
+    Route::get('/cms/landing-page', [CmsController::class, 'show'])->name('cms.landing-page.show');
 
     // Public Citizen Service Discovery Endpoints
     Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
@@ -235,6 +248,17 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/recent-activity', [DashboardController::class, 'recentActivity'])
                 ->middleware('permission:dashboard.view')
                 ->name('recent-activity');
+        });
+
+        // Super Admin CMS Landing Page Management
+        Route::prefix('cms')->name('cms.')->group(function () {
+            Route::put('/landing-page', [CmsController::class, 'update'])
+                ->middleware('permission:cms.manage')
+                ->name('landing-page.update');
+
+            Route::post('/upload-image', [CmsController::class, 'uploadImage'])
+                ->middleware('permission:cms.manage')
+                ->name('upload-image');
         });
     });
 

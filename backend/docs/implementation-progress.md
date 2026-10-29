@@ -211,6 +211,33 @@
   - Formatted and verified with Laravel Pint (`vendor/bin/pint`).
 - [x] Documentation updated in `docs/api.md` (Section 11) and `docs/implementation-progress.md`.
 
+---
+
+## Phase 11 Detail — Super Admin Landing Page CMS Domain
+
+### Completed Milestones
+- [x] Database Schema & Migration:
+  - Created `landing_page_configs` table with `version`, `is_published`, `content` (jsonb/json), `updated_by` foreign key, and unique index on `['version']`.
+- [x] Domain-Driven Design (`app/Domains/Cms/`):
+  - Model: `LandingPageConfig` with array/boolean casts, `updatedBy` relation, and `current()` static helper.
+  - Actions:
+    - `GetLandingPageCmsAction`: Active published configuration retrieval with default fallback.
+    - `UpdateLandingPageCmsAction`: Transactional update, `updated_by` association, and `RecordAuditLogAction` audit logging.
+    - `UploadCmsImageAction`: Validates image, stores on `public` disk under `cms/hero/`, and returns absolute reachable URL.
+  - Support: `DefaultLandingPageContent` defining the complete 8-section payload matching citizen and portal specifications.
+- [x] Transport & HTTP Layer:
+  - `UpdateLandingPageCmsRequest`: Comprehensive validation rules for all 8 sections (`announcement`, `hero`, `quickSearch`, `serviceGuide`, `journey`, `newsEvents`, `feedback`, `footer`).
+  - `UploadCmsImageRequest`: File validation for jpeg, png, jpg, webp up to 5MB.
+  - `CmsController`: Public `show`, protected `update`, and protected `uploadImage` handlers using unified `ApiResponse`.
+- [x] RBAC & Routes:
+  - Seeded permission `cms.manage` in `PermissionSeeder` and granted to `super_admin`.
+  - Registered `GET /api/v1/cms/landing-page` (public).
+  - Registered `PUT /api/v1/cms/landing-page` and `POST /api/v1/cms/upload-image` (`auth:sanctum`, `account.active`, `permission:cms.manage`).
+- [x] Automated Feature Tests:
+  - `Tests\Feature\Api\V1\Cms\LandingPageCmsTest`: 9 tests, 113 assertions (100% passed).
+- [x] Full Backend Test Suite:
+  - 201 tests, 1,283 assertions (100% passed).
+
 
 
 

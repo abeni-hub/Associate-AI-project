@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api\V1\News;
 
+use App\Domains\Authorization\Models\Permission;
 use App\Domains\Authorization\Models\Role;
 use App\Domains\News\Models\News;
 use App\Domains\Organizations\Models\Organization;
@@ -443,7 +444,7 @@ class NewsApiTest extends TestCase
 
     public function test_child_woreda_admin_cannot_delete_parent_subcity_news(): void
     {
-        $newsDeletePermission = \App\Domains\Authorization\Models\Permission::where('key', 'news.delete')->firstOrFail();
+        $newsDeletePermission = Permission::where('key', 'news.delete')->firstOrFail();
         $this->woredaAdmin->role->permissions()->syncWithoutDetaching([$newsDeletePermission->id]);
 
         $subCityNews = News::create([
