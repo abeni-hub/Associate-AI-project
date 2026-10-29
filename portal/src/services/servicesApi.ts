@@ -58,6 +58,63 @@ export interface ServiceFilterParams extends PaginationQueryParams {
   is_active?: boolean;
 }
 
+export interface CreateServicePayload {
+  name: string;
+  code: string;
+  parent_id?: number | null;
+  description: string;
+  eligibility_criteria?: string;
+  fee_amount?: number;
+  fee_currency?: string;
+  fee_notes?: string;
+  estimated_duration_minutes?: number;
+  is_active?: boolean;
+}
+
+export interface UpdateServicePayload {
+  id: number;
+  name?: string;
+  code?: string;
+  parent_id?: number | null;
+  description?: string;
+  eligibility_criteria?: string;
+  fee_amount?: number;
+  fee_currency?: string;
+  fee_notes?: string;
+  estimated_duration_minutes?: number;
+  is_active?: boolean;
+}
+
+export interface CreateServiceStepPayload {
+  serviceId: number | string;
+  organization_id?: number | null;
+  step_number: number;
+  title: string;
+  instruction: string;
+  room_number: string;
+  floor: string;
+  building: string;
+  department_name: string;
+  responsible_title: string;
+  estimated_duration_minutes?: number;
+  is_active?: boolean;
+}
+
+export interface UpdateServiceStepPayload {
+  serviceId: number | string;
+  stepId: number;
+  step_number?: number;
+  title?: string;
+  instruction?: string;
+  room_number?: string;
+  floor?: string;
+  building?: string;
+  department_name?: string;
+  responsible_title?: string;
+  estimated_duration_minutes?: number;
+  is_active?: boolean;
+}
+
 /**
  * Government Services RTK Query API
  *
@@ -89,12 +146,88 @@ export const servicesApi = baseApi.injectEndpoints({
       providesTags: (_result, _error, idOrCode) => [{ type: 'Service', id: idOrCode }],
     }),
 
+    createService: builder.mutation<ApiResponse<ServiceDetail>, CreateServicePayload>({
+      query: (body) => ({
+        url: '/services',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'Service', id: 'LIST' }],
+    }),
+
+    updateService: builder.mutation<ApiResponse<ServiceDetail>, UpdateServicePayload>({
+      query: ({ id, ...body }) => ({
+        url: `/services/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Service', id },
+        { type: 'Service', id: 'LIST' },
+      ],
+    }),
+
+    deleteService: builder.mutation<ApiResponse<null>, number>({
+      query: (id) => ({
+        url: `/services/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'Service', id: 'LIST' }],
+    }),
+
     getServiceSteps: builder.query<ApiResponse<ServiceStep[]>, string | number>({
       query: (serviceIdOrCode) => ({
         url: `/services/${serviceIdOrCode}/steps`,
         method: 'GET',
       }),
       providesTags: (_result, _error, serviceId) => [{ type: 'ServiceStep', id: `SERVICE-${serviceId}` }],
+    }),
+
+    createServiceStep: builder.mutation<ApiResponse<ServiceStep>, CreateServiceStepPayload>({
+      query: ({ serviceId, ...body }) => ({
+        url: `/services/${serviceId}/steps`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { serviceId }) => [
+        { type: 'ServiceStep', id: `SERVICE-${serviceId}` },
+        { type: 'Service', id: serviceId },
+      ],
+    }),
+
+    updateServiceStep: builder.mutation<ApiResponse<ServiceStep>, UpdateServiceStepPayload>({
+      query: ({ serviceId, stepId, ...body }) => ({
+        url: `/services/${serviceId}/steps/${stepId}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { serviceId }) => [
+        { type: 'ServiceStep', id: `SERVICE-${serviceId}` },
+      ],
+    }),
+
+    deleteServiceStep: builder.mutation<ApiResponse<null>, { serviceId: number | string; stepId: number }>({
+      query: ({ serviceId, stepId }) => ({
+        url: `/services/${serviceId}/steps/${stepId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { serviceId }) => [
+        { type: 'ServiceStep', id: `SERVICE-${serviceId}` },
+      ],
+    }),
+
+    reorderServiceSteps: builder.mutation<
+      ApiResponse<ServiceStep[]>,
+      { serviceId: number | string; steps: Array<{ id: number; step_number: number }> }
+    >({
+      query: ({ serviceId, steps }) => ({
+        url: `/services/${serviceId}/steps/reorder`,
+        method: 'POST',
+        body: { steps },
+      }),
+      invalidatesTags: (_result, _error, { serviceId }) => [
+        { type: 'ServiceStep', id: `SERVICE-${serviceId}` },
+      ],
     }),
   }),
   overrideExisting: false,
@@ -104,5 +237,12 @@ export const {
   useGetServicesQuery,
   useLazyGetServicesQuery,
   useGetServiceByIdQuery,
+  useCreateServiceMutation,
+  useUpdateServiceMutation,
+  useDeleteServiceMutation,
   useGetServiceStepsQuery,
+  useCreateServiceStepMutation,
+  useUpdateServiceStepMutation,
+  useDeleteServiceStepMutation,
+  useReorderServiceStepsMutation,
 } = servicesApi;

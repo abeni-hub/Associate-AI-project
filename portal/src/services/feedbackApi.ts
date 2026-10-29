@@ -3,15 +3,30 @@ import type { ApiResponse, PaginatedResponse, PaginationQueryParams } from '../t
 
 export interface CitizenFeedback {
   id: string | number;
-  type: 'Complaint' | 'Satisfaction' | 'Suggestion';
+  type?: 'Complaint' | 'Satisfaction' | 'Suggestion';
   rating?: number | null;
   service?: string;
   bureau?: string;
   subcity?: string;
-  message: string;
-  status: 'Open' | 'In review' | 'Resolved';
+  message?: string;
+  status?: 'Open' | 'In review' | 'Resolved';
   priority?: 'Low' | 'Normal' | 'High';
   created_at?: string;
+  updated_at?: string;
+
+  // Exact fields from api.md Section 11
+  feedback_for_organization?: number;
+  feedback_content?: string;
+  feedback_type?: 'complaint' | 'feedback' | 'satisfaction';
+  tracking_number?: string;
+  full_name?: string;
+  phone_number?: string;
+  email?: string;
+  organization?: {
+    id: number;
+    name: string;
+    code: string;
+  };
 }
 
 export interface FeedbackFilterParams extends PaginationQueryParams {
@@ -21,17 +36,24 @@ export interface FeedbackFilterParams extends PaginationQueryParams {
   subcity_id?: number;
 }
 
+export interface CreateFeedbackRequest {
+  feedback_for_organization: number;
+  feedback_content: string;
+  feedback_type: 'complaint' | 'feedback' | 'satisfaction';
+  full_name?: string;
+  phone_number?: string;
+  email?: string;
+}
+
 /**
  * Citizen Feedback RTK Query API
- *
- * Prepared architecture for Phase 9 backend integration.
- * Injected into baseApi to maintain shared caching.
+ * Adheres to backend/docs/api.md Section 11
  */
 export const feedbackApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getFeedbackList: builder.query<PaginatedResponse<CitizenFeedback>, FeedbackFilterParams | void>({
       query: (params) => ({
-        url: '/feedback',
+        url: '/feedbacks',
         method: 'GET',
         params: params || undefined,
       }),
@@ -44,9 +66,18 @@ export const feedbackApi = baseApi.injectEndpoints({
           : [{ type: 'Feedback', id: 'LIST' }],
     }),
 
+    createFeedback: builder.mutation<ApiResponse<CitizenFeedback>, CreateFeedbackRequest>({
+      query: (body) => ({
+        url: '/feedbacks',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'Feedback', id: 'LIST' }],
+    }),
+
     updateFeedbackStatus: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; status: string }>({
       query: ({ id, status }) => ({
-        url: `/feedback/${id}/status`,
+        url: `/feedbacks/${id}/status`,
         method: 'PATCH',
         body: { status },
       }),
@@ -61,6 +92,6 @@ export const feedbackApi = baseApi.injectEndpoints({
 
 export const {
   useGetFeedbackListQuery,
-  useLazyGetFeedbackListQuery,
+  useCreateFeedbackMutation,
   useUpdateFeedbackStatusMutation,
 } = feedbackApi;

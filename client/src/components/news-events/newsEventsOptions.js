@@ -1,5 +1,6 @@
 export const categories = [
   { id: 'all', label: 'All Categories', labelAm: 'ሁሉም ዘርፎች' },
+  { id: 'Public notice', label: 'Public Notices', labelAm: 'ይፋዊ ማስታወቂያ' },
   { id: 'Digital Services', label: 'Digital Services', labelAm: 'ዲጂታል አገልግሎት' },
   { id: 'Civil Registry', label: 'Civil Registry', labelAm: 'የሲቪል ምዝገባ' },
   { id: 'Urban Planning', label: 'Urban Planning', labelAm: 'የከተማ ፕላን' },

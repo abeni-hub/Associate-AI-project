@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { usePortal } from '../context';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
@@ -6,6 +6,7 @@ import { MetricCard } from '../components/shared/MetricCard';
 import { SearchBox } from '../components/shared/SearchBox';
 import { StatusPill } from '../components/shared/StatusPill';
 import type { BureauItem } from '../types/portal.types';
+import { useGetOrganizationsQuery, useCreateOrganizationMutation } from '../services/organizationsApi';
 
 export interface BureausPageProps {
   items?: BureauItem[];
@@ -22,10 +23,63 @@ export const BureausPage: React.FC<BureausPageProps> = ({
 }) => {
   const portal = usePortal();
 
-  const items = propItems || portal.bureaus || [];
+  const { data: apiOrgs, isLoading } = useGetOrganizationsQuery();
+  const [createOrgTrigger] = useCreateOrganizationMutation();
+
+  const items: BureauItem[] = useMemo(() => {
+    if (propItems && propItems.length > 0) return propItems;
+
+    if (apiOrgs?.data) {
+      const apiBureaus = apiOrgs.data.filter((o) => o.organization_type_id === 3 || o.type?.code === 'bureau');
+      return apiBureaus.map((b) => ({
+        id: b.id,
+        name: b.name,
+        category: b.code || 'Sector Bureau',
+        admin: b.email || 'Bureau Administrator',
+        services: b.services_count ?? 0,
+        completion: 100,
+        status: b.status === 'active' ? 'Active' : 'In progress',
+      }));
+    }
+
+    return [];
+  }, [propItems, apiOrgs]);
+
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;
-  const onAdd = propOnAdd || (() => portal.createForPage('bureaus'));
+  
+  const onAdd =
+    propOnAdd ||
+    (() => {
+      portal.openForm({
+        eyebrow: 'ORGANIZATION DIRECTORY',
+        title: 'Add a sector bureau',
+        description: 'Register an office and link it within the administrative hierarchy.',
+        submit: 'Create bureau',
+        fields: [
+          { name: 'name', label: 'Bureau name', required: true },
+          { name: 'code', label: 'Bureau code (slug)', placeholder: 'e.g. vital-events-bureau', required: true },
+          { name: 'parent_id', label: 'Parent Sub-City / Woreda ID', placeholder: 'e.g. 1', required: true },
+          { name: 'email', label: 'Work email', type: 'email' },
+          { name: 'phone', label: 'Official phone', placeholder: '+251911000000' },
+        ],
+        onSubmit: async (v) => {
+          try {
+            await createOrgTrigger({
+              name: v.name,
+              code: v.code.toLowerCase().replace(/\s+/g, '-'),
+              organization_type_id: 3,
+              parent_organization_id: v.parent_id ? parseInt(v.parent_id, 10) : 1,
+              email: v.email,
+              phone: v.phone,
+              status: 'active',
+            }).unwrap();
+          } catch {
+            portal.createForPage('bureaus');
+          }
+        },
+      });
+    });
 
   const filtered = items.filter((item) =>
     `${item.name} ${item.category} ${item.admin} ${item.status}`
@@ -36,9 +90,9 @@ export const BureausPage: React.FC<BureausPageProps> = ({
   return (
     <>
       <PageHeading
-        eyebrow="LEMI KURA · ORGANIZATION"
+        eyebrow="PUBLIC SERVICE OFFICES"
         title="Bureaus"
-        subtitle="Manage bureau teams and track the information citizens can see."
+        subtitle="Manage specialized bureau teams, service guides, and citizen navigation."
         action="Add a bureau"
         onAction={onAdd}
       />
@@ -47,14 +101,14 @@ export const BureausPage: React.FC<BureausPageProps> = ({
           icon="building"
           label="Registered bureaus"
           value={items.length}
-          note="In this sub-city"
+          note="Connected service desks"
           tone="teal"
         />
         <MetricCard
           icon="check"
-          label="Public guides"
-          value="28"
-          note="Visible to citizens"
+          label="Active status"
+          value={items.filter((b) => b.status === 'Active' || b.status === 'Live').length}
+          note="Serving citizens"
           tone="sage"
         />
         <MetricCard
@@ -76,15 +130,17 @@ export const BureausPage: React.FC<BureausPageProps> = ({
         <div className="table-toolbar">
           <div>
             <h2>Bureau directory</h2>
-            <p>Service readiness across the Lemi Kura administration.</p>
+            <p>Service readiness across municipal sector administrations.</p>
           </div>
           <div className="toolbar-tools">
             <SearchBox value={search} onChange={setSearch} placeholder="Find a bureau" />
-            <button className="button secondary small-button">
-              <Icon name="filter" size={16} /> Filters
-            </button>
           </div>
         </div>
+        {isLoading && (
+          <div style={{ padding: '24px', textAlign: 'center' }}>
+            <p>Loading bureaus from API...</p>
+          </div>
+        )}
         <div className="table-scroll">
           <table className="data-table bureau-table">
             <thead>
@@ -134,6 +190,12 @@ export const BureausPage: React.FC<BureausPageProps> = ({
               ))}
             </tbody>
           </table>
+          {!filtered.length && !isLoading && (
+            <div className="panel empty-state">
+              <b>No bureaus found</b>
+              <p>Try searching with another keyword or add a new bureau.</p>
+            </div>
+          )}
         </div>
         <div className="table-footer">
           <span>

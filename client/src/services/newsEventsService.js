@@ -921,6 +921,40 @@ export async function getHomeHighlights() {
   }
 }
 
+async function fetchBackendNews() {
+  try {
+    const res = await fetch('/api/v1/news');
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+      return json.data.map((art) => ({
+        id: String(art.id),
+        type: 'news',
+        title: art.news_title,
+        titleAm: '',
+        slug: `news-${art.id}`,
+        summary: art.contents?.[0]?.content || 'Official Municipal Announcement',
+        summaryAm: '',
+        content: art.contents?.map((c) => c.content).join('\n\n') || '',
+        contentAm: '',
+        category: 'Public notice',
+        categoryAm: 'ይፋዊ ማስታወቂያ',
+        subCity: art.organization?.name || 'All Addis Ababa',
+        subCityAm: 'መላው አዲስ አበባ',
+        bureau: art.organization?.name || 'City Administration',
+        bureauAm: 'የከተማ አስተዳደር',
+        coverImage: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
+        publishedAt: art.created_at ? art.created_at.split('T')[0] : '2026-10-26',
+        readTimeMinutes: 3,
+        isPublished: true,
+      }));
+    }
+  } catch (err) {
+    console.warn('Backend news query error, using local fallback:', err);
+  }
+  return null;
+}
+
 /**
  * Paginated API fetch for News items (YouTube-style continuous loading)
  */
@@ -931,23 +965,12 @@ export async function fetchNews({
   subCity = 'all',
   search = '',
 } = {}) {
-  if (USE_REAL_BACKEND) {
-    const params = new URLSearchParams({
-      page: String(page),
-      limit: String(limit),
-      category,
-      subCity,
-      search,
-    });
-    const res = await fetch(`${API_BASE_URL}/news?${params}`);
-    if (!res.ok) throw new Error(`Failed to fetch news: ${res.statusText}`);
-    return await res.json();
-  }
+  const liveNews = await fetchBackendNews();
+  const newsSource = liveNews && liveNews.length > 0
+    ? liveNews
+    : getPublishedNewsEvents().filter((item) => item.type === 'news');
 
-  // Simulated backend network delay (400ms - 600ms) for realistic YouTube-like loading feel
-  await new Promise((resolve) => setTimeout(resolve, 450));
-
-  const filtered = filterItems(getPublishedNewsEvents().filter((item) => item.type === 'news'), { category, subCity, search });
+  const filtered = filterItems(newsSource, { category, subCity, search });
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
   const items = filtered.slice(startIndex, endIndex);
@@ -988,7 +1011,7 @@ export async function fetchEvents({
   }
 
   // Simulated backend network delay
-  await new Promise((resolve) => setTimeout(resolve, 450));
+  await new Promise((resolve) => setTimeout(resolve, 150));
 
   const filtered = filterItems(getPublishedNewsEvents().filter((item) => item.type === 'event'), { category, subCity, search });
   const startIndex = (page - 1) * limit;
@@ -1017,10 +1040,18 @@ export async function fetchCombinedFeed({
   subCity = 'all',
   search = '',
 } = {}) {
-  // Simulated delay
-  await new Promise((resolve) => setTimeout(resolve, 450));
+  let liveNews = [];
+  try {
+    liveNews = (await fetchBackendNews()) || [];
+  } catch {
+    liveNews = [];
+  }
 
-  const allItems = getPublishedNewsEvents().sort((a, b) => {
+  const events = getPublishedNewsEvents().filter((item) => item.type === 'event');
+  const fallbackNews = getPublishedNewsEvents().filter((item) => item.type === 'news');
+  const newsSource = liveNews.length > 0 ? liveNews : fallbackNews;
+
+  const allItems = [...newsSource, ...events].sort((a, b) => {
     const dateA = a.type === 'event' ? a.eventDate : a.publishedAt;
     const dateB = b.type === 'event' ? b.eventDate : b.publishedAt;
     return new Date(dateB) - new Date(dateA);
@@ -1047,9 +1078,53 @@ export async function fetchCombinedFeed({
  * Lookup single item by ID
  */
 export async function getItemById(id) {
-  const item = getPublishedNewsEvents().find((entry) => entry.id === id)
+  try {
+    const res = await fetch(`/api/v1/news/${id}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && json.data) {
+        const art = json.data;
+        return {
+          id: String(art.id),
+          type: 'news',
+          title: art.news_title,
+          titleAm: '',
+          slug: `news-${art.id}`,
+          summary: art.contents?.[0]?.content || '',
+          summaryAm: '',
+          content: art.contents?.slice(1).map((c) => c.content).join('\n\n') || art.contents?.[0]?.content || '',
+          contentAm: '',
+          category: 'Public notice',
+          categoryAm: 'ይፋዊ ማስታወቂያ',
+          subCity: art.organization?.name || 'All Addis Ababa',
+          subCityAm: 'መላው አዲስ አበባ',
+          bureau: art.organization?.name || 'City Administration',
+          bureauAm: 'የከተማ አስተዳደር',
+          author: {
+            name: art.organization?.name || 'Communications Directorate',
+            nameAm: art.organization?.name || 'የኮሙኒኬሽን ዳይሬክቶሬት',
+            role: 'Official Municipal Bureau',
+            roleAm: 'ይፋዊ የማዘጋጃ ቤት ቢሮ',
+            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+          },
+          coverImage: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
+          publishedAt: art.created_at ? art.created_at.split('T')[0] : '2026-10-26',
+          readTimeMinutes: Math.max(1, Math.ceil((art.contents?.reduce((acc, c) => acc + (c.content?.length || 0), 0) || 500) / 400)),
+          isPublished: true,
+          tags: [art.organization?.name || 'Addis Ababa', 'Public Notice', 'Citizen Services'],
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('Backend getItemById error:', err);
+  }
+
+  const item = getPublishedNewsEvents().find(
+    (entry) => String(entry.id) === String(id) || String(entry.id) === `news-${id}` || String(entry.id) === `event-${id}`
+  );
   return item || null;
 }
+
 
 /**
  * Get related items for recommendations on detail page

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import type {
   AccountItem,
   BureauItem,
@@ -14,15 +14,6 @@ import type {
 } from '../types/portal.types';
 import type { AuthUser } from '../features/auth/auth.types';
 import { mapBackendRoleToPortalRole } from '../features/auth/auth.types';
-import {
-  INITIAL_ACCOUNTS,
-  INITIAL_BUREAUS,
-  INITIAL_FEEDBACK,
-  INITIAL_POSTS,
-  INITIAL_ROUTES,
-  INITIAL_SERVICES,
-  INITIAL_SUBCITIES,
-} from '../data/portalConstants';
 import { PortalContext } from './portalContextDef';
 import type { PortalSession } from './portalContextDef';
 import { useAppDispatch } from '../app/hooks';
@@ -41,12 +32,12 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   const [session, setSession] = useState<PortalSession | null>(() => {
+    const hasToken = tokenStorage.hasToken();
     const savedRole = tokenStorage.getSessionRole<RoleKey>();
     const savedUser = tokenStorage.getSessionUser<AuthUser>();
-    if (savedRole && (tokenStorage.hasToken() || savedRole)) {
+    if (hasToken && savedRole && savedUser) {
       return {
         role: savedRole,
-        isDemo: !tokenStorage.hasToken(),
         user: savedUser,
       };
     }
@@ -54,7 +45,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   const [authUser, setAuthUser] = useState<AuthUser | null>(() => {
-    return tokenStorage.getSessionUser<AuthUser>();
+    return tokenStorage.hasToken() ? tokenStorage.getSessionUser<AuthUser>() : null;
   });
 
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -63,30 +54,21 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [typeFilter, setTypeFilter] = useState('All types');
   const [statusFilter, setStatusFilter] = useState('All statuses');
 
-  const [subcities, setSubcities] = useState<SubcityItem[]>(INITIAL_SUBCITIES);
-  const [bureaus, setBureaus] = useState<BureauItem[]>(INITIAL_BUREAUS);
-  const [accounts, setAccounts] = useState<AccountItem[]>(INITIAL_ACCOUNTS);
-  const [services, setServices] = useState<ServiceItem[]>(INITIAL_SERVICES);
-  const [routes, setRoutes] = useState<RouteItem[]>(INITIAL_ROUTES);
-  const [feedback, setFeedback] = useState<FeedbackItem[]>(INITIAL_FEEDBACK);
-  const [posts, setPosts] = useState<PostItem[]>(INITIAL_POSTS);
+  const [subcities, setSubcities] = useState<SubcityItem[]>([]);
+  const [bureaus, setBureaus] = useState<BureauItem[]>([]);
+  const [accounts, setAccounts] = useState<AccountItem[]>([]);
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [routes, setRoutes] = useState<RouteItem[]>([]);
+  const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
+  const [posts, setPosts] = useState<PostItem[]>([]);
 
-  const resetSearch = () => {
+  const resetSearch = useCallback(() => {
     setSearch('');
     setTypeFilter('All types');
     setStatusFilter('All statuses');
-  };
+  }, []);
 
-  const signInDemo = (selected: RoleKey) => {
-    setRole(selected);
-    setAuthUser(null);
-    tokenStorage.setSessionRole(selected);
-    tokenStorage.setSessionUser(null);
-    setSession({ role: selected, isDemo: true, user: null });
-    resetSearch();
-  };
-
-  const signInLive = (user: AuthUser, token?: string) => {
+  const signInLive = useCallback((user: AuthUser, token?: string) => {
     const mapped = mapBackendRoleToPortalRole(user.role?.slug);
     setRole(mapped);
     setAuthUser(user);
@@ -96,11 +78,10 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       tokenStorage.setToken(token);
     }
     dispatch(setCredentials({ token: token || tokenStorage.getToken() || undefined, user }));
-    setSession({ role: mapped, isDemo: false, user });
-    resetSearch();
-  };
+    setSession({ role: mapped, user });
+  }, [dispatch]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       if (tokenStorage.hasToken()) {
         await logoutTrigger().unwrap();
@@ -116,7 +97,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setModal(null);
       resetSearch();
     }
-  };
+  }, [dispatch, logoutTrigger, resetSearch]);
 
   const openForm = (config: {
     eyebrow?: string;
@@ -500,7 +481,6 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setRole,
         session,
         authUser,
-        signInDemo,
         signInLive,
         signOut,
         mobileOpen,

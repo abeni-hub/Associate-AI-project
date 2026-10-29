@@ -16,7 +16,6 @@ import type { AuthUser } from '../features/auth/auth.types';
 
 export interface PortalSession {
   role: RoleKey;
-  isDemo?: boolean;
   user?: AuthUser | null;
 }
 
@@ -25,7 +24,6 @@ export interface PortalContextType {
   setRole: (role: RoleKey) => void;
   session: PortalSession | null;
   authUser: AuthUser | null;
-  signInDemo: (selected: RoleKey) => void;
   signInLive: (user: AuthUser, token?: string) => void;
   signOut: () => Promise<void> | void;
   mobileOpen: boolean;

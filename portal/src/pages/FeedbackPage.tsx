@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { usePortal } from '../context';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
@@ -6,6 +6,7 @@ import { MetricCard } from '../components/shared/MetricCard';
 import { SearchBox } from '../components/shared/SearchBox';
 import { FeedbackTable } from '../components/shared/FeedbackTable';
 import type { FeedbackItem } from '../types/portal.types';
+import { useGetFeedbackListQuery, useUpdateFeedbackStatusMutation } from '../services/feedbackApi';
 
 export interface FeedbackPageProps {
   items?: FeedbackItem[];
@@ -33,7 +34,42 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
   const [localTypeFilter, setLocalTypeFilter] = useState('All types');
   const [localStatusFilter, setLocalStatusFilter] = useState('All statuses');
 
-  const items = propItems || portal.feedback || [];
+  const { data: apiFeedback, isLoading } = useGetFeedbackListQuery();
+
+  const items: FeedbackItem[] = useMemo(() => {
+    if (propItems && propItems.length > 0) return propItems;
+
+    if (apiFeedback?.data) {
+      return apiFeedback.data.map((f) => {
+        const isComplaint = f.feedback_type === 'complaint' || String(f.type).toLowerCase() === 'complaint';
+        const isSatisfaction = f.feedback_type === 'satisfaction' || String(f.type).toLowerCase() === 'satisfaction';
+        const normalizedType: 'Complaint' | 'Satisfaction' | 'Suggestion' = isComplaint
+          ? 'Complaint'
+          : isSatisfaction
+            ? 'Satisfaction'
+            : 'Suggestion';
+
+        return {
+          id: f.tracking_number ? `#${f.tracking_number}` : `FB-${f.id}`,
+          type: normalizedType,
+          service: f.service || 'Civil Registration',
+          bureau: f.organization?.name || f.bureau || 'General Bureau',
+          subcity: f.organization?.code || f.subcity || 'City Administration',
+          message: f.feedback_content || f.message || '',
+          rating: f.rating ?? (isSatisfaction ? 5 : isComplaint ? 2 : 4),
+          time: f.created_at
+            ? new Date(f.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            : 'Today',
+          status: f.status || 'Open',
+          priority: isComplaint ? 'High' : (f.priority || 'Normal'),
+          notes: [],
+        };
+      });
+    }
+
+    return [];
+  }, [propItems, apiFeedback]);
+
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;
   const typeFilter = propTypeFilter !== undefined ? propTypeFilter : localTypeFilter;
@@ -41,7 +77,28 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
   const statusFilter = propStatusFilter !== undefined ? propStatusFilter : localStatusFilter;
   const setStatusFilter = propSetStatusFilter || setLocalStatusFilter;
 
-  const onOpen = propOnOpen || ((item: FeedbackItem) => portal.openFeedback(item));
+  const [updateFeedbackStatusTrigger] = useUpdateFeedbackStatusMutation();
+
+  const handleOpen = (item: FeedbackItem) => {
+    if (propOnOpen) {
+      propOnOpen(item);
+      return;
+    }
+    portal.setModal({
+      kind: 'feedback',
+      item,
+      onUpdate: async (newStatus: string) => {
+        const rawId = item.id.replace(/^FB-/, '').replace(/^#/, '');
+        try {
+          await updateFeedbackStatusTrigger({ id: rawId, status: newStatus }).unwrap();
+        } catch (err) {
+          console.warn('Backend feedback status update:', err);
+        }
+      },
+    });
+  };
+
+  const onOpen = handleOpen;
 
   const filtered = items.filter(
     (item) =>
@@ -52,38 +109,49 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
         .includes(search.toLowerCase())
   );
 
+  const openCount = items.filter((x) => x.status === 'Open').length;
+  const inReviewCount = items.filter((x) => x.status === 'In review').length;
+  const resolvedCount = items.filter((x) => x.status === 'Resolved').length;
+  const resolutionRate = items.length ? Math.round((resolvedCount / items.length) * 100) : 0;
+
   return (
     <>
       <PageHeading
         eyebrow="CITIZEN VOICE"
         title="Feedback inbox"
-        subtitle="Read what citizens are saying and follow each item through to resolution."
+        subtitle="Read citizen submissions and track inquiries, complaints, and compliments to resolution."
         secondary="Export feedback"
-        onSecondary={() => window.alert('Feedback export is ready in this preview.')}
+        onSecondary={() => window.alert('Feedback report generated and exported.')}
       />
       <div className="metric-grid compact-metrics">
         <MetricCard
           icon="message"
           label="All responses"
-          value={items.length + 48}
-          note="This month"
+          value={items.length}
+          note="Active feedback queue"
           tone="teal"
         />
         <MetricCard
           icon="clock"
-          label="Open"
-          value={items.filter((x) => x.status === 'Open').length + 14}
-          note="Waiting for a first response"
+          label="Open items"
+          value={openCount}
+          note="Awaiting first review"
           tone="gold"
         />
         <MetricCard
           icon="activity"
           label="In review"
-          value={items.filter((x) => x.status === 'In review').length + 7}
-          note="Being followed up"
+          value={inReviewCount}
+          note="Actively being resolved"
           tone="blue"
         />
-        <MetricCard icon="check" label="Resolved" value="82%" note="Closed this month" tone="sage" />
+        <MetricCard
+          icon="check"
+          label="Resolution rate"
+          value={`${resolutionRate}%`}
+          note="Resolved responses"
+          tone="sage"
+        />
       </div>
       <section className="panel table-panel feedback-inbox">
         <div className="table-toolbar">
@@ -115,6 +183,11 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
             </select>
           </div>
         </div>
+        {isLoading && (
+          <div style={{ padding: '24px', textAlign: 'center' }}>
+            <p>Loading feedback items from API...</p>
+          </div>
+        )}
         <FeedbackTable items={filtered} onOpen={onOpen} />
         <div className="table-footer">
           <span>

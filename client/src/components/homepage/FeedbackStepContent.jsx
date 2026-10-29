@@ -1,5 +1,6 @@
 import Icon from '../ui/Icon.jsx'
 import { bureauOptions, serviceCatalog, subCityOptions } from '../../data/homePageData.js'
+import { useGetOrganizationsQuery } from '../../services/organizationsApi.js'
 
 const feedbackTypes = [
   { value: 'Complaint', icon: 'news', label: 'A complaint', copy: 'Something needs attention' },
@@ -8,6 +9,11 @@ const feedbackTypes = [
 ]
 
 export default function FeedbackStepContent({ step, feedback, actions, t }) {
+  const { data: orgData } = useGetOrganizationsQuery()
+  const bureauList =
+    orgData?.data && Array.isArray(orgData.data) && orgData.data.length > 0
+      ? orgData.data.map((o) => ({ id: String(o.id), label: o.name }))
+      : bureauOptions
   const activeServices = serviceCatalog[feedback.bureau] ?? []
 
   if (step === 1) {
@@ -51,7 +57,7 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
         <span className="feedback-select-wrap">
           <Icon name="building" size={18} />
           <select value={feedback.bureau} onChange={(event) => actions.changeBureau(event.target.value)}>
-            {bureauOptions.map((bureau) => <option key={bureau.id} value={bureau.id}>{t(bureau.label)}</option>)}
+            {bureauList.map((bureau) => <option key={bureau.id} value={bureau.id}>{t(bureau.label)}</option>)}
           </select>
           <Icon name="chevron" size={16} />
         </span>

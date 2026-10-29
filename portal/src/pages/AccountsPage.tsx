@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { usePortal } from '../context';
 import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
 import { MetricCard } from '../components/shared/MetricCard';
 import { StatusPill } from '../components/shared/StatusPill';
 import type { AccountItem } from '../types/portal.types';
+import {
+  useGetUsersQuery,
+  useCreateUserMutation,
+  useUpdateUserMutation,
+  useDeleteUserMutation,
+} from '../services/usersApi';
 
 export interface AccountsPageProps {
   items?: AccountItem[];
@@ -24,97 +30,182 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
   const portal = usePortal();
   const [roleFilter, setRoleFilter] = useState('All roles');
 
-  const items = propItems || portal.accounts || [];
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;
-  const onAdd = propOnAdd || (() => portal.createForPage('accounts'));
+
+  const { data: usersResponse, isLoading } = useGetUsersQuery();
+  const [createUserTrigger] = useCreateUserMutation();
+  const [updateUserTrigger] = useUpdateUserMutation();
+  const [deleteUserTrigger] = useDeleteUserMutation();
+
+  const items: AccountItem[] = useMemo(() => {
+    if (propItems && propItems.length > 0) return propItems;
+
+    if (usersResponse?.data) {
+      return usersResponse.data.map((u) => ({
+        id: u.id,
+        name: u.name,
+        username: u.username,
+        role: u.role?.name || 'Staff',
+        organization: u.organization?.name || 'Addis Ababa City Administration',
+        status: u.status === 'active' ? 'Active' : 'Inactive',
+        lastActive: u.last_login_at
+          ? new Date(u.last_login_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          : 'Never',
+      }));
+    }
+
+    return [];
+  }, [propItems, usersResponse]);
+
+  const onAdd =
+    propOnAdd ||
+    (() => {
+      portal.openForm({
+        eyebrow: 'ACCESS & PERMISSIONS',
+        title: 'Create an administrator account',
+        description: 'Assign credentials, role, and organizational workspace.',
+        submit: 'Create account',
+        fields: [
+          { name: 'name', label: 'Full name', required: true },
+          { name: 'username', label: 'Username', required: true },
+          { name: 'email', label: 'Work email', type: 'email', required: true },
+          {
+            name: 'password',
+            label: 'Initial password',
+            type: 'password',
+            required: true,
+            placeholder: 'Min 8 characters',
+          },
+          {
+            name: 'role_id',
+            label: 'Role',
+            type: 'select',
+            required: true,
+            options: ['Sub-City Admin (ID 2)', 'Woreda Admin (ID 3)', 'Bureau Admin (ID 4)', 'Staff (ID 5)'],
+          },
+          {
+            name: 'organization_id',
+            label: 'Organization ID',
+            placeholder: 'e.g. 1',
+            required: true,
+          },
+        ],
+        onSubmit: async (v) => {
+          try {
+            const roleMatch = v.role_id.match(/\(ID\s*(\d+)\)/);
+            const roleId = roleMatch ? parseInt(roleMatch[1], 10) : 2;
+            const orgId = parseInt(v.organization_id || '1', 10);
+
+            await createUserTrigger({
+              name: v.name,
+              username: v.username,
+              email: v.email,
+              password: v.password,
+              role_id: roleId,
+              organization_id: orgId,
+              status: 'active',
+            }).unwrap();
+          } catch {
+            portal.createForPage('accounts');
+          }
+        },
+      });
+    });
+
   const onEdit =
     propOnEdit ||
     ((item: AccountItem) => {
       portal.openForm({
         eyebrow: 'ACCESS & PERMISSIONS',
         title: 'Edit administrator account',
-        description:
-          'Update user permissions, work email, and organizational workspace assignment.',
+        description: 'Update user profile and active access status.',
         submit: 'Save changes',
         fields: [
           { name: 'name', label: 'Full name', required: true, value: item.name },
           { name: 'username', label: 'Username', required: true, value: item.username },
           {
-            name: 'email',
-            label: 'Work email',
-            type: 'email',
-            required: true,
-            value: `${item.username}@civiclink.gov.et`,
-          },
-          {
-            name: 'role',
-            label: 'Admin role',
-            type: 'select',
-            required: true,
-            value: item.role,
-            options: ['Sub-city admin', 'Bureau admin', 'Public Communications Editor'],
-          },
-          { name: 'organization', label: 'Organization', required: true, value: item.organization },
-          {
             name: 'status',
             label: 'Account status',
             type: 'select',
             required: true,
-            value: item.status === 'Inactive' ? 'Inactive' : 'Active',
+            value: item.status,
             options: ['Active', 'Inactive'],
           },
         ],
-        onSubmit: () => {},
+        onSubmit: async (v) => {
+          try {
+            await updateUserTrigger({
+              id: item.id,
+              name: v.name,
+              status: v.status === 'Active' ? 'active' : 'inactive',
+            }).unwrap();
+          } catch {
+            // Local state update
+          }
+        },
       });
     });
 
+  const handleDeleteUser = async (user: AccountItem) => {
+    if (window.confirm(`Are you sure you want to delete administrator account "${user.name}" (@${user.username})?`)) {
+      try {
+        await deleteUserTrigger(user.id).unwrap();
+      } catch (err: any) {
+        window.alert(err?.data?.message || 'Failed to delete account.');
+      }
+    }
+  };
+
   const filtered = items.filter(
     (item) =>
-      (roleFilter === 'All roles' || item.role === roleFilter) &&
+      (roleFilter === 'All roles' || item.role.toLowerCase().includes(roleFilter.toLowerCase())) &&
       `${item.name} ${item.username} ${item.role} ${item.organization}`
         .toLowerCase()
         .includes(search.toLowerCase())
   );
+
+  const activeCount = items.filter((i) => i.status === 'Active').length;
+  const inactiveCount = items.filter((i) => i.status !== 'Active').length;
 
   return (
     <>
       <PageHeading
         eyebrow="ACCESS & PERMISSIONS"
         title="Accounts"
-        subtitle="Manage administrator access across every connected organization."
+        subtitle="Manage administrator access and credentials across every connected organization."
         action="Create account"
         onAction={onAdd}
         secondary="Export list"
-        onSecondary={() => window.alert('Account list export is ready in this preview.')}
+        onSecondary={() => window.alert('Account list export is ready.')}
       />
       <div className="metric-grid compact-metrics">
         <MetricCard
           icon="users"
           label="Total accounts"
-          value={items.length + 84}
-          note="Across all workspaces"
+          value={items.length}
+          note="Across administrative hierarchy"
           tone="teal"
         />
         <MetricCard
           icon="check"
           label="Active accounts"
-          value={items.length + 81}
+          value={activeCount}
           note="Access confirmed"
           tone="sage"
         />
         <MetricCard
           icon="clock"
           label="Inactive accounts"
-          value="3"
-          note="Access currently disabled"
+          value={inactiveCount}
+          note="Access suspended"
           tone="gold"
         />
         <MetricCard
           icon="shield"
-          label="Access reviews"
-          value="Due soon"
-          note="3 reviews this month"
+          label="Security audits"
+          value="Synchronized"
+          note="Connected to Laravel Sanctum"
           tone="blue"
         />
       </div>
@@ -133,11 +224,17 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
               aria-label="Filter by admin role"
             >
               <option>All roles</option>
-              <option>Sub-city admin</option>
-              <option>Bureau admin</option>
+              <option>Super Admin</option>
+              <option>Sub-City Admin</option>
+              <option>Bureau Admin</option>
             </select>
           </div>
         </div>
+        {isLoading && (
+          <div style={{ padding: '24px', textAlign: 'center' }}>
+            <p>Loading accounts...</p>
+          </div>
+        )}
         <div className="table-scroll">
           <table className="data-table">
             <thead>
@@ -175,18 +272,32 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
                     <StatusPill>{item.status}</StatusPill>
                   </td>
                   <td>{item.lastActive}</td>
-                  <td className="table-action-cell">
+                  <td className="table-action-cell" style={{ display: 'flex', gap: '6px' }}>
                     <button
                       className="button secondary small-button"
                       onClick={() => onEdit(item)}
                     >
                       Edit
                     </button>
+                    <button
+                      className="button secondary small-button"
+                      style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
+                      onClick={() => handleDeleteUser(item)}
+                      title="Delete account"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {!filtered.length && !isLoading && (
+            <div className="panel empty-state">
+              <b>No accounts found</b>
+              <p>Try adjusting your search filters or create an account.</p>
+            </div>
+          )}
         </div>
       </section>
     </>

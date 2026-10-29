@@ -1,25 +1,16 @@
 import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { usePortal } from '../context';
-import { ROLE } from '../data/portalData.js';
 import { Brand } from '../components/shared/Brand';
 import { Icon } from '../components/shared/Icon';
 import { useLoginMutation } from '../services/authApi';
-import type { RoleKey } from '../types/portal.types';
+import { tokenStorage } from '../utils/tokenStorage';
 
-export interface LoginPageProps {
-  selectedRole?: RoleKey | string;
-  setSelectedRole?: (role: any) => void;
-  onLogin?: (role: any) => void;
-}
+export interface LoginPageProps {}
 
-export const LoginPage: React.FC<LoginPageProps> = ({
-  selectedRole: propSelectedRole,
-  setSelectedRole: propSetSelectedRole,
-  onLogin: propOnLogin,
-}) => {
+export const LoginPage: React.FC<LoginPageProps> = () => {
   const portal = usePortal();
-  const [login] = useLoginMutation();
+  const [login, { isLoading }] = useLoginMutation();
   const navigate = useNavigate();
 
   const [showPassword, setShowPassword] = useState(false);
@@ -27,11 +18,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const selectedRole = propSelectedRole || portal.role || 'super';
-  const setSelectedRole = propSetSelectedRole || portal.setRole;
-  const onLogin = propOnLogin || portal.signInDemo;
-
-  if (portal.session) {
+  // If already authenticated with real token, forward to dashboard
+  if (portal.session && tokenStorage.hasToken()) {
     return <Navigate to="/overview" replace />;
   }
 
@@ -41,13 +29,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     const cleanPassword = password.trim();
 
     if (!cleanUsername || !cleanPassword) {
-      setError('Enter your username and password, or choose a demo workspace below.');
+      setError('Please enter your username or email and password.');
       return;
     }
 
     try {
       const response = await login({
-        login: cleanUsername,
+        // login: cleanUsername,
         username: cleanUsername,
         password: cleanPassword,
       }).unwrap();
@@ -58,8 +46,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       } else {
         setError(response.message || 'Login failed. Please verify your credentials.');
       }
-    } catch {
-      setError('Authentication failed. You can also explore the portal using the demo workspaces below.');
+    } catch (err: any) {
+      const apiErrors = err?.data?.errors;
+      if (apiErrors && typeof apiErrors === 'object') {
+        const firstField = Object.keys(apiErrors)[0];
+        const firstMsg = Array.isArray(apiErrors[firstField])
+          ? apiErrors[firstField][0]
+          : apiErrors[firstField];
+        setError(firstMsg || err?.data?.message || 'Invalid credentials. Please verify your username and password.');
+      } else {
+        setError(err?.data?.message || 'Authentication failed. Please verify your credentials.');
+      }
     }
   };
 
@@ -138,10 +135,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         <div className="story-pattern" aria-hidden="true">
           <span />
           <span />
-          <span />
-          <span />
-          <span />
-          <span />
         </div>
       </section>
 
@@ -158,24 +151,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           <div className="mobile-brand">
             <Brand />
           </div>
-          <span className="login-kicker">WELCOME BACK</span>
+          <span className="login-kicker">GOVERNMENT PORTAL</span>
           <h2>
             Sign in to your
             <br />
             workspace<span>.</span>
           </h2>
           <p className="login-intro">
-            Use your government account to manage service information and citizen feedback.
+            Use your assigned administrative account to access platform directories, services, and citizen feedback.
           </p>
           <form className="login-form" onSubmit={submit}>
-            <label htmlFor="username">Username</label>
+            <label htmlFor="username">Username or email</label>
             <div className="input-shell">
               <Icon name="users" size={17} />
               <input
                 id="username"
                 autoComplete="username"
-                placeholder="Enter your username"
+                placeholder="Enter username or work email"
                 value={username}
+                disabled={isLoading}
                 onChange={(e) => {
                   setUsername(e.target.value);
                   setError('');
@@ -188,7 +182,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 type="button"
                 className="text-button"
                 onClick={() =>
-                  setError('Please contact your system administrator to reset your password.')
+                  setError('Please contact your central platform administrator to reset your password.')
                 }
               >
                 Forgot password?
@@ -202,6 +196,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Enter your password"
                 value={password}
+                disabled={isLoading}
                 onChange={(e) => {
                   setPassword(e.target.value);
                   setError('');
@@ -221,51 +216,32 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 {error}
               </div>
             )}
-            <button className="button primary login-submit" type="submit">
-              Sign in <Icon name="arrow" size={17} />
+            <button className="button primary login-submit" type="submit" disabled={isLoading}>
+              {isLoading ? 'Authenticating...' : 'Sign in'} <Icon name="arrow" size={17} />
             </button>
           </form>
-          <div className="login-divider">
-            <span />
-            OR EXPLORE A DEMO WORKSPACE
-            <span />
-          </div>
-          <p className="demo-prompt">Choose a role to preview its dashboard</p>
-          <div className="demo-roles">
-            {Object.entries(ROLE).map(([key, role]: [string, any]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => {
-                  const roleKey = key as RoleKey;
-                  setSelectedRole(roleKey);
-                  onLogin(roleKey);
-                  navigate('/overview');
-                }}
-                className={`demo-role${selectedRole === key ? ' selected' : ''}`}
-              >
-                <span className="demo-role-icon">
-                  <Icon
-                    name={key === 'super' ? 'shield' : key === 'subcity' ? 'map' : 'building'}
-                    size={17}
-                  />
-                </span>
-                <span>
-                  <b>{role.label}</b>
-                  <small>
-                    {key === 'super'
-                      ? 'Platform-wide access'
-                      : key === 'subcity'
-                        ? 'Manage a sub-city'
-                        : 'Manage a bureau'}
-                  </small>
-                </span>
-                <Icon name="arrow" size={15} />
-              </button>
-            ))}
-          </div>
-          <div className="prototype-note">
-            <span className="note-dot" /> Preview environment <span className="note-separator">·</span> Sample information
+
+          <div
+            style={{
+              marginTop: '1.75rem',
+              padding: '12px 14px',
+              borderRadius: '6px',
+              background: 'rgba(22, 74, 84, 0.04)',
+              border: '1px solid rgba(22, 74, 84, 0.1)',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+              fontSize: '12px',
+              color: '#415e63',
+              lineHeight: 1.5,
+            }}
+          >
+            <span style={{ color: '#164a54', marginTop: '2px', flexShrink: 0 }}>
+              <Icon name="shield" size={15} />
+            </span>
+            <span>
+              Authorized government personnel only. All access attempts and administrative sessions are authenticated and audited.
+            </span>
           </div>
         </div>
         <div className="login-panel-footer">

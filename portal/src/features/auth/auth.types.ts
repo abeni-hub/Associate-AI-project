@@ -48,8 +48,8 @@ export interface AuthUser {
  * Backend accepts either `username` or `login` as identifier.
  */
 export interface LoginRequest {
-  login?: string;
-  username?: string;
+  // login?: string;
+  username: string;
   password: string;
 }
 
