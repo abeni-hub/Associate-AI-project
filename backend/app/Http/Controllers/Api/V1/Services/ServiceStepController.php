@@ -73,12 +73,12 @@ class ServiceStepController extends Controller
         $serviceModel = $this->resolveService($service);
 
         if ($step->service_id !== $serviceModel->id) {
-            throw new NotFoundHttpException("Step not found for this service.");
+            throw new NotFoundHttpException('Step not found for this service.');
         }
 
         $user = $request->user();
         if (! $step->is_active && (! $user || ! $user->hasPermission('service_steps.manage'))) {
-            throw new NotFoundHttpException("Step not found or inactive.");
+            throw new NotFoundHttpException('Step not found or inactive.');
         }
 
         $step->loadMissing('organization');
@@ -124,7 +124,7 @@ class ServiceStepController extends Controller
         $serviceModel = $this->resolveService($service);
 
         if ($step->service_id !== $serviceModel->id) {
-            throw new NotFoundHttpException("Step not found for this service.");
+            throw new NotFoundHttpException('Step not found for this service.');
         }
 
         $step->update($request->validated());
@@ -148,7 +148,7 @@ class ServiceStepController extends Controller
         $serviceModel = $this->resolveService($service);
 
         if ($step->service_id !== $serviceModel->id) {
-            throw new NotFoundHttpException("Step not found for this service.");
+            throw new NotFoundHttpException('Step not found for this service.');
         }
 
         if ($step->organization_id !== null && ! $scopeService->canManageOrganization($request->user(), $step->organization_id)) {

@@ -1,0 +1,306 @@
+{
+	"info": {
+		"_postman_id": "civiclink-api-v1",
+		"name": "Civic Link API v1",
+		"description": "Complete collection for Civic Link Backend API (v1) with automated Bearer Token management.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{bearerToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8000/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "bearerToken",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "01. Authentication",
+			"item": [
+				{
+					"name": "Login (Auto-saves Bearer Token)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var json = pm.response.json();",
+									"    var token = (json.data && json.data.token) || (json.meta && json.meta.token);",
+									"    if (token) {",
+									"        pm.collectionVariables.set('bearerToken', token);",
+									"        console.log('Bearer token saved automatically.');",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"identifier\": \"admin\",\n  \"password\": \"Admin123!Secure\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+					}
+				},
+				{
+					"name": "Get Authenticated User (Me)",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+					}
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"current_password\": \"Admin123!Secure\",\n  \"new_password\": \"NewSecurePass2026!\",\n  \"new_password_confirmation\": \"NewSecurePass2026!\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/auth/change-password", "host": ["{{baseUrl}}"], "path": ["auth", "change-password"] }
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "02. Dashboard & Reporting",
+			"item": [
+				{
+					"name": "Dashboard Overview",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/dashboard/overview", "host": ["{{baseUrl}}"], "path": ["dashboard", "overview"] }
+					}
+				},
+				{
+					"name": "Feedback Report",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/dashboard/reports/feedback", "host": ["{{baseUrl}}"], "path": ["dashboard", "reports", "feedback"] }
+					}
+				},
+				{
+					"name": "Services Report",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/dashboard/reports/services", "host": ["{{baseUrl}}"], "path": ["dashboard", "reports", "services"] }
+					}
+				},
+				{
+					"name": "Organizations Report",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/dashboard/reports/organizations", "host": ["{{baseUrl}}"], "path": ["dashboard", "reports", "organizations"] }
+					}
+				},
+				{
+					"name": "Recent Activity",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/dashboard/recent-activity?limit=15", "host": ["{{baseUrl}}"], "path": ["dashboard", "recent-activity"], "query": [{ "key": "limit", "value": "15" }] }
+					}
+				}
+			]
+		},
+		{
+			"name": "03. News",
+			"item": [
+				{
+					"name": "List News (Public)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/news", "host": ["{{baseUrl}}"], "path": ["news"] }
+					}
+				},
+				{
+					"name": "Get Single News (Public)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/news/1", "host": ["{{baseUrl}}"], "path": ["news", "1"] }
+					}
+				},
+				{
+					"name": "Create News (Protected)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"news_title\": \"Clean City Campaign Kickoff\",\n  \"organization_id\": 1,\n  \"contents\": [\n    {\n      \"content\": \"Volunteers are gathering at Bole Square at 8:00 AM.\",\n      \"content_type\": \"text\",\n      \"order\": 1\n    }\n  ]\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/news", "host": ["{{baseUrl}}"], "path": ["news"] }
+					}
+				},
+				{
+					"name": "Update News (Protected)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"news_title\": \"Updated Clean City Campaign Headline\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/news/1", "host": ["{{baseUrl}}"], "path": ["news", "1"] }
+					}
+				},
+				{
+					"name": "Delete News (Protected)",
+					"request": {
+						"method": "DELETE",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/news/1", "host": ["{{baseUrl}}"], "path": ["news", "1"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "04. Citizen Feedback",
+			"item": [
+				{
+					"name": "Submit Complaint (Public - Returns 10-digit Tracking #)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"feedback_for_organization\": 1,\n  \"feedback_content\": \"Service desk 104 was closed during morning hours.\",\n  \"feedback_type\": \"complaint\",\n  \"full_name\": \"Abebe Bikila\",\n  \"phone_number\": \"+251911223344\",\n  \"email\": \"abebe@example.com\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/feedbacks", "host": ["{{baseUrl}}"], "path": ["feedbacks"] }
+					}
+				},
+				{
+					"name": "Submit Satisfaction Rating (Public)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"feedback_for_organization\": 1,\n  \"feedback_content\": \"Staff was very courteous and fast.\",\n  \"feedback_type\": \"satisfaction\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/feedbacks", "host": ["{{baseUrl}}"], "path": ["feedbacks"] }
+					}
+				},
+				{
+					"name": "List Feedbacks (Protected & Scoped)",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/feedbacks", "host": ["{{baseUrl}}"], "path": ["feedbacks"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "05. Services & Steps",
+			"item": [
+				{
+					"name": "List Services (Public)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/services", "host": ["{{baseUrl}}"], "path": ["services"] }
+					}
+				},
+				{
+					"name": "Get Service Details (Public)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/services/1", "host": ["{{baseUrl}}"], "path": ["services", "1"] }
+					}
+				},
+				{
+					"name": "Get Service Room Steps (Public)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/services/1/steps", "host": ["{{baseUrl}}"], "path": ["services", "1", "steps"] }
+					}
+				}
+			]
+		},
+		{
+			"name": "06. Organizations",
+			"item": [
+				{
+					"name": "List Organizations Tree",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/organizations/tree", "host": ["{{baseUrl}}"], "path": ["organizations", "tree"] }
+					}
+				},
+				{
+					"name": "List Organizations (Flat Scoped)",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "application/json" }],
+						"url": { "raw": "{{baseUrl}}/organizations", "host": ["{{baseUrl}}"], "path": ["organizations"] }
+					}
+				}
+			]
+		}
+	]
+}

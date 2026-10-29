@@ -10,21 +10,38 @@ use App\Http\Requests\Api\V1\Authorization\SyncRolePermissionsRequest;
 use App\Http\Resources\Api\V1\RoleResource;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class RoleController extends Controller
 {
     /**
-     * List all platform roles.
+     * List all platform roles with search and pagination.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $roles = Role::withCount('permissions')
-            ->orderBy('id')
-            ->get();
+        $query = Role::withCount('permissions')
+            ->orderBy('id');
 
-        return ApiResponse::success(
-            data: RoleResource::collection($roles),
-            message: 'Roles retrieved successfully.'
+        if ($request->filled('search')) {
+            $search = (string) $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'ilike', "%{$search}%")
+                    ->orWhere('slug', 'ilike', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('is_active')) {
+            $query->where('is_active', filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN));
+        }
+
+        $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
+        $paginator = $query->paginate($perPage);
+
+        return ApiResponse::paginated(
+            paginator: $paginator,
+            message: 'Roles retrieved successfully.',
+            resourceClass: RoleResource::class
         );
     }
 
@@ -53,8 +70,10 @@ class RoleController extends Controller
             );
         }
 
-        $role->permissions()->sync($request->validated('permission_ids'));
-        $role->load('permissions');
+        DB::transaction(function () use ($role, $request) {
+            $role->permissions()->sync($request->validated('permission_ids'));
+            $role->load('permissions');
+        });
 
         return ApiResponse::success(
             data: new RoleResource($role),

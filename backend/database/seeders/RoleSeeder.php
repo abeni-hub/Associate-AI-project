@@ -40,7 +40,7 @@ class RoleSeeder extends Seeder
             ]
         );
         $subCityPermissions = Permission::whereIn('key', [
-            'organizations.view', 'organizations.update',
+            'organizations.view', 'organizations.create', 'organizations.update',
             'users.view', 'users.create', 'users.update', 'users.delete', 'users.reset_password',
             'services.view', 'services.manage',
             'documents.view', 'documents.manage',

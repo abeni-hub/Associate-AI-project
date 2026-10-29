@@ -19,7 +19,7 @@ class EnsureAccountIsActive
     {
         $user = $request->user();
 
-        if ($user && (! $user->isActive() || ! $user->fresh()?->isActive())) {
+        if ($user && ! ($user->fresh() ?? $user)->isActive()) {
             Auth::guard('web')->logout();
             Auth::forgetGuards();
 

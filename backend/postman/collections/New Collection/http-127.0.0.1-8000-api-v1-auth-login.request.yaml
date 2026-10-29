@@ -6,20 +6,16 @@ method: PUT
 headers:
   Accept: application/json
   Content-Type: application/json
-  X-XSRF-TOKEN: eyJpdiI6IjlDR3hGbkpLRStrUXFmZzZRdFM2R2c9PSIsInZhbHVlIjoiYThsaCtScFZ2dU9VdzQyWFVLVXZvTlJHTGlJM1RHK3ZLWWtnMVhqOFB1Y2s5QzNIWFZ4NUJnUVdYeHdkN291aWpDbzdHT2RRdndyakRPYk55WlpRU1lFNmp4bExkbGN1bkdMK3g0dDVKSWhyL0J5dVVZY3FUNlNkY1FOd25rWjEiLCJtYWMiOiI4MDg0MDk1MGMxZTMwZjc3YzAxMzViNDIxNWU4NDRiMThmMjIxNTk0OTU2YmM0MjkzOGRiYTRlNDljZjZlZDhlIiwidGFnIjoiIn0
+  X-XSRF-TOKEN: "{{xsrf_token}}"
 body:
   type: json
   content: "{\r
-
-    \  \"current_password\": \"CorrectPassword123!\",\r
-
+    \  \"current_password\": \"CurrentPassword123!\",\r
     \  \"new_password\": \"NewSecurePassword456!\",\r
-
     \  \"new_password_confirmation\": \"NewSecurePassword456!\"\r
-
     }"
 auth:
   type: bearer
   credentials:
-    token: 1|8WF1sCAMuvYKcgZby3rg77VosG2uso97RjyYwi673d364752
+    token: "{{bearer_token}}"
 order: 1000
