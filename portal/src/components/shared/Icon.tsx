@@ -192,6 +192,37 @@ export const Icon: React.FC<IconProps> = ({ name, size = 18, strokeWidth = 1.8 }
         <path d="M12 16v-4m0-4h.01" />
       </>
     ),
+    image: (
+      <>
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+        <path d="m21 15-5-5L5 21" />
+      </>
+    ),
+    upload: (
+      <>
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <path d="m17 8-5-5-5 5m5-5v12" />
+      </>
+    ),
+    palette: (
+      <>
+        <circle cx="13.5" cy="6.5" r="1" fill="currentColor" />
+        <circle cx="17.5" cy="10.5" r="1" fill="currentColor" />
+        <circle cx="8.5" cy="7.5" r="1" fill="currentColor" />
+        <circle cx="6.5" cy="12.5" r="1" fill="currentColor" />
+        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.5-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.6 1.6-1.6H16c3.3 0 6-2.7 6-6 0-5.5-4.5-9.6-10-9.6Z" />
+      </>
+    ),
+    sitemap: (
+      <>
+        <rect x="9" y="3" width="6" height="4" rx="1" />
+        <rect x="2" y="17" width="6" height="4" rx="1" />
+        <rect x="9" y="17" width="6" height="4" rx="1" />
+        <rect x="16" y="17" width="6" height="4" rx="1" />
+        <path d="M12 7v5m0 0H5v5m7-5h7v5" />
+      </>
+    ),
   };
 
   return (
