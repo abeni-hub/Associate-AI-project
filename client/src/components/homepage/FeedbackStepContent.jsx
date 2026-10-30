@@ -10,11 +10,45 @@ const feedbackTypes = [
 
 export default function FeedbackStepContent({ step, feedback, actions, t }) {
   const { data: orgData } = useGetOrganizationsQuery()
-  const bureauList =
-    orgData?.data && Array.isArray(orgData.data) && orgData.data.length > 0
-      ? orgData.data.map((o) => ({ id: String(o.id), label: o.name }))
-      : bureauOptions
-  const activeServices = serviceCatalog[feedback.bureau] ?? []
+
+  // Dynamic live sub-cities from organizations API (organization_type_id === 1)
+  const apiSubCities = orgData?.data
+    ? orgData.data.filter((o) => o.organization_type_id === 1).map((o) => ({ id: o.id, name: o.name }))
+    : []
+
+  const availableSubCities =
+    apiSubCities.length > 0
+      ? apiSubCities
+      : subCityOptions.map((name, idx) => ({ id: idx + 1, name }))
+
+  // Find currently selected sub-city ID
+  const selectedSubCityObj = availableSubCities.find(
+    (c) => String(c.id) === String(feedback.city) || c.name.toLowerCase().includes(String(feedback.city).toLowerCase())
+  )
+
+  // Bureaus list filtered by sub-city or general bureaus
+  const bureauList = (() => {
+    if (orgData?.data && Array.isArray(orgData.data) && orgData.data.length > 0) {
+      const filtered = orgData.data.filter((o) => {
+        if (o.organization_type_id === 1) return false // exclude sub-cities
+        if (selectedSubCityObj && o.parent_organization_id) {
+          return o.parent_organization_id === selectedSubCityObj.id
+        }
+        return true
+      })
+      if (filtered.length > 0) {
+        return filtered.map((o) => ({ id: String(o.id), label: o.name }))
+      }
+      return orgData.data.filter((o) => o.organization_type_id !== 1).map((o) => ({ id: String(o.id), label: o.name }))
+    }
+    return bureauOptions
+  })()
+
+  const activeServices = serviceCatalog[feedback.bureau] ?? [
+    { id: 'general-inquiry', label: 'General Inquiry & Front Desk' },
+    { id: 'document-attestation', label: 'Document Verification' },
+    { id: 'service-application', label: 'Service Application' },
+  ]
 
   if (step === 1) {
     return (
@@ -42,7 +76,11 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
         <span className="feedback-select-wrap">
           <Icon name="pin" size={18} />
           <select value={feedback.city} onChange={(event) => actions.setCity(event.target.value)}>
-            {subCityOptions.map((name) => <option key={name} value={name}>{t(name)}</option>)}
+            {availableSubCities.map((subCity) => (
+              <option key={subCity.id} value={subCity.name}>
+                {t(subCity.name)}
+              </option>
+            ))}
           </select>
           <Icon name="chevron" size={16} />
         </span>
@@ -57,7 +95,11 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
         <span className="feedback-select-wrap">
           <Icon name="building" size={18} />
           <select value={feedback.bureau} onChange={(event) => actions.changeBureau(event.target.value)}>
-            {bureauList.map((bureau) => <option key={bureau.id} value={bureau.id}>{t(bureau.label)}</option>)}
+            {bureauList.map((bureau) => (
+              <option key={bureau.id} value={bureau.id}>
+                {t(bureau.label)}
+              </option>
+            ))}
           </select>
           <Icon name="chevron" size={16} />
         </span>
@@ -72,7 +114,11 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
         <span className="feedback-select-wrap">
           <Icon name="file" size={18} />
           <select value={feedback.service} onChange={(event) => actions.setService(event.target.value)}>
-            {activeServices.map((service) => <option key={service.id} value={service.id}>{t(service.label)}</option>)}
+            {activeServices.map((service) => (
+              <option key={service.id} value={service.id}>
+                {t(service.label)}
+              </option>
+            ))}
           </select>
           <Icon name="chevron" size={16} />
         </span>
@@ -102,6 +148,7 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
           {!feedback.satisfaction && <small className="rating-hint">{t('Select a rating before submitting.')}</small>}
         </fieldset>
       )}
+
       <label className="message-label" htmlFor="feedback-message">
         {t('Your feedback')}
         <textarea
@@ -110,10 +157,37 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
           onChange={(event) => actions.setMessage(event.target.value)}
           placeholder={t('Share the details that could help improve your experience…')}
           required
-          rows={4}
+          rows={3}
         />
       </label>
-      <p className="privacy-note"><Icon name="shield" size={15} /> {t('Please don’t include personal or sensitive information.')}</p>
+
+      {/* Optional Contact Fields for Resolution Follow-up */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '6px' }}>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+          <span>{t('Your name')} <small style={{ fontWeight: 400, color: '#64748b' }}>({t('optional')})</small></span>
+          <input
+            type="text"
+            placeholder={t('e.g. Abebe Bekele')}
+            value={feedback.fullName || ''}
+            onChange={(e) => actions.setFullName?.(e.target.value)}
+            style={{ padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+          />
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+          <span>{t('Phone number')} <small style={{ fontWeight: 400, color: '#64748b' }}>({t('for SMS updates')})</small></span>
+          <input
+            type="tel"
+            placeholder={t('+251 91 100 0000')}
+            value={feedback.phoneNumber || ''}
+            onChange={(e) => actions.setPhoneNumber?.(e.target.value)}
+            style={{ padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+          />
+        </label>
+      </div>
+
+      <p className="privacy-note">
+        <Icon name="shield" size={15} /> {t('Your contact information is only used for official case follow-up and SMS notifications.')}
+      </p>
     </div>
   )
 }

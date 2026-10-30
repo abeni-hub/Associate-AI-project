@@ -14,6 +14,8 @@ import {
   setFeedbackService,
   setFeedbackMessage,
   setFeedbackSatisfaction,
+  setFeedbackFullName,
+  setFeedbackPhoneNumber,
   setSubmittedFeedback,
   resetFeedback,
 } from '../../store/slices/feedbackSlice.js';
@@ -37,6 +39,8 @@ export default function FeedbackFormCard({ t }) {
   const feedbackService = feedbackState.service;
   const feedbackMessage = feedbackState.message;
   const satisfaction = feedbackState.satisfaction;
+  const feedbackFullName = feedbackState.fullName;
+  const feedbackPhoneNumber = feedbackState.phoneNumber;
   const feedbackSubmitted = feedbackState.submitted;
   const trackingNumber = feedbackState.trackingNumber;
 
@@ -50,6 +54,8 @@ export default function FeedbackFormCard({ t }) {
     service: feedbackService,
     message: feedbackMessage,
     satisfaction,
+    fullName: feedbackFullName,
+    phoneNumber: feedbackPhoneNumber,
   };
 
   const actions = {
@@ -58,6 +64,8 @@ export default function FeedbackFormCard({ t }) {
     setService: (val) => dispatch(setFeedbackService(val)),
     setMessage: (val) => dispatch(setFeedbackMessage(val)),
     setSatisfaction: (val) => dispatch(setFeedbackSatisfaction(val)),
+    setFullName: (val) => dispatch(setFeedbackFullName(val)),
+    setPhoneNumber: (val) => dispatch(setFeedbackPhoneNumber(val)),
     changeBureau(nextBureau) {
       dispatch(setFeedbackBureau(nextBureau));
       dispatch(setFeedbackService(serviceCatalog[nextBureau]?.[0]?.id ?? ''));
@@ -69,11 +77,16 @@ export default function FeedbackFormCard({ t }) {
     if (!feedbackMessage.trim() || (feedbackType === 'Satisfaction' && !satisfaction)) return;
 
     let tracking = null;
+    const targetOrgId = Number(feedbackBureau) || 1;
+
     try {
       const response = await submitFeedbackMutation({
-        feedback_for_organization: 1,
+        feedback_for_organization: targetOrgId,
         feedback_content: feedbackMessage,
         feedback_type: feedbackType,
+        full_name: feedbackFullName || 'Citizen',
+        phone_number: feedbackPhoneNumber || '',
+        rating: satisfaction || undefined,
       }).unwrap();
       tracking = response.data?.tracking_number;
     } catch (err) {

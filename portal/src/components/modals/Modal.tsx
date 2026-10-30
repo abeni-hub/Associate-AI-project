@@ -18,12 +18,7 @@ export const Modal: React.FC<ModalProps> = ({ modal, onClose }) => {
     modal.title || modal.item?.type || 'Workspace dialog';
 
   return createPortal(
-    <div
-      className="modal-overlay"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
+    <div className="modal-overlay">
       <section
         className={`modal-card modal-${modal.kind}${modal.size ? ` modal-${modal.size}` : ''}`}
         role="dialog"

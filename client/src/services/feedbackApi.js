@@ -27,6 +27,7 @@ export const feedbackApi = baseApi.injectEndpoints({
           full_name: body.full_name || 'Citizen',
           phone_number: body.phone_number || '',
           email: body.email || '',
+          rating: body.rating || undefined,
         },
       }),
       invalidatesTags: ['Feedback'],

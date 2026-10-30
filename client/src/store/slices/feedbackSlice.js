@@ -8,6 +8,8 @@ const initialState = {
   service: 'birth-copy',
   message: '',
   satisfaction: 0,
+  fullName: '',
+  phoneNumber: '',
   submitting: false,
   submitted: false,
   trackingNumber: null,
@@ -38,6 +40,12 @@ export const feedbackSlice = createSlice({
     setFeedbackSatisfaction: (state, action) => {
       state.satisfaction = action.payload;
     },
+    setFeedbackFullName: (state, action) => {
+      state.fullName = action.payload;
+    },
+    setFeedbackPhoneNumber: (state, action) => {
+      state.phoneNumber = action.payload;
+    },
     setSubmittedFeedback: (state, action) => {
       state.submitted = true;
       state.trackingNumber = action.payload?.trackingNumber || null;
@@ -50,6 +58,8 @@ export const feedbackSlice = createSlice({
       state.service = 'birth-copy';
       state.message = '';
       state.satisfaction = 0;
+      state.fullName = '';
+      state.phoneNumber = '';
       state.submitting = false;
       state.submitted = false;
       state.trackingNumber = null;
@@ -65,6 +75,8 @@ export const {
   setFeedbackService,
   setFeedbackMessage,
   setFeedbackSatisfaction,
+  setFeedbackFullName,
+  setFeedbackPhoneNumber,
   setSubmittedFeedback,
   resetFeedback,
 } = feedbackSlice.actions;

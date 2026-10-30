@@ -195,9 +195,12 @@
 .satisfaction-score strong { color: #174a54; font: 700 41px/1 'Manrope', sans-serif; letter-spacing: -.07em; }
 .score-out-of { margin-left: 4px; color: #89958d; font-size: 13.5px; }.score-stars { margin-left: auto; color: #c79e53; font-size: 14px; letter-spacing: 1px; }
 .satisfaction-copy { margin-top: 4px; color: #89958d; font-size: 12.5px; }
-.rating-bars { display: flex; flex-direction: column; gap: 7px; margin-top: 17px; }
-.rating-row { display: flex; align-items: center; gap: 7px; color: #7c8b82; font-size: 12px; }.rating-row > span { width: 20px; }.rating-row > span i { color: #c7a156; font-size: 12px; font-style: normal; }
-.rating-track { height: 5px; overflow: hidden; flex: 1; border-radius: 4px; background: #eef1ed; }.rating-track i { height: 100%; display: block; border-radius: inherit; background: #83a993; }.rating-row small { width: 23px; color: #99a39c; text-align: right; font-size: 11.5px; }
+.rating-row { display: flex; align-items: center; gap: 10px; color: #7c8b82; font-size: 12px; }
+.rating-row > span { min-width: 115px; width: auto; color: #4a635d; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.rating-row > span i { color: #c7a156; font-size: 12px; font-style: normal; }
+.rating-track { height: 6px; overflow: hidden; flex: 1; border-radius: 4px; background: #eef1ed; }
+.rating-track i { height: 100%; display: block; border-radius: inherit; background: #367b7d; }
+.rating-row small { min-width: 58px; width: auto; color: #7c8b82; text-align: right; font-size: 11.5px; font-weight: 600; }
 .panel-link { display: inline-flex; align-items: center; gap: 7px; padding: 0; border: 0; background: transparent; color: #578286; font-size: 12.5px; font-weight: 700; cursor: pointer; }
 .panel-link:hover { color: #003946; }.panel-link svg { transition: transform .16s; }.panel-link:hover svg { transform: translateX(2px); }
 .satisfaction-panel .panel-link { margin-top: 12px; }

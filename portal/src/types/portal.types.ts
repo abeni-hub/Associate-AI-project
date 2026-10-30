@@ -117,6 +117,7 @@ export interface RouteItem {
 
 export interface FeedbackItem {
   id: string;
+  numericId?: number;
   type: 'Complaint' | 'Satisfaction' | 'Suggestion' | string;
   rating: number | null;
   service: string;
@@ -127,6 +128,7 @@ export interface FeedbackItem {
   priority: 'High' | 'Normal' | 'Low' | string;
   time: string;
   trackingNumber?: string;
+  notes?: string[];
 }
 
 export interface PostItem {
