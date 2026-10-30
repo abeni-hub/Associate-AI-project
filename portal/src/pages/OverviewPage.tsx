@@ -8,7 +8,6 @@ import SatisfactionPanel from '../components/overview/SatisfactionPanel';
 import FeedbackFocusList from '../components/overview/FeedbackFocusList';
 import QuickActions from '../components/overview/QuickActions';
 import RecentActivityFeed from '../components/overview/RecentActivityFeed';
-import { ROLE } from '../data/portalData.js';
 import type { FeedbackItem, RoleKey } from '../types/portal.types';
 import { useGetServicesQuery } from '../services/servicesApi';
 import { useGetOrganizationsQuery } from '../services/organizationsApi';
@@ -25,7 +24,6 @@ import {
 export interface OverviewPageProps {
   role?: RoleKey | string;
   onNavigate?: (path: string) => void;
-  feedback?: FeedbackItem[];
   onFeedback?: (item: FeedbackItem) => void;
   onCreate?: (targetPage?: string) => void;
 }
@@ -33,7 +31,6 @@ export interface OverviewPageProps {
 export const OverviewPage: React.FC<OverviewPageProps> = ({
   role: propRole,
   onNavigate: propOnNavigate,
-  feedback: propFeedback,
   onFeedback: propOnFeedback,
   onCreate: propOnCreate,
 }) => {
@@ -48,7 +45,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   const { data: servicesReport } = useGetServicesReportQuery();
   const { data: orgsReport } = useGetOrganizationsReportQuery();
 
-  // Resource queries (provide local caching and graceful fallback)
+  // Resource queries (live backend data)
   const { data: servicesData } = useGetServicesQuery();
   const { data: orgsData } = useGetOrganizationsQuery();
   const { data: usersData } = useGetUsersQuery();
@@ -64,7 +61,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       portal.createForPage?.(target);
     });
 
-  // Calculate dynamic metrics with graceful fallback
+  // Calculate dynamic metrics strictly from backend API data
   const dData = dashboardOverview?.data;
 
   const totalServices = dData?.services?.total_catalog ?? (servicesData?.meta?.total ?? servicesData?.data?.length ?? 0);
@@ -79,22 +76,22 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   const satisfactionCount = dData?.feedback?.by_type?.satisfaction ?? feedbackReport?.data?.summary?.satisfaction_count ?? 0;
   const recentFeedback30Days = dData?.feedback?.recent_last_30_days ?? totalFeedback;
 
-  // Resolve current greeting
+  // Resolve current greeting from authenticated user session
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
     const timeGreeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-    const userFirstName = portal.session?.user?.name ? portal.session.user.name.split(' ')[0] : 'Administrator';
-    return `${timeGreeting}, ${userFirstName}`;
-  }, [portal.session?.user?.name]);
+    const userName = portal.session?.user?.name || portal.authUser?.name || 'Administrator';
+    return `${timeGreeting}, ${userName}`;
+  }, [portal.session?.user?.name, portal.authUser?.name]);
 
   const subtitle = useMemo(() => {
-    const orgName = dData?.scope?.organization_name || portal.session?.user?.organization?.name;
-    const roleName = portal.session?.user?.role?.name || 'Administrative';
+    const orgName = dData?.scope?.organization_name || portal.session?.user?.organization?.name || portal.authUser?.organization?.name;
+    const roleName = portal.session?.user?.role?.name || portal.authUser?.role?.name || 'Administrative';
     if (orgName) {
       return `Here’s what’s happening across ${orgName} (${roleName}) today.`;
     }
-    return `Active overview of citizen services, administrative offices, and community feedback.`;
-  }, [dData?.scope?.organization_name, portal.session?.user]);
+    return `Live overview of citizen services, administrative offices, and community feedback.`;
+  }, [dData?.scope?.organization_name, portal.session?.user, portal.authUser]);
 
   const formattedDate = useMemo(() => {
     return new Date()
@@ -110,17 +107,17 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   const metrics: Array<[string, string, string | number, string, string]> = useMemo(() => {
     if (role === 'super') {
       return [
-        ['map', 'Sub-cities & offices', totalOrgs, `${activeOrgs} active administrative units`, ''],
-        ['users', 'Staff & accounts', totalUsers, `${activeUsers} active system users`, ''],
-        ['layers', 'Published services', publishedServices, `${totalServices} total catalog services`, ''],
+        ['map', 'Sub-cities & offices', totalOrgs, `${activeOrgs} active administrative unit${activeOrgs === 1 ? '' : 's'}`, ''],
+        ['users', 'Staff & accounts', totalUsers, `${activeUsers} active system user${activeUsers === 1 ? '' : 's'}`, ''],
+        ['layers', 'Published services', publishedServices, `${totalServices} total catalog service${totalServices === 1 ? '' : 's'}`, ''],
         ['message', 'Citizen feedback', totalFeedback, `${recentFeedback30Days} in the last 30 days`, ''],
       ];
     }
     if (role === 'subcity') {
       return [
-        ['building', 'Active bureaus', totalOrgs, `${activeOrgs} connected offices`, ''],
+        ['building', 'Active bureaus', totalOrgs, `${activeOrgs} connected office${activeOrgs === 1 ? '' : 's'}`, ''],
         ['layers', 'Service standards', totalServices, `${publishedServices} active for citizens`, ''],
-        ['message', 'Feedback received', totalFeedback, `${satisfactionCount} positive ratings`, ''],
+        ['message', 'Feedback received', totalFeedback, `${satisfactionCount} positive rating${satisfactionCount === 1 ? '' : 's'}`, ''],
         ['clock', 'Pending complaints', complaintsCount, 'Awaiting administrative review', ''],
       ];
     }
@@ -164,10 +161,9 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             { text: 'Open QR codes', icon: 'qr', page: 'qr' },
           ];
 
-  // Feedback focus priority list from report or fallback
+  // Feedback focus priority list strictly from real backend API responses
   const focus = useMemo<FeedbackItem[]>(() => {
-    if (propFeedback && propFeedback.length > 0) return propFeedback;
-
+    // 1. From backend feedback report recent items
     if (feedbackReport?.data?.recent_feedback && feedbackReport.data.recent_feedback.length > 0) {
       return feedbackReport.data.recent_feedback.slice(0, 4).map((rf) => ({
         id: rf.tracking_number ? `#${rf.tracking_number}` : `FB-${rf.id}`,
@@ -186,6 +182,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       }));
     }
 
+    // 2. From backend feedback list endpoint
     if (feedbackData?.data && feedbackData.data.length > 0) {
       return feedbackData.data.slice(0, 4).map((item) => ({
         id: `FB-${item.id}`,
@@ -203,8 +200,9 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         trackingNumber: item.tracking_number,
       }));
     }
+
     return [];
-  }, [propFeedback, feedbackReport, feedbackData]);
+  }, [feedbackReport, feedbackData]);
 
   // Export Executive Dashboard Report as CSV
   const handleExportReport = () => {
@@ -212,7 +210,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
     const headers = ['Category', 'Indicator', 'Value', 'Details'];
     const rows: string[][] = [
       headers,
-      ['Scope', 'User Role', role, portal.session?.user?.name || 'Administrator'],
+      ['Scope', 'User Role', role, portal.session?.user?.name || portal.authUser?.name || 'Administrator'],
       ['Scope', 'Organization', dData?.scope?.organization_name || 'Addis Ababa City Administration', `Scope ID: ${dData?.scope?.organization_id || 1}`],
       ['Organizations', 'Total Organizations', String(totalOrgs), `${activeOrgs} active, ${dData?.organizations?.inactive ?? 0} inactive`],
       ['Organizations', 'Sub-Cities', String(dData?.organizations?.by_type?.sub_city ?? 1), 'Administrative districts'],
@@ -238,7 +236,10 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
     document.body.removeChild(link);
   };
 
-  const roleMeta = ROLE[role] || ROLE.super;
+  const displayRoleLabel =
+    portal.session?.user?.role?.name ||
+    portal.authUser?.role?.name ||
+    (role === 'super' ? 'Super Admin' : role === 'subcity' ? 'Sub-City Admin' : 'Bureau Admin');
 
   return (
     <>
@@ -331,7 +332,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       </section>
 
       <p className="data-footnote">
-        Connected to CivicLink Government Platform API — workspace role: {roleMeta.label}
+        Connected to CivicLink Government Platform API — workspace role: {displayRoleLabel}
       </p>
     </>
   );

@@ -851,6 +851,18 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                 <Icon name="shield" size={14} /> Scope: <strong>{activeRole.scope}</strong>
               </span>
 
+              <button
+                type="button"
+                className="button primary small-button"
+                style={{ padding: '6px 12px', fontSize: '12.5px', whiteSpace: 'nowrap' }}
+                onClick={() => {
+                  setEditingRole(null);
+                  setModalOpen(true);
+                }}
+              >
+                + New role
+              </button>
+
               {!activeRole.isSystem && (
                 <div style={{ display: 'inline-flex', gap: '8px' }}>
                   <button

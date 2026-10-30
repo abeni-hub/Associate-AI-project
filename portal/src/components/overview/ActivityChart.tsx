@@ -12,49 +12,75 @@ export interface ActivityChartProps {
 export const ActivityChart: React.FC<ActivityChartProps> = ({
   period,
   totalCount,
-  recentActivities,
+  recentActivities = [],
+  feedbackReport,
 }) => {
-  const { data, labels, totalDisplay } = useMemo(() => {
-    const dayLabels = ['Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
+  const { data, labels, totalDisplay, max, hasData } = useMemo(() => {
+    // Generate the past 7 days up to today from real system time
+    const dayLabels: string[] = [];
+    const dateKeys: string[] = [];
+    const now = new Date();
 
-    if (recentActivities && recentActivities.length > 0) {
-      const counts = [0, 0, 0, 0, 0, 0, 0];
-      recentActivities.forEach((act) => {
-        if (act.created_at) {
-          const day = new Date(act.created_at).getDay();
-          const mappedIndex = (day + 2) % 7;
-          counts[mappedIndex] = (counts[mappedIndex] || 0) + 1;
-        }
-      });
-
-      const baseline =
-        period === 'This week'
-          ? [42, 58, 47, 72, 60, 84, 66]
-          : [51, 43, 61, 55, 70, 63, 58];
-      const scaled = baseline.map((b, i) =>
-        Math.min(100, Math.max(15, b + (counts[i] || 0) * 8))
-      );
-      return {
-        data: scaled,
-        labels: dayLabels,
-        totalDisplay: (totalCount ?? recentActivities.length).toLocaleString(),
-      };
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      dayLabels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+      dateKeys.push(d.toISOString().slice(0, 10)); // YYYY-MM-DD
     }
 
-    const defaultData =
-      period === 'This week'
-        ? [42, 58, 47, 72, 60, 84, 66]
-        : [51, 43, 61, 55, 70, 63, 58];
-    const total = totalCount ?? (period === 'This week' ? 1284 : 1137);
+    // Count real activities by date
+    const counts = [0, 0, 0, 0, 0, 0, 0];
+    let foundAny = false;
+
+    // 1. From real recentActivities
+    if (recentActivities && recentActivities.length > 0) {
+      recentActivities.forEach((act) => {
+        if (act.created_at) {
+          const actDate = act.created_at.slice(0, 10);
+          const idx = dateKeys.indexOf(actDate);
+          if (idx !== -1) {
+            counts[idx] = (counts[idx] || 0) + 1;
+            foundAny = true;
+          }
+        }
+      });
+    }
+
+    // 2. From real feedbackReport recent items if available
+    if (feedbackReport?.recent_feedback && feedbackReport.recent_feedback.length > 0) {
+      feedbackReport.recent_feedback.forEach((rf) => {
+        if (rf.created_at) {
+          const fbDate = rf.created_at.slice(0, 10);
+          const idx = dateKeys.indexOf(fbDate);
+          if (idx !== -1) {
+            counts[idx] = (counts[idx] || 0) + 1;
+            foundAny = true;
+          }
+        }
+      });
+    }
+
+    // Actual total count strictly from backend
+    const resolvedTotal = totalCount ?? (foundAny ? counts.reduce((a, b) => a + b, 0) : recentActivities.length);
+    const calculatedMax = Math.max(...counts, 4);
 
     return {
-      data: defaultData,
+      data: counts,
       labels: dayLabels,
-      totalDisplay: Number(total).toLocaleString(),
+      totalDisplay: resolvedTotal.toLocaleString(),
+      max: calculatedMax,
+      hasData: foundAny || resolvedTotal > 0,
     };
-  }, [period, recentActivities, totalCount]);
+  }, [recentActivities, feedbackReport, totalCount]);
 
-  const max = 100;
+  const yLabels = [
+    max,
+    Math.round(max * 0.75),
+    Math.round(max * 0.5),
+    Math.round(max * 0.25),
+    0,
+  ];
+
   const pathD = data
     .map(
       (n, i) =>
@@ -71,22 +97,20 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
           <span className="chart-total">{totalDisplay}</span>
           <span className="chart-period">interactions {period.toLowerCase()}</span>
         </div>
-        <span className="chart-change">
-          <Icon name="arrow" size={13} /> {period === 'This week' ? '+14.2%' : '+8.4%'}{' '}
-          <small>vs previous period</small>
+        <span className="chart-change" style={{ color: hasData ? '#164a54' : '#64748b' }}>
+          <Icon name="activity" size={13} />{' '}
+          {hasData ? `${totalDisplay} logged in backend` : 'Live activity tracking'}
         </span>
       </div>
       <div
         className="chart"
         role="img"
-        aria-label="Citizen interaction trends over the past 7 days."
+        aria-label="Citizen interaction trends over the past 7 days from live backend."
       >
         <div className="chart-ylabels">
-          <span>100</span>
-          <span>75</span>
-          <span>50</span>
-          <span>25</span>
-          <span>0</span>
+          {yLabels.map((yl, idx) => (
+            <span key={idx}>{yl}</span>
+          ))}
         </div>
         <div className="chart-plot">
           <div className="chart-grid">

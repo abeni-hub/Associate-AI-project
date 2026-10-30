@@ -96,17 +96,49 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
           )}
         </div>
         <blockquote>"{item.message}"</blockquote>
-        <label className="detail-status-label">
-          Follow-up status
-          <select
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-          >
-            <option>Open</option>
-            <option>In review</option>
-            <option>Resolved</option>
-          </select>
-        </label>
+        <div className="detail-status-section" style={{ margin: '1rem 0' }}>
+          <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '8px' }}>
+            Follow-up Resolution Status
+          </label>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {[
+              { id: 'Open', label: 'Open', desc: 'Awaiting first review', bg: '#fffbeb', border: '#fde68a', color: '#b45309' },
+              { id: 'In review', label: 'In review', desc: 'Under investigation', bg: '#eff6ff', border: '#bfdbfe', color: '#1d4ed8' },
+              { id: 'Resolved', label: 'Resolved', desc: 'Addressed & completed', bg: '#ecfdf5', border: '#a7f3d0', color: '#047857' },
+              { id: 'Closed', label: 'Closed', desc: 'Archived / Dismissed', bg: '#f1f5f9', border: '#cbd5e1', color: '#475569' },
+            ].map((s) => {
+              const isSelected = status.toLowerCase() === s.id.toLowerCase();
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setStatus(s.id)}
+                  style={{
+                    flex: '1 1 calc(50% - 4px)',
+                    minWidth: '130px',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: `1.5px solid ${isSelected ? s.color : s.border}`,
+                    background: isSelected ? s.bg : '#ffffff',
+                    color: isSelected ? s.color : '#475569',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    boxShadow: isSelected ? `0 0 0 2px ${s.color}20` : 'none',
+                  }}
+                >
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: '13px', fontWeight: isSelected ? 700 : 600 }}>{s.label}</div>
+                    <small style={{ fontSize: '10.5px', color: '#64748b' }}>{s.desc}</small>
+                  </div>
+                  {isSelected && <Icon name="check" size={15} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <div className="feedback-routing-note">
           <Icon name="shield" size={16} />
           <span>

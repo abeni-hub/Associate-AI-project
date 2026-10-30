@@ -6,6 +6,7 @@ import { StatusPill } from '../components/shared/StatusPill';
 import { MetricCard } from '../components/shared/MetricCard';
 import { getOfficeParentSummary, getOfficeSubcityId } from '../components/offices/officeHierarchy';
 import { OfficeHierarchyTree } from '../components/offices/OfficeHierarchyTree';
+import { OfficeModal } from '../components/offices/OfficeModal';
 import { usePortal } from '../context';
 import type { OfficeItem, OfficeType } from '../types/portal.types';
 import {
@@ -39,6 +40,8 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
   const [internalSearch, setInternalSearch] = useState('');
   const [selectedTypeId, setSelectedTypeId] = useState<string>('all');
   const [selectedView, setSelectedView] = useState<'list' | 'tree'>('list');
+  const [isOfficeModalOpen, setIsOfficeModalOpen] = useState(false);
+  const [selectedOfficeForEdit, setSelectedOfficeForEdit] = useState<OfficeItem | null>(null);
 
   const { data: apiOrgs, isLoading: orgsLoading } = useGetOrganizationsQuery();
   const { data: apiOrgTypes } = useGetOrganizationTypesQuery();
@@ -108,45 +111,8 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
     if (onAddOffice) {
       onAddOffice();
     } else {
-      portal.openForm({
-        eyebrow: 'DIRECTORY UPDATE',
-        title: 'Add a new administrative office',
-        description: 'Register an administrative office and link it within the hierarchy.',
-        submit: 'Create office',
-        fields: [
-          { name: 'name', label: 'Office title', required: true },
-          { name: 'code', label: 'Office code (slug)', placeholder: 'e.g. woreda-05-bole', required: true },
-          {
-            name: 'type_id',
-            label: 'Office classification',
-            type: 'select',
-            required: true,
-            options: ['Sub-City (ID 1)', 'Woreda (ID 2)', 'Bureau (ID 3)'],
-          },
-          { name: 'parent_id', label: 'Parent Organization ID', placeholder: 'e.g. 1 (optional for Sub-City)' },
-          { name: 'email', label: 'Contact email', type: 'email' },
-          { name: 'phone', label: 'Official phone', placeholder: '+251911000000' },
-        ],
-        onSubmit: async (v) => {
-          try {
-            const typeMatch = v.type_id.match(/\(ID\s*(\d+)\)/);
-            const typeId = typeMatch ? parseInt(typeMatch[1], 10) : 2;
-            const parentId = v.parent_id ? parseInt(v.parent_id, 10) : null;
-
-            await createOrgTrigger({
-              name: v.name,
-              code: v.code.toLowerCase().replace(/\s+/g, '-'),
-              organization_type_id: typeId,
-              parent_organization_id: parentId,
-              email: v.email,
-              phone: v.phone,
-              status: 'active',
-            }).unwrap();
-          } catch {
-            portal.createForPage('offices');
-          }
-        },
-      });
+      setSelectedOfficeForEdit(null);
+      setIsOfficeModalOpen(true);
     }
   };
 
@@ -154,34 +120,8 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
     if (onEditOffice) {
       onEditOffice(office);
     } else {
-      portal.openForm({
-        eyebrow: 'DIRECTORY UPDATE',
-        title: `Edit ${office.name}`,
-        description: 'Update administrative assignments and office metadata.',
-        submit: 'Save office',
-        fields: [
-          { name: 'name', label: 'Office title', required: true, value: office.name },
-          { name: 'admin', label: 'Lead administrator', required: true, value: office.admin },
-          {
-            name: 'status',
-            label: 'Operational status',
-            type: 'select',
-            value: office.status,
-            options: ['Active', 'Inactive'],
-          },
-        ],
-        onSubmit: async (v) => {
-          try {
-            await updateOrgTrigger({
-              id: office.id,
-              name: v.name,
-              status: v.status === 'Active' ? 'active' : 'inactive',
-            }).unwrap();
-          } catch {
-            // Local state update
-          }
-        },
-      });
+      setSelectedOfficeForEdit(office);
+      setIsOfficeModalOpen(true);
     }
   };
 
@@ -418,6 +358,15 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
           </small>
         </span>
       </div>
+
+      <OfficeModal
+        isOpen={isOfficeModalOpen}
+        office={selectedOfficeForEdit}
+        onClose={() => {
+          setIsOfficeModalOpen(false);
+          setSelectedOfficeForEdit(null);
+        }}
+      />
     </>
   );
 };

@@ -20,11 +20,11 @@ export default function FeedbackSuccess({ t, onReset, trackingNumber }) {
       <span className="success-icon"><Icon name="check" size={27} /></span>
       <span className="form-eyebrow">{t('THANK YOU FOR SPEAKING UP')}</span>
       <h3>{t('Your voice matters.')}</h3>
-      <p>{t('This preview creates a tracking reference. Connect the feedback system for live status updates.')}</p>
+      <p>{t('Your feedback has been officially registered with the city administration under tracking reference. You can use this reference to check on your submission.')}</p>
       {trackingNumber && <div className="feedback-reference-card">
-        <div><span>{t('YOUR TRACKING NUMBER')}</span><strong>{trackingNumber}</strong></div>
+        <div><span>{t('YOUR OFFICIAL TRACKING NUMBER')}</span><strong>{trackingNumber}</strong></div>
         <button type="button" onClick={copyTrackingNumber} disabled={!globalThis.navigator?.clipboard?.writeText} aria-label={t('Copy tracking number')}><Icon name={copied ? 'check' : 'copy'} size={15} />{t(copied ? 'Copied' : 'Copy number')}</button>
-        <small>{t('Save this number to check on your feedback with the office.')}</small>
+        <small>{t('Save this official tracking number to follow up on your feedback status with the bureau.')}</small>
       </div>}
       <button className="button button-secondary" type="button" onClick={onReset}>{t('Send another response')} <Icon name="arrow" size={16} /></button>
     </div>
