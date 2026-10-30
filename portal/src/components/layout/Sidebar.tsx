@@ -26,7 +26,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const role = (propRole || portal.role || 'super') as RoleKey;
   const mobileOpen = propMobileOpen !== undefined ? propMobileOpen : portal.mobileOpen;
   const setMobileOpen = propSetMobileOpen || portal.setMobileOpen;
-  const onNavigate = propOnNavigate || portal.resetSearch;
+  const onNavigate =
+    propOnNavigate ||
+    (() => {
+      if (portal.search || portal.typeFilter !== 'All types' || portal.statusFilter !== 'All statuses') {
+        portal.resetSearch();
+      }
+    });
   const onLogout = propOnLogout || portal.signOut;
 
   const data = ROLE[role] || ROLE.super;

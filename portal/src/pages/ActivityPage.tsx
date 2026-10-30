@@ -3,15 +3,134 @@ import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { MetricCard } from '../components/shared/MetricCard';
 import ActivityDetailsModal from '../components/activity/ActivityDetailsModal.jsx';
-import { INITIAL_ACTIVITIES } from '../data/portalData.js';
+import { useGetAuditLogsQuery } from '../services/auditLogsApi';
 
 export const ActivityPage: React.FC = () => {
-  const [activities] = useState<any[]>(INITIAL_ACTIVITIES || []);
+  const { data: apiLogs, isLoading } = useGetAuditLogsQuery();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [actionTypeFilter, setActionTypeFilter] = useState('all');
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
   const [downloadNotice, setDownloadNotice] = useState(false);
+
+  const activities: any[] = useMemo(() => {
+    if (apiLogs?.data && apiLogs.data.length > 0) {
+      return apiLogs.data.map((log) => {
+        const actionRaw = (log.action || '').toLowerCase();
+        let actionType = 'UPDATE';
+        if (actionRaw.includes('create') || actionRaw.includes('store')) actionType = 'CREATE';
+        else if (actionRaw.includes('delete') || actionRaw.includes('destroy')) actionType = 'DELETE';
+        else if (actionRaw.includes('publish')) actionType = 'PUBLISH';
+        else if (actionRaw.includes('login') || actionRaw.includes('password') || actionRaw.includes('security')) actionType = 'SECURITY';
+        else if (actionRaw.includes('status')) actionType = 'STATUS';
+
+        let category = 'Services';
+        if (log.entity_type === 'Organization') category = 'Offices';
+        else if (log.entity_type === 'User') category = 'Security & access';
+        else if (log.entity_type === 'Role' || log.entity_type === 'Permission') category = 'Roles & access';
+        else if (log.entity_type === 'Complaint' || log.entity_type === 'Feedback') category = 'Citizen voice';
+        else if (log.entity_type === 'Cms' || log.entity_type === 'Post') category = 'CMS & Landing';
+
+        const actorName = log.actor?.name || 'Administrator';
+        const actorUsername = log.actor?.username ? `@${log.actor.username}` : '@admin';
+        const actorRole = log.organization?.name || 'Addis Ababa City Administration';
+        const initials = actorName
+          .split(' ')
+          .map((n) => n[0])
+          .join('')
+          .slice(0, 2)
+          .toUpperCase();
+
+        let changeField = 'Payload';
+        let changeFrom = '—';
+        let changeTo = '—';
+        let changeSummary = 'Transaction logged';
+
+        if (log.action === 'created') {
+          changeField = 'Initial Record';
+          changeFrom = 'None (New)';
+          changeTo = `${log.entity_type} created`;
+          changeSummary = `New ${log.entity_type.toLowerCase()} instantiated`;
+        } else if (log.action === 'deleted') {
+          changeField = 'Status';
+          changeFrom = 'Active';
+          changeTo = 'Deleted (Purged)';
+          changeSummary = `${log.entity_type} removed from database`;
+        } else if (log.old_values && log.new_values) {
+          const changedKey = Object.keys(log.new_values).find(
+            (k) => JSON.stringify(log.old_values?.[k]) !== JSON.stringify(log.new_values?.[k])
+          );
+          if (changedKey) {
+            changeField = changedKey;
+            changeFrom =
+              typeof log.old_values[changedKey] === 'object'
+                ? JSON.stringify(log.old_values[changedKey])
+                : String(log.old_values[changedKey] ?? 'null');
+            changeTo =
+              typeof log.new_values[changedKey] === 'object'
+                ? JSON.stringify(log.new_values[changedKey])
+                : String(log.new_values[changedKey] ?? 'null');
+            changeSummary = `Updated ${changedKey} value`;
+          }
+        }
+
+        const dateObj = new Date(log.created_at);
+        const fullTimestamp = !isNaN(dateObj.getTime())
+          ? dateObj.toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            })
+          : log.created_at;
+
+        const shortDate = !isNaN(dateObj.getTime())
+          ? dateObj.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+            })
+          : 'Today';
+
+        return {
+          id: `LOG-${String(log.id).padStart(4, '0')}`,
+          actionType,
+          actionLabel: `${log.action.charAt(0).toUpperCase() + log.action.slice(1)} ${log.entity_type.toLowerCase()} record #${log.entity_id || log.id}`,
+          category,
+          fullTimestamp,
+          timestamp: shortDate,
+          actor: {
+            name: actorName,
+            username: actorUsername,
+            role: actorRole,
+            initials,
+            tone: 'teal',
+          },
+          target: {
+            name: `${log.entity_type} #${log.entity_id || log.id}`,
+            type: log.entity_type,
+            jurisdiction: log.organization?.name || 'City Administration',
+            id: String(log.entity_id || log.id),
+          },
+          change: {
+            field: changeField,
+            from: changeFrom,
+            to: changeTo,
+            summary: changeSummary,
+          },
+          network: {
+            ip: log.ip_address || '127.0.0.1',
+            location: 'Addis Ababa, ET',
+            userAgent: log.user_agent || 'Sanctum Web SPA',
+            channel: 'Sanctum Web SPA',
+          },
+        };
+      });
+    }
+
+    return [];
+  }, [apiLogs]);
 
   // Categories with counts
   const categories = [
@@ -170,8 +289,8 @@ export const ActivityPage: React.FC = () => {
         <MetricCard
           icon="activity"
           label="Logged system actions"
-          value="1,428"
-          note="Across 11 sub-cities"
+          value={activities.length}
+          note="Across administrative hierarchy"
           tone="teal"
         />
         <MetricCard

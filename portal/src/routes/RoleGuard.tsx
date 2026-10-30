@@ -11,9 +11,10 @@ export interface RoleGuardProps {
 export const RoleGuard: React.FC<RoleGuardProps> = ({ allowedRoles, children }) => {
   const { role } = usePortal();
 
-  if (!allowedRoles.includes(role)) {
-    return <Navigate to="/overview" replace />;
+  // Super Admin has full platform authority across all administrative pages
+  if (role === 'super' || allowedRoles.includes(role)) {
+    return children;
   }
 
-  return children;
+  return <Navigate to="/overview" replace />;
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { usePortal } from '../context';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
@@ -9,22 +9,27 @@ export interface OfficePageProps {
   onEdit?: () => void;
 }
 
-const DEFAULT_PROFILE: BureauProfile = {
-  bureau: 'Revenues Bureau',
-  hours: 'Monday – Friday · 8:30 AM – 5:30 PM',
-  location: 'Lemi Kura Sub-city, Addis Ababa',
-  admin: 'Dawit Alemu',
-  contact: '+251 11 000 0000',
-};
-
 export const OfficePage: React.FC<OfficePageProps> = ({
   profile: propProfile,
   onEdit: propOnEdit,
 }) => {
   const portal = usePortal();
-  const [localProfile, setLocalProfile] = useState<BureauProfile>(DEFAULT_PROFILE);
+  const user = portal.session?.user;
+  const org = user?.organization;
 
-  const data = propProfile || localProfile;
+  const defaultProfile: BureauProfile = useMemo(
+    () => ({
+      bureau: org?.name || 'Public Service Bureau',
+      hours: 'Monday – Friday · 8:30 AM – 5:30 PM',
+      location: 'Addis Ababa City Administration',
+      admin: user?.name || 'Bureau Administrator',
+      contact: user?.phone || user?.email || '+251 11 000 0000',
+    }),
+    [user, org]
+  );
+
+  const [localProfile, setLocalProfile] = useState<BureauProfile | null>(null);
+  const data = propProfile || localProfile || defaultProfile;
 
   const onEdit =
     propOnEdit ||
@@ -42,7 +47,7 @@ export const OfficePage: React.FC<OfficePageProps> = ({
           { name: 'admin', label: 'Bureau administrator', required: true, value: data.admin },
           { name: 'contact', label: 'Public contact phone', required: true, value: data.contact },
         ],
-        onSubmit: (v: any) => setLocalProfile((prev) => ({ ...prev, ...v })),
+        onSubmit: (v: any) => setLocalProfile((prev) => ({ ...(prev || defaultProfile), ...v })),
       });
     });
 
@@ -66,9 +71,11 @@ export const OfficePage: React.FC<OfficePageProps> = ({
         </div>
         <div className="office-profile-body">
           <div>
-            <span className="panel-eyebrow">LEMI KURA SUB-CITY · PUBLIC OFFICE</span>
+            <span className="panel-eyebrow">
+              {(org?.name || 'PUBLIC SERVICE BUREAU').toUpperCase()} · PUBLIC OFFICE
+            </span>
             <h2>{data.bureau}</h2>
-            <p>Support for tax registration, payments, clearance and business revenue services.</p>
+            <p>Support for public citizen services, verification, and administrative clearance.</p>
           </div>
           <div className="office-detail-grid">
             <div>

@@ -5,6 +5,8 @@ import { StatusPill } from '../components/shared/StatusPill';
 import { usePortal } from '../context';
 import type { PostItem } from '../types/portal.types';
 
+import { useGetNewsByIdQuery } from '../services/newsApi';
+
 function isEvent(item: PostItem) {
   return String(item.type).toLowerCase().includes('event');
 }
@@ -29,7 +31,39 @@ export const NewsDetailPage: React.FC = () => {
   const { id } = useParams();
   const portal = usePortal();
   const [language, setLanguage] = useState<'en' | 'am'>('en');
-  const item = portal.posts.find((post) => String(post.id) === id);
+
+  const { data: apiArticle, isLoading } = useGetNewsByIdQuery(id!, { skip: !id });
+
+  const item: PostItem | undefined = React.useMemo(() => {
+    if (apiArticle?.data) {
+      const art = apiArticle.data;
+      return {
+        id: art.id,
+        title: art.news_title,
+        titleAm: '',
+        type: 'news' as const,
+        date: art.created_at ? art.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+        status: 'Published' as const,
+        isPublished: true,
+        subCity: art.organization?.name || 'City Administration',
+        category: 'Public notice',
+        summary: art.contents?.[0]?.content || '',
+        excerpt: art.contents?.[0]?.content || '',
+        content: art.contents?.map((c) => c.content).join('\n\n') || '',
+        views: 0,
+      };
+    }
+    return undefined;
+  }, [apiArticle]);
+
+  if (isLoading) {
+    return (
+      <section className="news-detail-not-found panel">
+        <div className="loading-spinner" />
+        <p>Loading news details...</p>
+      </section>
+    );
+  }
 
   if (!item) {
     return (

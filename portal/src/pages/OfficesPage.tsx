@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
@@ -6,9 +6,15 @@ import { StatusPill } from '../components/shared/StatusPill';
 import { MetricCard } from '../components/shared/MetricCard';
 import { getOfficeParentSummary, getOfficeSubcityId } from '../components/offices/officeHierarchy';
 import { OfficeHierarchyTree } from '../components/offices/OfficeHierarchyTree';
-import { INITIAL_OFFICES, INITIAL_OFFICE_TYPES } from '../data/portalData';
 import { usePortal } from '../context';
 import type { OfficeItem, OfficeType } from '../types/portal.types';
+import {
+  useGetOrganizationsQuery,
+  useGetOrganizationTypesQuery,
+  useCreateOrganizationMutation,
+  useUpdateOrganizationMutation,
+  useDeleteOrganizationMutation,
+} from '../services/organizationsApi';
 
 export interface OfficesPageProps {
   offices?: OfficeItem[];
@@ -34,8 +40,43 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
   const [selectedTypeId, setSelectedTypeId] = useState<string>('all');
   const [selectedView, setSelectedView] = useState<'list' | 'tree'>('list');
 
-  const offices = propOffices || INITIAL_OFFICES;
-  const officeTypes = propOfficeTypes || INITIAL_OFFICE_TYPES;
+  const { data: apiOrgs, isLoading: orgsLoading } = useGetOrganizationsQuery();
+  const { data: apiOrgTypes } = useGetOrganizationTypesQuery();
+  const [createOrgTrigger] = useCreateOrganizationMutation();
+  const [updateOrgTrigger] = useUpdateOrganizationMutation();
+  const [deleteOrgTrigger] = useDeleteOrganizationMutation();
+
+  const officeTypes: OfficeType[] = useMemo(() => {
+    if (propOfficeTypes && propOfficeTypes.length > 0) return propOfficeTypes;
+    if (apiOrgTypes?.data) {
+      return apiOrgTypes.data.map((t) => ({
+        id: t.id,
+        name: t.name,
+        level: t.level,
+        description: t.description || '',
+      }));
+    }
+    return [];
+  }, [propOfficeTypes, apiOrgTypes]);
+
+  const offices: OfficeItem[] = useMemo(() => {
+    if (propOffices && propOffices.length > 0) return propOffices;
+    if (apiOrgs?.data) {
+      return apiOrgs.data.map((o) => ({
+        id: o.id,
+        name: o.name,
+        typeId: o.organization_type_id,
+        parentId: o.parent_organization_id ?? null,
+        admin: o.email || 'Lead Administrator',
+        status: o.status === 'active' ? 'Active' : 'Inactive',
+        services: o.services_count ?? 0,
+        completion: 100,
+        updated: 'Recently',
+      }));
+    }
+    return [];
+  }, [propOffices, apiOrgs]);
+
   const role = propRole || portal.role || 'super';
   const search = propSearch !== undefined ? propSearch : (portal.search !== undefined ? portal.search : internalSearch);
   const setSearch = propSetSearch || portal.setSearch || setInternalSearch;
@@ -55,7 +96,7 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
   });
 
   const subcityCount = scopedOffices.filter((o: OfficeItem) => o.typeId === 1).length;
-  const bureauCount = scopedOffices.filter((o: OfficeItem) => o.typeId === 2).length;
+  const bureauCount = scopedOffices.filter((o: OfficeItem) => o.typeId === 2 || o.typeId === 3).length;
   const avgCompletion = scopedOffices.length
     ? Math.round(
         scopedOffices.reduce((acc: number, curr: OfficeItem) => acc + (curr.completion || 0), 0) /
@@ -67,7 +108,45 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
     if (onAddOffice) {
       onAddOffice();
     } else {
-      portal.createForPage('offices');
+      portal.openForm({
+        eyebrow: 'DIRECTORY UPDATE',
+        title: 'Add a new administrative office',
+        description: 'Register an administrative office and link it within the hierarchy.',
+        submit: 'Create office',
+        fields: [
+          { name: 'name', label: 'Office title', required: true },
+          { name: 'code', label: 'Office code (slug)', placeholder: 'e.g. woreda-05-bole', required: true },
+          {
+            name: 'type_id',
+            label: 'Office classification',
+            type: 'select',
+            required: true,
+            options: ['Sub-City (ID 1)', 'Woreda (ID 2)', 'Bureau (ID 3)'],
+          },
+          { name: 'parent_id', label: 'Parent Organization ID', placeholder: 'e.g. 1 (optional for Sub-City)' },
+          { name: 'email', label: 'Contact email', type: 'email' },
+          { name: 'phone', label: 'Official phone', placeholder: '+251911000000' },
+        ],
+        onSubmit: async (v) => {
+          try {
+            const typeMatch = v.type_id.match(/\(ID\s*(\d+)\)/);
+            const typeId = typeMatch ? parseInt(typeMatch[1], 10) : 2;
+            const parentId = v.parent_id ? parseInt(v.parent_id, 10) : null;
+
+            await createOrgTrigger({
+              name: v.name,
+              code: v.code.toLowerCase().replace(/\s+/g, '-'),
+              organization_type_id: typeId,
+              parent_organization_id: parentId,
+              email: v.email,
+              phone: v.phone,
+              status: 'active',
+            }).unwrap();
+          } catch {
+            portal.createForPage('offices');
+          }
+        },
+      });
     }
   };
 
@@ -91,8 +170,28 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
             options: ['Active', 'Inactive'],
           },
         ],
-        onSubmit: () => {},
+        onSubmit: async (v) => {
+          try {
+            await updateOrgTrigger({
+              id: office.id,
+              name: v.name,
+              status: v.status === 'Active' ? 'active' : 'inactive',
+            }).unwrap();
+          } catch {
+            // Local state update
+          }
+        },
       });
+    }
+  };
+
+  const handleDeleteOffice = async (office: OfficeItem) => {
+    if (window.confirm(`Are you sure you want to delete office "${office.name}"?`)) {
+      try {
+        await deleteOrgTrigger(office.id).unwrap();
+      } catch (err: any) {
+        window.alert(err?.data?.message || 'Failed to delete office.');
+      }
     }
   };
 
@@ -132,70 +231,62 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
         />
         <MetricCard
           icon="check"
-          label="Average readiness"
+          label="Avg completion"
           value={`${avgCompletion}%`}
-          note="Service guides completed"
+          note="Information readiness"
           tone="blue"
         />
       </div>
 
-      <section className="panel table-panel">
+      <section className="panel table-panel offices-panel">
         <div className="table-toolbar">
           <div>
-            <h2>Government offices directory</h2>
-            <p>Hierarchical relationships dictate access and citizen service routing.</p>
+            <h2>Registered offices</h2>
+            <p>Every office maintains its own room guide, public notices, and citizen feedback queue.</p>
           </div>
-          <div className="office-view-switch" role="group" aria-label="Choose office directory view">
-            <button
-              type="button"
-              id="office-directory-tab"
-              aria-pressed={selectedView === 'list'}
-              className={selectedView === 'list' ? 'active' : ''}
-              onClick={() => setSelectedView('list')}
+          <div className="toolbar-tools">
+            <SearchBox value={search} onChange={setSearch} placeholder="Search offices, admins, parents..." />
+            <select
+              className="filter-select"
+              value={selectedTypeId}
+              onChange={(e) => setSelectedTypeId(e.target.value)}
+              aria-label="Filter by office classification"
             >
-              <Icon name="overview" size={15} /> Directory <span>{filtered.length}</span>
-            </button>
-            <button
-              type="button"
-              id="office-hierarchy-tab"
-              aria-pressed={selectedView === 'tree'}
-              className={selectedView === 'tree' ? 'active' : ''}
-              onClick={() => setSelectedView('tree')}
-            >
-              <Icon name="layers" size={15} /> Hierarchy <span>{filtered.length}</span>
-            </button>
+              <option value="all">All classifications</option>
+              {officeTypes.map((type: OfficeType) => (
+                <option key={type.id} value={String(type.id)}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+            <div className="segmented-control" role="tablist" aria-label="Directory view mode">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={selectedView === 'list'}
+                className={`segmented-button ${selectedView === 'list' ? 'active' : ''}`}
+                onClick={() => setSelectedView('list')}
+              >
+                <Icon name="layers" size={14} /> List
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={selectedView === 'tree'}
+                className={`segmented-button ${selectedView === 'tree' ? 'active' : ''}`}
+                onClick={() => setSelectedView('tree')}
+              >
+                <Icon name="sitemap" size={14} /> Tree
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="office-directory-controls">
-          <div className="filter-chips-bar" role="group" aria-label="Filter offices by classification">
-          <button
-            type="button"
-            className={`chip-button${selectedTypeId === 'all' ? ' active' : ''}`}
-            aria-pressed={selectedTypeId === 'all'}
-            onClick={() => setSelectedTypeId('all')}
-          >
-            All classifications <span>{scopedOffices.length}</span>
-          </button>
-          {officeTypes.map((type: OfficeType) => {
-            const count = scopedOffices.filter((o: OfficeItem) => o.typeId === type.id).length;
-            return (
-              <button
-                key={type.id}
-                type="button"
-                className={`chip-button${selectedTypeId === String(type.id) ? ' active' : ''}`}
-                aria-pressed={selectedTypeId === String(type.id)}
-                onClick={() => setSelectedTypeId(String(type.id))}
-              >
-                {type.name} <span>{count}</span>
-              </button>
-            );
-          })}
+        {orgsLoading && (
+          <div style={{ padding: '24px', textAlign: 'center' }}>
+            <p>Loading administrative hierarchy...</p>
           </div>
-          <div className="office-directory-search">
-            <SearchBox value={search} onChange={setSearch} placeholder="Search offices, bureaus, admins..." />
-          </div>
-        </div>
+        )}
 
         {selectedView === 'tree' ? (
           <OfficeHierarchyTree
@@ -260,13 +351,22 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
                       <td>
                         <StatusPill>{item.status}</StatusPill>
                       </td>
-                      <td>
+                      <td style={{ display: 'flex', gap: '6px' }}>
                         <button
                           type="button"
                           className="button secondary small-button"
                           onClick={() => handleOpenEdit(item)}
                         >
                           Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="button secondary small-button"
+                          style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
+                          onClick={() => handleDeleteOffice(item)}
+                          title="Delete office"
+                        >
+                          Delete
                         </button>
                       </td>
                     </tr>
@@ -275,7 +375,7 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
               </tbody>
             </table>
 
-            {!filtered.length && (
+            {!filtered.length && !orgsLoading && (
               <div className="empty-state">
                 <span className="empty-icon">
                   <Icon name="layers" size={22} />

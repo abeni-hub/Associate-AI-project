@@ -64,11 +64,14 @@ export interface OfficeItem {
 
 export interface RoleItem {
   id: string;
+  slug?: string;
   name: string;
   description: string;
   scope: string;
   userCount: number;
   isSystem: boolean;
+  permissionsCount?: number;
+  permissionIds?: number[];
   permissions: Record<string, string[]>;
 }
 

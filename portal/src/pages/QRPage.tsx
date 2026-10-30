@@ -48,7 +48,7 @@ export const QRPage: React.FC<QRPageProps> = ({
       />
       <div className="qr-hero panel">
         <div className="qr-hero-copy">
-          <span className="panel-eyebrow">YOUR BUREAU · REVENUES BUREAU</span>
+          <span className="panel-eyebrow">YOUR OFFICE · {(portal.session?.user?.organization?.name || 'PUBLIC SERVICE BUREAU').toUpperCase()}</span>
           <h2>
             Make your voice
             <br />

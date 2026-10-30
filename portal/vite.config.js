@@ -21,6 +21,12 @@ export default defineConfig({
       '/api': {
         target: 'http://civiclink.pharmasoft-et.com',
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.removeHeader('origin');
+            proxyReq.removeHeader('referer');
+          });
+        },
       },
     },
   },

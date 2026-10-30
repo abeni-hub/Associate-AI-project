@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { usePortal } from '../../context';
 import { Sidebar } from './Sidebar';
@@ -13,16 +13,21 @@ export const AppLayout: React.FC = () => {
   const location = useLocation();
 
   const hasToken = tokenStorage.hasToken();
-  const isDemo = Boolean(session?.isDemo);
 
   // Validate live session with backend /auth/me when token is present
   const { data: meResponse, error: meError } = useGetMeQuery(undefined, {
-    skip: isDemo || !hasToken,
+    skip: !hasToken,
   });
+
+  const syncedUserIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (meResponse?.success && meResponse.data) {
-      signInLive(meResponse.data);
+      // Only invoke signInLive if this user ID hasn't been synced yet
+      if (syncedUserIdRef.current !== meResponse.data.id) {
+        syncedUserIdRef.current = meResponse.data.id;
+        signInLive(meResponse.data);
+      }
     }
   }, [meResponse, signInLive]);
 
@@ -35,7 +40,7 @@ export const AppLayout: React.FC = () => {
     }
   }, [meError, signOut]);
 
-  if (!session) {
+  if (!hasToken || !session) {
     return <Navigate to="/login" replace />;
   }
 
@@ -61,3 +66,5 @@ export const AppLayout: React.FC = () => {
     </div>
   );
 };
+
+export default AppLayout;

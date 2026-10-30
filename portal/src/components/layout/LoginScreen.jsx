@@ -1,9 +1,7 @@
-import LoginPage from '../../pages/LoginPage.jsx'
-import { usePortalState } from '../../state/PortalStateContext.jsx'
+import LoginPage from '../../pages/LoginPage'
 
 function LoginScreen() {
-  const { role, setRole, signInDemo } = usePortalState()
-  return <LoginPage selectedRole={role} setSelectedRole={setRole} onLogin={signInDemo} />
+  return <LoginPage />
 }
 
 export default LoginScreen
