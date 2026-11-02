@@ -9,11 +9,14 @@ use App\Http\Controllers\Api\V1\Authorization\RoleController;
 use App\Http\Controllers\Api\V1\Cms\CmsController;
 use App\Http\Controllers\Api\V1\Dashboard\DashboardController;
 use App\Http\Controllers\Api\V1\Documents\DocumentController;
+use App\Http\Controllers\Api\V1\Events\EventController;
 use App\Http\Controllers\Api\V1\Feedback\FeedbackController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\Navigation\NavigationController;
 use App\Http\Controllers\Api\V1\News\NewsController;
 use App\Http\Controllers\Api\V1\Organizations\OrganizationController;
 use App\Http\Controllers\Api\V1\Organizations\OrganizationTypeController;
+use App\Http\Controllers\Api\V1\QrCodes\QrCodeController;
 use App\Http\Controllers\Api\V1\Services\ServiceController;
 use App\Http\Controllers\Api\V1\Services\ServiceStepController;
 use App\Http\Controllers\Api\V1\Users\UserController;
@@ -82,6 +85,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
     // Authenticated Administration Endpoints
     Route::middleware(['auth:sanctum', 'account.active'])->group(function () {
+        // Dynamic Sidebar Navigation
+        Route::get('/navigation/sidebar', [NavigationController::class, 'sidebar'])
+            ->name('navigation.sidebar');
+
         // Authorization & Role Management
         Route::prefix('roles')->name('roles.')->group(function () {
             Route::get('/', [RoleController::class, 'index'])
@@ -260,7 +267,35 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 ->middleware('permission:cms.manage')
                 ->name('upload-image');
         });
+
+        // QR Codes Management
+        Route::prefix('qr-codes')->name('qr-codes.')->group(function () {
+            Route::get('/', [QrCodeController::class, 'index'])
+                ->middleware('permission:qr_codes.view')
+                ->name('index');
+            Route::get('/{qrCode}', [QrCodeController::class, 'show'])
+                ->middleware('permission:qr_codes.view')
+                ->name('show');
+            Route::post('/', [QrCodeController::class, 'store'])
+                ->middleware('permission:qr_codes.manage')
+                ->name('store');
+        });
+
+        // Event Management
+        Route::post('/events', [EventController::class, 'store'])
+            ->middleware('permission:events.create')
+            ->name('events.store');
+        Route::delete('/events/{event}', [EventController::class, 'destroy'])
+            ->middleware('permission:events.delete')
+            ->name('events.destroy');
     });
+
+    // Public Events Discovery (no authentication required)
+    Route::get('/events', [EventController::class, 'index'])->name('events.index');
+    Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show');
+
+    // Public QR Poster Scanning & Redirection
+    Route::post('/qr-codes/{code}/scan', [QrCodeController::class, 'scan'])->name('qr-codes.scan');
 
     // Public News (no authentication required)
     Route::get('/news', [NewsController::class, 'index'])

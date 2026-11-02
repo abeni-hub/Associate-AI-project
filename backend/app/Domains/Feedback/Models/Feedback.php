@@ -22,7 +22,6 @@ class Feedback extends Model
         'tracking_number',
         'full_name',
         'phone_number',
-        'email',
     ];
 
     /**

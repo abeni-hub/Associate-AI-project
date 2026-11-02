@@ -11,7 +11,7 @@ use Illuminate\Database\Seeder;
 class RoleSeeder extends Seeder
 {
     /**
-     * Seed predefined system roles and their permission assignments.
+     * Seed predefined system roles, scope levels, and granular CRUD permissions.
      */
     public function run(): void
     {
@@ -20,26 +20,36 @@ class RoleSeeder extends Seeder
             ['slug' => 'super_admin'],
             [
                 'name' => 'Super Admin',
+                'scope_level' => Role::SCOPE_GLOBAL,
                 'description' => 'Platform-wide administrator with full authority across all modules.',
                 'is_system' => true,
                 'is_active' => true,
             ]
         );
-        // Super admin receives all permissions
-        $allPermissionIds = Permission::pluck('id')->toArray();
-        $superAdmin->permissions()->sync($allPermissionIds);
+        $allPermissions = Permission::all();
+        $superAdminPivot = [];
+        foreach ($allPermissions as $perm) {
+            $superAdminPivot[$perm->id] = [
+                'can_create' => true,
+                'can_read' => true,
+                'can_update' => true,
+                'can_delete' => true,
+            ];
+        }
+        $superAdmin->permissions()->sync($superAdminPivot);
 
         // 2. Sub-City Admin
         $subCityAdmin = Role::updateOrCreate(
             ['slug' => 'sub_city_admin'],
             [
                 'name' => 'Sub-City Admin',
+                'scope_level' => Role::SCOPE_SUB_CITY,
                 'description' => 'Sub-City level administrator managing own organization and descendant Woredas/Bureaus.',
                 'is_system' => true,
                 'is_active' => true,
             ]
         );
-        $subCityPermissions = Permission::whereIn('key', [
+        $subCityPermKeys = [
             'organizations.view', 'organizations.create', 'organizations.update',
             'users.view', 'users.create', 'users.update', 'users.delete', 'users.reset_password',
             'services.view', 'services.manage',
@@ -51,20 +61,31 @@ class RoleSeeder extends Seeder
             'qr_codes.view', 'qr_codes.manage',
             'dashboard.view',
             'audit_logs.view',
-        ])->pluck('id')->toArray();
-        $subCityAdmin->permissions()->sync($subCityPermissions);
+        ];
+        $subCityPermissions = Permission::whereIn('key', $subCityPermKeys)->get();
+        $subCityPivot = [];
+        foreach ($subCityPermissions as $perm) {
+            $subCityPivot[$perm->id] = [
+                'can_create' => true,
+                'can_read' => true,
+                'can_update' => true,
+                'can_delete' => str_contains($perm->key, 'delete'),
+            ];
+        }
+        $subCityAdmin->permissions()->sync($subCityPivot);
 
         // 3. Woreda Admin
         $woredaAdmin = Role::updateOrCreate(
             ['slug' => 'woreda_admin'],
             [
                 'name' => 'Woreda Admin',
+                'scope_level' => Role::SCOPE_WOREDA,
                 'description' => 'Woreda level administrator managing Woreda operations and descendant Bureaus.',
                 'is_system' => true,
                 'is_active' => true,
             ]
         );
-        $woredaPermissions = Permission::whereIn('key', [
+        $woredaPermKeys = [
             'organizations.view',
             'users.view', 'users.create', 'users.update', 'users.reset_password',
             'services.view',
@@ -75,20 +96,31 @@ class RoleSeeder extends Seeder
             'feedback.view_own', 'feedback.view_descendants', 'feedback.update_status',
             'qr_codes.view', 'qr_codes.manage',
             'dashboard.view',
-        ])->pluck('id')->toArray();
-        $woredaAdmin->permissions()->sync($woredaPermissions);
+        ];
+        $woredaPermissions = Permission::whereIn('key', $woredaPermKeys)->get();
+        $woredaPivot = [];
+        foreach ($woredaPermissions as $perm) {
+            $woredaPivot[$perm->id] = [
+                'can_create' => ! str_contains($perm->key, '.view'),
+                'can_read' => true,
+                'can_update' => str_contains($perm->key, '.update') || str_contains($perm->key, '.manage'),
+                'can_delete' => false,
+            ];
+        }
+        $woredaAdmin->permissions()->sync($woredaPivot);
 
         // 4. Bureau Admin
         $bureauAdmin = Role::updateOrCreate(
             ['slug' => 'bureau_admin'],
             [
                 'name' => 'Bureau Admin',
+                'scope_level' => Role::SCOPE_BUREAU,
                 'description' => 'Bureau level administrator managing Bureau staff, service steps, and own feedback.',
                 'is_system' => true,
                 'is_active' => true,
             ]
         );
-        $bureauPermissions = Permission::whereIn('key', [
+        $bureauPermKeys = [
             'organizations.view',
             'users.view',
             'services.view',
@@ -99,26 +131,47 @@ class RoleSeeder extends Seeder
             'feedback.view_own', 'feedback.update_status',
             'qr_codes.view',
             'dashboard.view',
-        ])->pluck('id')->toArray();
-        $bureauAdmin->permissions()->sync($bureauPermissions);
+        ];
+        $bureauPermissions = Permission::whereIn('key', $bureauPermKeys)->get();
+        $bureauPivot = [];
+        foreach ($bureauPermissions as $perm) {
+            $bureauPivot[$perm->id] = [
+                'can_create' => str_contains($perm->key, '.create'),
+                'can_read' => true,
+                'can_update' => str_contains($perm->key, '.update') || str_contains($perm->key, '.manage'),
+                'can_delete' => false,
+            ];
+        }
+        $bureauAdmin->permissions()->sync($bureauPivot);
 
         // 5. Staff
         $staff = Role::updateOrCreate(
             ['slug' => 'staff'],
             [
                 'name' => 'Staff',
+                'scope_level' => Role::SCOPE_BUREAU,
                 'description' => 'Operational government staff member with service navigation and feedback viewing rights.',
                 'is_system' => true,
                 'is_active' => true,
             ]
         );
-        $staffPermissions = Permission::whereIn('key', [
+        $staffPermKeys = [
             'services.view',
             'documents.view',
             'service_steps.view',
             'feedback.view_own',
             'dashboard.view',
-        ])->pluck('id')->toArray();
-        $staff->permissions()->sync($staffPermissions);
+        ];
+        $staffPermissions = Permission::whereIn('key', $staffPermKeys)->get();
+        $staffPivot = [];
+        foreach ($staffPermissions as $perm) {
+            $staffPivot[$perm->id] = [
+                'can_create' => false,
+                'can_read' => true,
+                'can_update' => false,
+                'can_delete' => false,
+            ];
+        }
+        $staff->permissions()->sync($staffPivot);
     }
 }

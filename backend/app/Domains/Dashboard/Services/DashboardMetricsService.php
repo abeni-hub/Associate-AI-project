@@ -519,9 +519,13 @@ class DashboardMetricsService
         $limit = max(1, min(50, $limit));
 
         $query = AuditLog::query()
-            ->with(['user:id,name,email,username', 'organization:id,name,code']);
+            ->with(['user.organization:id,name,code']);
 
-        $this->scopeService->applyScope($query, $user, 'organization_id', includeDescendants: true);
+        if (! $user->isSuperAdmin()) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $this->scopeService->applyScope($q, $user, 'organization_id', includeDescendants: true);
+            });
+        }
 
         if ($entityType) {
             $query->where('entity_type', $entityType);
@@ -546,9 +550,9 @@ class DashboardMetricsService
                     'email' => $log->user?->email,
                 ],
                 'organization' => [
-                    'id' => $log->organization?->id,
-                    'name' => $log->organization?->name,
-                    'code' => $log->organization?->code,
+                    'id' => $log->user?->organization?->id,
+                    'name' => $log->user?->organization?->name,
+                    'code' => $log->user?->organization?->code,
                 ],
                 'ip_address' => $log->ip_address,
                 'created_at' => $log->created_at?->toIso8601String(),

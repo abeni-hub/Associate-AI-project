@@ -626,7 +626,6 @@ class NewsApiTest extends TestCase
             'action' => 'created',
             'entity_type' => 'News',
             'entity_id' => (string) $newsId,
-            'organization_id' => $this->boleSubCity->id,
             'user_id' => $this->subCityAdmin->id,
         ]);
 
@@ -642,7 +641,6 @@ class NewsApiTest extends TestCase
             'action' => 'updated',
             'entity_type' => 'News',
             'entity_id' => (string) $newsId,
-            'organization_id' => $this->boleSubCity->id,
             'user_id' => $this->subCityAdmin->id,
         ]);
 
@@ -656,7 +654,6 @@ class NewsApiTest extends TestCase
             'action' => 'deleted',
             'entity_type' => 'News',
             'entity_id' => (string) $newsId,
-            'organization_id' => $this->boleSubCity->id,
             'user_id' => $this->subCityAdmin->id,
         ]);
     }

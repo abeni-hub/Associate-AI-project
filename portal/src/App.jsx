@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
 const ROLE = {
@@ -20,6 +20,22 @@ const NAV = {
     { label: 'Workspace', items: [{ id: 'overview', text: 'Overview', icon: 'overview' }, { id: 'routes', text: 'Room routes', icon: 'route' }, { id: 'feedback', text: 'Citizen feedback', icon: 'message', badge: '5' }] },
     { label: 'Office tools', items: [{ id: 'qr', text: 'Feedback QR codes', icon: 'qr' }, { id: 'office', text: 'Office profile', icon: 'building' }] },
   ],
+}
+
+function normalizeIconName(name) {
+  if (!name) return 'spark'
+  const key = String(name).toLowerCase().replace(/icon$/, '').replace(/[^a-z0-9]/g, '')
+  if (['layoutdashboard', 'home', 'overview'].includes(key)) return 'overview'
+  if (['building2', 'buildingoffice2', 'building', 'office', 'bureaus', 'subcities', 'map'].includes(key)) return 'building'
+  if (['users', 'account', 'accounts'].includes(key)) return 'users'
+  if (['messagesquarequote', 'chatbubbleleftright', 'message', 'feedback'].includes(key)) return 'message'
+  if (['briefcase', 'rectanglestack', 'layers', 'services', 'service'].includes(key)) return 'layers'
+  if (['mappin', 'route', 'routes'].includes(key)) return 'route'
+  if (['qrcode', 'qr'].includes(key)) return 'qr'
+  if (['filetext', 'documenttext', 'news', 'megaphone', 'newspaper'].includes(key)) return 'news'
+  if (['shieldcheck', 'shield'].includes(key)) return 'shield'
+  if (['activity', 'pulseline'].includes(key)) return 'activity'
+  return key
 }
 
 const INITIAL_SUBCITIES = [
@@ -88,6 +104,7 @@ const INITIAL_POSTS = [
 
 function Icon({ name, size = 18, strokeWidth = 1.8 }) {
   const common = { fill: 'none', stroke: 'currentColor', strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round' }
+  const iconKey = normalizeIconName(name)
   const paths = {
     overview: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>,
     map: <><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z" /><path d="M9 3v15m6-12v15" /></>,
@@ -120,7 +137,7 @@ function Icon({ name, size = 18, strokeWidth = 1.8 }) {
     globe: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18m0-18a14 14 0 0 0 0 18" /></>,
     menu: <><path d="M4 7h16M4 12h16M4 17h16" /></>,
   }
-  return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" {...common}>{paths[name] || paths.spark}</svg>
+  return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" {...common}>{paths[iconKey] || paths[name] || paths.spark}</svg>
 }
 
 function Brand({ compact = false }) {
@@ -135,13 +152,41 @@ function Login({ selectedRole, setSelectedRole, onLogin }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const submit = (event) => {
+  const [loading, setLoading] = useState(false)
+
+  const submit = async (event) => {
     event.preventDefault()
     if (!username.trim() || !password.trim()) {
       setError('Enter your username and password, or choose a demo workspace below.')
       return
     }
-    setError('This preview has no authentication service connected yet. Choose a demo workspace to explore the portal.')
+
+    setLoading(true)
+    setError('')
+    const apiBase = import.meta.env?.VITE_API_URL || 'http://127.0.0.1:8000/api/v1'
+
+    try {
+      const res = await fetch(`${apiBase}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ login: username, password }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success && data.data?.token) {
+        const user = data.data
+        const roleSlug = user.role?.slug || 'super_admin'
+        const mappedRole = roleSlug.includes('super') ? 'super' : roleSlug.includes('sub_city') ? 'subcity' : 'bureau'
+        onLogin(mappedRole, { token: user.token, user })
+        return
+      } else {
+        const msg = data.message || data.errors?.login?.[0] || 'Invalid credentials.'
+        setError(msg)
+      }
+    } catch {
+      setError('Backend service is unreachable. You can continue using demo mode below.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return <main className="login-shell">
@@ -183,7 +228,7 @@ function Login({ selectedRole, setSelectedRole, onLogin }) {
           <div className="label-row"><label htmlFor="password">Password</label><button type="button" className="text-button" onClick={() => setError('Please contact your system administrator to reset your password.')}>Forgot password?</button></div>
           <div className="input-shell"><Icon name="lock" size={17} /><input id="password" autoComplete="current-password" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" value={password} onChange={(e) => { setPassword(e.target.value); setError('') }} /><button aria-label={showPassword ? 'Hide password' : 'Show password'} type="button" className="input-action" onClick={() => setShowPassword(!showPassword)}><Icon name="eye" size={17} /></button></div>
           {error && <div className="login-error" role="status">{error}</div>}
-          <button className="button primary login-submit" type="submit">Sign in <Icon name="arrow" size={17} /></button>
+          <button className="button primary login-submit" type="submit" disabled={loading}>{loading ? 'Signing in...' : 'Sign in'} <Icon name="arrow" size={17} /></button>
         </form>
         <div className="login-divider"><span />OR EXPLORE A DEMO WORKSPACE<span /></div>
         <p className="demo-prompt">Choose a role to preview its dashboard</p>
@@ -199,15 +244,60 @@ function Login({ selectedRole, setSelectedRole, onLogin }) {
   </main>
 }
 
-function Sidebar({ role, activePage, setActivePage, onLogout, mobileOpen, setMobileOpen }) {
+function Sidebar({ role, activePage, setActivePage, onLogout, mobileOpen, setMobileOpen, dynamicNavItems = null }) {
   const data = ROLE[role]
+
+  const navGroups = useMemo(() => {
+    if (dynamicNavItems && dynamicNavItems.length > 0) {
+      return [
+        {
+          label: 'Platform Navigation',
+          isDynamic: true,
+          items: dynamicNavItems.map((item) => {
+            let pageId = 'overview'
+            const route = (item.route || '').toLowerCase()
+            const label = (item.label || '').toLowerCase()
+
+            if (route.includes('overview') || label.includes('overview')) pageId = 'overview'
+            else if (route.includes('subcit') || label.includes('sub-cit')) pageId = 'subcities'
+            else if (route.includes('bureau') || label.includes('bureau')) pageId = 'bureaus'
+            else if (route.includes('account') || route.includes('user') || label.includes('account') || label.includes('staff')) pageId = 'accounts'
+            else if (route.includes('service') || label.includes('service')) pageId = 'services'
+            else if (route.includes('route') || label.includes('route')) pageId = 'routes'
+            else if (route.includes('qr') || label.includes('qr')) pageId = 'qr'
+            else if (route.includes('feedback') || label.includes('feedback')) pageId = 'feedback'
+            else if (route.includes('news') || label.includes('news')) pageId = 'news'
+            else if (route.includes('office') || label.includes('office')) pageId = 'office'
+            else if (route.includes('activity') || route.includes('cms') || label.includes('activity') || label.includes('cms')) pageId = 'activity'
+            else pageId = 'overview'
+
+            return {
+              id: pageId,
+              text: item.label,
+              icon: item.icon || 'overview',
+              badge: item.badge || null,
+              route: item.route,
+            }
+          }),
+        },
+      ]
+    }
+    return NAV[role] || []
+  }, [dynamicNavItems, role])
+
   return <>
     <div className={`sidebar-backdrop${mobileOpen ? ' open' : ''}`} onClick={() => setMobileOpen(false)} />
     <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
       <div className="sidebar-brand-row"><Brand /><button className="sidebar-close" onClick={() => setMobileOpen(false)} aria-label="Close navigation"><Icon name="close" /></button></div>
       <div className="sidebar-workspace"><span className="workspace-avatar"><Icon name={role === 'super' ? 'globe' : role === 'subcity' ? 'map' : 'building'} size={17} /></span><span><small>YOUR WORKSPACE</small><b>{data.organization.split(' · ')[0]}</b></span><Icon name="chevron" size={15} /></div>
       <nav className="side-nav" aria-label="Admin navigation">
-        {NAV[role].map((group) => <div className="nav-group" key={group.label}><span className="nav-group-label">{group.label}</span>{group.items.map((item) => <button key={item.id} className={`nav-item${activePage === item.id ? ' active' : ''}`} onClick={() => { setActivePage(item.id); setMobileOpen(false) }}><Icon name={item.icon} size={18} /><span>{item.text}</span>{item.badge && <span className="nav-badge">{item.badge}</span>}</button>)}</div>)}
+        {navGroups.map((group) => <div className="nav-group" key={group.label}>
+          <span className="nav-group-label">
+            {group.label}
+            {group.isDynamic && <span style={{ marginLeft: 6, fontSize: '0.62rem', fontWeight: 600, padding: '1px 5px', borderRadius: 4, background: 'rgba(54,123,125,0.18)', color: 'var(--teal, #367b7d)' }}>LIVE</span>}
+          </span>
+          {group.items.map((item) => <button key={`${item.id}-${item.text}`} className={`nav-item${activePage === item.id ? ' active' : ''}`} onClick={() => { setActivePage(item.id); setMobileOpen(false) }}><Icon name={item.icon} size={18} /><span>{item.text}</span>{item.badge && <span className="nav-badge">{item.badge}</span>}</button>)}
+        </div>)}
       </nav>
       <div className="sidebar-bottom">
         <div className="help-card"><span className="help-card-icon"><Icon name="spark" size={16} /></span><b>Here to help</b><p>Need a hand with your workspace?</p><button onClick={() => window.alert('Your system support team can help with workspace access and setup.')}>Contact support <Icon name="arrow" size={14} /></button></div>
@@ -541,11 +631,104 @@ function App() {
   const [feedback, setFeedback] = useState(INITIAL_FEEDBACK)
   const [posts, setPosts] = useState(INITIAL_POSTS)
   const [, setCopiedLink] = useState(false)
+  const [dynamicNavItems, setDynamicNavItems] = useState(null)
+  const [, setIsDynamicNavLoading] = useState(false)
 
   const resetSearch = () => { setSearch(''); setTypeFilter('All types'); setStatusFilter('All statuses') }
   const navigate = (page) => { setActivePage(page); resetSearch() }
-  const signInDemo = (selected) => { setRole(selected); setSession({ role: selected }); setActivePage('overview'); resetSearch() }
-  const signOut = () => { setSession(null); setActivePage('overview'); setModal(null) }
+  const signInDemo = (selected, sessionData = {}) => {
+    setRole(selected)
+    setSession({ role: selected, ...sessionData })
+    setActivePage('overview')
+    resetSearch()
+  }
+  const signOut = () => {
+    if (session?.token) {
+      const apiBase = import.meta.env?.VITE_API_URL || 'http://127.0.0.1:8000/api/v1'
+      fetch(`${apiBase}/auth/logout`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session.token}`, 'Accept': 'application/json' },
+      }).catch(() => {})
+    }
+    setSession(null)
+    setDynamicNavItems(null)
+    setActivePage('overview')
+    setModal(null)
+  }
+
+  // Retrieve dynamic sidebar navigation from GET /api/v1/navigation/sidebar
+  useEffect(() => {
+    if (!session) {
+      setDynamicNavItems(null)
+      return
+    }
+
+    let isMounted = true
+    setIsDynamicNavLoading(true)
+    const apiBase = import.meta.env?.VITE_API_URL || 'http://127.0.0.1:8000/api/v1'
+
+    const fetchNavigation = async () => {
+      let token = session.token || ''
+
+      // If in demo mode without explicit token, attempt local test login to load live DB menu
+      if (!token) {
+        try {
+          const credentials = role === 'super'
+            ? { login: 'admin', password: 'Admin123!Secure' }
+            : { login: 'abebe.k', password: 'CorrectPassword123!' }
+
+          const authRes = await fetch(`${apiBase}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(credentials),
+          })
+          if (authRes.ok) {
+            const authData = await authRes.json()
+            token = authData.data?.token || ''
+          }
+        } catch {
+          // Backend offline or unreachable
+        }
+      }
+
+      if (!token) {
+        if (isMounted) {
+          setDynamicNavItems(null)
+          setIsDynamicNavLoading(false)
+        }
+        return
+      }
+
+      try {
+        const res = await fetch(`${apiBase}/navigation/sidebar`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const json = await res.json()
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          if (isMounted) {
+            setDynamicNavItems(json.data)
+          }
+        } else {
+          if (isMounted) setDynamicNavItems(null)
+        }
+      } catch {
+        if (isMounted) setDynamicNavItems(null)
+      } finally {
+        if (isMounted) setIsDynamicNavLoading(false)
+      }
+    }
+
+    fetchNavigation()
+
+    return () => {
+      isMounted = false
+    }
+  }, [session, role])
 
   const openForm = (config) => setModal({ kind: 'form', ...config })
   const openFeedback = (item) => setModal({ kind: 'feedback', item, onUpdate: (status) => setFeedback((list) => list.map((entry) => entry.id === item.id ? { ...entry, status } : entry)) })
@@ -566,7 +749,7 @@ function App() {
   if (!session) return <Login selectedRole={role} setSelectedRole={setRole} onLogin={signInDemo} />
 
   return <div className="app-shell">
-    <Sidebar role={role} activePage={activePage} setActivePage={navigate} onLogout={signOut} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+    <Sidebar role={role} activePage={activePage} setActivePage={navigate} onLogout={signOut} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} dynamicNavItems={dynamicNavItems} />
     <main className="main-area"><Topbar role={role} onMenu={() => setMobileOpen(true)} onLogout={signOut} /><div className="main-content" key={activePage}>
       {activePage === 'overview' && <Overview role={role} onNavigate={navigate} feedback={visibleFeedback} onFeedback={openFeedback} onCreate={(page) => createForPage(page || (role === 'super' ? 'subcities' : role === 'subcity' ? 'bureaus' : 'routes'))} />}
       {activePage === 'subcities' && role === 'super' && <SubcitiesPage items={subcities} onAdd={() => createForPage('subcities')} search={search} setSearch={setSearch} />}

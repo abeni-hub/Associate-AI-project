@@ -247,7 +247,6 @@ class ServiceController extends Controller
         foreach ($request->validated('organizations') as $org) {
             $syncData[$org['organization_id']] = [
                 'is_available' => $org['is_available'] ?? true,
-                'specific_instructions' => $org['specific_instructions'] ?? null,
             ];
         }
 

@@ -1254,8 +1254,7 @@ Submit citizen feedback, complaint, or satisfaction rating directed to a governm
   "feedback_content": "The intake officer at Room 102 was courteous and processed our documents in under 15 minutes.",
   "feedback_type": "satisfaction",
   "full_name": "Abebe Bikila",
-  "phone_number": "+251911223344",
-  "email": "abebe.bikila@example.et"
+  "phone_number": "+251911223344"
 }
 ```
 - **Complaint Request Body Example (with Tracking Number)**:
@@ -1265,8 +1264,7 @@ Submit citizen feedback, complaint, or satisfaction rating directed to a governm
   "feedback_content": "The fee cashier desk was closed without notice during official operating hours.",
   "feedback_type": "complaint",
   "full_name": "Tigist Haile",
-  "phone_number": "+251922334455",
-  "email": "tigist.haile@example.et"
+  "phone_number": "+251922334455"
 }
 ```
 - **Response (201 Created)**:
@@ -1282,7 +1280,6 @@ Submit citizen feedback, complaint, or satisfaction rating directed to a governm
     "tracking_number": "5482910482",
     "full_name": "Tigist Haile",
     "phone_number": "+251922334455",
-    "email": "tigist.haile@example.et",
     "created_at": "2026-10-26T14:30:00+00:00",
     "updated_at": "2026-10-26T14:30:00+00:00"
   },
@@ -1314,7 +1311,6 @@ List feedback submissions scoped to the authenticated user's organization hierar
       "tracking_number": "5482910482",
       "full_name": "Tigist Haile",
       "phone_number": "+251922334455",
-      "email": "tigist.haile@example.et",
       "created_at": "2026-10-26T14:30:00+00:00",
       "updated_at": "2026-10-26T14:30:00+00:00",
       "organization": {
@@ -1586,7 +1582,432 @@ Recent administrative audit trails within the user's organization scope.
 
 ---
 
-## 11. Landing Page CMS Management
+## 13. Dynamic Sidebar Navigation
+
+Authenticated navigation discovery dynamically populated from the database (`navigation_items` and `role_navigation_items` pivot). Items returned are filtered based on the caller's assigned role and sorted strictly by `display_order`. If the authenticated user holds the Super Admin role, all active navigation items are returned.
+
+---
+
+### `GET /api/v1/navigation/sidebar`
+Retrieves authorized sidebar navigation items for the authenticated user session.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Sidebar navigation items retrieved successfully.",
+  "data": [
+    {
+      "id": 1,
+      "label": "Overview",
+      "route": "/portal",
+      "icon": "HomeIcon",
+      "display_order": 1,
+      "required_permission": "dashboard.view"
+    },
+    {
+      "id": 2,
+      "label": "Organizations",
+      "route": "/portal/organizations",
+      "icon": "BuildingOffice2Icon",
+      "display_order": 2,
+      "required_permission": "organizations.view"
+    },
+    {
+      "id": 3,
+      "label": "Staff Users",
+      "route": "/portal/users",
+      "icon": "UsersIcon",
+      "display_order": 3,
+      "required_permission": "users.view"
+    },
+    {
+      "id": 4,
+      "label": "Service Catalog",
+      "route": "/portal/services",
+      "icon": "RectangleStackIcon",
+      "display_order": 4,
+      "required_permission": "services.view"
+    },
+    {
+      "id": 5,
+      "label": "Documents",
+      "route": "/portal/documents",
+      "icon": "DocumentTextIcon",
+      "display_order": 5,
+      "required_permission": "documents.view"
+    },
+    {
+      "id": 6,
+      "label": "Citizen Feedback",
+      "route": "/portal/feedback",
+      "icon": "ChatBubbleLeftRightIcon",
+      "display_order": 6,
+      "required_permission": "feedback.view_own"
+    },
+    {
+      "id": 7,
+      "label": "Community News",
+      "route": "/portal/news",
+      "icon": "MegaphoneIcon",
+      "display_order": 7,
+      "required_permission": "news.view"
+    },
+    {
+      "id": 8,
+      "label": "Roles & Access",
+      "route": "/portal/roles",
+      "icon": "ShieldCheckIcon",
+      "display_order": 8,
+      "required_permission": "roles.view"
+    }
+  ],
+  "errors": null
+}
+```
+
+---
+
+## 14. QR Code Management & Citizen Scanning
+
+Physical QR posters and digital entrance badges bound to government organizations. Citizens scanning poster QR codes are logged for engagement metrics (scans count and timestamps) and redirected to localized service instructions.
+
+---
+
+### `GET /api/v1/qr-codes`
+List QR code posters scoped to the actor's administrative domain hierarchy.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `qr_codes.view`
+- **Query Parameters**:
+  - `page` (optional, integer, default: 1)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "QR codes retrieved successfully.",
+  "data": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": 1,
+        "organization_id": 1,
+        "code": "BOLE-MAIN-GATE",
+        "label": "Bole Sub-City Main Entrance Kiosk",
+        "target_url": "https://civiclink.gov.et/organizations/subcity-bole",
+        "scan_count": 84,
+        "status": "active",
+        "last_scanned_at": "2026-11-02T10:15:30+03:00",
+        "created_at": "2026-11-01T08:00:00+03:00",
+        "updated_at": "2026-11-02T10:15:30+03:00",
+        "organization": {
+          "id": 1,
+          "name": "Bole Sub-City Administration",
+          "code": "subcity-bole"
+        }
+      }
+    ],
+    "total": 1,
+    "per_page": 20
+  },
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/qr-codes/{qrCode}`
+Retrieve details for a single QR code poster.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `qr_codes.view`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "QR code retrieved successfully.",
+  "data": {
+    "id": 1,
+    "organization_id": 1,
+    "code": "BOLE-MAIN-GATE",
+    "label": "Bole Sub-City Main Entrance Kiosk",
+    "target_url": "https://civiclink.gov.et/organizations/subcity-bole",
+    "scan_count": 84,
+    "status": "active",
+    "last_scanned_at": "2026-11-02T10:15:30+03:00",
+    "created_at": "2026-11-01T08:00:00+03:00",
+    "updated_at": "2026-11-02T10:15:30+03:00",
+    "organization": {
+      "id": 1,
+      "name": "Bole Sub-City Administration",
+      "code": "subcity-bole"
+    }
+  },
+  "errors": null
+}
+```
+
+---
+
+### `POST /api/v1/qr-codes`
+Create a new QR poster token for an organization within the actor's administrative scope.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `qr_codes.manage`
+- **Request Body**:
+```json
+{
+  "organization_id": 2,
+  "code": "WOREDA-01-DESK",
+  "label": "Woreda 01 Public Service Hall Information Desk",
+  "target_url": "https://civiclink.gov.et/organizations/woreda-01/services",
+  "status": "active"
+}
+```
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "QR code generated successfully.",
+  "data": {
+    "id": 2,
+    "organization_id": 2,
+    "code": "WOREDA-01-DESK",
+    "label": "Woreda 01 Public Service Hall Information Desk",
+    "target_url": "https://civiclink.gov.et/organizations/woreda-01/services",
+    "scan_count": 0,
+    "status": "active",
+    "last_scanned_at": null,
+    "created_at": "2026-11-02T15:00:00+03:00",
+    "updated_at": "2026-11-02T15:00:00+03:00",
+    "organization": {
+      "id": 2,
+      "name": "Woreda 01 Administration",
+      "code": "woreda-01"
+    }
+  },
+  "errors": null
+}
+```
+
+---
+
+### `POST /api/v1/qr-codes/{code}/scan`
+Public QR poster scan logging and destination redirection resolver.
+- **Authentication**: None (Public)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Scan recorded successfully.",
+  "data": {
+    "target_url": "https://civiclink.gov.et/organizations/woreda-01/services",
+    "scan_count": 1,
+    "label": "Woreda 01 Public Service Hall Information Desk"
+  },
+  "errors": null
+}
+```
+- **Error Response — Unknown Poster (404 Not Found)**:
+```json
+{
+  "success": false,
+  "message": "QR poster not found.",
+  "data": null,
+  "errors": null
+}
+```
+
+---
+
+## 15. Civic Events & Photo Gallery
+
+Community civic events, public consultations, town halls, and health/sanitation initiatives organized by administrative units. Events support multi-image photo galleries with custom captions and sorting.
+
+---
+
+### `GET /api/v1/events`
+List civic events. When called by unauthenticated citizens, returns published upcoming events. When called by authenticated administrators, returns events scoped to their administrative domain.
+- **Authentication**: None (Public) or `auth:sanctum` + `account.active`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Events retrieved successfully.",
+  "data": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": 1,
+        "organization_id": 1,
+        "title": "Town Hall Meeting on Digital Civic Services",
+        "description": "Public consultation with Bole Sub-City residents on digitized public service workflows.",
+        "location_name": "Bole Sub-City Multi-Purpose Hall, 2nd Floor",
+        "event_date": "2026-11-15T09:00:00+03:00",
+        "end_date": "2026-11-15T13:00:00+03:00",
+        "audience": "Residents of Bole Sub-City",
+        "status": "published",
+        "created_at": "2026-11-01T09:00:00+03:00",
+        "updated_at": "2026-11-01T09:00:00+03:00",
+        "organization": {
+          "id": 1,
+          "name": "Bole Sub-City Administration",
+          "code": "subcity-bole"
+        },
+        "images": [
+          {
+            "id": 1,
+            "event_id": 1,
+            "image_url": "https://civiclink.gov.et/storage/events/townhall_banner.jpg",
+            "caption": "Town hall public announcement banner",
+            "order_column": 1
+          },
+          {
+            "id": 2,
+            "event_id": 1,
+            "image_url": "https://civiclink.gov.et/storage/events/hall_setup.jpg",
+            "caption": "Auditorium seating layout",
+            "order_column": 2
+          }
+        ]
+      }
+    ],
+    "total": 1,
+    "per_page": 15
+  },
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/events/{event}`
+Retrieve detailed information for a single civic event including its complete photo gallery.
+- **Authentication**: None (Public)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Event details retrieved successfully.",
+  "data": {
+    "id": 1,
+    "organization_id": 1,
+    "title": "Town Hall Meeting on Digital Civic Services",
+    "description": "Public consultation with Bole Sub-City residents on digitized public service workflows.",
+    "location_name": "Bole Sub-City Multi-Purpose Hall, 2nd Floor",
+    "event_date": "2026-11-15T09:00:00+03:00",
+    "end_date": "2026-11-15T13:00:00+03:00",
+    "audience": "Residents of Bole Sub-City",
+    "status": "published",
+    "organization": {
+      "id": 1,
+      "name": "Bole Sub-City Administration",
+      "code": "subcity-bole"
+    },
+    "images": [
+      {
+        "id": 1,
+        "event_id": 1,
+        "image_url": "https://civiclink.gov.et/storage/events/townhall_banner.jpg",
+        "caption": "Town hall public announcement banner",
+        "order_column": 1
+      }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `POST /api/v1/events`
+Publish a new community event with multiple gallery photos.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `events.create`
+- **Request Body**:
+```json
+{
+  "organization_id": 1,
+  "title": "Public Health & Sanitation Forum",
+  "description": "Community workshop detailing upcoming health inspection guidelines and waste disposal initiatives.",
+  "location_name": "Woreda 01 Community Center",
+  "event_date": "2026-11-20T10:00:00+03:00",
+  "end_date": "2026-11-20T15:00:00+03:00",
+  "audience": "Local business operators & community elders",
+  "status": "published",
+  "images": [
+    {
+      "image_url": "https://civiclink.gov.et/storage/events/health_forum_1.jpg",
+      "caption": "Health symposium podium",
+      "order_column": 1
+    },
+    {
+      "image_url": "https://civiclink.gov.et/storage/events/health_forum_2.jpg",
+      "caption": "Information pamphlet distribution",
+      "order_column": 2
+    }
+  ]
+}
+```
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Community event created successfully.",
+  "data": {
+    "id": 2,
+    "organization_id": 1,
+    "title": "Public Health & Sanitation Forum",
+    "description": "Community workshop detailing upcoming health inspection guidelines and waste disposal initiatives.",
+    "location_name": "Woreda 01 Community Center",
+    "event_date": "2026-11-20T10:00:00+03:00",
+    "end_date": "2026-11-20T15:00:00+03:00",
+    "audience": "Local business operators & community elders",
+    "status": "published",
+    "created_at": "2026-11-02T16:00:00+03:00",
+    "updated_at": "2026-11-02T16:00:00+03:00",
+    "organization": {
+      "id": 1,
+      "name": "Bole Sub-City Administration",
+      "code": "subcity-bole"
+    },
+    "images": [
+      {
+        "id": 3,
+        "event_id": 2,
+        "image_url": "https://civiclink.gov.et/storage/events/health_forum_1.jpg",
+        "caption": "Health symposium podium",
+        "order_column": 1
+      },
+      {
+        "id": 4,
+        "event_id": 2,
+        "image_url": "https://civiclink.gov.et/storage/events/health_forum_2.jpg",
+        "caption": "Information pamphlet distribution",
+        "order_column": 2
+      }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `DELETE /api/v1/events/{event}`
+Deletes an event and automatically cascades deletion of all associated gallery photos.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `events.delete`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Event deleted successfully.",
+  "data": null,
+  "errors": null
+}
+```
+
+---
+
+## 16. Landing Page CMS Management
 
 ### `GET /api/v1/cms/landing-page`
 Publicly retrieves the complete 8-section citizen landing page configuration tree.

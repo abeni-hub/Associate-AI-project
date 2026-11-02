@@ -21,8 +21,11 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             UserSeeder::class,
+            NavigationItemSeeder::class,
             ServiceSeeder::class,
             NewsSeeder::class,
+            EventSeeder::class,
+            QrCodeSeeder::class,
             LandingPageCmsSeeder::class,
         ]);
     }

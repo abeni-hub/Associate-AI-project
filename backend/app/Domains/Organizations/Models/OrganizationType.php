@@ -77,9 +77,11 @@ class OrganizationType extends Model
 
     /**
      * Check if a given organization type is an allowed parent.
+     * Enforces statutory hierarchy: parent must have a lower level number (higher rank).
+     * Level 1 (Sub-City) -> Level 2 (Woreda) -> Level 3 (Bureau)
      */
     public function isAllowedParentType(self $parentType): bool
     {
-        return $this->allowedParents()->where('allowed_parent_type_id', $parentType->id)->exists();
+        return $parentType->level < $this->level;
     }
 }

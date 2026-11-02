@@ -50,7 +50,6 @@ class DatabaseMigrationIntegrityTest extends TestCase
             'tracking_number',
             'full_name',
             'phone_number',
-            'email',
             'created_at',
             'updated_at',
         ];
