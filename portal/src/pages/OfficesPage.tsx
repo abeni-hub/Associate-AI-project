@@ -68,9 +68,13 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
       return apiOrgs.data.map((o) => ({
         id: o.id,
         name: o.name,
+        code: o.code,
         typeId: o.organization_type_id,
         parentId: o.parent_organization_id ?? null,
-        admin: o.email || 'Lead Administrator',
+        admin: o.email || o.phone || 'Administrative Desk',
+        email: o.email || '',
+        phone: o.phone || '',
+        address: o.address || '',
         status: o.status === 'active' ? 'Active' : 'Inactive',
         services: o.services_count ?? 0,
         completion: 100,
@@ -94,18 +98,13 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
     const type = officeTypes.find((t: OfficeType) => t.id === item.typeId);
     const parentSummary = getOfficeParentSummary(item, offices, officeTypes);
     const matchesType = selectedTypeId === 'all' || item.typeId === Number(selectedTypeId);
-    const query = `${item.name} ${item.admin} ${item.status} ${type?.name || ''} ${parentSummary}`.toLowerCase();
+    const query = `${item.name} ${item.code || ''} ${item.email || ''} ${item.phone || ''} ${item.status} ${type?.name || ''} ${parentSummary}`.toLowerCase();
     return matchesType && query.includes(search.toLowerCase());
   });
 
   const subcityCount = scopedOffices.filter((o: OfficeItem) => o.typeId === 1).length;
-  const bureauCount = scopedOffices.filter((o: OfficeItem) => o.typeId === 2 || o.typeId === 3).length;
-  const avgCompletion = scopedOffices.length
-    ? Math.round(
-        scopedOffices.reduce((acc: number, curr: OfficeItem) => acc + (curr.completion || 0), 0) /
-          scopedOffices.length
-      )
-    : 0;
+  const woredaCount = scopedOffices.filter((o: OfficeItem) => o.typeId === 2).length;
+  const bureauCount = scopedOffices.filter((o: OfficeItem) => o.typeId === 3).length;
 
   const handleOpenAdd = () => {
     if (onAddOffice) {
@@ -122,6 +121,18 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
     } else {
       setSelectedOfficeForEdit(office);
       setIsOfficeModalOpen(true);
+    }
+  };
+
+  const handleSaveOffice = async (payload: any) => {
+    try {
+      if (payload.id) {
+        await updateOrgTrigger(payload).unwrap();
+      } else {
+        await createOrgTrigger(payload).unwrap();
+      }
+    } catch (err: any) {
+      window.alert(err?.data?.message || 'Failed to save office.');
     }
   };
 
@@ -152,29 +163,29 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
           icon="sitemap"
           label="Total offices"
           value={scopedOffices.length}
-          note="Across all administrative levels"
+          note="All administrative levels"
           tone="teal"
         />
         <MetricCard
           icon="map"
           label="Sub-cities"
           value={subcityCount}
-          note="Chartered administrations"
+          note="Level 1 chartered anchors"
           tone="sage"
+        />
+        <MetricCard
+          icon="layers"
+          label="Woredas"
+          value={woredaCount}
+          note="Level 2 local districts"
+          tone="blue"
         />
         <MetricCard
           icon="building"
           label="Sector bureaus"
           value={bureauCount}
-          note="Specialized public offices"
+          note="Level 3 public service offices"
           tone="gold"
-        />
-        <MetricCard
-          icon="check"
-          label="Avg completion"
-          value={`${avgCompletion}%`}
-          note="Information readiness"
-          tone="blue"
         />
       </div>
 
@@ -242,7 +253,7 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
                 <tr>
                   <th>OFFICE / JURISDICTION</th>
                   <th>CLASSIFICATION</th>
-                  <th>ADMINISTRATOR</th>
+                  <th>CONTACT</th>
                   <th>SERVICES</th>
                   <th>STATUS</th>
                   <th>ACTIONS</th>
@@ -259,31 +270,34 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
                         <div className="entity-cell">
                           <span className="entity-icon">
                             <Icon
-                              name={item.typeId === 1 ? 'map' : item.typeId === 2 ? 'building' : 'layers'}
+                              name={item.typeId === 1 ? 'map' : item.typeId === 2 ? 'layers' : 'building'}
                               size={17}
                             />
                           </span>
                           <div>
                             <b>{item.name}</b>
+                            {item.code && (
+                              <small style={{ display: 'block', fontSize: '11px', color: '#64748b' }}>
+                                Code: {item.code}
+                              </small>
+                            )}
                             {parentSummary && (
-                              <span className="lineage-badge">↳ Parent office: {parentSummary}</span>
+                              <span className="lineage-badge">↳ Parent: {parentSummary}</span>
                             )}
                           </div>
                         </div>
                       </td>
                       <td>
-                        <span className="role-tag office-classification-tag">{type?.name || 'Office'}</span>
+                        <span className="role-tag office-classification-tag">
+                          {type?.name || (item.typeId === 1 ? 'Sub-City' : item.typeId === 2 ? 'Woreda' : 'Bureau')}
+                        </span>
                       </td>
                       <td>
-                        <span className="table-person">
-                          <span className="mini-avatar">
-                            {item.admin
-                              .split(' ')
-                              .map((n: string) => n[0])
-                              .join('')}
-                          </span>
-                          <span>{item.admin}</span>
-                        </span>
+                        <div style={{ fontSize: '12px', color: '#334155' }}>
+                          {item.email && <div>{item.email}</div>}
+                          {item.phone && <div style={{ color: '#64748b', fontSize: '11px' }}>{item.phone}</div>}
+                          {!item.email && !item.phone && <span style={{ color: '#94a3b8' }}>—</span>}
+                        </div>
                       </td>
                       <td>
                         <b>{item.services}</b> guides
@@ -362,10 +376,13 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
       <OfficeModal
         isOpen={isOfficeModalOpen}
         office={selectedOfficeForEdit}
+        officeTypes={officeTypes}
+        offices={offices}
         onClose={() => {
           setIsOfficeModalOpen(false);
           setSelectedOfficeForEdit(null);
         }}
+        onSave={handleSaveOffice}
       />
     </>
   );

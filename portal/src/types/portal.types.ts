@@ -52,8 +52,12 @@ export interface OfficeItem {
   id: number;
   typeId: number;
   name: string;
+  code?: string;
   parentId: number | null;
-  admin: string;
+  admin?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
   services: number;
   completion: number;
   status: 'Active' | 'Inactive' | string;
@@ -79,8 +83,12 @@ export interface AccountItem {
   id: number;
   name: string;
   username: string;
+  email?: string;
+  phone?: string;
   role: string;
+  role_id?: number;
   organization: string;
+  organization_id?: number | null;
   status: string;
   lastActive: string;
 }
@@ -156,6 +164,9 @@ export interface PostItem {
     isVirtual?: boolean;
   };
   coverImage?: string;
+  images?: string[];
+  organization_id?: number;
+  contents?: any[];
   author?: {
     name?: string;
     nameAm?: string;

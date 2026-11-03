@@ -4,6 +4,7 @@ import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
 import { MetricCard } from '../components/shared/MetricCard';
 import { StatusPill } from '../components/shared/StatusPill';
+import { AccountModal } from '../components/accounts/AccountModal';
 import type { AccountItem } from '../types/portal.types';
 import {
   useGetUsersQuery,
@@ -46,8 +47,12 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
         id: u.id,
         name: u.name,
         username: u.username,
+        email: u.email,
+        phone: u.phone,
         role: u.role?.name || 'Staff',
-        organization: u.organization?.name || 'Addis Ababa City Administration',
+        role_id: u.role?.id,
+        organization: u.organization?.name || (u.role?.slug === 'super_admin' ? 'Global Platform' : 'Unassigned'),
+        organization_id: u.organization?.id,
         status: u.status === 'active' ? 'Active' : 'Inactive',
         lastActive: u.last_login_at
           ? new Date(u.last_login_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -58,94 +63,38 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
     return [];
   }, [propItems, usersResponse]);
 
-  const onAdd =
-    propOnAdd ||
-    (() => {
-      portal.openForm({
-        eyebrow: 'ACCESS & PERMISSIONS',
-        title: 'Create an administrator account',
-        description: 'Assign credentials, role, and organizational workspace.',
-        submit: 'Create account',
-        fields: [
-          { name: 'name', label: 'Full name', required: true },
-          { name: 'username', label: 'Username', required: true },
-          { name: 'email', label: 'Work email', type: 'email', required: true },
-          {
-            name: 'password',
-            label: 'Initial password',
-            type: 'password',
-            required: true,
-            placeholder: 'Min 8 characters',
-          },
-          {
-            name: 'role_id',
-            label: 'Role',
-            type: 'select',
-            required: true,
-            options: ['Sub-City Admin (ID 2)', 'Woreda Admin (ID 3)', 'Bureau Admin (ID 4)', 'Staff (ID 5)'],
-          },
-          {
-            name: 'organization_id',
-            label: 'Organization ID',
-            placeholder: 'e.g. 1',
-            required: true,
-          },
-        ],
-        onSubmit: async (v) => {
-          try {
-            const roleMatch = v.role_id.match(/\(ID\s*(\d+)\)/);
-            const roleId = roleMatch ? parseInt(roleMatch[1], 10) : 2;
-            const orgId = parseInt(v.organization_id || '1', 10);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [selectedAccountForEdit, setSelectedAccountForEdit] = useState<AccountItem | null>(null);
 
-            await createUserTrigger({
-              name: v.name,
-              username: v.username,
-              email: v.email,
-              password: v.password,
-              role_id: roleId,
-              organization_id: orgId,
-              status: 'active',
-            }).unwrap();
-          } catch {
-            portal.createForPage('accounts');
-          }
-        },
-      });
-    });
+  const handleOpenAdd = () => {
+    if (propOnAdd) {
+      propOnAdd();
+    } else {
+      setSelectedAccountForEdit(null);
+      setIsAccountModalOpen(true);
+    }
+  };
 
-  const onEdit =
-    propOnEdit ||
-    ((item: AccountItem) => {
-      portal.openForm({
-        eyebrow: 'ACCESS & PERMISSIONS',
-        title: 'Edit administrator account',
-        description: 'Update user profile and active access status.',
-        submit: 'Save changes',
-        fields: [
-          { name: 'name', label: 'Full name', required: true, value: item.name },
-          { name: 'username', label: 'Username', required: true, value: item.username },
-          {
-            name: 'status',
-            label: 'Account status',
-            type: 'select',
-            required: true,
-            value: item.status,
-            options: ['Active', 'Inactive'],
-          },
-        ],
-        onSubmit: async (v) => {
-          try {
-            await updateUserTrigger({
-              id: item.id,
-              name: v.name,
-              status: v.status === 'Active' ? 'active' : 'inactive',
-            }).unwrap();
-          } catch {
-            // Local state update
-          }
-        },
-      });
-    });
+  const handleOpenEdit = (item: AccountItem) => {
+    if (propOnEdit) {
+      propOnEdit(item);
+    } else {
+      setSelectedAccountForEdit(item);
+      setIsAccountModalOpen(true);
+    }
+  };
+
+  const handleSaveAccount = async (payload: any) => {
+    try {
+      if (payload.id) {
+        await updateUserTrigger(payload).unwrap();
+      } else {
+        await createUserTrigger(payload).unwrap();
+      }
+    } catch (err: any) {
+      window.alert(err?.data?.message || 'Failed to save account.');
+    }
+  };
 
   const handleDeleteUser = async (user: AccountItem) => {
     if (window.confirm(`Are you sure you want to delete administrator account "${user.name}" (@${user.username})?`)) {
@@ -159,10 +108,10 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
 
   const filtered = items.filter(
     (item) =>
-      (roleFilter === 'All roles' || item.role.toLowerCase().includes(roleFilter.toLowerCase())) &&
-      `${item.name} ${item.username} ${item.role} ${item.organization}`
+      (roleFilter === 'All roles' || (item.role || '').toLowerCase().includes(roleFilter.toLowerCase())) &&
+      `${item.name || ''} ${item.username || ''} ${item.role || ''} ${item.organization || ''}`
         .toLowerCase()
-        .includes(search.toLowerCase())
+        .includes((search || '').toLowerCase())
   );
 
   const activeCount = items.filter((i) => i.status === 'Active').length;
@@ -175,7 +124,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
         title="Accounts"
         subtitle="Manage administrator access and credentials across every connected organization."
         action="Create account"
-        onAction={onAdd}
+        onAction={handleOpenAdd}
         secondary="Export list"
         onSecondary={() => window.alert('Account list export is ready.')}
       />
@@ -226,7 +175,9 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
               <option>All roles</option>
               <option>Super Admin</option>
               <option>Sub-City Admin</option>
+              <option>Woreda Admin</option>
               <option>Bureau Admin</option>
+              <option>Staff</option>
             </select>
           </div>
         </div>
@@ -253,8 +204,9 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
                   <td>
                     <span className="table-person">
                       <span className="mini-avatar">
-                        {item.name
+                        {(item.name || 'User')
                           .split(' ')
+                          .filter(Boolean)
                           .map((n) => n[0])
                           .join('')}
                       </span>
@@ -275,7 +227,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
                   <td className="table-action-cell" style={{ display: 'flex', gap: '6px' }}>
                     <button
                       className="button secondary small-button"
-                      onClick={() => onEdit(item)}
+                      onClick={() => handleOpenEdit(item)}
                     >
                       Edit
                     </button>
@@ -300,6 +252,16 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
           )}
         </div>
       </section>
+
+      <AccountModal
+        isOpen={isAccountModalOpen}
+        account={selectedAccountForEdit}
+        onClose={() => {
+          setIsAccountModalOpen(false);
+          setSelectedAccountForEdit(null);
+        }}
+        onSave={handleSaveAccount}
+      />
     </>
   );
 };

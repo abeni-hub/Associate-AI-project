@@ -5,6 +5,7 @@ import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
 import { StatusPill } from '../components/shared/StatusPill';
+import { NewsModal } from '../components/news/NewsModal';
 import type { PostItem } from '../types/portal.types';
 import {
   useGetNewsListQuery,
@@ -64,21 +65,48 @@ export const NewsPage: React.FC<NewsPageProps> = ({
     if (propItems && propItems.length > 0) return propItems;
 
     if (newsApiResponse?.data && newsApiResponse.data.length > 0) {
-      return newsApiResponse.data.map((art) => ({
-        id: art.id,
-        title: art.news_title,
-        titleAm: '',
-        type: 'news' as const,
-        date: art.created_at ? art.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-        status: 'Published' as const,
-        isPublished: true,
-        subCity: art.organization?.name || 'Addis Ababa City Administration',
-        category: 'Public notice',
-        summary: art.contents?.[0]?.content || 'Official Municipal Announcement',
-        excerpt: art.contents?.[0]?.content || '',
-        content: art.contents?.map((c) => c.content).join('\n\n') || '',
-        views: 0,
-      }));
+      return newsApiResponse.data.map((art) => {
+        const imageBlocks =
+          art.contents?.filter(
+            (c) => c.content_type === 'image_url' || c.content_type === 'image'
+          ) || [];
+        const textBlocks =
+          art.contents?.filter(
+            (c) => c.content_type !== 'image_url' && c.content_type !== 'image'
+          ) || [];
+
+        const summaryText =
+          textBlocks.length > 1
+            ? textBlocks[0].content
+            : textBlocks[0]?.content
+            ? (textBlocks[0].content.length > 160
+                ? textBlocks[0].content.slice(0, 160) + '...'
+                : textBlocks[0].content)
+            : 'Official Municipal Announcement';
+
+        const fullContent = textBlocks.map((c) => c.content).join('\n\n');
+
+        return {
+          id: art.id,
+          title: art.news_title,
+          titleAm: '',
+          type: 'news' as const,
+          date: art.created_at ? art.created_at.split('T')[0] : 'Recent',
+          status: 'Published' as const,
+          isPublished: true,
+          subCity: art.organization?.name || 'Addis Ababa City Administration',
+          category: 'Public notice',
+          coverImage: imageBlocks[0]?.content,
+          images: imageBlocks.map((b) => b.content),
+          summary: summaryText,
+          excerpt: summaryText,
+          content: fullContent,
+          views: 0,
+          organization_id: art.organization_id,
+          organization: art.organization,
+          contents: art.contents,
+        };
+      });
     }
 
     return [];
@@ -87,82 +115,45 @@ export const NewsPage: React.FC<NewsPageProps> = ({
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;
 
-  const onAdd =
-    propOnAdd ||
-    (() => {
-      portal.openForm({
-        eyebrow: 'PUBLIC INFORMATION',
-        title: 'Create an update',
-        description: 'Publish an official municipal notice or announcement.',
-        submit: 'Publish update',
-        fields: [
-          { name: 'title', label: 'Title', required: true },
-          { name: 'summary', label: 'Summary', type: 'textarea', required: true },
-          { name: 'content', label: 'Full Announcement Details', type: 'textarea', rows: 5, full: true },
-        ],
-        onSubmit: async (values) => {
-          try {
-            await createNews({
-              news_title: values.title,
-              organization_id: portal.session?.user?.organization?.id || 1,
-              contents: [
-                { content: values.summary, content_type: 'text', order: 1 },
-                ...(values.content ? [{ content: values.content, content_type: 'text', order: 2 }] : []),
-              ],
-            }).unwrap();
-            portal.setModal(null);
-          } catch {
-            portal.createForPage('news');
-          }
-        },
-      });
-    });
+  const [isNewsModalOpen, setIsNewsModalOpen] = useState(false);
+  const [selectedNewsForEdit, setSelectedNewsForEdit] = useState<PostItem | null>(null);
 
-  const onEdit =
-    propOnEdit ||
-    ((item: PostItem) => {
-      portal.openForm({
-        eyebrow: 'PUBLIC INFORMATION',
-        title: 'Edit update',
-        description: 'Update article title and content blocks.',
-        submit: 'Save changes',
-        fields: [
-          { name: 'title', label: 'Title', required: true, value: item.title },
-          {
-            name: 'summary',
-            label: 'Summary',
-            type: 'textarea',
-            required: true,
-            value: item.summary || item.excerpt,
+  const handleOpenAdd = () => {
+    if (propOnAdd) {
+      propOnAdd();
+    } else {
+      setSelectedNewsForEdit(null);
+      setIsNewsModalOpen(true);
+    }
+  };
+
+  const handleOpenEdit = (item: PostItem) => {
+    if (propOnEdit) {
+      propOnEdit(item);
+    } else {
+      setSelectedNewsForEdit(item);
+      setIsNewsModalOpen(true);
+    }
+  };
+
+  const handleSaveNews = async (payload: any) => {
+    try {
+      if (payload.id) {
+        await updateNews({
+          id: payload.id,
+          body: {
+            news_title: payload.news_title,
+            organization_id: payload.organization_id,
+            contents: payload.contents,
           },
-          {
-            name: 'content',
-            label: 'Full Details',
-            type: 'textarea',
-            rows: 5,
-            full: true,
-            value: item.content,
-          },
-        ],
-        onSubmit: async (values) => {
-          try {
-            await updateNews({
-              id: item.id,
-              body: {
-                news_title: values.title,
-                contents: [
-                  { content: values.summary, content_type: 'text', order: 1 },
-                  ...(values.content ? [{ content: values.content, content_type: 'text', order: 2 }] : []),
-                ],
-              },
-            }).unwrap();
-            portal.setModal(null);
-          } catch {
-            portal.onUpdatePost(item.id, values);
-          }
-        },
-      });
-    });
+        }).unwrap();
+      } else {
+        await createNews(payload).unwrap();
+      }
+    } catch (err: any) {
+      window.alert(err?.data?.message || 'Failed to save news article.');
+    }
+  };
 
   const handleDelete = async (id: number | string) => {
     if (window.confirm('Are you sure you want to delete this news article?')) {
@@ -216,7 +207,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({
         title="News & events"
         subtitle="Manage the bilingual updates and public events shown to residents in the client app."
         action="Create an update"
-        onAction={onAdd}
+        onAction={handleOpenAdd}
       />
 
       <section className="feed-overview" aria-label="Public client feed status">
@@ -331,7 +322,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({
                   <button
                     type="button"
                     className="button secondary small-button"
-                    onClick={() => onEdit(item)}
+                    onClick={() => handleOpenEdit(item)}
                   >
                     Edit
                   </button>
@@ -368,6 +359,16 @@ export const NewsPage: React.FC<NewsPageProps> = ({
           </span>
         </div>
       </section>
+
+      <NewsModal
+        isOpen={isNewsModalOpen}
+        item={selectedNewsForEdit}
+        onClose={() => {
+          setIsNewsModalOpen(false);
+          setSelectedNewsForEdit(null);
+        }}
+        onSave={handleSaveNews}
+      />
     </>
   );
 };

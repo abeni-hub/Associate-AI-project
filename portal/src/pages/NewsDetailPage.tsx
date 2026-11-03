@@ -37,19 +37,28 @@ export const NewsDetailPage: React.FC = () => {
   const item: PostItem | undefined = React.useMemo(() => {
     if (apiArticle?.data) {
       const art = apiArticle.data;
+      const imageBlock = art.contents?.find(
+        (c: any) => c.content_type === 'image_url' || c.content_type === 'image'
+      );
+      const textBlocks =
+        art.contents?.filter(
+          (c: any) => c.content_type !== 'image_url' && c.content_type !== 'image'
+        ) || [];
+
       return {
         id: art.id,
         title: art.news_title,
         titleAm: '',
         type: 'news' as const,
-        date: art.created_at ? art.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+        date: art.created_at ? art.created_at.split('T')[0] : 'Recent',
         status: 'Published' as const,
         isPublished: true,
         subCity: art.organization?.name || 'City Administration',
         category: 'Public notice',
-        summary: art.contents?.[0]?.content || '',
-        excerpt: art.contents?.[0]?.content || '',
-        content: art.contents?.map((c) => c.content).join('\n\n') || '',
+        coverImage: imageBlock?.content,
+        summary: textBlocks[0]?.content || '',
+        excerpt: textBlocks[0]?.content || '',
+        content: textBlocks.map((c: any) => c.content).join('\n\n') || '',
         views: 0,
       };
     }
