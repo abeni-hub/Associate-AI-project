@@ -75,6 +75,9 @@ class PermissionSeeder extends Seeder
 
             // Audit Logs
             ['key' => 'audit_logs.view', 'name' => 'View Audit Logs', 'group' => 'audit_logs', 'description' => 'Inspect administrative audit trails.'],
+
+            // CMS Landing Page Management
+            ['key' => 'cms.manage', 'name' => 'Manage Landing Page CMS', 'group' => 'cms', 'description' => 'Manage citizen landing page CMS and announcements.'],
         ];
 
         foreach ($permissions as $permission) {

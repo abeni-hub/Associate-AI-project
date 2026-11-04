@@ -87,6 +87,7 @@ export interface AccountItem {
   phone?: string;
   role: string;
   role_id?: number;
+  roleId?: number;
   organization: string;
   organization_id?: number | null;
   status: string;

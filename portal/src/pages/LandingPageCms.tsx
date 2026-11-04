@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import LiveLandingPreview from '../components/cms/LiveLandingPreview.jsx';
 import { INITIAL_CMS_CONFIG } from '../data/portalData.js';
+import {
+  useGetLandingPageCmsQuery,
+  useUpdateLandingPageCmsMutation,
+  useUploadCmsImageMutation,
+} from '../services/cmsApi';
 
 export interface LandingPageCmsProps {
   cmsConfig?: any;
@@ -80,7 +85,18 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
   cmsConfig = INITIAL_CMS_CONFIG,
   onSaveCms,
 }) => {
+  const { data: apiCmsResponse } = useGetLandingPageCmsQuery();
+  const [updateCmsTrigger, { isLoading: isPublishing }] = useUpdateLandingPageCmsMutation();
+  const [uploadImageTrigger] = useUploadCmsImageMutation();
+
   const [cms, setCms] = useState(() => JSON.parse(JSON.stringify(cmsConfig || INITIAL_CMS_CONFIG)));
+
+  useEffect(() => {
+    if (apiCmsResponse?.data) {
+      setCms(apiCmsResponse.data);
+    }
+  }, [apiCmsResponse]);
+
   const [activeTab, setActiveTab] = useState('announcement');
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [toastMessage, setToastMessage] = useState('');
@@ -146,9 +162,15 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
     });
   };
 
-  const handlePublish = () => {
-    onSaveCms?.(cms);
-    setToastMessage('Landing page content successfully published to citizen platform!');
+  const handlePublish = async () => {
+    try {
+      await updateCmsTrigger(cms).unwrap();
+      onSaveCms?.(cms);
+      setToastMessage('Landing page content successfully published to citizen platform!');
+    } catch (err: any) {
+      onSaveCms?.(cms);
+      setToastMessage('Changes saved locally.');
+    }
     setTimeout(() => setToastMessage(''), 3500);
   };
 

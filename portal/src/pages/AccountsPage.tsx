@@ -5,6 +5,7 @@ import { SearchBox } from '../components/shared/SearchBox';
 import { MetricCard } from '../components/shared/MetricCard';
 import { StatusPill } from '../components/shared/StatusPill';
 import { AccountModal } from '../components/accounts/AccountModal';
+import { EditUserRoleModal } from '../components/modals/EditUserRoleModal';
 import type { AccountItem } from '../types/portal.types';
 import {
   useGetUsersQuery,
@@ -51,6 +52,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
         phone: u.phone,
         role: u.role?.name || 'Staff',
         role_id: u.role?.id,
+        roleId: u.role?.id,
         organization: u.organization?.name || (u.role?.slug === 'super_admin' ? 'Global Platform' : 'Unassigned'),
         organization_id: u.organization?.id,
         status: u.status === 'active' ? 'Active' : 'Inactive',
@@ -65,6 +67,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
 
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [selectedAccountForEdit, setSelectedAccountForEdit] = useState<AccountItem | null>(null);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [selectedAccountForRole, setSelectedAccountForRole] = useState<AccountItem | null>(null);
 
   const handleOpenAdd = () => {
     if (propOnAdd) {
@@ -233,6 +237,16 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
                     </button>
                     <button
                       className="button secondary small-button"
+                      onClick={() => {
+                        setSelectedAccountForRole(item);
+                        setIsRoleModalOpen(true);
+                      }}
+                      title="Manage roles and custom permissions"
+                    >
+                      Role
+                    </button>
+                    <button
+                      className="button secondary small-button"
                       style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
                       onClick={() => handleDeleteUser(item)}
                       title="Delete account"
@@ -261,6 +275,15 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
           setSelectedAccountForEdit(null);
         }}
         onSave={handleSaveAccount}
+      />
+
+      <EditUserRoleModal
+        isOpen={isRoleModalOpen}
+        user={selectedAccountForRole}
+        onClose={() => {
+          setIsRoleModalOpen(false);
+          setSelectedAccountForRole(null);
+        }}
       />
     </>
   );

@@ -1,6 +1,13 @@
 import { useState, useEffect, useMemo, type ChangeEvent, type FormEvent } from 'react';
-import { getItemById, submitEventRsvp, getRelatedItems } from '../services/newsEventsService';
+import {
+  getItemById,
+  submitEventRsvp,
+  getRelatedItems,
+  parseNewsItem,
+  parseEventItem,
+} from '../services/newsEventsService';
 import { useGetNewsByIdQuery } from '../services/newsApi.js';
+import { useGetEventByIdQuery } from '../services/eventsApi.js';
 import DetailArticleContent from '../components/item-detail/DetailArticleContent.jsx';
 import DetailBreadcrumbs from '../components/item-detail/DetailBreadcrumbs.jsx';
 import DetailHeader from '../components/item-detail/DetailHeader.jsx';
@@ -29,10 +36,16 @@ export default function ItemDetailPage({
 }: ItemDetailPageProps) {
   const isAm = language === 'am';
 
-  // Check if itemId is numeric for backend RTK Query lookup
-  const isNumericId = /^\d+$/.test(itemId);
-  const { data: apiArticle, isLoading: apiLoading } = useGetNewsByIdQuery(itemId, {
-    skip: !isNumericId,
+  const isEventRoute = String(itemId).startsWith('event-');
+  const cleanId = String(itemId).replace(/^(news-|event-)/, '');
+  const isNumericId = /^\d+$/.test(cleanId);
+
+  const { data: apiArticle, isLoading: apiNewsLoading } = useGetNewsByIdQuery(cleanId, {
+    skip: !isNumericId || isEventRoute,
+  });
+
+  const { data: apiEvent, isLoading: apiEventLoading } = useGetEventByIdQuery(cleanId, {
+    skip: !isNumericId || (!isEventRoute && !!apiArticle?.data),
   });
 
   const [localItem, setLocalItem] = useState<NewsEventItem | null>(null);
@@ -68,48 +81,16 @@ export default function ItemDetailPage({
 
   const item: NewsEventItem | null = useMemo(() => {
     if (apiArticle?.data) {
-      const art = apiArticle.data;
-      const contentList = art.contents || [];
-      const leadBlock = contentList[0]?.content || '';
-      const bodyBlocks = contentList.length > 1
-        ? contentList.slice(1).map((c: any) => c.content).join('\n\n')
-        : leadBlock;
-
-      return {
-        id: String(art.id),
-        type: 'news',
-        title: art.news_title,
-        titleAm: '',
-        slug: `news-${art.id}`,
-        summary: leadBlock,
-        summaryAm: '',
-        content: bodyBlocks,
-        contentAm: '',
-        category: 'Public notice',
-        categoryAm: 'ይፋዊ ማስታወቂያ',
-        subCity: art.organization?.name || 'All Addis Ababa',
-        subCityAm: 'መላው አዲስ አበባ',
-        bureau: art.organization?.name || 'City Administration',
-        bureauAm: 'የከተማ አስተዳደር',
-        author: {
-          name: art.organization?.name || 'Communications Directorate',
-          nameAm: art.organization?.name || 'የኮሙኒኬሽን ዳይሬክቶሬት',
-          role: 'Official Municipal Bureau',
-          roleAm: 'ይፋዊ የማዘጋጃ ቤት ቢሮ',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-        },
-        coverImage:
-          'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
-        publishedAt: art.created_at ? art.created_at.split('T')[0] : '2026-10-26',
-        readTimeMinutes: Math.max(1, Math.ceil((contentList.reduce((acc: number, c: any) => acc + (c.content?.length || 0), 0) || 500) / 400)),
-        isPublished: true,
-        tags: [art.organization?.name || 'Addis Ababa', 'Public Notice', 'Citizen Services'],
-      };
+      return parseNewsItem(apiArticle.data);
+    }
+    if (apiEvent?.data) {
+      return parseEventItem(apiEvent.data);
     }
     return localItem;
-  }, [apiArticle, localItem]);
+  }, [apiArticle, apiEvent, localItem]);
 
-  const loading = isNumericId ? (apiLoading && !localItem) : localLoading;
+  const apiLoading = (apiNewsLoading && !localItem) || (apiEventLoading && !localItem);
+  const loading = isNumericId ? apiLoading : localLoading;
 
   async function handleRsvpSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

@@ -3,6 +3,7 @@ import { usePortal } from '../context';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import type { BureauProfile } from '../types/portal.types';
+import { useUpdateOrganizationMutation } from '../services/organizationsApi';
 
 export interface OfficePageProps {
   profile?: BureauProfile;
@@ -16,14 +17,15 @@ export const OfficePage: React.FC<OfficePageProps> = ({
   const portal = usePortal();
   const user = portal.session?.user;
   const org = user?.organization;
+  const [updateOrgTrigger] = useUpdateOrganizationMutation();
 
   const defaultProfile: BureauProfile = useMemo(
     () => ({
       bureau: org?.name || 'Public Service Bureau',
       hours: 'Monday – Friday · 8:30 AM – 5:30 PM',
-      location: 'Addis Ababa City Administration',
+      location: (org as any)?.address || 'Addis Ababa City Administration',
       admin: user?.name || 'Bureau Administrator',
-      contact: user?.phone || user?.email || '+251 11 000 0000',
+      contact: (org as any)?.phone || user?.phone || user?.email || '+251 11 000 0000',
     }),
     [user, org]
   );
@@ -47,7 +49,21 @@ export const OfficePage: React.FC<OfficePageProps> = ({
           { name: 'admin', label: 'Bureau administrator', required: true, value: data.admin },
           { name: 'contact', label: 'Public contact phone', required: true, value: data.contact },
         ],
-        onSubmit: (v: any) => setLocalProfile((prev) => ({ ...(prev || defaultProfile), ...v })),
+        onSubmit: async (v: any) => {
+          setLocalProfile((prev) => ({ ...(prev || defaultProfile), ...v }));
+          if (org?.id) {
+            try {
+              await updateOrgTrigger({
+                id: org.id,
+                name: v.bureau,
+                address: v.location,
+                phone: v.contact,
+              }).unwrap();
+            } catch (err) {
+              console.warn('API error updating organization profile:', err);
+            }
+          }
+        },
       });
     });
 

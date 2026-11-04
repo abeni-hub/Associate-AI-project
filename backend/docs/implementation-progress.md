@@ -11,10 +11,16 @@
 | **Phase 5** | Organization and User Management | **Completed & Verified** | 2026-10-25 |
 | **Phase 6** | Services, Subservices, and Required Documents | **Completed & Verified** | 2026-10-25 |
 | **Phase 7** | Room-by-Room Service Instructions | **Completed & Verified** | 2026-10-26 |
-| **Phase 8** | News and Events Management | **Integrated & Verified** | 2026-10-26 |
-| **Phase 9** | Citizen Feedback and QR Code Management | **Integrated & Verified** | 2026-10-26 |
+| **Phase 8** | News and Events Management | **Completed & Verified** | 2026-10-26 |
+| **Phase 9** | Citizen Feedback and QR Code Management | **Completed & Verified** | 2026-10-26 |
 | **Phase 10** | Dashboards and Reporting | **Completed & Verified** | 2026-10-27 |
-| **Phase 11** | Final Integration, Security & Production Readiness | Pending | — |
+| **Phase 11** | Super Admin Landing Page CMS Domain | **Completed & Verified** | 2026-10-29 |
+| **V3 Phase 1** | Database Migrations (v3 Architecture & Client Feedback) | **Completed & Verified** | 2026-11-02 |
+| **V3 Phase 2** | Eloquent Models & DDD Entities | **Completed & Verified** | 2026-11-02 |
+| **V3 Phase 3** | Database Seeders & Role Mapping | **Completed & Verified** | 2026-11-02 |
+| **V3 Phase 4** | Scoped RBAC, Business Services & Navigation API | **Completed & Verified** | 2026-11-02 |
+| **V3 Phase 5** | Automated Integration Tests & Verification (226 Tests) | **Completed & Verified** | 2026-11-02 |
+| **V3 Phase 6** | Frontend Portal Dynamic Navigation & System Documentation | **Completed & Verified** | 2026-11-02 |
 
 ---
 
@@ -210,6 +216,137 @@
 - [x] Code Quality:
   - Formatted and verified with Laravel Pint (`vendor/bin/pint`).
 - [x] Documentation updated in `docs/api.md` (Section 11) and `docs/implementation-progress.md`.
+
+---
+
+## Phase 11 Detail — Super Admin Landing Page CMS Domain
+
+### Completed Milestones
+- [x] Database Schema & Migration:
+  - Created `landing_page_configs` table with `version`, `is_published`, `content` (jsonb/json), `updated_by` foreign key, and unique index on `['version']`.
+- [x] Domain-Driven Design (`app/Domains/Cms/`):
+  - Model: `LandingPageConfig` with array/boolean casts, `updatedBy` relation, and `current()` static helper.
+  - Actions:
+    - `GetLandingPageCmsAction`: Active published configuration retrieval with default fallback.
+    - `UpdateLandingPageCmsAction`: Transactional update, `updated_by` association, and `RecordAuditLogAction` audit logging.
+    - `UploadCmsImageAction`: Validates image, stores on `public` disk under `cms/hero/`, and returns absolute reachable URL.
+  - Support: `DefaultLandingPageContent` defining the complete 8-section payload matching citizen and portal specifications.
+- [x] Transport & HTTP Layer:
+  - `UpdateLandingPageCmsRequest`: Comprehensive validation rules for all 8 sections (`announcement`, `hero`, `quickSearch`, `serviceGuide`, `journey`, `newsEvents`, `feedback`, `footer`).
+  - `UploadCmsImageRequest`: File validation for jpeg, png, jpg, webp up to 5MB.
+  - `CmsController`: Public `show`, protected `update`, and protected `uploadImage` handlers using unified `ApiResponse`.
+- [x] RBAC & Routes:
+  - Seeded permission `cms.manage` in `PermissionSeeder` and granted to `super_admin`.
+  - Registered `GET /api/v1/cms/landing-page` (public).
+  - Registered `PUT /api/v1/cms/landing-page` and `POST /api/v1/cms/upload-image` (`auth:sanctum`, `account.active`, `permission:cms.manage`).
+- [x] Automated Feature Tests:
+  - `Tests\Feature\Api\V1\Cms\LandingPageCmsTest`: 9 tests, 113 assertions (100% passed).
+- [x] Full Backend Test Suite:
+  - 201 tests, 1,283 assertions (100% passed).
+
+---
+
+## Client Revision V3 Architecture Overhaul
+
+### V3 Phase 1 — Database Migrations (Schema Modernization)
+- [x] **Dynamic Sidebar Navigation**:
+  - `navigation_items`: Flat single-tier items (`id`, `label`, `route`, `icon`, `display_order`, `is_active`, `required_permission`). Dropped `parent_id` per client specifications.
+  - `role_navigation_items`: Many-to-many pivot table mapping navigation items to authorized system roles (`role_id`, `navigation_item_id`).
+- [x] **Scoped RBAC & Granular Permission CRUD**:
+  - Added `scope_level` integer column to `roles` table (1: Global Super Admin, 2: Sub-City Admin, 3: Woreda Admin, 4: Bureau Admin, 5: Staff).
+  - Enhanced `role_permissions` pivot with granular CRUD capability flags: `can_create`, `can_read`, `can_update`, `can_delete`.
+- [x] **Simplified Feedback Privacy**:
+  - Dropped `email` column from `feedbacks` table to respect citizen privacy and prevent personal identification leakage. Feedback submissions retain optional phone contact.
+- [x] **Standardized Service Catalog**:
+  - Dropped `specific_instructions` from `organization_services` pivot table to preserve central municipal standardization across offices.
+- [x] **Standalone Organization QR Posters**:
+  - Created standalone `qr_codes` table (`id`, `organization_id`, `code`, `label`, `target_url`, `scan_count`, `last_scanned_at`, `status`). Removed `service_id` to allow general organization arrival checkpoints.
+- [x] **Community Events & Multi-Photo Gallery**:
+  - Created `events` table (`id`, `organization_id`, `title`, `description`, `location_name`, `event_date`, `end_date`, `audience`, `status`).
+  - Created `event_images` 1:N photo gallery table (`id`, `event_id`, `image_url`, `caption`, `order_column`).
+- [x] **Forensic Audit Logging & Telemetry**:
+  - Enhanced `audit_logs` table: Added `status` (`success`, `failure`), `status_code` integer, `request_payload` (jsonb/json), and `response_payload` (jsonb/json) with automatic password and token masking.
+  - Dropped redundant `organization_id` column from `audit_logs` (resolved dynamically via `user->organization`).
+- [x] **Removed Statutory Hierarchy Pivot**:
+  - Dropped `organization_type_allowed_parents` table in favor of integer rank statutory hierarchy (`$parentType->level < $this->level`).
+
+---
+
+### V3 Phase 2 — Eloquent Models & DDD Entities
+- [x] Implemented `App\Domains\Navigation\Models\NavigationItem`:
+  - Belongs-to-many relationship with `Role` through `role_navigation_items`.
+  - Scopes: `scopeActive`, `scopeOrdered`.
+- [x] Implemented `App\Domains\QrCodes\Models\QrCode`:
+  - Belongs-to relationship with `Organization`.
+  - Scopes: `scopeActive`, helper `recordScan()`.
+- [x] Implemented `App\Domains\Events\Models\Event` and `EventImage`:
+  - 1:N relationship with `EventImage` (`images`).
+  - Belongs-to relationship with `Organization`.
+  - Scopes: `scopePublished`, `scopeUpcoming`.
+- [x] Updated `Role` and `Permission` models:
+  - Role includes `scope_level` cast and helper `canManageScope(Role $otherRole)`.
+  - `role_permissions` pivot equipped with `can_create`, `can_read`, `can_update`, `can_delete` booleans.
+- [x] Updated `Organization` and `OrganizationType`:
+  - `OrganizationType` statutory rank comparison: child types must have higher level integers than parent types (`$parentType->level < $this->level`).
+  - Circular hierarchy prevention on saved models (`$this->exists && $this->id !== null`).
+- [x] Updated `AuditLog`:
+  - Casts for `status_code`, `request_payload` (array), and `response_payload` (array).
+
+---
+
+### V3 Phase 3 — Database Seeders & Role Mapping
+- [x] `NavigationItemSeeder`: Seeded all 8 standard navigation items (`Overview`, `Sub-cities`, `Accounts`, `Feedback`, `Services`, `Routes`, `QR Poster`, `CMS`) and mapped them to their authorized roles in `role_navigation_items`.
+- [x] `RoleSeeder`: Updated with statutory `scope_level` values and granular CRUD permissions.
+- [x] `QrCodeSeeder`: Seeded sample organization QR posters for administrative offices.
+- [x] `EventSeeder`: Seeded upcoming civic events with multi-photo gallery entries.
+- [x] `OrganizationTypeSeeder`: Cleaned up to reflect statutory hierarchy levels without the allowed parents pivot.
+- [x] `DatabaseSeeder`: Integrated all new seeders into master seeding pipeline.
+
+---
+
+### V3 Phase 4 — Scoped RBAC, Business Services & Navigation API
+- [x] **Dynamic Sidebar Navigation**:
+  - Implemented `GetSidebarNavigationAction` delivering authorized sidebar menu items filtered by user role and ordered strictly by `display_order`.
+  - Implemented `NavigationController` with `GET /api/v1/navigation/sidebar`.
+- [x] **QR Code Poster Management & Public Scanning**:
+  - `GET /api/v1/qr-codes`: Scoped listing of posters within actor's hierarchy.
+  - `GET /api/v1/qr-codes/{qrCode}`: Poster detail retrieval.
+  - `POST /api/v1/qr-codes`: Poster creation within administrative hierarchy.
+  - `POST /api/v1/qr-codes/{code}/scan`: Public scan counter increment and target URL resolution.
+- [x] **Civic Events & Photo Gallery**:
+  - `GET /api/v1/events`: Public listing of upcoming published events or scoped admin management.
+  - `GET /api/v1/events/{event}`: Single event profile with multi-image gallery.
+  - `POST /api/v1/events`: Event creation with atomic gallery photo persistence.
+  - `DELETE /api/v1/events/{event}`: Event deletion cascading to all gallery images.
+- [x] **Privilege Escalation Protection**:
+  - `CreateUserRequest` and `UpdateUserRequest` enforce `canManageScope` validation: callers cannot create or assign users with equal or higher administrative rank (`scope_level`).
+
+---
+
+### V3 Phase 5 — Automated Feature Tests & Verification
+- [x] Developed comprehensive feature integration test suite `Tests\Feature\Api\V1\Phase5EndToEndIntegrationTest`:
+  - Dynamic navigation endpoint security and role-specific item filtering.
+  - Scope level hierarchy and privilege escalation prevention.
+  - Granular CRUD permission pivot capabilities.
+  - Standalone QR poster creation, hierarchy scoping, and public scanning.
+  - Civic event creation with multiple gallery photos and cascade deletion.
+  - Audit log forensic JSON payload capture, status code recording, and sensitive secret masking.
+- [x] Full Test Suite Execution:
+  - **226 tests passed, 1,445 assertions, 0 errors, 0 failures**.
+
+---
+
+### V3 Phase 6 — Frontend Portal Dynamic Navigation & System Documentation
+- [x] **Frontend Portal Integration (`portal/src/App.jsx`)**:
+  - Connected `Sidebar` to `GET /api/v1/navigation/sidebar` when authenticated.
+  - Implemented `normalizeIconName` supporting Lucide and backend icon identifiers (`LayoutDashboard`, `Building2`, `Users`, `MessageSquareQuote`, `Briefcase`, `MapPin`, `QrCode`, `FileText`, `HomeIcon`, `BuildingOffice2Icon`, `ShieldCheckIcon`) mapped to SVG symbols.
+  - Integrated real API authentication in `Login` with automatic bearer token storage.
+  - Seamless fallback to static `NAV[role]` when offline or in demo preview mode.
+- [x] **System Documentation Updates**:
+  - `backend/docs/database-design.md`: Full 21-table schema, Mermaid ERD, documentation of removed pivots and added forensic JSON audit log columns.
+  - `backend/docs/architecture.md`: Modular monolith DDD layout (`Cms`, `Navigation`, `Events`, `QrCodes`), statutory hierarchy rules, privilege escalation protection, and dynamic sidebar navigation.
+  - `backend/docs/api.md`: Added Sections 13 (Dynamic Navigation), 14 (QR Codes), 15 (Civic Events), renumbered Section 16 (Landing Page CMS), and removed `email` from feedback endpoints.
+  - `backend/docs/implementation-progress.md`: Marked all v3 modernization phases completed and verified.
 
 
 

@@ -32,11 +32,17 @@ export interface AuditLogFilterParams extends PaginationQueryParams {
 
 export const auditLogsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getAuditLogs: builder.query<PaginatedResponse<AuditLogItem>, AuditLogFilterParams | void>({
+    getAuditLogs: builder.query<{ data: AuditLogItem[] }, AuditLogFilterParams | void>({
       query: (params) => ({
-        url: '/audit-logs',
+        url: '/dashboard/recent-activity',
         method: 'GET',
-        params: params || undefined,
+        params: params
+          ? {
+              limit: params.per_page || 50,
+              entity_type: params.entity_type,
+              action: params.action,
+            }
+          : { limit: 50 },
       }),
       providesTags: (result) =>
         result?.data

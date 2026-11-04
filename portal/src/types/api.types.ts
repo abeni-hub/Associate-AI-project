@@ -97,6 +97,10 @@ export const API_TAG_TYPES = [
   'AuditLog',
   'Dashboard',
   'News',
+  'Cms',
+  'QrCode',
+  'Event',
+  'Navigation',
 ] as const;
 
 export type ApiTagType = (typeof API_TAG_TYPES)[number];

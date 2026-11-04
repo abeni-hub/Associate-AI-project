@@ -5,6 +5,7 @@ import { Brand } from '../shared/Brand';
 import { ROLE, NAV } from '../../data/portalData.js';
 import { usePortal } from '../../context';
 import type { RoleKey } from '../../types/portal.types';
+import { useGetSidebarNavigationQuery } from '../../services/navigationApi';
 
 export interface SidebarProps {
   role?: RoleKey | string;
@@ -35,8 +36,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
     });
   const onLogout = propOnLogout || portal.signOut;
 
+  const { data: apiNavResponse } = useGetSidebarNavigationQuery(undefined, {
+    skip: !portal.session?.user,
+  });
+
   const data = ROLE[role] || ROLE.super;
-  const navGroups = NAV[role] || [];
+  const navGroups = React.useMemo(() => {
+    if (apiNavResponse?.data && apiNavResponse.data.length > 0) {
+      const items = apiNavResponse.data.map((item) => {
+        let pathId = item.route.replace(/^\/portal\/?/, '') || 'overview';
+        if (pathId === 'organizations') pathId = 'offices';
+        if (pathId === 'users') pathId = 'accounts';
+
+        let iconName = 'layers';
+        const labelLower = item.label.toLowerCase();
+        if (labelLower.includes('overview') || labelLower.includes('home')) iconName = 'chart';
+        else if (labelLower.includes('organization') || labelLower.includes('office')) iconName = 'building';
+        else if (labelLower.includes('user') || labelLower.includes('account')) iconName = 'users';
+        else if (labelLower.includes('service')) iconName = 'layers';
+        else if (labelLower.includes('document')) iconName = 'file';
+        else if (labelLower.includes('feedback')) iconName = 'message';
+        else if (labelLower.includes('news')) iconName = 'news';
+        else if (labelLower.includes('role')) iconName = 'shield';
+        else if (labelLower.includes('qr')) iconName = 'qr';
+
+        return {
+          id: pathId,
+          text: item.label,
+          icon: iconName,
+        };
+      });
+
+      return [{ label: '', items }];
+    }
+    return NAV[role] || [];
+  }, [apiNavResponse, role]);
 
   const displayName = portal.authUser?.name || data.name;
   const displayRole = portal.authUser?.role?.name || data.label;

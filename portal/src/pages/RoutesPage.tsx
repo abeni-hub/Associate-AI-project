@@ -71,28 +71,27 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
         route,
         onSave: async (steps: RouteStep[]) => {
           portal.saveRouteSteps(route.id, steps);
-          // Persist step update if matching a backend service
+          // Persist step update to backend service
           try {
-            if (route.id === 1 || route.service.toLowerCase().includes('birth')) {
-              for (let i = 0; i < steps.length; i++) {
-                const s = steps[i];
-                await createStepTrigger({
-                  serviceId: 'birth-certificate',
-                  step_number: i + 1,
-                  title: s.title,
-                  instruction: s.detail,
-                  room_number: s.room,
-                  floor: 'Ground Floor',
-                  building: 'Main Administration Block',
-                  department_name: 'Civil Registry',
-                  responsible_title: 'Officer',
-                  estimated_duration_minutes: 15,
-                  is_active: true,
-                }).unwrap();
-              }
+            const targetServiceId = route.id;
+            for (let i = 0; i < steps.length; i++) {
+              const s = steps[i];
+              await createStepTrigger({
+                serviceId: targetServiceId,
+                step_number: i + 1,
+                title: s.title,
+                instruction: s.detail,
+                room_number: s.room,
+                floor: 'Ground Floor',
+                building: 'Main Administration Block',
+                department_name: 'Public Desk',
+                responsible_title: 'Officer',
+                estimated_duration_minutes: 15,
+                is_active: true,
+              }).unwrap();
             }
-          } catch {
-            // Local state is already updated
+          } catch (err) {
+            console.warn('API service step sync notice:', err);
           }
         },
       });

@@ -6,6 +6,7 @@ import { usePortal } from '../context';
 import type { PostItem } from '../types/portal.types';
 
 import { useGetNewsByIdQuery } from '../services/newsApi';
+import { useGetEventByIdQuery } from '../services/eventsApi';
 
 function isEvent(item: PostItem) {
   return String(item.type).toLowerCase().includes('event');
@@ -32,14 +33,20 @@ export const NewsDetailPage: React.FC = () => {
   const portal = usePortal();
   const [language, setLanguage] = useState<'en' | 'am'>('en');
 
-  const { data: apiArticle, isLoading } = useGetNewsByIdQuery(id!, { skip: !id });
+  const { data: apiArticle, isLoading: isNewsLoading } = useGetNewsByIdQuery(id!, { skip: !id });
+  const { data: apiEvent, isLoading: isEventLoading } = useGetEventByIdQuery(id!, {
+    skip: !id || !!apiArticle?.data,
+  });
+
+  const isLoading = isNewsLoading || (isEventLoading && !apiArticle?.data);
 
   const item: PostItem | undefined = React.useMemo(() => {
     if (apiArticle?.data) {
       const art = apiArticle.data;
-      const imageBlock = art.contents?.find(
-        (c: any) => c.content_type === 'image_url' || c.content_type === 'image'
-      );
+      const imageBlocks =
+        art.contents?.filter(
+          (c: any) => c.content_type === 'image_url' || c.content_type === 'image'
+        ) || [];
       const textBlocks =
         art.contents?.filter(
           (c: any) => c.content_type !== 'image_url' && c.content_type !== 'image'
@@ -55,15 +62,45 @@ export const NewsDetailPage: React.FC = () => {
         isPublished: true,
         subCity: art.organization?.name || 'City Administration',
         category: 'Public notice',
-        coverImage: imageBlock?.content,
+        coverImage: imageBlocks[0]?.content,
+        images: imageBlocks.map((b: any) => b.content),
         summary: textBlocks[0]?.content || '',
         excerpt: textBlocks[0]?.content || '',
         content: textBlocks.map((c: any) => c.content).join('\n\n') || '',
         views: 0,
       };
     }
+
+    if (apiEvent?.data) {
+      const evt = apiEvent.data;
+      return {
+        id: evt.id,
+        title: evt.title,
+        titleAm: '',
+        type: 'event' as const,
+        date: evt.event_date ? evt.event_date.split('T')[0] : 'Upcoming',
+        eventDate: evt.event_date ? evt.event_date.split('T')[0] : undefined,
+        endDate: evt.end_date ? evt.end_date.split('T')[0] : undefined,
+        status: evt.status === 'published' ? ('Published' as const) : ('Draft' as const),
+        isPublished: evt.status === 'published',
+        subCity: evt.organization?.name || 'City Administration',
+        category: 'Public event',
+        coverImage: evt.images?.[0]?.image_url,
+        images: evt.images?.map((img: any) => img.image_url) || [],
+        summary: evt.description?.slice(0, 160) || '',
+        excerpt: evt.description?.slice(0, 160) || '',
+        content: evt.description || '',
+        location: {
+          venue: evt.location_name,
+          subCity: evt.organization?.name,
+        },
+        audience: evt.audience,
+        views: 0,
+      };
+    }
+
     return undefined;
-  }, [apiArticle]);
+  }, [apiArticle, apiEvent]);
 
   if (isLoading) {
     return (
@@ -190,6 +227,36 @@ export const NewsDetailPage: React.FC = () => {
           <figure className="news-detail-cover">
             <img src={item.coverImage} alt="" />
           </figure>
+        )}
+
+        {item.images && item.images.length > 1 && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+              gap: '12px',
+              margin: '14px 0 20px',
+            }}
+          >
+            {item.images.slice(1).map((imgUrl, i) => (
+              <div
+                key={i}
+                style={{
+                  height: '130px',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                }}
+              >
+                <img
+                  src={imgUrl}
+                  alt={`Gallery ${i + 2}`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
+            ))}
+          </div>
         )}
 
         {event && (

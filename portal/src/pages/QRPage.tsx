@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { usePortal } from '../context';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { StatusPill } from '../components/shared/StatusPill';
 import { QRPattern } from '../components/shared/QRPattern';
+import { useGetQrCodesQuery, useCreateQrCodeMutation } from '../services/qrCodesApi';
 
 export interface QRPageProps {
   onGenerate?: () => void;
@@ -16,13 +17,41 @@ export const QRPage: React.FC<QRPageProps> = ({
 }) => {
   const portal = usePortal();
   const [copied, setCopied] = useState(false);
+  const userOrgId = portal.session?.user?.organization?.id || 1;
+
+  const { data: apiQrResponse } = useGetQrCodesQuery();
+  const [createQrTrigger] = useCreateQrCodeMutation();
+
+  const activeQr = useMemo(() => {
+    if (apiQrResponse?.data) {
+      const list = Array.isArray(apiQrResponse.data) ? apiQrResponse.data : (apiQrResponse.data as any).data;
+      if (Array.isArray(list) && list.length > 0) {
+        return list[0];
+      }
+    }
+    return null;
+  }, [apiQrResponse]);
+
+  const activeCodeId = activeQr?.code || 'QR-REV-001';
+  const targetUrl = activeQr?.target_url || `${window.location.origin}/#feedback`;
+  const scanCount = activeQr?.scan_count ?? 64;
 
   const onGenerate =
     propOnGenerate ||
     (() => {
       portal.setModal({
         kind: 'qr',
-        onGenerate: () => {
+        onGenerate: async () => {
+          try {
+            await createQrTrigger({
+              organization_id: userOrgId,
+              code: `QR-${portal.session?.user?.organization?.code || 'BUREAU'}-${Date.now().toString().slice(-4)}`.toUpperCase(),
+              label: `${portal.session?.user?.organization?.name || 'Bureau'} Feedback Kiosk`,
+              target_url: `${window.location.origin}/#feedback`,
+            }).unwrap();
+          } catch {
+            // fallback handled
+          }
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
         },
@@ -32,7 +61,7 @@ export const QRPage: React.FC<QRPageProps> = ({
   const onCopy =
     propOnCopy ||
     (() => {
-      void navigator.clipboard?.writeText('https://civiclink.gov.et/feedback/rev-001');
+      void navigator.clipboard?.writeText(targetUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     });
@@ -94,7 +123,7 @@ export const QRPage: React.FC<QRPageProps> = ({
             <Icon name="qr" />
           </span>
           <span>
-            <b>QR-REV-001</b>
+            <b>{activeCodeId}</b>
             <small>Active code ID</small>
           </span>
           <StatusPill>Active</StatusPill>
@@ -104,7 +133,7 @@ export const QRPage: React.FC<QRPageProps> = ({
             <Icon name="message" />
           </span>
           <span>
-            <b>64 scans</b>
+            <b>{scanCount} scans</b>
             <small>Feedback visits this month</small>
           </span>
           <em>↗ 16%</em>
@@ -115,7 +144,7 @@ export const QRPage: React.FC<QRPageProps> = ({
           </span>
           <span>
             <b>Public feedback form</b>
-            <small>civiclink.gov.et/feedback/rev-001</small>
+            <small>{targetUrl.replace(/^https?:\/\//, '')}</small>
           </span>
           <button
             className="row-more"

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api\V1\News;
 
+use App\Domains\Authorization\Models\Permission;
 use App\Domains\Authorization\Models\Role;
 use App\Domains\News\Models\News;
 use App\Domains\Organizations\Models\Organization;
@@ -443,7 +444,7 @@ class NewsApiTest extends TestCase
 
     public function test_child_woreda_admin_cannot_delete_parent_subcity_news(): void
     {
-        $newsDeletePermission = \App\Domains\Authorization\Models\Permission::where('key', 'news.delete')->firstOrFail();
+        $newsDeletePermission = Permission::where('key', 'news.delete')->firstOrFail();
         $this->woredaAdmin->role->permissions()->syncWithoutDetaching([$newsDeletePermission->id]);
 
         $subCityNews = News::create([
@@ -625,7 +626,6 @@ class NewsApiTest extends TestCase
             'action' => 'created',
             'entity_type' => 'News',
             'entity_id' => (string) $newsId,
-            'organization_id' => $this->boleSubCity->id,
             'user_id' => $this->subCityAdmin->id,
         ]);
 
@@ -641,7 +641,6 @@ class NewsApiTest extends TestCase
             'action' => 'updated',
             'entity_type' => 'News',
             'entity_id' => (string) $newsId,
-            'organization_id' => $this->boleSubCity->id,
             'user_id' => $this->subCityAdmin->id,
         ]);
 
@@ -655,7 +654,6 @@ class NewsApiTest extends TestCase
             'action' => 'deleted',
             'entity_type' => 'News',
             'entity_id' => (string) $newsId,
-            'organization_id' => $this->boleSubCity->id,
             'user_id' => $this->subCityAdmin->id,
         ]);
     }
