@@ -8,7 +8,7 @@ export const ROLE = {
 
 export const NAV = {
   super: [
-    { label: '', items: [{ id: 'overview', text: 'Overview', icon: 'overview' }, { id: 'offices', text: 'Offices & directory', icon: 'sitemap' }, { id: 'accounts', text: 'Accounts', icon: 'users' }, { id: 'roles', text: 'Roles & permissions', icon: 'key' }] },
+    { label: '', items: [{ id: 'overview', text: 'Overview', icon: 'overview' }, { id: 'offices', text: 'Offices & directory', icon: 'sitemap' }, { id: 'levels', text: 'Organization levels', icon: 'layers' }, { id: 'accounts', text: 'Accounts', icon: 'users' }, { id: 'roles', text: 'Roles & permissions', icon: 'key' }] },
     { label: 'Public experience', items: [{ id: 'cms', text: 'Landing page CMS', icon: 'palette' }, { id: 'news', text: 'News & events', icon: 'news' }] },
     { label: 'Citizen voice', items: [{ id: 'feedback', text: 'Citizen feedback', icon: 'message', badge: '23' }, { id: 'activity', text: 'Activity log', icon: 'activity' }] },
   ],
@@ -360,11 +360,11 @@ export const INITIAL_ROUTES = [
 ]
 
 export const INITIAL_FEEDBACK = [
-  { id: 'FB-2048', trackingNumber: 'CL-2026-7M4P2Q', type: 'Complaint', rating: null, service: 'Business license renewal', bureau: 'Revenues Bureau', subcity: 'Lemi Kura', message: 'I had to visit two desks before finding out one supporting paper was missing. A clearer checklist at the entrance would help.', status: 'Open', priority: 'High', time: 'Today · 9:24 AM' },
-  { id: 'FB-2047', trackingNumber: 'CL-2026-8H6R3C', type: 'Satisfaction', rating: 5, service: 'Birth registration', bureau: 'Civil Registration Office', subcity: 'Lemi Kura', message: 'The room guide was very clear and the staff helped us finish in one visit. Thank you.', status: 'Resolved', priority: 'Low', time: 'Today · 8:51 AM' },
+  { id: 'FB-2048', trackingNumber: 'CL-2026-7M4P2Q', type: 'Complaint', rating: null, service: 'Business license renewal', bureau: 'Revenues Bureau', subcity: 'Lemi Kura', message: 'I had to visit two desks before finding out one supporting paper was missing. A clearer checklist at the entrance would help.', status: 'Open', priority: 'High', time: 'Today · 9:24 AM', fullName: 'Dawit Tadesse', phoneNumber: '+251 91 123 4567' },
+  { id: 'FB-2047', trackingNumber: 'CL-2026-8H6R3C', type: 'Satisfaction', rating: 5, service: 'Birth registration', bureau: 'Civil Registration Office', subcity: 'Lemi Kura', message: 'The room guide was very clear and the staff helped us finish in one visit. Thank you.', status: 'Resolved', priority: 'Low', time: 'Today · 8:51 AM', fullName: 'Almaz Kebede', phoneNumber: '+251 92 876 5432' },
   { id: 'FB-2046', trackingNumber: 'CL-2026-5T9K4D', type: 'Suggestion', rating: null, service: 'Landholding record correction', bureau: 'Land Administration', subcity: 'Lemi Kura', message: 'Could the office list the accepted document formats on the public guide?', status: 'In review', priority: 'Normal', time: 'Yesterday · 3:16 PM' },
-  { id: 'FB-2045', trackingNumber: 'CL-2026-3N7W8B', type: 'Complaint', rating: null, service: 'e-TIN registration', bureau: 'Revenues Bureau', subcity: 'Bole', message: 'The payment desk was closed during the posted opening hours.', status: 'Open', priority: 'Normal', time: 'Yesterday · 1:40 PM' },
-  { id: 'FB-2044', trackingNumber: 'CL-2026-6C2M9F', type: 'Satisfaction', rating: 4, service: 'Residence ID card', bureau: 'Civil Registration Office', subcity: 'Yeka', message: 'Clear instructions and a friendly team. The wait was a little longer than expected.', status: 'Resolved', priority: 'Low', time: 'Oct 20 · 11:03 AM' },
+  { id: 'FB-2045', trackingNumber: 'CL-2026-3N7W8B', type: 'Complaint', rating: null, service: 'e-TIN registration', bureau: 'Revenues Bureau', subcity: 'Bole', message: 'The payment desk was closed during the posted opening hours.', status: 'Open', priority: 'Normal', time: 'Yesterday · 1:40 PM', phoneNumber: '+251 93 456 7890' },
+  { id: 'FB-2044', trackingNumber: 'CL-2026-6C2M9F', type: 'Satisfaction', rating: 4, service: 'Residence ID card', bureau: 'Civil Registration Office', subcity: 'Yeka', message: 'Clear instructions and a friendly team. The wait was a little longer than expected.', status: 'Resolved', priority: 'Low', time: 'Oct 20 · 11:03 AM', fullName: 'Henok Girma' },
   { id: 'FB-2043', trackingNumber: 'CL-2026-4Q8J5X', type: 'Suggestion', rating: null, service: 'Business license renewal', bureau: 'Revenues Bureau', subcity: 'Lemi Kura', message: 'An example of a completed renewal form would make it easier to prepare.', status: 'In review', priority: 'Normal', time: 'Oct 20 · 10:17 AM' },
 ]
 

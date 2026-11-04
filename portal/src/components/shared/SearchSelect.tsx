@@ -23,6 +23,7 @@ export interface SearchSelectProps {
   helperText?: string;
   emptyMessage?: string;
   allowClear?: boolean;
+  placement?: 'bottom' | 'top' | 'auto';
 }
 
 export const SearchSelect: React.FC<SearchSelectProps> = ({
@@ -37,8 +38,10 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
   helperText,
   emptyMessage = 'No matching options found',
   allowClear = false,
+  placement = 'auto',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -96,12 +99,35 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
     onChange(null);
   };
 
+  const checkPlacement = () => {
+    if (placement === 'top') {
+      setOpenUpward(true);
+    } else if (placement === 'bottom') {
+      setOpenUpward(false);
+    } else if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUpward(spaceBelow < 280 && rect.top > spaceBelow);
+    }
+  };
+
+  const handleToggle = () => {
+    if (disabled) return;
+    if (!isOpen) {
+      checkPlacement();
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (disabled) return;
 
     if (!isOpen) {
       if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
         e.preventDefault();
+        checkPlacement();
         setIsOpen(true);
       }
       return;
@@ -145,7 +171,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
         aria-haspopup="listbox"
         aria-controls={listboxId}
         tabIndex={disabled ? -1 : 0}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={handleToggle}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -239,15 +265,16 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
           role="listbox"
           style={{
             position: 'absolute',
-            top: 'calc(100% + 4px)',
+            ...(openUpward
+              ? { bottom: 'calc(100% + 4px)', boxShadow: '0 -10px 25px -5px rgba(0, 0, 0, 0.1), 0 -8px 10px -6px rgba(0, 0, 0, 0.1)' }
+              : { top: 'calc(100% + 4px)', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' }),
             left: 0,
             right: 0,
             zIndex: 9999,
             background: '#ffffff',
             border: '1px solid #cbd5e1',
             borderRadius: '8px',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-            maxHeight: '280px',
+            maxHeight: '260px',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',

@@ -24,6 +24,10 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
 
   if (!item) return null;
 
+  const citizenName = item.fullName || (item as any).full_name;
+  const citizenPhone = item.phoneNumber || (item as any).phone_number;
+  const citizenEmail = item.email;
+
   async function copyTrackingNumber() {
     const clipboard = globalThis.navigator?.clipboard;
     if (!item?.trackingNumber || !clipboard?.writeText) return;
@@ -92,6 +96,39 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
                 {'★'.repeat(item.rating)}
                 <i>{'★'.repeat(5 - item.rating)}</i>{' '}
                 <span>{item.rating}.0 / 5</span>
+              </b>
+            </span>
+          )}
+          {citizenName && (
+            <span>
+              <small>CITIZEN NAME</small>
+              <b>{citizenName}</b>
+            </span>
+          )}
+          {citizenPhone && (
+            <span>
+              <small>PHONE NUMBER</small>
+              <b>
+                <a
+                  href={`tel:${citizenPhone}`}
+                  style={{ color: '#0369a1', textDecoration: 'none' }}
+                  title="Call citizen"
+                >
+                  {citizenPhone}
+                </a>
+              </b>
+            </span>
+          )}
+          {citizenEmail && (
+            <span>
+              <small>EMAIL</small>
+              <b>
+                <a
+                  href={`mailto:${citizenEmail}`}
+                  style={{ color: '#0369a1', textDecoration: 'none' }}
+                >
+                  {citizenEmail}
+                </a>
               </b>
             </span>
           )}

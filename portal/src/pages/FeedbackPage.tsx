@@ -70,6 +70,9 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
           status: f.status || 'Open',
           priority: isComplaint ? 'High' : (f.priority || 'Normal'),
           notes: [],
+          fullName: f.full_name || f.fullName,
+          phoneNumber: f.phone_number || f.phoneNumber || (f as any).phone,
+          email: f.email,
         };
       });
     }

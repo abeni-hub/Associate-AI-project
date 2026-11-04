@@ -110,6 +110,15 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('/organization-types', [OrganizationTypeController::class, 'index'])
             ->middleware('permission:organizations.view')
             ->name('organization-types.index');
+        Route::post('/organization-types', [OrganizationTypeController::class, 'store'])
+            ->middleware('permission:organizations.create')
+            ->name('organization-types.store');
+        Route::put('/organization-types/{organizationType}', [OrganizationTypeController::class, 'update'])
+            ->middleware('permission:organizations.update')
+            ->name('organization-types.update');
+        Route::delete('/organization-types/{organizationType}', [OrganizationTypeController::class, 'destroy'])
+            ->middleware('permission:organizations.delete')
+            ->name('organization-types.destroy');
 
         Route::get('/organization', [OrganizationController::class, 'index'])
             ->middleware('permission:organizations.view');

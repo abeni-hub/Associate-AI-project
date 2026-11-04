@@ -77,6 +77,8 @@ export interface RoleItem {
   permissionsCount?: number;
   permissionIds?: number[];
   permissions: Record<string, string[]>;
+  navigationItems?: string[];
+  dashboard_pages?: string[];
 }
 
 export interface AccountItem {
@@ -138,6 +140,9 @@ export interface FeedbackItem {
   time: string;
   trackingNumber?: string;
   notes?: string[];
+  fullName?: string;
+  phoneNumber?: string;
+  email?: string;
 }
 
 export interface PostItem {

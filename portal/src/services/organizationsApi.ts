@@ -12,6 +12,25 @@ export interface OrganizationTypeItem {
   allowed_parent_types?: Array<{ id: number; name: string; code: string }>;
 }
 
+export interface CreateOrganizationTypePayload {
+  name: string;
+  code: string;
+  description?: string;
+  level: number;
+  can_be_root?: boolean;
+  is_active?: boolean;
+}
+
+export interface UpdateOrganizationTypePayload {
+  id: number;
+  name?: string;
+  code?: string;
+  description?: string;
+  level?: number;
+  can_be_root?: boolean;
+  is_active?: boolean;
+}
+
 export interface OrganizationItem {
   id: number;
   name: string;
@@ -141,6 +160,32 @@ export const organizationsApi = baseApi.injectEndpoints({
         { type: 'Organization', id: 'TREE' },
       ],
     }),
+
+    createOrganizationType: builder.mutation<ApiResponse<OrganizationTypeItem>, CreateOrganizationTypePayload>({
+      query: (body) => ({
+        url: '/organization-types',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Organization'],
+    }),
+
+    updateOrganizationType: builder.mutation<ApiResponse<OrganizationTypeItem>, UpdateOrganizationTypePayload>({
+      query: ({ id, ...body }) => ({
+        url: `/organization-types/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['Organization'],
+    }),
+
+    deleteOrganizationType: builder.mutation<ApiResponse<null>, number>({
+      query: (id) => ({
+        url: `/organization-types/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Organization'],
+    }),
   }),
   overrideExisting: false,
 });
@@ -154,4 +199,7 @@ export const {
   useCreateOrganizationMutation,
   useUpdateOrganizationMutation,
   useDeleteOrganizationMutation,
+  useCreateOrganizationTypeMutation,
+  useUpdateOrganizationTypeMutation,
+  useDeleteOrganizationTypeMutation,
 } = organizationsApi;

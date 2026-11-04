@@ -58,6 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         else if (labelLower.includes('feedback')) iconName = 'message';
         else if (labelLower.includes('news')) iconName = 'news';
         else if (labelLower.includes('role')) iconName = 'shield';
+        else if (labelLower.includes('level') || labelLower.includes('tier')) iconName = 'layers';
         else if (labelLower.includes('qr')) iconName = 'qr';
 
         return {

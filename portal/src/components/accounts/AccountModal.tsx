@@ -268,6 +268,50 @@ export const AccountModal: React.FC<AccountModalProps> = ({
           )}
 
           <div className="modal-form-grid" style={{ padding: '1.25rem 1.5rem' }}>
+            {/* 1. Organization Assignment (Selected First) */}
+            <div className="modal-field full">
+              <SearchSelect
+                label="Assigned Organization"
+                required
+                value={organizationId}
+                onChange={handleOrganizationSelect}
+                options={organizationOptions}
+                placeholder="Search & select organization or Global Platform..."
+                helperText={
+                  organizationId === 0
+                    ? 'Global Platform provides platform-wide administration across all organizations.'
+                    : selectedOrg
+                      ? `Selected ${selectedOrg.organization_type_id === 1 ? 'Sub-City' : selectedOrg.organization_type_id === 2 ? 'Woreda' : 'Bureau'}: ${selectedOrg.name}`
+                      : 'Choose an organization to unlock applicable administrative roles.'
+                }
+              />
+            </div>
+
+            {/* 2. Administrative Role (Selected Second, filtered by organization) */}
+            <div className="modal-field full">
+              <SearchSelect
+                label="Administrative Role"
+                required
+                value={roleId}
+                onChange={(val) => {
+                  setRoleId(val ? Number(val) : null);
+                  setErrorMsg(null);
+                }}
+                options={filteredRoleOptions}
+                disabled={organizationId === null || organizationId === undefined}
+                placeholder={
+                  organizationId === null || organizationId === undefined
+                    ? 'Select an organization first...'
+                    : 'Select role for this organization...'
+                }
+                helperText={
+                  organizationId === null || organizationId === undefined
+                    ? 'Select an organization above to view its permitted administrative roles.'
+                    : undefined
+                }
+              />
+            </div>
+
             {/* Full Name */}
             <label className="modal-field">
               <span>Full name <i>*</i></span>
@@ -335,50 +379,6 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 <option value="inactive">Inactive</option>
               </select>
             </label>
-
-            {/* 1. Organization Assignment (Selected First) */}
-            <div className="modal-field full">
-              <SearchSelect
-                label="Assigned Organization"
-                required
-                value={organizationId}
-                onChange={handleOrganizationSelect}
-                options={organizationOptions}
-                placeholder="Search & select organization or Global Platform..."
-                helperText={
-                  organizationId === 0
-                    ? 'Global Platform provides platform-wide administration across all organizations.'
-                    : selectedOrg
-                      ? `Selected ${selectedOrg.organization_type_id === 1 ? 'Sub-City' : selectedOrg.organization_type_id === 2 ? 'Woreda' : 'Bureau'}: ${selectedOrg.name}`
-                      : 'Choose an organization to unlock applicable administrative roles.'
-                }
-              />
-            </div>
-
-            {/* 2. Administrative Role (Selected Second, filtered by organization) */}
-            <div className="modal-field full">
-              <SearchSelect
-                label="Administrative Role"
-                required
-                value={roleId}
-                onChange={(val) => {
-                  setRoleId(val ? Number(val) : null);
-                  setErrorMsg(null);
-                }}
-                options={filteredRoleOptions}
-                disabled={organizationId === null || organizationId === undefined}
-                placeholder={
-                  organizationId === null || organizationId === undefined
-                    ? 'Select an organization first...'
-                    : 'Select role for this organization...'
-                }
-                helperText={
-                  organizationId === null || organizationId === undefined
-                    ? 'Select an organization above to view its permitted administrative roles.'
-                    : undefined
-                }
-              />
-            </div>
           </div>
 
           <div className="modal-footer">

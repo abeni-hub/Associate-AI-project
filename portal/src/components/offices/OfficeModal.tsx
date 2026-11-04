@@ -48,7 +48,8 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
     if (isOpen) {
       setName(office?.name || '');
       setCode(office?.code || (office?.name ? slugify(office.name) : ''));
-      setTypeId(Number(office?.organization_type_id || office?.typeId || 2));
+      const initialType = Number(office?.organization_type_id || office?.typeId || 2);
+      setTypeId(initialType);
       setParentId(office?.parent_organization_id ?? office?.parentId ?? null);
       setAddress(office?.address || '');
       setPhone(office?.phone || '');
@@ -129,6 +130,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
     if (isBureau && (!parentId || Number(parentId) === 0)) {
       return setErrorMsg('A Bureau must be linked to a Sub-City or Woreda parent.');
     }
+    setErrorMsg(null);
 
     const payload = {
       ...(office?.id ? { id: office.id } : {}),
