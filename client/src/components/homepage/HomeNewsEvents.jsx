@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { getHomeHighlights } from '../../services/newsEventsService'
+import { getHomeHighlights, parseNewsItem, parseEventItem } from '../../services/newsEventsService'
 import HomeNewsControls from './HomeNewsControls.jsx'
 import HomeNewsGrid from './HomeNewsGrid.jsx'
 import { NEWS_EVENTS_STORAGE_KEY, NEWS_EVENTS_UPDATED_EVENT } from '../../../../shared/newsEventsStorage.js'
 import { useGetNewsQuery } from '../../services/newsApi.js'
+import { useGetEventsQuery } from '../../services/eventsApi.js'
 
 export default function HomeNewsEvents({
   language = 'en',
@@ -12,6 +13,7 @@ export default function HomeNewsEvents({
 }) {
   const [activeTab, setActiveTab] = useState('news')
   const { data: apiNews } = useGetNewsQuery()
+  const { data: apiEvents } = useGetEventsQuery()
   const [data, setData] = useState({
     news: [],
     events: [],
@@ -23,7 +25,9 @@ export default function HomeNewsEvents({
 
   useEffect(() => {
     const refreshWhenContentChanges = (event) => {
-      if (event.type === NEWS_EVENTS_UPDATED_EVENT || event.key === NEWS_EVENTS_STORAGE_KEY) setContentRevision((revision) => revision + 1)
+      if (event.type === NEWS_EVENTS_UPDATED_EVENT || event.key === NEWS_EVENTS_STORAGE_KEY) {
+        setContentRevision((revision) => revision + 1)
+      }
     }
     window.addEventListener('storage', refreshWhenContentChanges)
     window.addEventListener(NEWS_EVENTS_UPDATED_EVENT, refreshWhenContentChanges)
@@ -39,40 +43,29 @@ export default function HomeNewsEvents({
     async function loadData() {
       try {
         setLoading(true)
-        const result = await getHomeHighlights()
-        if (mounted) {
-          if (apiNews?.data && Array.isArray(apiNews.data) && apiNews.data.length > 0) {
-            const liveNewsItems = apiNews.data.map((art) => ({
-              id: String(art.id),
-              type: 'news',
-              title: art.news_title,
-              titleAm: '',
-              slug: `news-${art.id}`,
-              summary: art.contents?.[0]?.content || 'Official Municipal Announcement',
-              summaryAm: '',
-              content: art.contents?.map((c) => c.content).join('\n\n') || '',
-              contentAm: '',
-              category: 'Public notice',
-              categoryAm: 'ይፋዊ ማስታወቂያ',
-              subCity: art.organization?.name || 'All Addis Ababa',
-              subCityAm: 'መላው አዲስ አበባ',
-              bureau: art.organization?.name || 'City Administration',
-              bureauAm: 'የከተማ አስተዳደር',
-              coverImage: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
-              publishedAt: art.created_at ? art.created_at.split('T')[0] : '2026-10-26',
-              readTimeMinutes: 3,
-              isPublished: true,
-            }))
-            setData({
-              news: liveNewsItems,
-              events: result.events,
-              totalNews: liveNewsItems.length,
-              totalEvents: result.totalEvents,
-            })
-          } else {
-            setData(result)
-          }
+        const fallbackHighlights = await getHomeHighlights()
+        if (!mounted) return
+
+        let liveNewsItems = []
+        if (apiNews?.data && Array.isArray(apiNews.data) && apiNews.data.length > 0) {
+          liveNewsItems = apiNews.data.map(parseNewsItem)
         }
+
+        let liveEventItems = []
+        const rawEventData = apiEvents?.data?.data || apiEvents?.data
+        if (Array.isArray(rawEventData) && rawEventData.length > 0) {
+          liveEventItems = rawEventData.map(parseEventItem)
+        }
+
+        const finalNews = liveNewsItems.length > 0 ? liveNewsItems : fallbackHighlights.news
+        const finalEvents = liveEventItems.length > 0 ? liveEventItems : fallbackHighlights.events
+
+        setData({
+          news: finalNews,
+          events: finalEvents,
+          totalNews: finalNews.length,
+          totalEvents: finalEvents.length,
+        })
       } catch (error) {
         console.error('Failed to load home highlights:', error)
       } finally {
@@ -82,7 +75,7 @@ export default function HomeNewsEvents({
 
     loadData()
     return () => { mounted = false }
-  }, [contentRevision, apiNews])
+  }, [contentRevision, apiNews, apiEvents])
 
   const items = activeTab === 'news' ? data.news.slice(0, 3) : data.events.slice(0, 3)
 

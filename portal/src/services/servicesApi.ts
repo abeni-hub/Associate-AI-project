@@ -180,7 +180,7 @@ export const servicesApi = baseApi.injectEndpoints({
         url: `/services/${serviceIdOrCode}/steps`,
         method: 'GET',
       }),
-      providesTags: (_result, _error, serviceId) => [{ type: 'ServiceStep', id: `SERVICE-${serviceId}` }],
+      providesTags: (_result, _error, serviceIdOrCode) => [{ type: 'ServiceStep', id: `SERVICE-${serviceIdOrCode}` }],
     }),
 
     createServiceStep: builder.mutation<ApiResponse<ServiceStep>, CreateServiceStepPayload>({

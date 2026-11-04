@@ -100,7 +100,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
     portal.setModal({
       kind: 'feedback',
       item,
-      onUpdate: async (newStatus: string) => {
+      onUpdate: async (newStatus: string, responseText?: string) => {
         // Optimistic UI update
         setStatusOverrides((prev) => ({ ...prev, [item.id]: newStatus }));
         setFeedbackNotice(`Status updated to "${newStatus}" for response ${item.id}.`);
@@ -113,7 +113,11 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
         const backendStatus = newStatus.toLowerCase().replace(/\s+/g, '_');
 
         try {
-          await updateFeedbackStatusTrigger({ id: targetId, status: backendStatus }).unwrap();
+          if (responseText && responseText.trim()) {
+            await updateFeedbackStatusTrigger({ id: targetId, response: responseText.trim() }).unwrap();
+          } else {
+            await updateFeedbackStatusTrigger({ id: targetId, status: backendStatus }).unwrap();
+          }
         } catch (err) {
           console.warn('Backend feedback status update fallback to local state:', err);
         }

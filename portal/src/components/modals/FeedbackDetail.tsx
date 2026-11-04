@@ -6,7 +6,7 @@ export interface FeedbackDetailProps {
   item?: FeedbackItem;
   modal?: FeedbackModalConfig;
   onClose: () => void;
-  onUpdate?: (status: string) => void;
+  onUpdate?: (status: string, responseText?: string) => void;
 }
 
 export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
@@ -19,6 +19,7 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
   const onUpdate = propOnUpdate || modal?.onUpdate || (() => {});
 
   const [status, setStatus] = useState<string>(() => item?.status || 'Open');
+  const [responseText, setResponseText] = useState<string>('');
   const [trackingCopied, setTrackingCopied] = useState<boolean>(false);
 
   if (!item) return null;
@@ -139,6 +140,26 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
             })}
           </div>
         </div>
+        <div style={{ margin: '1rem 0' }}>
+          <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '8px' }}>
+            Official Response to Citizen (Optional)
+          </label>
+          <textarea
+            value={responseText}
+            onChange={(e) => setResponseText(e.target.value)}
+            placeholder="Write official resolution notes or citizen response..."
+            rows={3}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              fontSize: '13px',
+              fontFamily: 'inherit',
+              resize: 'vertical',
+            }}
+          />
+        </div>
         <div className="feedback-routing-note">
           <Icon name="shield" size={16} />
           <span>
@@ -165,7 +186,7 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
             type="button"
             className="button primary"
             onClick={() => {
-              onUpdate(status);
+              onUpdate(status, responseText);
               onClose();
             }}
           >

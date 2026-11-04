@@ -1,6 +1,7 @@
 import Icon from '../ui/Icon.jsx'
 import { bureauOptions, serviceCatalog, subCityOptions } from '../../data/homePageData.js'
 import { useGetOrganizationsQuery } from '../../services/organizationsApi.js'
+import { useGetServicesQuery } from '../../services/servicesApi.js'
 
 const feedbackTypes = [
   { value: 'Complaint', icon: 'news', label: 'A complaint', copy: 'Something needs attention' },
@@ -44,11 +45,21 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
     return bureauOptions
   })()
 
-  const activeServices = serviceCatalog[feedback.bureau] ?? [
-    { id: 'general-inquiry', label: 'General Inquiry & Front Desk' },
-    { id: 'document-attestation', label: 'Document Verification' },
-    { id: 'service-application', label: 'Service Application' },
-  ]
+  const { data: servicesData } = useGetServicesQuery()
+
+  const activeServices = (() => {
+    if (servicesData?.data && Array.isArray(servicesData.data) && servicesData.data.length > 0) {
+      return servicesData.data.map((s) => ({
+        id: s.code || String(s.id),
+        label: s.name,
+      }))
+    }
+    return serviceCatalog[feedback.bureau] ?? [
+      { id: 'general-inquiry', label: 'General Inquiry & Front Desk' },
+      { id: 'document-attestation', label: 'Document Verification' },
+      { id: 'service-application', label: 'Service Application' },
+    ]
+  })()
 
   if (step === 1) {
     return (

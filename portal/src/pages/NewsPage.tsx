@@ -13,6 +13,11 @@ import {
   useUpdateNewsMutation,
   useDeleteNewsMutation,
 } from '../services/newsApi';
+import {
+  useGetEventsQuery,
+  useCreateEventMutation,
+  useDeleteEventMutation,
+} from '../services/eventsApi';
 
 export interface NewsPageProps {
   items?: PostItem[];
@@ -55,17 +60,23 @@ export const NewsPage: React.FC<NewsPageProps> = ({
   const [typeFilter, setTypeFilter] = useState('all');
   const [publicationFilter, setPublicationFilter] = useState('all');
 
-  // Backend API query
-  const { data: newsApiResponse, isLoading } = useGetNewsListQuery();
+  // Backend API queries
+  const { data: newsApiResponse, isLoading: isNewsLoading } = useGetNewsListQuery();
+  const { data: eventsApiResponse, isLoading: isEventsLoading } = useGetEventsQuery();
   const [createNews] = useCreateNewsMutation();
   const [updateNews] = useUpdateNewsMutation();
   const [deleteNews] = useDeleteNewsMutation();
+  const [createEvent] = useCreateEventMutation();
+  const [deleteEvent] = useDeleteEventMutation();
 
   const items: PostItem[] = useMemo(() => {
     if (propItems && propItems.length > 0) return propItems;
 
+    const list: PostItem[] = [];
+
+    // Map news items
     if (newsApiResponse?.data && newsApiResponse.data.length > 0) {
-      return newsApiResponse.data.map((art) => {
+      newsApiResponse.data.forEach((art) => {
         const imageBlocks =
           art.contents?.filter(
             (c) => c.content_type === 'image_url' || c.content_type === 'image'
@@ -86,7 +97,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({
 
         const fullContent = textBlocks.map((c) => c.content).join('\n\n');
 
-        return {
+        list.push({
           id: art.id,
           title: art.news_title,
           titleAm: '',
@@ -105,12 +116,50 @@ export const NewsPage: React.FC<NewsPageProps> = ({
           organization_id: art.organization_id,
           organization: art.organization,
           contents: art.contents,
-        };
+        });
       });
     }
 
-    return [];
-  }, [propItems, newsApiResponse]);
+    // Map public events
+    if (eventsApiResponse?.data && eventsApiResponse.data.length > 0) {
+      eventsApiResponse.data.forEach((evt) => {
+        list.push({
+          id: evt.id,
+          title: evt.title,
+          titleAm: '',
+          type: 'event' as const,
+          date: evt.event_date ? evt.event_date.split('T')[0] : 'Upcoming',
+          eventDate: evt.event_date ? evt.event_date.split('T')[0] : undefined,
+          endDate: evt.end_date ? evt.end_date.split('T')[0] : undefined,
+          status: evt.status === 'published' ? ('Published' as const) : ('Draft' as const),
+          isPublished: evt.status === 'published',
+          subCity: evt.organization?.name || 'Addis Ababa City Administration',
+          category: 'Public event',
+          coverImage: evt.images?.[0]?.image_url,
+          images: evt.images?.map((img) => img.image_url) || [],
+          summary:
+            evt.description && evt.description.length > 160
+              ? evt.description.slice(0, 160) + '...'
+              : evt.description || 'Public Municipal Event',
+          excerpt:
+            evt.description && evt.description.length > 160
+              ? evt.description.slice(0, 160) + '...'
+              : evt.description || 'Public Municipal Event',
+          content: evt.description,
+          views: 0,
+          organization_id: evt.organization_id,
+          organization: evt.organization,
+          location: {
+            venue: evt.location_name,
+            subCity: evt.organization?.name,
+          },
+          audience: evt.audience,
+        });
+      });
+    }
+
+    return list;
+  }, [propItems, newsApiResponse, eventsApiResponse]);
 
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;
@@ -138,29 +187,54 @@ export const NewsPage: React.FC<NewsPageProps> = ({
 
   const handleSaveNews = async (payload: any) => {
     try {
-      if (payload.id) {
-        await updateNews({
-          id: payload.id,
-          body: {
-            news_title: payload.news_title,
+      if (payload.type === 'event') {
+        if (payload.id) {
+          window.alert(
+            'Updating an existing event is not supported by the backend. You can create a new event or delete the previous one.'
+          );
+        } else {
+          await createEvent({
             organization_id: payload.organization_id,
-            contents: payload.contents,
-          },
-        }).unwrap();
+            title: payload.title,
+            description: payload.description,
+            location_name: payload.location_name,
+            event_date: payload.event_date,
+            end_date: payload.end_date || null,
+            audience: payload.audience || null,
+            status: payload.status || 'published',
+            images: payload.images,
+          }).unwrap();
+        }
       } else {
-        await createNews(payload).unwrap();
+        if (payload.id) {
+          await updateNews({
+            id: payload.id,
+            body: {
+              news_title: payload.news_title,
+              organization_id: payload.organization_id,
+              contents: payload.contents,
+            },
+          }).unwrap();
+        } else {
+          await createNews(payload).unwrap();
+        }
       }
     } catch (err: any) {
-      window.alert(err?.data?.message || 'Failed to save news article.');
+      window.alert(err?.data?.message || err?.message || 'Failed to save item.');
     }
   };
 
-  const handleDelete = async (id: number | string) => {
-    if (window.confirm('Are you sure you want to delete this news article?')) {
+  const handleDelete = async (targetItem: PostItem) => {
+    const isEvt = normalizeType(targetItem) === 'event';
+    if (window.confirm(`Are you sure you want to delete this ${isEvt ? 'event' : 'news article'}?`)) {
       try {
-        await deleteNews(id).unwrap();
-      } catch (err) {
-        console.error('Failed to delete news article:', err);
+        if (isEvt) {
+          await deleteEvent(targetItem.id).unwrap();
+        } else {
+          await deleteNews(targetItem.id).unwrap();
+        }
+      } catch (err: any) {
+        window.alert(err?.data?.message || err?.message || `Failed to delete ${isEvt ? 'event' : 'news article'}.`);
       }
     }
   };
@@ -230,7 +304,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({
         <dl className="feed-overview-stats">
           <div>
             <dt>Total updates</dt>
-            <dd>{isLoading ? '...' : items.length}</dd>
+            <dd>{isNewsLoading || isEventsLoading ? '...' : items.length}</dd>
           </div>
           <div>
             <dt>Published</dt>
@@ -337,7 +411,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({
                     type="button"
                     className="button secondary small-button"
                     style={{ color: '#c0392b' }}
-                    onClick={() => handleDelete(item.id)}
+                    onClick={() => handleDelete(item)}
                     title="Delete update"
                   >
                     Delete

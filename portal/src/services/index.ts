@@ -11,3 +11,7 @@ export * from './notificationsApi';
 export * from './auditLogsApi';
 export * from './dashboardApi';
 export * from './newsApi';
+export * from './cmsApi';
+export * from './qrCodesApi';
+export * from './navigationApi';
+export * from './eventsApi';

@@ -39,11 +39,14 @@ All documented protected groups also require an active authenticated account; mi
 
 | Scenario | Status | Notes |
 |---|---|---|
-| Events API | Out of scope | No Events route exists in the current `backend/routes/api.php` or API contract. |
-| Feedback detail/update/respond/delete payloads | Contract gap | Routes exist, but `backend/docs/api.md` documents only feedback submission and list response shapes. Tests assert permission/scope outcomes and avoid inventing unlisted payload fields. |
-| Client catalog and service detail backed by API | Blocked by integration | Current client catalog data is local. |
-| Client news/feedback backed by API | Blocked by integration | Client calls `/home-highlights` and `/events`; these do not match the documented `/news` and `/feedbacks` routes. |
-| Portal admin data pages backed by API | Blocked by integration | Portal content still includes demo/local data. Live auth endpoints exist and have browser checks. |
+| Events API | Integrated | Added `EventController`, `eventsApi` (Portal & Client), public & administrative event routes (`/api/v1/events`). |
+| Landing Page CMS | Integrated | Added `CmsController`, `cmsApi` (Portal & Client), public & administrative CMS routes (`/api/v1/cms/landing-page`). |
+| Dynamic Navigation | Integrated | Added `NavigationController`, `navigationApi`, live sidebar navigation synced to role permissions (`/api/v1/navigation/sidebar`). |
+| QR Code Management | Integrated | Added `QrCodeController`, `qrCodesApi`, poster scanning & generation routes (`/api/v1/qr-codes`). |
+| Feedback detail & respond payloads | Integrated | Connected `updateFeedbackStatus`, `respondToFeedback`, and official response note submission in `FeedbackDetail`. |
+| Client catalog & visit guide | Integrated | Wired `useGetServicesQuery`, `useGetOrganizationsQuery`, `useGetServiceStepsQuery` into client `HomePage` & `QuickSearchSection`. |
+| Client news/feedback backed by API | Integrated | Client utilizes live `/api/v1/news`, `/api/v1/events`, and `/api/v1/feedbacks` with graceful fallbacks. |
+| Portal admin data pages backed by API | Integrated | All portal modules (Overview, Offices, Accounts, Roles, Services, Routes, Feedback, News, Activity, QR, CMS) wired to backend API. |
 
 ## Execution status
 

@@ -897,28 +897,145 @@ function filterItems(items, { category = 'all', subCity = 'all', search = '' }) 
 /**
  * Fetch top 3 highlights for the home page (Instant or fast response)
  */
-export async function getHomeHighlights() {
-  if (USE_REAL_BACKEND) {
-    try {
-      const res = await fetch(`${API_BASE_URL}/home-highlights`);
-      if (res.ok) return await res.json();
-    } catch (err) {
-      console.warn('Real backend fetch failed, using fallback mock highlights', err);
-    }
-  }
+export function parseNewsItem(art) {
+  const contents = art.contents || [];
+  const imageBlocks = contents.filter(
+    (c) => c.content_type === 'image_url' || c.content_type === 'image'
+  );
+  const textBlocks = contents.filter(
+    (c) => c.content_type !== 'image_url' && c.content_type !== 'image'
+  );
 
-  // Simulated quick delay
-  await new Promise((resolve) => setTimeout(resolve, 80));
+  const images = imageBlocks.map((b) => b.content).filter(Boolean);
+  const coverImage =
+    images[0] ||
+    'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80';
 
-  const items = getPublishedNewsEvents()
-  const news = items.filter((item) => item.type === 'news')
-  const events = items.filter((item) => item.type === 'event')
+  const summary =
+    textBlocks.length > 1
+      ? textBlocks[0].content
+      : textBlocks[0]?.content
+      ? textBlocks[0].content.length > 160
+        ? textBlocks[0].content.slice(0, 160) + '...'
+        : textBlocks[0].content
+      : 'Official Municipal Announcement';
+
+  const content =
+    textBlocks.length > 1
+      ? textBlocks.slice(1).map((c) => c.content).join('\n\n')
+      : textBlocks[0]?.content || '';
+
+  const totalLength = textBlocks.reduce((acc, c) => acc + (c.content?.length || 0), 0);
+  const readTimeMinutes = Math.max(1, Math.ceil((totalLength || 400) / 400));
+
   return {
-    news: news.slice(0, 3),
-    events: events.slice(0, 3),
-    totalNews: news.length,
-    totalEvents: events.length,
+    id: String(art.id),
+    type: 'news',
+    title: art.news_title,
+    titleAm: '',
+    slug: `news-${art.id}`,
+    summary,
+    summaryAm: '',
+    content,
+    contentAm: '',
+    category: 'Public notice',
+    categoryAm: 'ይፋዊ ማስታወቂያ',
+    subCity: art.organization?.name || 'All Addis Ababa',
+    subCityAm: 'መላው አዲስ አበባ',
+    bureau: art.organization?.name || 'City Administration',
+    bureauAm: 'የከተማ አስተዳደር',
+    author: {
+      name: art.organization?.name || 'Communications Directorate',
+      nameAm: art.organization?.name || 'የኮሙኒኬሽን ዳይሬክቶሬት',
+      role: 'Official Municipal Bureau',
+      roleAm: 'ይፋዊ የማዘጋጃ ቤት ቢሮ',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    },
+    coverImage,
+    images,
+    publishedAt: art.created_at ? art.created_at.split('T')[0] : '2026-10-26',
+    readTimeMinutes,
+    isPublished: true,
+    tags: [art.organization?.name || 'Addis Ababa', 'Public Notice', 'Citizen Services'],
+  };
+}
+
+export function parseEventItem(ev) {
+  const rawImages = ev.images || [];
+  const images = rawImages
+    .map((img) => (typeof img === 'string' ? img : img.image_url))
+    .filter(Boolean);
+
+  const coverImage =
+    images[0] ||
+    'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80';
+
+  return {
+    id: String(ev.id),
+    type: 'event',
+    title: ev.title,
+    titleAm: '',
+    slug: `event-${ev.id}`,
+    summary:
+      ev.description && ev.description.length > 160
+        ? ev.description.slice(0, 160) + '...'
+        : ev.description || 'Public Municipal Event',
+    summaryAm: '',
+    content: ev.description || '',
+    contentAm: '',
+    category: 'Public consultation',
+    categoryAm: 'የህዝብ ውይይት',
+    subCity: ev.organization?.name || 'All Addis Ababa',
+    subCityAm: 'ሁሉም አዲስ አበባ',
+    bureau: ev.organization?.name || 'City Administration',
+    bureauAm: 'የከተማ አስተዳደር',
+    coverImage,
+    images,
+    eventDate: ev.event_date ? ev.event_date.split('T')[0] : '2026-11-15',
+    endDate: ev.end_date ? ev.end_date.split('T')[0] : null,
+    audience: ev.audience || 'All Citizens',
+    startTime: '09:00',
+    endTime: '13:00',
+    location: {
+      venue: ev.location_name || 'City Administration Hall',
+      subCity: ev.organization?.name || 'Bole',
+      woreda: '01',
+      mapUrl: 'https://maps.google.com',
+    },
+    rsvp: { total: 45, max: 200, isRegistered: false },
+    isPublished: ev.status === 'published',
+    tags: [ev.organization?.name || 'Addis Ababa', 'Public Event', 'Civic Forum'],
+  };
+}
+
+export async function getHomeHighlights() {
+  let liveNews = [];
+  try {
+    liveNews = (await fetchBackendNews()) || [];
+  } catch {
+    liveNews = [];
   }
+
+  let liveEvents = [];
+  try {
+    liveEvents = (await fetchBackendEvents()) || [];
+  } catch {
+    liveEvents = [];
+  }
+
+  const fallbackItems = getPublishedNewsEvents();
+  const fallbackNews = fallbackItems.filter((item) => item.type === 'news');
+  const fallbackEvents = fallbackItems.filter((item) => item.type === 'event');
+
+  const finalNews = liveNews.length > 0 ? liveNews : fallbackNews;
+  const finalEvents = liveEvents.length > 0 ? liveEvents : fallbackEvents;
+
+  return {
+    news: finalNews.slice(0, 3),
+    events: finalEvents.slice(0, 3),
+    totalNews: finalNews.length,
+    totalEvents: finalEvents.length,
+  };
 }
 
 async function fetchBackendNews() {
@@ -927,30 +1044,25 @@ async function fetchBackendNews() {
     if (!res.ok) return null;
     const json = await res.json();
     if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-      return json.data.map((art) => ({
-        id: String(art.id),
-        type: 'news',
-        title: art.news_title,
-        titleAm: '',
-        slug: `news-${art.id}`,
-        summary: art.contents?.[0]?.content || 'Official Municipal Announcement',
-        summaryAm: '',
-        content: art.contents?.map((c) => c.content).join('\n\n') || '',
-        contentAm: '',
-        category: 'Public notice',
-        categoryAm: 'ይፋዊ ማስታወቂያ',
-        subCity: art.organization?.name || 'All Addis Ababa',
-        subCityAm: 'መላው አዲስ አበባ',
-        bureau: art.organization?.name || 'City Administration',
-        bureauAm: 'የከተማ አስተዳደር',
-        coverImage: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
-        publishedAt: art.created_at ? art.created_at.split('T')[0] : '2026-10-26',
-        readTimeMinutes: 3,
-        isPublished: true,
-      }));
+      return json.data.map(parseNewsItem);
     }
   } catch (err) {
     console.warn('Backend news query error, using local fallback:', err);
+  }
+  return null;
+}
+
+async function fetchBackendEvents() {
+  try {
+    const res = await fetch('/api/v1/events');
+    if (!res.ok) return null;
+    const json = await res.json();
+    const eventData = json.data?.data || json.data;
+    if (Array.isArray(eventData) && eventData.length > 0) {
+      return eventData.map(parseEventItem);
+    }
+  } catch (err) {
+    console.warn('Backend events query error, using local fallback:', err);
   }
   return null;
 }
@@ -997,23 +1109,12 @@ export async function fetchEvents({
   subCity = 'all',
   search = '',
 } = {}) {
-  if (USE_REAL_BACKEND) {
-    const params = new URLSearchParams({
-      page: String(page),
-      limit: String(limit),
-      category,
-      subCity,
-      search,
-    });
-    const res = await fetch(`${API_BASE_URL}/events?${params}`);
-    if (!res.ok) throw new Error(`Failed to fetch events: ${res.statusText}`);
-    return await res.json();
-  }
+  const liveEvents = await fetchBackendEvents();
+  const eventSource = liveEvents && liveEvents.length > 0
+    ? liveEvents
+    : getPublishedNewsEvents().filter((item) => item.type === 'event');
 
-  // Simulated backend network delay
-  await new Promise((resolve) => setTimeout(resolve, 150));
-
-  const filtered = filterItems(getPublishedNewsEvents().filter((item) => item.type === 'event'), { category, subCity, search });
+  const filtered = filterItems(eventSource, { category, subCity, search });
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
   const items = filtered.slice(startIndex, endIndex);
@@ -1047,7 +1148,15 @@ export async function fetchCombinedFeed({
     liveNews = [];
   }
 
-  const events = getPublishedNewsEvents().filter((item) => item.type === 'event');
+  let liveEvents = [];
+  try {
+    liveEvents = (await fetchBackendEvents()) || [];
+  } catch {
+    liveEvents = [];
+  }
+
+  const fallbackEvents = getPublishedNewsEvents().filter((item) => item.type === 'event');
+  const events = liveEvents.length > 0 ? liveEvents : fallbackEvents;
   const fallbackNews = getPublishedNewsEvents().filter((item) => item.type === 'news');
   const newsSource = liveNews.length > 0 ? liveNews : fallbackNews;
 
@@ -1078,45 +1187,47 @@ export async function fetchCombinedFeed({
  * Lookup single item by ID
  */
 export async function getItemById(id) {
+  const cleanId = String(id).replace(/^(news-|event-)/, '');
+
+  // 1. If ID explicitly indicates event or starts with event-
+  if (String(id).startsWith('event-')) {
+    try {
+      const res = await fetch(`/api/v1/events/${cleanId}`);
+      if (res.ok) {
+        const json = await res.json();
+        const ev = json.data;
+        if (ev) return parseEventItem(ev);
+      }
+    } catch (err) {
+      console.warn('Backend event lookup error:', err);
+    }
+  }
+
+  // 2. Try news endpoint
   try {
-    const res = await fetch(`/api/v1/news/${id}`);
+    const res = await fetch(`/api/v1/news/${cleanId}`);
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.data) {
-        const art = json.data;
-        return {
-          id: String(art.id),
-          type: 'news',
-          title: art.news_title,
-          titleAm: '',
-          slug: `news-${art.id}`,
-          summary: art.contents?.[0]?.content || '',
-          summaryAm: '',
-          content: art.contents?.slice(1).map((c) => c.content).join('\n\n') || art.contents?.[0]?.content || '',
-          contentAm: '',
-          category: 'Public notice',
-          categoryAm: 'ይፋዊ ማስታወቂያ',
-          subCity: art.organization?.name || 'All Addis Ababa',
-          subCityAm: 'መላው አዲስ አበባ',
-          bureau: art.organization?.name || 'City Administration',
-          bureauAm: 'የከተማ አስተዳደር',
-          author: {
-            name: art.organization?.name || 'Communications Directorate',
-            nameAm: art.organization?.name || 'የኮሙኒኬሽን ዳይሬክቶሬት',
-            role: 'Official Municipal Bureau',
-            roleAm: 'ይፋዊ የማዘጋጃ ቤት ቢሮ',
-            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-          },
-          coverImage: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
-          publishedAt: art.created_at ? art.created_at.split('T')[0] : '2026-10-26',
-          readTimeMinutes: Math.max(1, Math.ceil((art.contents?.reduce((acc, c) => acc + (c.content?.length || 0), 0) || 500) / 400)),
-          isPublished: true,
-          tags: [art.organization?.name || 'Addis Ababa', 'Public Notice', 'Citizen Services'],
-        };
+        return parseNewsItem(json.data);
       }
     }
   } catch (err) {
-    console.warn('Backend getItemById error:', err);
+    console.warn('Backend news lookup error:', err);
+  }
+
+  // 3. Fallback: try event endpoint if not previously checked
+  if (!String(id).startsWith('event-')) {
+    try {
+      const res = await fetch(`/api/v1/events/${cleanId}`);
+      if (res.ok) {
+        const json = await res.json();
+        const ev = json.data;
+        if (ev) return parseEventItem(ev);
+      }
+    } catch (err) {
+      console.warn('Backend event fallback lookup error:', err);
+    }
   }
 
   const item = getPublishedNewsEvents().find(

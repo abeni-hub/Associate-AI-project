@@ -66,6 +66,14 @@ export const feedbackApi = baseApi.injectEndpoints({
           : [{ type: 'Feedback', id: 'LIST' }],
     }),
 
+    getFeedbackById: builder.query<ApiResponse<CitizenFeedback>, string | number>({
+      query: (id) => ({
+        url: `/feedbacks/${id}`,
+        method: 'GET',
+      }),
+      providesTags: (_result, _error, id) => [{ type: 'Feedback', id }],
+    }),
+
     createFeedback: builder.mutation<ApiResponse<CitizenFeedback>, CreateFeedbackRequest>({
       query: (body) => ({
         url: '/feedbacks',
@@ -75,12 +83,53 @@ export const feedbackApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: 'Feedback', id: 'LIST' }],
     }),
 
-    updateFeedbackStatus: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; status: string }>({
-      query: ({ id, status }) => ({
-        url: `/feedbacks/${id}/status`,
-        method: 'PATCH',
-        body: { status },
+    updateFeedback: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; [key: string]: any }>({
+      query: ({ id, ...body }) => ({
+        url: `/feedbacks/${id}`,
+        method: 'PUT',
+        body,
       }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Feedback', id },
+        { type: 'Feedback', id: 'LIST' },
+      ],
+    }),
+
+    respondToFeedback: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; response: string }>({
+      query: ({ id, response }) => ({
+        url: `/feedbacks/${id}/respond`,
+        method: 'POST',
+        body: { response },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Feedback', id },
+        { type: 'Feedback', id: 'LIST' },
+      ],
+    }),
+
+    deleteFeedback: builder.mutation<ApiResponse<null>, string | number>({
+      query: (id) => ({
+        url: `/feedbacks/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'Feedback', id: 'LIST' }],
+    }),
+
+    updateFeedbackStatus: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; status?: string; response?: string }>({
+      query: ({ id, status, response }) => {
+        if (response) {
+          return {
+            url: `/feedbacks/${id}/respond`,
+            method: 'POST',
+            body: { response },
+          };
+        }
+        return {
+          url: `/feedbacks/${id}`,
+          method: 'PUT',
+          body: { status },
+        };
+      },
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Feedback', id },
         { type: 'Feedback', id: 'LIST' },
@@ -92,6 +141,10 @@ export const feedbackApi = baseApi.injectEndpoints({
 
 export const {
   useGetFeedbackListQuery,
+  useGetFeedbackByIdQuery,
   useCreateFeedbackMutation,
+  useUpdateFeedbackMutation,
+  useRespondToFeedbackMutation,
+  useDeleteFeedbackMutation,
   useUpdateFeedbackStatusMutation,
 } = feedbackApi;

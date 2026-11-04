@@ -17,8 +17,16 @@ export interface NewsEventItem {
   subCity?: string;
   subCityAm?: string;
   coverImage?: string;
+  images?: string[];
+  eventDate?: string;
+  endDate?: string;
+  audience?: string;
   publishedAt?: string;
   location?: {
+    venue?: string;
+    venueAm?: string;
+    address?: string;
+    addressAm?: string;
     subCity?: string;
     subCityAm?: string;
     [key: string]: unknown;

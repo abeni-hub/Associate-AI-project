@@ -16,7 +16,7 @@ export default function EventSpecsCard({isAm, item, language, rsvpStatus, rsvpNa
                 <div>
                   <span className="spec-label">{isAm ? 'ቀን እና ሰዓት' : 'Date & Time'}</span>
                   <strong>{formatDate(item.eventDate, language)}</strong>
-                  <small>{isAm && item.timeAm ? item.timeAm : item.time}</small>
+                  <small>{isAm && item.timeAm ? item.timeAm : (item.time || 'Official Municipal Hours')}</small>
                 </div>
               </div>
 
@@ -26,8 +26,8 @@ export default function EventSpecsCard({isAm, item, language, rsvpStatus, rsvpNa
                 </div>
                 <div>
                   <span className="spec-label">{isAm ? 'ቦታ / አዳራሽ' : 'Location Venue'}</span>
-                  <strong>{isAm && item.location?.venueAm ? item.location.venueAm : item.location?.venue}</strong>
-                  <small>{isAm && item.location?.addressAm ? item.location.addressAm : item.location?.address}</small>
+                  <strong>{isAm && item.location?.venueAm ? item.location.venueAm : (item.location?.venue || 'City Hall')}</strong>
+                  <small>{isAm && item.location?.addressAm ? item.location.addressAm : (item.location?.address || item.subCity || 'Addis Ababa')}</small>
                 </div>
               </div>
 
@@ -37,10 +37,16 @@ export default function EventSpecsCard({isAm, item, language, rsvpStatus, rsvpNa
                 </div>
                 <div>
                   <span className="spec-label">{isAm ? 'የተያዙ መቀመጫዎች' : 'Seat Availability'}</span>
-                  <strong>{item.rsvpCount} / {item.capacity} {isAm ? 'ተመዝግበዋል' : 'Seats Booked'}</strong>
-                  <div className="capacity-bar">
-                    <div className="capacity-fill" style={{ width: `${Math.min(100, (item.rsvpCount / item.capacity) * 100)}%` }} />
-                  </div>
+                  <strong>
+                    {item.capacity
+                      ? `${item.rsvpCount || 0} / ${item.capacity} ${isAm ? 'ተመዝግበዋል' : 'Seats Booked'}`
+                      : (isAm ? 'ክፍት የህዝብ መድረክ' : 'Open Public Attendance')}
+                  </strong>
+                  {item.capacity && (
+                    <div className="capacity-bar">
+                      <div className="capacity-fill" style={{ width: `${Math.min(100, ((item.rsvpCount || 0) / item.capacity) * 100)}%` }} />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -50,7 +56,7 @@ export default function EventSpecsCard({isAm, item, language, rsvpStatus, rsvpNa
                 </div>
                 <div>
                   <span className="spec-label">{isAm ? 'አዘጋጅ ቢሮ' : 'Organizing Body'}</span>
-                  <strong>{isAm && item.organizerAm ? item.organizerAm : item.organizer}</strong>
+                  <strong>{isAm && item.organizerAm ? item.organizerAm : (item.organizer || item.bureau || 'Addis Ababa Administration')}</strong>
                   <small>{isAm ? 'ይፋዊ የከተማ መድረክ' : 'Official Public Engagement'}</small>
                 </div>
               </div>

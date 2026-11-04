@@ -19,6 +19,7 @@ import {
   resetFilters,
 } from '../store/slices/newsFilterSlice.js';
 import { useGetNewsQuery } from '../services/newsApi.js';
+import { useGetEventsQuery } from '../services/eventsApi.js';
 
 interface NewsEventsPageProps {
   language?: Language;
@@ -33,8 +34,9 @@ export default function NewsEventsPage({
 }: NewsEventsPageProps) {
   const dispatch = useAppDispatch();
 
-  // RTK Query: fetch live news from backend and keep cache warm
+  // RTK Query: fetch live news & events from backend and keep cache warm
   const { data: apiNews, refetch: refetchNews } = useGetNewsQuery();
+  const { data: apiEvents, refetch: refetchEvents } = useGetEventsQuery();
 
   // Redux Filter state
   const { activeType, selectedCategory, selectedSubCity, searchQuery } = useAppSelector(
@@ -91,6 +93,7 @@ export default function NewsEventsPage({
       if (rawEvent.type === NEWS_EVENTS_UPDATED_EVENT || event.key === NEWS_EVENTS_STORAGE_KEY) {
         setContentRevision((revision) => revision + 1);
         refetchNews();
+        refetchEvents();
       }
     };
     window.addEventListener('storage', refreshWhenContentChanges);
@@ -99,7 +102,7 @@ export default function NewsEventsPage({
       window.removeEventListener('storage', refreshWhenContentChanges);
       window.removeEventListener(NEWS_EVENTS_UPDATED_EVENT, refreshWhenContentChanges);
     };
-  }, [refetchNews]);
+  }, [refetchNews, refetchEvents]);
 
   // Reset & fetch page 1 whenever filters change
   useEffect(() => {
@@ -143,7 +146,7 @@ export default function NewsEventsPage({
     return () => {
       ignore = true;
     };
-  }, [activeType, selectedCategory, selectedSubCity, debouncedSearch, contentRevision, apiNews]);
+  }, [activeType, selectedCategory, selectedSubCity, debouncedSearch, contentRevision, apiNews, apiEvents]);
 
   // Load next page
   const loadNextPage = useCallback(async () => {
