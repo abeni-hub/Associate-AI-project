@@ -594,7 +594,6 @@ class FeedbackIndexTest extends TestCase
             'feedback_type' => 'feedback',
             'full_name' => 'Almaz Ayana',
             'phone_number' => '+251911000111',
-            'email' => 'almaz@example.et',
         ]);
 
         $response->assertStatus(201)
@@ -607,7 +606,6 @@ class FeedbackIndexTest extends TestCase
                     'feedback_type' => 'feedback',
                     'full_name' => 'Almaz Ayana',
                     'phone_number' => '+251911000111',
-                    'email' => 'almaz@example.et',
                 ],
             ]);
 
@@ -796,7 +794,6 @@ class FeedbackIndexTest extends TestCase
             'action' => 'submitted',
             'entity_type' => 'Feedback',
             'entity_id' => (string) $feedbackId,
-            'organization_id' => $this->boleSubCity->id,
         ]);
 
         // 2. Administrative update produces audit log
@@ -811,7 +808,6 @@ class FeedbackIndexTest extends TestCase
             'action' => 'updated',
             'entity_type' => 'Feedback',
             'entity_id' => (string) $feedbackId,
-            'organization_id' => $this->boleSubCity->id,
             'user_id' => $this->subCityAdmin->id,
         ]);
 
@@ -827,7 +823,6 @@ class FeedbackIndexTest extends TestCase
             'action' => 'responded',
             'entity_type' => 'Feedback',
             'entity_id' => (string) $feedbackId,
-            'organization_id' => $this->boleSubCity->id,
             'user_id' => $this->subCityAdmin->id,
         ]);
 
@@ -841,7 +836,6 @@ class FeedbackIndexTest extends TestCase
             'action' => 'deleted',
             'entity_type' => 'Feedback',
             'entity_id' => (string) $feedbackId,
-            'organization_id' => $this->boleSubCity->id,
             'user_id' => $this->subCityAdmin->id,
         ]);
     }

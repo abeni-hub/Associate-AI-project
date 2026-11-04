@@ -62,6 +62,17 @@ class CreateUserRequest extends FormRequest
                 );
             }
 
+            // Scope hierarchy management check
+            if ($actor && $role && ! $actor->isSuperAdmin()) {
+                $actorRole = $actor->role;
+                if ($actorRole && ! $actorRole->canManageScope($role->scope_level ?? Role::SCOPE_BUREAU)) {
+                    $validator->errors()->add(
+                        'role_id',
+                        'You cannot assign a role with an administrative scope level higher than your own.'
+                    );
+                }
+            }
+
             // 2. Organization requirement
             if ($role?->slug !== 'super_admin' && $orgId === null) {
                 $validator->errors()->add(

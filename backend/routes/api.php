@@ -6,18 +6,21 @@ use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\PasswordResetController;
 use App\Http\Controllers\Api\V1\Authorization\PermissionController;
 use App\Http\Controllers\Api\V1\Authorization\RoleController;
+use App\Http\Controllers\Api\V1\Cms\CmsController;
 use App\Http\Controllers\Api\V1\Dashboard\DashboardController;
 use App\Http\Controllers\Api\V1\Documents\DocumentController;
+use App\Http\Controllers\Api\V1\Events\EventController;
 use App\Http\Controllers\Api\V1\Feedback\FeedbackController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\Navigation\NavigationController;
 use App\Http\Controllers\Api\V1\News\NewsController;
 use App\Http\Controllers\Api\V1\Organizations\OrganizationController;
 use App\Http\Controllers\Api\V1\Organizations\OrganizationTypeController;
+use App\Http\Controllers\Api\V1\QrCodes\QrCodeController;
 use App\Http\Controllers\Api\V1\Services\ServiceController;
 use App\Http\Controllers\Api\V1\Services\ServiceStepController;
 use App\Http\Controllers\Api\V1\Users\UserController;
 use App\Support\ApiResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -30,8 +33,21 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
+    // API Root
+    Route::get('/', function () {
+        return ApiResponse::success([
+            'service' => 'CivicLink Government Citizen Engagement Platform API',
+            'version' => 'v1',
+            'health' => url('/api/v1/health'),
+            'cms' => url('/api/v1/cms/landing-page'),
+        ], 'CivicLink API v1 is active.');
+    })->name('root');
+
     // Health & Status
     Route::get('/health', HealthController::class)->name('health');
+
+    // Public Landing Page CMS (no authentication required)
+    Route::get('/cms/landing-page', [CmsController::class, 'show'])->name('cms.landing-page.show');
 
     // Public Citizen Service Discovery Endpoints
     Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
@@ -69,6 +85,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
     // Authenticated Administration Endpoints
     Route::middleware(['auth:sanctum', 'account.active'])->group(function () {
+        // Dynamic Sidebar Navigation
+        Route::get('/navigation/sidebar', [NavigationController::class, 'sidebar'])
+            ->name('navigation.sidebar');
+
         // Authorization & Role Management
         Route::prefix('roles')->name('roles.')->group(function () {
             Route::get('/', [RoleController::class, 'index'])
@@ -236,7 +256,46 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 ->middleware('permission:dashboard.view')
                 ->name('recent-activity');
         });
+
+        // Super Admin CMS Landing Page Management
+        Route::prefix('cms')->name('cms.')->group(function () {
+            Route::put('/landing-page', [CmsController::class, 'update'])
+                ->middleware('permission:cms.manage')
+                ->name('landing-page.update');
+
+            Route::post('/upload-image', [CmsController::class, 'uploadImage'])
+                ->middleware('permission:cms.manage')
+                ->name('upload-image');
+        });
+
+        // QR Codes Management
+        Route::prefix('qr-codes')->name('qr-codes.')->group(function () {
+            Route::get('/', [QrCodeController::class, 'index'])
+                ->middleware('permission:qr_codes.view')
+                ->name('index');
+            Route::get('/{qrCode}', [QrCodeController::class, 'show'])
+                ->middleware('permission:qr_codes.view')
+                ->name('show');
+            Route::post('/', [QrCodeController::class, 'store'])
+                ->middleware('permission:qr_codes.manage')
+                ->name('store');
+        });
+
+        // Event Management
+        Route::post('/events', [EventController::class, 'store'])
+            ->middleware('permission:events.create')
+            ->name('events.store');
+        Route::delete('/events/{event}', [EventController::class, 'destroy'])
+            ->middleware('permission:events.delete')
+            ->name('events.destroy');
     });
+
+    // Public Events Discovery (no authentication required)
+    Route::get('/events', [EventController::class, 'index'])->name('events.index');
+    Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show');
+
+    // Public QR Poster Scanning & Redirection
+    Route::post('/qr-codes/{code}/scan', [QrCodeController::class, 'scan'])->name('qr-codes.scan');
 
     // Public News (no authentication required)
     Route::get('/news', [NewsController::class, 'index'])

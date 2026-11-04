@@ -94,6 +94,16 @@ class UpdateUserRequest extends FormRequest
                     $validator->errors()->add('role_id', 'Only Super Admins can assign the Super Admin role.');
                 }
 
+                if ($actor && $newRole && ! $actor->isSuperAdmin()) {
+                    $actorRole = $actor->role;
+                    if ($actorRole && ! $actorRole->canManageScope($newRole->scope_level ?? Role::SCOPE_BUREAU)) {
+                        $validator->errors()->add(
+                            'role_id',
+                            'You cannot assign a role with an administrative scope level higher than your own.'
+                        );
+                    }
+                }
+
                 // Prevent removing last super admin
                 if ($targetUser->isSuperAdmin() && $newRole?->slug !== 'super_admin') {
                     $superAdminCount = User::whereHas('role', fn ($q) => $q->where('slug', 'super_admin'))->count();
