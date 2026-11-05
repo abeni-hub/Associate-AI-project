@@ -9,77 +9,11 @@ import {
   useGetRoleByIdQuery,
   useGetPermissionsQuery,
   useUpdateRolePermissionsMutation,
+  useCreateRoleMutation,
+  useUpdateRoleMutation,
+  useDeleteRoleMutation,
   type PermissionItem,
 } from '../services/rolesApi';
-import { INITIAL_ROLES } from '../data/portalData';
-
-/**
- * Standardized system permissions catalog matching backend PermissionSeeder & GET /api/v1/permissions.
- */
-export const SYSTEM_PERMISSIONS_CATALOG: PermissionItem[] = [
-  // Organizations
-  { id: 1, key: 'organizations.view', name: 'View Organizations', group: 'organizations', description: 'View organization profiles and administrative hierarchy.' },
-  { id: 2, key: 'organizations.create', name: 'Create Organizations', group: 'organizations', description: 'Create new government organizations, sub-cities, and bureaus.' },
-  { id: 3, key: 'organizations.update', name: 'Update Organizations', group: 'organizations', description: 'Edit organization details, contact info, and leadership.' },
-  { id: 4, key: 'organizations.delete', name: 'Delete Organizations', group: 'organizations', description: 'Deactivate or soft-delete organizational units.' },
-
-  // Users
-  { id: 5, key: 'users.view', name: 'View Users', group: 'users', description: 'View user lists, administrative profiles, and assigned scopes.' },
-  { id: 6, key: 'users.create', name: 'Create Users', group: 'users', description: 'Provision staff or administrative accounts with temporary credentials.' },
-  { id: 7, key: 'users.update', name: 'Update Users', group: 'users', description: 'Modify user profiles, email addresses, and account status.' },
-  { id: 8, key: 'users.delete', name: 'Delete Users', group: 'users', description: 'Deactivate or remove administrative user accounts.' },
-  { id: 9, key: 'users.reset_password', name: 'Reset User Password', group: 'users', description: 'Initiate administrative password resets and temporary OTPs.' },
-
-  // Roles & Permissions
-  { id: 10, key: 'roles.view', name: 'View Roles', group: 'roles', description: 'View role definitions, governance scopes, and permission catalogs.' },
-  { id: 11, key: 'roles.manage', name: 'Manage Roles', group: 'roles', description: 'Create custom administrative roles and synchronize policy permissions.' },
-
-  // Services & Subservices
-  { id: 12, key: 'services.view', name: 'View Services', group: 'services', description: 'Browse government public services, subservices, and guides.' },
-  { id: 13, key: 'services.create', name: 'Create Services', group: 'services', description: 'Add new public services or subservices to the service catalog.' },
-  { id: 14, key: 'services.update', name: 'Update Services', group: 'services', description: 'Update service prerequisites, fees, turnaround times, and details.' },
-  { id: 15, key: 'services.delete', name: 'Delete Services', group: 'services', description: 'Deactivate or archive public services from citizen view.' },
-  { id: 16, key: 'services.manage', name: 'Manage Service Access', group: 'services', description: 'Configure organizational service assignments and access tiers.' },
-
-  // Required Documents
-  { id: 17, key: 'documents.view', name: 'View Required Documents', group: 'documents', description: 'Inspect citizen required document templates and criteria.' },
-  { id: 18, key: 'documents.manage', name: 'Manage Required Documents', group: 'documents', description: 'Create, edit, and link required document checklists to services.' },
-
-  // Service Steps (Room-by-Room Instructions)
-  { id: 19, key: 'service_steps.view', name: 'View Service Steps', group: 'service_steps', description: 'View physical room-by-room navigation steps for office visitors.' },
-  { id: 20, key: 'service_steps.manage', name: 'Manage Service Steps', group: 'service_steps', description: 'Configure and reorder physical room numbers and visitor instructions.' },
-
-  // News Management
-  { id: 21, key: 'news.view', name: 'View News', group: 'news', description: 'View official municipal notices, draft announcements, and articles.' },
-  { id: 22, key: 'news.create', name: 'Create News', group: 'news', description: 'Draft civic notices, news articles, and citizen announcements.' },
-  { id: 23, key: 'news.update', name: 'Update News', group: 'news', description: 'Edit news content, illustrations, headlines, and summaries.' },
-  { id: 24, key: 'news.publish', name: 'Publish News', group: 'news', description: 'Publish announcements directly to the citizen app feed or archive them.' },
-  { id: 25, key: 'news.delete', name: 'Delete News', group: 'news', description: 'Remove public notices and announcements from the system.' },
-
-  // Events Management
-  { id: 26, key: 'events.view', name: 'View Events', group: 'events', description: 'View scheduled town halls, public consultations, and civic events.' },
-  { id: 27, key: 'events.create', name: 'Create Events', group: 'events', description: 'Schedule new public gatherings, venues, and calendar items.' },
-  { id: 28, key: 'events.update', name: 'Update Events', group: 'events', description: 'Modify event dates, venue locations, times, and agendas.' },
-  { id: 29, key: 'events.publish', name: 'Publish Events', group: 'events', description: 'Publish events to citizen calendars or cancel them.' },
-  { id: 30, key: 'events.delete', name: 'Delete Events', group: 'events', description: 'Delete public event entries and historical records.' },
-
-  // Citizen Feedback
-  { id: 31, key: 'feedback.view_own', name: 'View Own Feedback', group: 'feedback', description: 'Inspect feedback, complaints, and ratings submitted to own organization.' },
-  { id: 32, key: 'feedback.view_descendants', name: 'View Descendant Feedback', group: 'feedback', description: 'Supervisory visibility into feedback submitted to child sub-cities or woredas.' },
-  { id: 33, key: 'feedback.update_status', name: 'Update Feedback Status', group: 'feedback', description: 'Update complaint resolution status (under_review, resolved, closed).' },
-
-  // QR Codes
-  { id: 34, key: 'qr_codes.view', name: 'View QR Codes', group: 'qr_codes', description: 'View office QR tokens, assigned service desks, and feedback routing.' },
-  { id: 35, key: 'qr_codes.manage', name: 'Manage QR Codes', group: 'qr_codes', description: 'Generate, download, activate, and deactivate physical office QR codes.' },
-
-  // Dashboards & Audit Logs
-  { id: 36, key: 'dashboard.view', name: 'View Dashboard', group: 'dashboard', description: 'Access role-aware and organization-scoped metrics and activity charts.' },
-  { id: 37, key: 'audit_logs.view', name: 'View Audit Logs', group: 'audit_logs', description: 'Inspect immutable system security trails, logins, and permission changes.' },
-
-  // CMS Landing Page Management
-  { id: 38, key: 'cms.manage', name: 'Manage Landing Page CMS', group: 'cms', description: 'Manage citizen landing page CMS, hero banner, announcement, and public experience.' },
-];
-
 /**
  * Domain groupings with metadata & icon mappings.
  */
@@ -99,6 +33,25 @@ export const DOMAIN_GROUPS: { id: string; label: string; desc: string; icon: str
   { id: 'cms', label: 'Citizen Landing Page CMS', desc: 'Manage citizen portal landing page, announcement banner, and footer.', icon: 'palette' },
 ];
 
+/**
+ * Mapping navigation item routes to relevant backend permission keys
+ */
+const NAV_ITEM_TO_PERM_KEYS: Record<string, string[]> = {
+  overview: ['dashboard.view'],
+  offices: ['organizations.view', 'organizations.create', 'organizations.update'],
+  levels: ['organizations.view'],
+  accounts: ['users.view', 'users.create', 'users.update'],
+  roles: ['roles.view'],
+  services: ['services.view', 'services.create', 'services.update'],
+  documents: ['documents.view', 'documents.manage'],
+  routes: ['service_steps.view', 'service_steps.manage'],
+  feedback: ['feedback.view_own', 'feedback.update_status'],
+  qr: ['qr_codes.view', 'qr_codes.manage'],
+  news: ['news.view', 'news.create', 'news.update', 'news.publish', 'events.view', 'events.create', 'events.update', 'events.publish'],
+  cms: ['cms.manage'],
+  activity: ['audit_logs.view'],
+};
+
 export interface RolesPermissionsPageProps {
   roles?: RoleItem[];
   onCreateRole?: (role: RoleItem) => void;
@@ -113,14 +66,17 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   onDeleteRole,
 }) => {
   // 1. GET /api/v1/roles (list with permissions_count)
-  const { data: apiRoles, isLoading: loadingRoles } = useGetRolesQuery();
+  const { data: apiRoles, isLoading: loadingRoles, refetch: refetchRoles } = useGetRolesQuery();
 
   // 2. GET /api/v1/permissions (grouped domain catalog)
-  const { data: apiPermissions } = useGetPermissionsQuery();
+  const { data: apiPermissions, isLoading: loadingPermissions } = useGetPermissionsQuery();
 
   // 3. PUT /api/v1/roles/{id}/permissions (sync permission IDs)
   const [updateRolePermissionsTrigger, { isLoading: isSavingPermissions }] =
     useUpdateRolePermissionsMutation();
+  const [createRoleTrigger, { isLoading: isCreatingRole }] = useCreateRoleMutation();
+  const [updateRoleTrigger, { isLoading: isUpdatingRole }] = useUpdateRoleMutation();
+  const [deleteRoleTrigger, { isLoading: isDeletingRole }] = useDeleteRoleMutation();
 
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
@@ -130,63 +86,54 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   const [selectedDomainFilter, setSelectedDomainFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'granted' | 'revoked'>('all');
 
-  const [internalRoles, setInternalRoles] = useState<RoleItem[]>(
-    () => propRoles || []
-  );
-
   const { hasPermission } = usePermissions();
   const canManageRoles = hasPermission('roles.manage');
 
-  // Active permissions catalog (backend if available, otherwise standardized catalog)
+  // Active permissions catalog strictly from backend GET /api/v1/permissions (no mock fallbacks)
   const allPermissions = useMemo<PermissionItem[]>(() => {
-    if (apiPermissions?.data && apiPermissions.data.length > 0) {
+    if (apiPermissions?.data && Array.isArray(apiPermissions.data)) {
       return apiPermissions.data;
     }
-    return SYSTEM_PERMISSIONS_CATALOG;
+    return [];
   }, [apiPermissions]);
 
-  // Combine live backend API roles with local custom roles
+  // Active platform roles strictly from backend GET /api/v1/roles (no mock fallbacks)
   const roles = useMemo<RoleItem[]>(() => {
     if (propRoles && propRoles.length > 0) return propRoles;
-    if (apiRoles?.data) {
-      const mappedApiRoles: RoleItem[] = apiRoles.data.map((r) => {
-        const fallback = internalRoles.find(
-          (ir) =>
-            ir.slug === r.slug ||
-            ir.id === r.slug ||
-            ir.name.toLowerCase() === r.name.toLowerCase()
-        );
+    if (apiRoles?.data && Array.isArray(apiRoles.data)) {
+      return apiRoles.data.map((r) => {
+        const pIds = r.permission_ids || (r.permissions ? r.permissions.map((p) => p.id) : []);
+        const pCount = r.permissions_count ?? pIds.length;
+        const sLevel = r.scope_level || (r.slug === 'super_admin' ? 'global' : 'sub_city');
+        const scopeFormatted =
+          sLevel === 'global'
+            ? 'Platform wide'
+            : sLevel === 'sub_city'
+              ? 'Sub-city wide'
+              : sLevel === 'woreda'
+                ? 'Woreda wide'
+                : sLevel === 'bureau'
+                  ? 'Bureau local'
+                  : sLevel === 'staff'
+                    ? 'Operational desk'
+                    : `${sLevel.charAt(0).toUpperCase() + sLevel.slice(1)} level`;
+
         return {
           id: String(r.id),
           slug: r.slug,
           name: r.name,
-          description: r.description || fallback?.description || '',
-          isSystem: r.is_system,
-          permissionsCount: r.permissions_count ?? fallback?.permissionsCount,
-          permissionIds: fallback?.permissionIds,
-          scope:
-            r.slug === 'super_admin'
-              ? 'Platform wide'
-              : r.slug === 'sub_city_admin'
-                ? 'Sub-city wide'
-                : r.slug === 'woreda_admin'
-                  ? 'Woreda wide'
-                  : r.slug === 'staff'
-                    ? 'Operational desk'
-                    : 'Bureau local',
-          userCount: fallback?.userCount || 0,
+          description: r.description || '',
+          isSystem: Boolean(r.is_system),
+          scope_level: sLevel,
+          scope: scopeFormatted,
+          permissionsCount: pCount,
+          permissionIds: pIds,
+          userCount: 0,
         };
       });
-
-      // Preserve custom non-system roles added locally
-      const customLocalRoles = internalRoles.filter(
-        (ir) => !ir.isSystem && !mappedApiRoles.some((ar) => ar.slug === ir.slug || ar.id === ir.id)
-      );
-
-      return [...mappedApiRoles, ...customLocalRoles];
     }
-    return internalRoles;
-  }, [propRoles, apiRoles, internalRoles]);
+    return [];
+  }, [propRoles, apiRoles]);
 
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -230,8 +177,12 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     }
 
     // 1. From live GET /api/v1/roles/{id} response
-    if (activeRoleDetail?.data?.permissions && activeRoleDetail.data.permissions.length > 0) {
-      return activeRoleDetail.data.permissions.map((p) => p.id);
+    const detailData: any = activeRoleDetail?.data?.data || activeRoleDetail?.data;
+    if (detailData?.permissions && Array.isArray(detailData.permissions) && detailData.permissions.length > 0) {
+      return detailData.permissions.map((p: any) => (typeof p === 'number' ? p : p.id));
+    }
+    if (detailData?.permission_ids && Array.isArray(detailData.permission_ids) && detailData.permission_ids.length > 0) {
+      return detailData.permission_ids;
     }
 
     // 2. From role's stored permissionIds
@@ -245,7 +196,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   // Display count of active permissions
   const activePermissionsCount = isSuperAdmin
     ? allPermissions.length
-    : activeRole?.permissionsCount ?? effectivePermissionIds.length;
+    : (effectivePermissionIds.length || activeRole?.permissionsCount || 0);
 
   /**
    * Dispatches PUT /api/v1/roles/{id}/permissions to synchronize permission IDs.
@@ -259,20 +210,6 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
       return;
     }
 
-    // Optimistic local state update
-    setInternalRoles((prev) =>
-      prev.map((item) =>
-        String(item.id) === String(activeRole.id) || item.slug === activeRole.slug
-          ? {
-              ...item,
-              permissionIds: newPermissionIds,
-              permissionsCount: newPermissionIds.length,
-            }
-          : item
-      )
-    );
-
-    // Call live API if numeric ID is present
     if (activeRole.id && !isNaN(Number(activeRole.id))) {
       try {
         const result = await updateRolePermissionsTrigger({
@@ -280,6 +217,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
           permission_ids: newPermissionIds,
         }).unwrap();
 
+        await refetchRoles();
         if (result.success) {
           setSaveStatus(
             `Role permissions updated successfully (${newPermissionIds.length} permissions active).`
@@ -288,21 +226,13 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
           setSaveStatus(result.message || 'Permissions updated.');
         }
         setTimeout(() => setSaveStatus(null), 3500);
-        return;
       } catch (err: any) {
-        if (err?.status === 422) {
-          setErrorStatus(err?.data?.message || 'Super Admin permissions cannot be modified.');
-          setTimeout(() => setErrorStatus(null), 4500);
-          return;
-        }
-        console.warn('Backend updateRolePermissions notice: saved locally in session.', err);
+        console.error('Backend updateRolePermissions error:', err);
+        const msg = err?.data?.message || err?.message || 'Failed to update permissions on backend.';
+        setErrorStatus(msg);
+        setTimeout(() => setErrorStatus(null), 4500);
       }
     }
-
-    setSaveStatus(
-      `Security policy updated locally for ${activeRole.name} (${newPermissionIds.length} permissions active).`
-    );
-    setTimeout(() => setSaveStatus(null), 3000);
   };
 
   /**
@@ -361,49 +291,135 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     await syncPermissionsToBackend(newPermissionIds);
   };
 
-  const handleSaveRole = (saved: any) => {
-    if (editingRole) {
-      if (onUpdateRole) {
-        onUpdateRole(saved);
-      }
-      setInternalRoles((prev) =>
-        prev.map((item) => (String(item.id) === String(saved.id) ? { ...item, ...saved } : item))
-      );
-      setSelectedRoleId(String(saved.id));
-      setSaveStatus(`Role "${saved.name}" updated.`);
-    } else {
-      if (onCreateRole) {
-        onCreateRole(saved);
-      }
-      const initialPermIds = saved.permissionIds || [];
-      const newRole: RoleItem = {
-        ...saved,
-        permissionIds: initialPermIds,
-        permissionsCount: initialPermIds.length,
-      };
-      setInternalRoles((prev) => [...prev, newRole]);
-      setSelectedRoleId(String(saved.id));
-      setSaveStatus(
-        `Custom role "${saved.name}" created with ${initialPermIds.length} permissions.`
-      );
+  const handleSaveRole = async (saved: any) => {
+    setErrorStatus(null);
+    setSaveStatus(null);
+
+    // Map navigation items or permissions to valid backend IDs
+    let resolvedPermissionIds: number[] = [];
+    if (Array.isArray(saved.permission_ids) && saved.permission_ids.length > 0) {
+      resolvedPermissionIds = saved.permission_ids;
+    } else if (Array.isArray(saved.permissionIds) && saved.permissionIds.length > 0) {
+      resolvedPermissionIds = saved.permissionIds;
+    } else if (Array.isArray(saved.navigationItems) && saved.navigationItems.length > 0) {
+      const neededKeys = new Set<string>();
+      saved.navigationItems.forEach((navKey: string) => {
+        (NAV_ITEM_TO_PERM_KEYS[navKey] || []).forEach((k) => neededKeys.add(k));
+      });
+      resolvedPermissionIds = allPermissions
+        .filter((p) => neededKeys.has(p.key))
+        .map((p) => p.id);
     }
-    setTimeout(() => setSaveStatus(null), 3000);
+
+    const scopeLevel = saved.scope_level || (saved.scope ? saved.scope.toLowerCase().replace(/[^a-z0-9]+/g, '_') : 'sub_city');
+    const navItems = saved.navigation_items || saved.navigationItems;
+
+    if (editingRole) {
+      if (editingRole.id && !isNaN(Number(editingRole.id))) {
+        try {
+          const res = await updateRoleTrigger({
+            id: Number(editingRole.id),
+            name: saved.name,
+            scope_level: scopeLevel,
+            description: saved.description,
+            permission_ids: resolvedPermissionIds.length > 0 ? resolvedPermissionIds : undefined,
+            navigation_items: navItems,
+          }).unwrap();
+
+          await refetchRoles();
+          setSelectedRoleId(String(res.data?.id || editingRole.id));
+          if (onUpdateRole && res.data) {
+            onUpdateRole({
+              id: String(res.data.id),
+              name: res.data.name,
+              slug: res.data.slug,
+              description: res.data.description,
+              isSystem: res.data.is_system,
+              scope_level: res.data.scope_level,
+            } as any);
+          }
+          setSaveStatus(`Role "${res.data?.name || saved.name}" updated successfully.`);
+          setTimeout(() => setSaveStatus(null), 3500);
+        } catch (err: any) {
+          console.error('Backend updateRole error:', err);
+          const is404 = err?.status === 404 || err?.status === 405;
+          const msg = is404
+            ? 'Backend route PUT /api/v1/roles/{id} is not implemented on the backend server yet.'
+            : (err?.data?.message || err?.message || 'Failed to update role on server.');
+          setErrorStatus(msg);
+          setTimeout(() => setErrorStatus(null), 6000);
+          throw err;
+        }
+      }
+    } else {
+      try {
+        const res = await createRoleTrigger({
+          name: saved.name,
+          slug: saved.slug,
+          scope_level: scopeLevel,
+          description: saved.description,
+          permission_ids: resolvedPermissionIds,
+          navigation_items: navItems,
+        }).unwrap();
+
+        await refetchRoles();
+        if (res.data?.id) {
+          setSelectedRoleId(String(res.data.id));
+        }
+        if (onCreateRole && res.data) {
+          onCreateRole({
+            id: String(res.data.id),
+            name: res.data.name,
+            slug: res.data.slug,
+            description: res.data.description,
+            isSystem: res.data.is_system,
+            scope_level: res.data.scope_level,
+          } as any);
+        }
+        setSaveStatus(
+          `Custom role "${res.data?.name || saved.name}" successfully created on backend with ${resolvedPermissionIds.length} permissions.`
+        );
+        setTimeout(() => setSaveStatus(null), 3500);
+      } catch (err: any) {
+        console.error('Backend createRole error:', err);
+        const is404 = err?.status === 404 || err?.status === 405;
+        const msg = is404
+          ? 'Backend route POST /api/v1/roles is not implemented on the backend server yet.'
+          : (err?.data?.message || err?.message || 'Failed to create role on backend.');
+        setErrorStatus(msg);
+        setTimeout(() => setErrorStatus(null), 6000);
+        throw err;
+      }
+    }
   };
 
-  const handleDeleteRole = (roleToDelete: RoleItem) => {
+  const handleDeleteRole = async (roleToDelete: RoleItem) => {
     if (roleToDelete.isSystem) {
       setErrorStatus('System roles are essential to platform governance and cannot be deleted.');
       setTimeout(() => setErrorStatus(null), 3500);
       return;
     }
     if (window.confirm(`Are you sure you want to delete the role "${roleToDelete.name}"?`)) {
-      if (onDeleteRole) {
-        onDeleteRole(String(roleToDelete.id));
+      if (roleToDelete.id && !isNaN(Number(roleToDelete.id))) {
+        try {
+          await deleteRoleTrigger(Number(roleToDelete.id)).unwrap();
+          await refetchRoles();
+          if (onDeleteRole) {
+            onDeleteRole(String(roleToDelete.id));
+          }
+          setSelectedRoleId(roles[0]?.id || '');
+          setSaveStatus(`Role "${roleToDelete.name}" deleted successfully.`);
+          setTimeout(() => setSaveStatus(null), 3000);
+        } catch (err: any) {
+          console.error('Backend deleteRole error:', err);
+          const is404 = err?.status === 404 || err?.status === 405;
+          const msg = is404
+            ? 'Backend route DELETE /api/v1/roles/{id} is not implemented on the backend server yet.'
+            : (err?.data?.message || err?.message || 'Failed to delete role on backend.');
+          setErrorStatus(msg);
+          setTimeout(() => setErrorStatus(null), 6000);
+        }
       }
-      setInternalRoles((prev) => prev.filter((r) => String(r.id) !== String(roleToDelete.id)));
-      setSelectedRoleId(roles[0]?.id || '');
-      setSaveStatus(`Role "${roleToDelete.name}" deleted.`);
-      setTimeout(() => setSaveStatus(null), 3000);
     }
   };
 
@@ -437,7 +453,20 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
 
   // Group filtered permissions by Domain Group
   const visibleDomainGroups = useMemo(() => {
-    return DOMAIN_GROUPS.map((domain) => {
+    const backendGroups = Array.from(new Set(allPermissions.map((p) => p.group))).filter(Boolean);
+    const groupsMeta = [...DOMAIN_GROUPS];
+    backendGroups.forEach((bg) => {
+      if (!groupsMeta.some((g) => g.id === bg)) {
+        groupsMeta.push({
+          id: bg,
+          label: bg.charAt(0).toUpperCase() + bg.slice(1).replace(/_/g, ' '),
+          desc: `Permissions related to ${bg.replace(/_/g, ' ')}.`,
+          icon: 'shield',
+        });
+      }
+    });
+
+    return groupsMeta.map((domain) => {
       const perms = filteredPermissions.filter((p) => p.group === domain.id);
       const allDomainPerms = allPermissions.filter((p) => p.group === domain.id);
       const grantedCount = allDomainPerms.filter((p) =>

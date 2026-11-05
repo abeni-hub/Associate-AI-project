@@ -24,6 +24,7 @@ export interface UserRole {
   id: number;
   name: string;
   slug: string;
+  scope_level?: 'global' | 'sub_city' | 'woreda' | 'bureau' | 'staff' | string;
 }
 
 /**
@@ -40,6 +41,8 @@ export interface AuthUser {
   last_login_at: string | null;
   organization: UserOrganization | null;
   role: UserRole | null;
+  permissions?: string[];
+  accessible_organization_ids?: number[] | null;
   created_at?: string;
 }
 

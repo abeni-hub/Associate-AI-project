@@ -7,16 +7,18 @@ import type { RoleKey } from '../types/portal.types';
 export interface RoleGuardProps {
   allowedRoles?: RoleKey[];
   requiredPermission?: string | string[];
+  requiredScope?: string;
   children: React.ReactElement;
 }
 
 export const RoleGuard: React.FC<RoleGuardProps> = ({
   allowedRoles,
   requiredPermission,
+  requiredScope,
   children,
 }) => {
   const { role } = usePortal();
-  const { isSuperAdmin, hasPermission } = usePermissions();
+  const { isSuperAdmin, hasPermission, canManageScope } = usePermissions();
 
   // Super Admin has full platform authority across all administrative pages
   if (isSuperAdmin) {
@@ -25,6 +27,11 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
 
   // Check required permission if configured
   if (requiredPermission && !hasPermission(requiredPermission)) {
+    return <Navigate to="/overview" replace />;
+  }
+
+  // Check required scope level rank if configured
+  if (requiredScope && !canManageScope(requiredScope)) {
     return <Navigate to="/overview" replace />;
   }
 

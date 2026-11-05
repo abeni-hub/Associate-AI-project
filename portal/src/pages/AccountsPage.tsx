@@ -125,7 +125,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
   const activeCount = items.filter((i) => i.status === 'Active').length;
   const inactiveCount = items.filter((i) => i.status !== 'Active').length;
 
-  const { hasPermission } = usePermissions();
+  const { hasPermission, canManageScope, isSuperAdmin } = usePermissions();
   const canCreate = hasPermission('users.create');
   const canUpdate = hasPermission('users.update');
   const canManageRoles = hasPermission('roles.manage');
@@ -241,36 +241,44 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
                   </td>
                   <td>{item.lastActive}</td>
                   <td className="table-action-cell" style={{ display: 'flex', gap: '6px' }}>
-                    {canUpdate && (
-                      <button
-                        className="button secondary small-button"
-                        onClick={() => handleOpenEdit(item)}
-                      >
-                        Edit
-                      </button>
-                    )}
-                    {canManageRoles && (
-                      <button
-                        className="button secondary small-button"
-                        onClick={() => {
-                          setSelectedAccountForRole(item);
-                          setIsRoleModalOpen(true);
-                        }}
-                        title="Manage roles and custom permissions"
-                      >
-                        Role
-                      </button>
-                    )}
-                    {canDelete && (
-                      <button
-                        className="button secondary small-button"
-                        style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
-                        onClick={() => handleDeleteUser(item)}
-                        title="Delete account"
-                      >
-                        Delete
-                      </button>
-                    )}
+                    {(() => {
+                      const targetScope = item.role?.scope_level || (item.roleLabel?.toLowerCase().includes('super') ? 'global' : 'sub_city');
+                      const canManageThisAccount = isSuperAdmin || canManageScope(targetScope);
+                      return (
+                        <>
+                          {canUpdate && canManageThisAccount && (
+                            <button
+                              className="button secondary small-button"
+                              onClick={() => handleOpenEdit(item)}
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {canManageRoles && canManageThisAccount && (
+                            <button
+                              className="button secondary small-button"
+                              onClick={() => {
+                                setSelectedAccountForRole(item);
+                                setIsRoleModalOpen(true);
+                              }}
+                              title="Manage roles and custom permissions"
+                            >
+                              Role
+                            </button>
+                          )}
+                          {canDelete && canManageThisAccount && (
+                            <button
+                              className="button secondary small-button"
+                              style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
+                              onClick={() => handleDeleteUser(item)}
+                              title="Delete account"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
                   </td>
                 </tr>
               ))}

@@ -113,11 +113,19 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
   const search = propSearch !== undefined ? propSearch : (portal.search !== undefined ? portal.search : internalSearch);
   const setSearch = propSetSearch || portal.setSearch || setInternalSearch;
 
-  // Scope filter: if subcity admin, show only their sub-city and child offices
-  const scopedOffices =
-    role === 'subcity'
-      ? offices.filter((office: OfficeItem) => getOfficeSubcityId(office, offices) === 1)
-      : offices;
+  const { hasPermission, canAccessOrganization, isSuperAdmin } = usePermissions();
+  const canCreate = hasPermission('organizations.create');
+  const canUpdate = hasPermission('organizations.update');
+  const canDelete = hasPermission('organizations.delete');
+
+  // Scope filter: Super Admin views all; hierarchy users view permitted hierarchy
+  const scopedOffices = useMemo(() => {
+    if (isSuperAdmin) return offices;
+    return offices.filter((office: OfficeItem) => {
+      const orgId = Number(office.id);
+      return canAccessOrganization(orgId) || canAccessOrganization(office.parentId);
+    });
+  }, [offices, isSuperAdmin, canAccessOrganization]);
 
   const filtered = scopedOffices.filter((item: OfficeItem) => {
     const type = officeTypes.find((t: OfficeType) => t.id === item.typeId);
@@ -170,10 +178,7 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
     }
   };
 
-  const { hasPermission } = usePermissions();
-  const canCreate = hasPermission('organizations.create');
-  const canUpdate = hasPermission('organizations.update');
-  const canDelete = hasPermission('organizations.delete');
+
 
   return (
     <>
@@ -349,26 +354,33 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
                         <StatusPill>{item.status}</StatusPill>
                       </td>
                       <td style={{ display: 'flex', gap: '6px' }}>
-                        {canUpdate && (
-                          <button
-                            type="button"
-                            className="button secondary small-button"
-                            onClick={() => handleOpenEdit(item)}
-                          >
-                            Edit
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            type="button"
-                            className="button secondary small-button"
-                            style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
-                            onClick={() => handleDeleteOffice(item)}
-                            title="Delete office"
-                          >
-                            Delete
-                          </button>
-                        )}
+                        {(() => {
+                          const canManageThisOffice = isSuperAdmin || canAccessOrganization(Number(item.id));
+                          return (
+                            <>
+                              {canUpdate && canManageThisOffice && (
+                                <button
+                                  type="button"
+                                  className="button secondary small-button"
+                                  onClick={() => handleOpenEdit(item)}
+                                >
+                                  Edit
+                                </button>
+                              )}
+                              {canDelete && canManageThisOffice && (
+                                <button
+                                  type="button"
+                                  className="button secondary small-button"
+                                  style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
+                                  onClick={() => handleDeleteOffice(item)}
+                                  title="Delete office"
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
                       </td>
                     </tr>
                   );

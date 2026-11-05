@@ -6,12 +6,12 @@ import type { AccountItem } from '../../types/portal.types';
 import {
   useGetRolesQuery,
   useGetRoleByIdQuery,
+  useGetPermissionsQuery,
   useUpdateRolePermissionsMutation,
   type PermissionItem,
 } from '../../services/rolesApi';
 import { useUpdateUserMutation } from '../../services/usersApi';
 import {
-  SYSTEM_PERMISSIONS_CATALOG,
   DOMAIN_GROUPS,
 } from '../../pages/RolesPermissionsPage';
 
@@ -111,7 +111,7 @@ const DEFAULT_ROLE_OPTIONS: RoleOption[] = [
 ];
 
 const ROLE_FALLBACK_PERMISSION_KEYS: Record<string, string[]> = {
-  super_admin: SYSTEM_PERMISSIONS_CATALOG.map((p) => p.key),
+  super_admin: [],
   sub_city_admin: [
     'organizations.view', 'organizations.update',
     'users.view', 'users.create', 'users.update', 'users.delete', 'users.reset_password',
@@ -165,8 +165,16 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
   onRoleUpdated,
 }) => {
   const { data: rolesResponse } = useGetRolesQuery(undefined, { skip: !isOpen });
+  const { data: permissionsResponse } = useGetPermissionsQuery(undefined, { skip: !isOpen });
   const [updateUserTrigger, { isLoading: isUpdatingUser }] = useUpdateUserMutation();
   const [updateRolePermissionsTrigger] = useUpdateRolePermissionsMutation();
+
+  const allPermissions = useMemo<PermissionItem[]>(() => {
+    if (permissionsResponse?.data && Array.isArray(permissionsResponse.data)) {
+      return permissionsResponse.data;
+    }
+    return [];
+  }, [permissionsResponse]);
 
   const roleOptions: RoleOption[] = useMemo(() => {
     if (rolesResponse?.data) {
@@ -245,22 +253,26 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
     if (!selectedRoleObj) return [];
 
     if (selectedRoleObj.slug === 'super_admin' || selectedRoleObj.name.toLowerCase().includes('super')) {
-      return SYSTEM_PERMISSIONS_CATALOG.map((p) => p.id);
+      return allPermissions.map((p) => p.id);
     }
 
     if (roleDetailResponse?.data?.permissions && roleDetailResponse.data.permissions.length > 0) {
       return roleDetailResponse.data.permissions.map((p) => p.id);
     }
 
-    const fallbackKeys = ROLE_FALLBACK_PERMISSION_KEYS[selectedRoleObj.slug];
-    if (fallbackKeys && fallbackKeys.length > 0) {
-      return SYSTEM_PERMISSIONS_CATALOG.filter((p) => fallbackKeys.includes(p.key)).map((p) => p.id);
+    if (roleDetailResponse?.data?.permission_ids && roleDetailResponse.data.permission_ids.length > 0) {
+      return roleDetailResponse.data.permission_ids;
     }
 
-    return SYSTEM_PERMISSIONS_CATALOG.filter((p) =>
+    const fallbackKeys = ROLE_FALLBACK_PERMISSION_KEYS[selectedRoleObj.slug];
+    if (fallbackKeys && fallbackKeys.length > 0) {
+      return allPermissions.filter((p) => fallbackKeys.includes(p.key)).map((p) => p.id);
+    }
+
+    return allPermissions.filter((p) =>
       ['services.view', 'documents.view', 'feedback.view_own', 'dashboard.view'].includes(p.key)
     ).map((p) => p.id);
-  }, [selectedRoleObj, roleDetailResponse]);
+  }, [selectedRoleObj, roleDetailResponse, allPermissions]);
 
   // Active permissions assigned to this child user (interactive state)
   const [activePermissionIds, setActivePermissionIds] = useState<number[]>([]);
@@ -304,9 +316,9 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
 
   // Filter permission cards based on search query
   const filteredPermissions = useMemo(() => {
-    if (!permissionSearch.trim()) return SYSTEM_PERMISSIONS_CATALOG;
+    if (!permissionSearch.trim()) return allPermissions;
     const q = permissionSearch.toLowerCase().trim();
-    return SYSTEM_PERMISSIONS_CATALOG.filter((p) => {
+    return allPermissions.filter((p) => {
       const domainObj = DOMAIN_GROUPS.find((d) => d.id === p.group);
       return (
         p.name.toLowerCase().includes(q) ||
@@ -315,7 +327,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
         (domainObj && domainObj.label.toLowerCase().includes(q))
       );
     });
-  }, [permissionSearch]);
+  }, [allPermissions, permissionSearch]);
 
   if (!isOpen || !user) return null;
 
@@ -358,7 +370,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
    * Bulk action: Grant all permissions to child user
    */
   const handleGrantAll = () => {
-    const allIds = SYSTEM_PERMISSIONS_CATALOG.map((p) => p.id);
+    const allIds = allPermissions.map((p) => p.id);
     setActivePermissionIds(allIds);
     setStatusMessage({
       type: 'success',
@@ -620,7 +632,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
                     border: '1px solid #bbf7d0',
                   }}
                 >
-                  {activePermissionIds.length} / {SYSTEM_PERMISSIONS_CATALOG.length} Active
+                  {activePermissionIds.length} / {allPermissions.length} Active
                 </span>
               </div>
             </div>
@@ -730,7 +742,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
                         border: '1px solid #bbf7d0',
                       }}
                     >
-                      {activePermissionIds.length} / {SYSTEM_PERMISSIONS_CATALOG.length} permissions active
+                      {activePermissionIds.length} / {allPermissions.length} permissions active
                     </span>
                     {isLoadingRoleDetail && (
                       <span style={{ fontSize: '11px', color: '#64748b' }}>Syncing role defaults...</span>
