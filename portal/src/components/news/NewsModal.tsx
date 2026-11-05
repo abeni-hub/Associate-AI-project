@@ -18,6 +18,7 @@ export interface NewsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave?: (saved: any) => void;
+  isLoading?: boolean;
 }
 
 export const NewsModal: React.FC<NewsModalProps> = ({
@@ -26,6 +27,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  isLoading = false,
 }) => {
   const { data: apiOrgs } = useGetOrganizationsQuery(undefined, { skip: !isOpen });
   const [uploadCmsImage] = useUploadCmsImageMutation();
@@ -896,11 +898,11 @@ export const NewsModal: React.FC<NewsModalProps> = ({
           <div className="modal-footer">
             <span />
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button type="button" className="button secondary" onClick={onClose}>
+              <button type="button" className="button secondary" onClick={onClose} disabled={isLoading}>
                 Cancel
               </button>
-              <button type="submit" className="button primary">
-                {item ? 'Save changes' : 'Publish update'} <Icon name="arrow" size={15} />
+              <button type="submit" className="button primary" disabled={isLoading}>
+                {isLoading ? 'Saving...' : (item ? 'Save changes' : 'Publish update')} <Icon name="arrow" size={15} />
               </button>
             </div>
           </div>

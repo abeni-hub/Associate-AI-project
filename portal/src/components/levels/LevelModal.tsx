@@ -15,7 +15,7 @@ export interface LevelModalProps {
     level: number;
     can_be_root: boolean;
     is_active: boolean;
-  }) => void;
+  }) => Promise<void> | void;
   isLoading?: boolean;
 }
 
@@ -60,22 +60,27 @@ export const LevelModal: React.FC<LevelModalProps> = ({
     if (!level) setCode(slugify(val));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return setErrorMsg('Level name is required.');
     if (!code.trim()) return setErrorMsg('Code identifier slug is required.');
     const parsedRank = Number(rank);
     if (!rank || isNaN(parsedRank) || parsedRank < 1) return setErrorMsg('Hierarchy rank level must be at least 1.');
 
-    onSave({
-      ...(level?.id ? { id: level.id } : {}),
-      name: name.trim(),
-      code: code.toLowerCase().trim().replace(/[^a-z0-9_-]+/g, '_'),
-      level: parsedRank,
-      can_be_root: level?.can_be_root ?? false,
-      is_active: isActive,
-      description: description.trim() || undefined,
-    });
+    setErrorMsg(null);
+    try {
+      await onSave({
+        ...(level?.id ? { id: level.id } : {}),
+        name: name.trim(),
+        code: code.toLowerCase().trim().replace(/[^a-z0-9_-]+/g, '_'),
+        level: parsedRank,
+        can_be_root: level?.can_be_root ?? false,
+        is_active: isActive,
+        description: description.trim() || undefined,
+      });
+    } catch (err: any) {
+      setErrorMsg(err?.data?.message || err?.message || 'Failed to save organization level.');
+    }
   };
 
   if (!isOpen) return null;
@@ -190,7 +195,7 @@ export const LevelModal: React.FC<LevelModalProps> = ({
                 Cancel
               </button>
               <button type="submit" className="button primary" disabled={isLoading}>
-                {level ? 'Save changes' : 'Create level'} <Icon name="arrow" size={15} />
+                {isLoading ? 'Saving...' : (level ? 'Save changes' : 'Create level')} <Icon name="arrow" size={15} />
               </button>
             </div>
           </div>

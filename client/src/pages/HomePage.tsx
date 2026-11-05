@@ -31,11 +31,15 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
   const pageDocument = documentRef || document
 
   // Live queries
-  const { data: apiCmsData } = useGetLandingPageCmsQuery()
+  const { data: apiCmsData } = useGetLandingPageCmsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+  })
   const { data: orgData } = useGetOrganizationsQuery()
   const { data: servicesData } = useGetServicesQuery()
 
-  const cmsConfig = propCmsConfig || (apiCmsData?.data as LandingPageCmsConfig | null) || null
+  const liveCms = (apiCmsData && ('data' in (apiCmsData as any) ? (apiCmsData as any).data : apiCmsData)) as LandingPageCmsConfig | null
+  const cmsConfig = propCmsConfig || liveCms || null
 
   const subCityOptions = useMemo(() => {
     if (orgData?.data) {
@@ -91,14 +95,14 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
   })
 
   const activeServiceList = useMemo(() => {
-    if (servicesData?.data && servicesData.data.length > 0) {
+    if (servicesData?.data) {
       return servicesData.data.map((s: any) => ({
         id: s.code || String(s.id),
         label: s.name,
       }))
     }
-    return (serviceCatalog as any)[bureauId] ?? []
-  }, [servicesData, bureauId])
+    return []
+  }, [servicesData])
 
   const guideService = useMemo(() => {
     if (liveServiceDetail?.data) {
@@ -183,29 +187,51 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
         language={language}
         slides={slides}
       />
-      <QuickSearchSection
-        t={t}
-        subCity={subCity}
-        onSubCityChange={setSubCity}
-        bureauId={bureauId}
-        onBureauChange={changeBureau}
-        serviceId={serviceId}
-        onServiceChange={setServiceId}
-        activeServiceList={activeServiceList}
-        onSubmit={handleFindService}
-        subCityOptions={subCityOptions}
-        bureauOptions={bureauOptions}
-      />
-      <ServiceGuideSection t={t} serviceGuide={serviceGuide} guideService={guideService} guideBureau={guideBureau} />
+      {cmsConfig?.quickSearch?.enabled !== false && (
+        <QuickSearchSection
+          t={t}
+          subCity={subCity}
+          onSubCityChange={setSubCity}
+          bureauId={bureauId}
+          onBureauChange={changeBureau}
+          serviceId={serviceId}
+          onServiceChange={setServiceId}
+          activeServiceList={activeServiceList}
+          onSubmit={handleFindService}
+          subCityOptions={subCityOptions}
+          bureauOptions={bureauOptions}
+          quickSearchContent={cmsConfig?.quickSearch}
+        />
+      )}
+      {cmsConfig?.serviceGuide?.enabled !== false && (
+        <ServiceGuideSection
+          t={t}
+          serviceGuide={serviceGuide}
+          guideService={guideService}
+          guideBureau={guideBureau}
+          serviceGuideContent={cmsConfig?.serviceGuide}
+        />
+      )}
       <JourneySection t={t} onGoToFeedback={goToFeedback} journey={cmsConfig?.journey} />
-      <HomeNewsSection
-        language={language}
-        t={t}
-        onNavigateToHub={onNavigateToHub}
-        onSelectItem={onSelectItem}
-      />
-      <FeedbackSection language={language} t={t} />
-      <AdminStrip t={t} />
+      {cmsConfig?.newsEvents?.enabled !== false && (
+        <HomeNewsSection
+          language={language}
+          t={t}
+          onNavigateToHub={onNavigateToHub}
+          onSelectItem={onSelectItem}
+          newsEventsContent={cmsConfig?.newsEvents}
+        />
+      )}
+      {cmsConfig?.feedback?.enabled !== false && (
+        <FeedbackSection
+          language={language}
+          t={t}
+          feedbackContent={cmsConfig?.feedback}
+        />
+      )}
+      {cmsConfig?.footer?.enabled !== false && (
+        <AdminStrip t={t} adminStripContent={cmsConfig?.footer} />
+      )}
     </main>
   )
 }

@@ -11,7 +11,7 @@ const MOBILE_VIEWPORT_HEIGHT = 780
 
 function addStylesheet(documentNode, css) {
   const style = documentNode.createElement('style')
-  style.textContent = css
+  style.textContent = typeof css === 'string' ? css : (css && typeof css === 'object' && 'default' in css ? css.default : String(css || ''))
   documentNode.head.appendChild(style)
 }
 

@@ -164,12 +164,12 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
   onClose,
   onRoleUpdated,
 }) => {
-  const { data: rolesResponse } = useGetRolesQuery();
+  const { data: rolesResponse } = useGetRolesQuery(undefined, { skip: !isOpen });
   const [updateUserTrigger, { isLoading: isUpdatingUser }] = useUpdateUserMutation();
   const [updateRolePermissionsTrigger] = useUpdateRolePermissionsMutation();
 
   const roleOptions: RoleOption[] = useMemo(() => {
-    if (rolesResponse?.data && rolesResponse.data.length > 0) {
+    if (rolesResponse?.data) {
       return rolesResponse.data.map((r) => {
         const slug = r.slug.toLowerCase();
         let scope = 'Custom Role';
@@ -217,17 +217,17 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
         };
       });
     }
-    return DEFAULT_ROLE_OPTIONS;
+    return [];
   }, [rolesResponse]);
 
   // Determine initial role ID
   const [selectedRoleId, setSelectedRoleId] = useState<number>(() => {
-    if (!user) return 2;
+    if (!user) return 0;
     if (user.roleId) return user.roleId;
     const match = roleOptions.find(
       (r) => r.name.toLowerCase() === user.role.toLowerCase() || r.slug === user.role.toLowerCase()
     );
-    return match ? match.id : 2;
+    return match ? match.id : (roleOptions[0]?.id || 0);
   });
 
   const currentRoleObj = roleOptions.find(
@@ -237,7 +237,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
 
   // Query live permissions for selected role
   const { data: roleDetailResponse, isLoading: isLoadingRoleDetail } = useGetRoleByIdQuery(selectedRoleId, {
-    skip: !selectedRoleId,
+    skip: !isOpen || !selectedRoleId,
   });
 
   // Calculate default permissions for the selected role

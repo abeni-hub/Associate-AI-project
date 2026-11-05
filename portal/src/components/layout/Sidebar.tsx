@@ -4,8 +4,26 @@ import { Icon } from '../shared/Icon';
 import { Brand } from '../shared/Brand';
 import { ROLE, NAV } from '../../data/portalData.js';
 import { usePortal } from '../../context';
+import { usePermissions } from '../../hooks/usePermissions';
 import type { RoleKey } from '../../types/portal.types';
 import { useGetSidebarNavigationQuery } from '../../services/navigationApi';
+
+const NAV_ITEM_PERMISSION_MAP: Record<string, string> = {
+  overview: 'dashboard.view',
+  offices: 'organizations.view',
+  subcities: 'organizations.view',
+  bureaus: 'organizations.view',
+  accounts: 'users.view',
+  roles: 'roles.view',
+  cms: 'cms.manage',
+  news: 'news.view',
+  feedback: 'feedback.view_own',
+  activity: 'audit_logs.view',
+  services: 'services.view',
+  routes: 'service_steps.view',
+  qr: 'qr_codes.view',
+  office: 'services.view',
+};
 
 export interface SidebarProps {
   role?: RoleKey | string;
@@ -23,6 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setMobileOpen: propSetMobileOpen,
 }) => {
   const portal = usePortal();
+  const { hasPermission } = usePermissions();
 
   const role = (propRole || portal.role || 'super') as RoleKey;
   const mobileOpen = propMobileOpen !== undefined ? propMobileOpen : portal.mobileOpen;
@@ -43,10 +62,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const data = ROLE[role] || ROLE.super;
   const navGroups = React.useMemo(() => {
     if (apiNavResponse?.data && apiNavResponse.data.length > 0) {
-      const items = apiNavResponse.data.map((item) => {
-        let pathId = item.route.replace(/^\/portal\/?/, '') || 'overview';
-        if (pathId === 'organizations') pathId = 'offices';
-        if (pathId === 'users') pathId = 'accounts';
+      const items = apiNavResponse.data
+        .map((item) => {
+          let pathId = item.route.replace(/^\/admin\/?/, '').replace(/^\/portal\/?/, '') || 'overview';
+          if (pathId === 'organizations') pathId = 'offices';
+          if (pathId === 'users') pathId = 'accounts';
 
         let iconName = 'layers';
         const labelLower = item.label.toLowerCase();
@@ -58,20 +78,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
         else if (labelLower.includes('feedback')) iconName = 'message';
         else if (labelLower.includes('news')) iconName = 'news';
         else if (labelLower.includes('role')) iconName = 'shield';
-        else if (labelLower.includes('level') || labelLower.includes('tier')) iconName = 'layers';
         else if (labelLower.includes('qr')) iconName = 'qr';
 
-        return {
-          id: pathId,
-          text: item.label,
-          icon: iconName,
-        };
-      });
+          return {
+            id: pathId,
+            text: item.label,
+            icon: iconName,
+            required_permission: item.required_permission || NAV_ITEM_PERMISSION_MAP[pathId],
+          };
+        })
+        .filter((item) => !item.required_permission || hasPermission(item.required_permission));
 
       return [{ label: '', items }];
     }
-    return NAV[role] || [];
-  }, [apiNavResponse, role]);
+
+    const defaultGroups = NAV[role] || [];
+    return defaultGroups
+      .map((group: any) => ({
+        ...group,
+        items: group.items.filter((item: any) => {
+          const requiredPerm = NAV_ITEM_PERMISSION_MAP[item.id];
+          return !requiredPerm || hasPermission(requiredPerm);
+        }),
+      }))
+      .filter((group: any) => group.items.length > 0);
+  }, [apiNavResponse, role, hasPermission]);
 
   const displayName = portal.authUser?.name || data.name;
   const displayRole = portal.authUser?.role?.name || data.label;

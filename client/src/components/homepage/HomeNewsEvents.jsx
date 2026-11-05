@@ -10,8 +10,14 @@ export default function HomeNewsEvents({
   language = 'en',
   onNavigateToHub,
   onSelectItem,
+  newsEventsContent,
 }) {
-  const [activeTab, setActiveTab] = useState('news')
+  const [activeTab, setActiveTab] = useState(() => {
+    if (newsEventsContent?.showNews === false && newsEventsContent?.showEvents !== false) {
+      return 'events'
+    }
+    return 'news'
+  })
   const { data: apiNews } = useGetNewsQuery()
   const { data: apiEvents } = useGetEventsQuery()
   const [data, setData] = useState({
@@ -46,19 +52,19 @@ export default function HomeNewsEvents({
         const fallbackHighlights = await getHomeHighlights()
         if (!mounted) return
 
-        let liveNewsItems = []
-        if (apiNews?.data && Array.isArray(apiNews.data) && apiNews.data.length > 0) {
+        let liveNewsItems = null
+        if (apiNews?.data && Array.isArray(apiNews.data)) {
           liveNewsItems = apiNews.data.map(parseNewsItem)
         }
 
-        let liveEventItems = []
+        let liveEventItems = null
         const rawEventData = apiEvents?.data?.data || apiEvents?.data
-        if (Array.isArray(rawEventData) && rawEventData.length > 0) {
+        if (Array.isArray(rawEventData)) {
           liveEventItems = rawEventData.map(parseEventItem)
         }
 
-        const finalNews = liveNewsItems.length > 0 ? liveNewsItems : fallbackHighlights.news
-        const finalEvents = liveEventItems.length > 0 ? liveEventItems : fallbackHighlights.events
+        const finalNews = liveNewsItems !== null ? liveNewsItems : fallbackHighlights.news
+        const finalEvents = liveEventItems !== null ? liveEventItems : fallbackHighlights.events
 
         setData({
           news: finalNews,
@@ -87,6 +93,7 @@ export default function HomeNewsEvents({
         onTabChange={setActiveTab}
         data={data}
         onNavigateToHub={onNavigateToHub}
+        newsEventsContent={newsEventsContent}
       />
       <HomeNewsGrid
         items={items}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
+import { usePermissions } from '../hooks/usePermissions';
 import LiveLandingPreview from '../components/cms/LiveLandingPreview.jsx';
 import { INITIAL_CMS_CONFIG } from '../data/portalData.js';
 import {
@@ -89,11 +90,26 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
   const [updateCmsTrigger, { isLoading: isPublishing }] = useUpdateLandingPageCmsMutation();
   const [uploadImageTrigger] = useUploadCmsImageMutation();
 
-  const [cms, setCms] = useState(() => JSON.parse(JSON.stringify(cmsConfig || INITIAL_CMS_CONFIG)));
+  const [cms, setCms] = useState(() => {
+    try {
+      const cached = localStorage.getItem('CIVIC_LANDING_CMS_CACHE');
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch {
+      // ignore
+    }
+    return JSON.parse(JSON.stringify(cmsConfig || INITIAL_CMS_CONFIG));
+  });
 
   useEffect(() => {
     if (apiCmsResponse?.data) {
       setCms(apiCmsResponse.data);
+      try {
+        localStorage.setItem('CIVIC_LANDING_CMS_CACHE', JSON.stringify(apiCmsResponse.data));
+      } catch {
+        // ignore
+      }
     }
   }, [apiCmsResponse]);
 
@@ -105,6 +121,7 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
   // Hero image editor states
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [imageInputMode, setImageInputMode] = useState<'url' | 'upload' | 'preset'>('url');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const updateSection = (section: string, key: string, value: any) => {
     setCms((prev: any) => ({
@@ -139,10 +156,13 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
     });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, slideIndex: number) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, slideIndex: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsUploadingImage(true);
+
+    // 1. Immediate local preview using FileReader
     const reader = new FileReader();
     reader.onload = (event) => {
       const result = event.target?.result as string;
@@ -152,6 +172,26 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
       }
     };
     reader.readAsDataURL(file);
+
+    // 2. Server upload to obtain permanent media URL
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await uploadImageTrigger(formData).unwrap();
+      const serverUrl = res?.data?.url || (res as any)?.url;
+      if (serverUrl) {
+        updateSlide(slideIndex, 'image', serverUrl);
+        setToastMessage('Image uploaded and synced to server!');
+        setTimeout(() => setToastMessage(''), 3500);
+      }
+    } catch (uploadErr) {
+      console.warn('Image upload endpoint notice (retaining local photo for preview):', uploadErr);
+      setToastMessage('Image loaded locally for preview & publishing.');
+      setTimeout(() => setToastMessage(''), 3500);
+    } finally {
+      setIsUploadingImage(false);
+      e.target.value = '';
+    }
   };
 
   const updateJourneyStep = (index: number, key: string, value: any) => {
@@ -164,16 +204,98 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
 
   const handlePublish = async () => {
     try {
-      await updateCmsTrigger(cms).unwrap();
-      onSaveCms?.(cms);
+      // Deep clone and clean payload to ensure all validation rules are met
+      const payload = JSON.parse(JSON.stringify(cms));
+
+      // 1. Announcement
+      if (payload.announcement) {
+        payload.announcement.enabled = Boolean(payload.announcement.enabled);
+        if (payload.announcement.enabled && (!payload.announcement.message || !payload.announcement.message.trim())) {
+          payload.announcement.message = 'Public service notice';
+        }
+      }
+
+      // 2. Hero slides: check if any slide still has a local data URL and attempt server upload
+      if (payload.hero?.slides && Array.isArray(payload.hero.slides)) {
+        for (let idx = 0; idx < payload.hero.slides.length; idx++) {
+          const s = payload.hero.slides[idx];
+          if (s.image && s.image.startsWith('data:image/')) {
+            try {
+              const res = await fetch(s.image);
+              const blob = await res.blob();
+              const ext = blob.type.split('/')[1] || 'jpg';
+              const file = new File([blob], `slide_${idx + 1}.${ext}`, { type: blob.type || 'image/jpeg' });
+              const fd = new FormData();
+              fd.append('image', file);
+              const uploadRes = await uploadImageTrigger(fd).unwrap();
+              const serverUrl = uploadRes?.data?.url || (uploadRes as any)?.url;
+              if (serverUrl) {
+                s.image = serverUrl;
+                updateSlide(idx, 'image', serverUrl);
+              }
+            } catch (err) {
+              console.warn(`Could not sync data-url slide ${idx + 1} to server:`, err);
+            }
+          }
+        }
+
+        payload.hero.slides = payload.hero.slides.map((s: any, idx: number) => {
+          return {
+            id: s.id || idx + 1,
+            title: s.title || `Slide ${idx + 1}`,
+            bureau: s.bureau || 'MUNICIPAL SERVICES',
+            category: s.category || '',
+            image: s.image || CURATED_IMAGE_PRESETS[idx % CURATED_IMAGE_PRESETS.length].image,
+            alt: s.alt || s.title || 'Civic office',
+            credit: s.credit || 'CivicLink',
+            source: s.source || '',
+            tint: s.tint || '#164d58',
+          };
+        });
+      }
+
+      // Always persist to local cache so preview and client immediately receive it
+      try {
+        localStorage.setItem('CIVIC_LANDING_CMS_CACHE', JSON.stringify(payload));
+        localStorage.setItem('CIVIC_LANDING_CMS_UPDATED', String(Date.now()));
+        window.dispatchEvent(new CustomEvent('civiclink-cms-updated', { detail: payload }));
+      } catch {
+        // ignore
+      }
+      onSaveCms?.(payload);
+
+      await updateCmsTrigger(payload).unwrap();
       setToastMessage('Landing page content successfully published to citizen platform!');
     } catch (err: any) {
+      console.error('Failed to update CMS on backend:', err);
+      // Ensure local state and storage preserve the changes even on backend failure
+      try {
+        localStorage.setItem('CIVIC_LANDING_CMS_CACHE', JSON.stringify(cms));
+        localStorage.setItem('CIVIC_LANDING_CMS_UPDATED', String(Date.now()));
+        window.dispatchEvent(new CustomEvent('civiclink-cms-updated', { detail: cms }));
+      } catch {
+        // ignore
+      }
       onSaveCms?.(cms);
-      setToastMessage('Changes saved locally.');
+
+      const isNotFound =
+        err?.status === 404 ||
+        err?.data?.message?.includes('could not be found') ||
+        err?.data?.message?.includes('not found');
+
+      if (isNotFound) {
+        setToastMessage('Changes saved to local preview & cache! (Backend endpoint /api/v1/cms/landing-page is not deployed on this server yet)');
+      } else {
+        const errors = err?.data?.errors;
+        const errorDetail = errors ? Object.values(errors).flat().join(', ') : err?.data?.message;
+        setToastMessage(errorDetail ? `Publish notice: ${errorDetail}` : 'Changes saved locally.');
+      }
     }
-    setTimeout(() => setToastMessage(''), 3500);
+    setTimeout(() => setToastMessage(''), 4500);
   };
 
+  const { hasPermission } = usePermissions();
+  const canManageCms = hasPermission('cms.manage');
   const currentSlide = cms.hero?.slides?.[activeSlideIndex] || cms.hero?.slides?.[0] || {};
 
   return (
@@ -182,9 +304,9 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
         eyebrow="CITIZEN INTERFACE MANAGEMENT"
         title="Landing page CMS"
         subtitle="Edit public notice banners, hero visuals & copy, and all citizen landing page sections."
-        action="Publish changes"
-        onAction={handlePublish}
-        secondary="Reset to default"
+        action={canManageCms ? (isPublishing ? 'Publishing...' : 'Publish changes') : undefined}
+        onAction={canManageCms ? handlePublish : undefined}
+        secondary={canManageCms ? 'Reset to default' : undefined}
         onSecondary={() => {
           if (window.confirm('Reset all CMS fields to default seed values?')) {
             setCms(JSON.parse(JSON.stringify(cmsConfig || INITIAL_CMS_CONFIG)));
@@ -510,14 +632,24 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                     {/* Mode 2: Local File Upload */}
                     {imageInputMode === 'upload' && (
                       <div>
-                        <label className="cms-upload-dropzone">
+                        <label
+                          className={`cms-upload-dropzone${isUploadingImage ? ' is-uploading' : ''}`}
+                          style={{ cursor: isUploadingImage ? 'wait' : 'pointer', opacity: isUploadingImage ? 0.75 : 1 }}
+                        >
                           <Icon name="upload" size={28} />
-                          <p>Click to choose a photo from your computer</p>
-                          <small>Supports JPG, PNG, WEBP. Loads immediately into live preview.</small>
+                          {isUploadingImage ? (
+                            <p style={{ color: '#00485a', fontWeight: 600 }}>Uploading & optimizing photo...</p>
+                          ) : (
+                            <>
+                              <p>Click to choose a photo from your computer</p>
+                              <small>Supports JPG, PNG, WEBP. Loads immediately into live preview.</small>
+                            </>
+                          )}
                           <input
                             type="file"
                             accept="image/*"
                             style={{ display: 'none' }}
+                            disabled={isUploadingImage}
                             onChange={(e) => handleFileUpload(e, activeSlideIndex)}
                           />
                         </label>
@@ -1233,13 +1365,20 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                   e.preventDefault();
                   if (modalItem.type === 'slide') {
                     if (modalItem.index !== null) {
-                      updateSlide(modalItem.index, 'title', modalItem.title);
-                      updateSlide(modalItem.index, 'bureau', modalItem.bureau);
-                      updateSlide(modalItem.index, 'category', modalItem.category);
-                      if (modalItem.image) updateSlide(modalItem.index, 'image', modalItem.image);
-                      if (modalItem.alt) updateSlide(modalItem.index, 'alt', modalItem.alt);
-                      if (modalItem.credit) updateSlide(modalItem.index, 'credit', modalItem.credit);
-                      if (modalItem.tint) updateSlide(modalItem.index, 'tint', modalItem.tint);
+                      setCms((prev: any) => {
+                        const slides = [...(prev.hero?.slides || [])];
+                        slides[modalItem.index] = {
+                          ...(slides[modalItem.index] || {}),
+                          title: modalItem.title || '',
+                          bureau: modalItem.bureau || '',
+                          category: modalItem.category || '',
+                          image: modalItem.image || (slides[modalItem.index]?.image || CURATED_IMAGE_PRESETS[0].image),
+                          alt: modalItem.alt || modalItem.title || '',
+                          credit: modalItem.credit || '',
+                          tint: modalItem.tint || '#164d58',
+                        };
+                        return { ...prev, hero: { ...prev.hero, slides } };
+                      });
                     } else {
                       setCms((prev: any) => ({
                         ...prev,
@@ -1249,11 +1388,11 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                             ...(prev.hero?.slides || []),
                             {
                               id: Date.now(),
-                              title: modalItem.title,
-                              bureau: modalItem.bureau,
-                              category: modalItem.category,
+                              title: modalItem.title || 'Spotlight Service',
+                              bureau: modalItem.bureau || 'MUNICIPAL SERVICES',
+                              category: modalItem.category || '',
                               image: modalItem.image || CURATED_IMAGE_PRESETS[0].image,
-                              alt: modalItem.alt || modalItem.title,
+                              alt: modalItem.alt || modalItem.title || '',
                               credit: modalItem.credit || 'Civic Photo',
                               tint: modalItem.tint || '#164d58',
                             },
@@ -1329,14 +1468,66 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                         />
                       </label>
                       <label className="modal-field full">
-                        <span>Hero slide image URL</span>
-                        <input
-                          value={modalItem.image || ''}
-                          onChange={(e) =>
-                            setModalItem((m: any) => ({ ...m, image: e.target.value }))
-                          }
-                          placeholder="https://..."
-                        />
+                        <span>Hero slide image URL or local photo upload</span>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <input
+                            value={modalItem.image || ''}
+                            onChange={(e) =>
+                              setModalItem((m: any) => ({ ...m, image: e.target.value }))
+                            }
+                            placeholder="https://... or upload below"
+                            style={{ flex: 1 }}
+                          />
+                          <label
+                            className="button secondary small-button"
+                            style={{ cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px', margin: 0 }}
+                          >
+                            <Icon name="upload" size={13} /> Upload photo
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const reader = new FileReader();
+                                reader.onload = (ev) => {
+                                  if (ev.target?.result) {
+                                    setModalItem((m: any) => ({
+                                      ...m,
+                                      image: ev.target!.result as string,
+                                      alt: m.alt || file.name.replace(/\.[^/.]+$/, ''),
+                                    }));
+                                  }
+                                };
+                                reader.readAsDataURL(file);
+
+                                try {
+                                  const fd = new FormData();
+                                  fd.append('image', file);
+                                  const res = await uploadImageTrigger(fd).unwrap();
+                                  const serverUrl = res?.data?.url || (res as any)?.url;
+                                  if (serverUrl) {
+                                    setModalItem((m: any) => ({ ...m, image: serverUrl }));
+                                  }
+                                } catch (err) {
+                                  console.warn('Modal image upload endpoint notice:', err);
+                                }
+                                e.target.value = '';
+                              }}
+                            />
+                          </label>
+                        </div>
+                        {modalItem.image && (
+                          <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <img
+                              src={modalItem.image}
+                              alt=""
+                              style={{ width: '56px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                            />
+                            <small style={{ color: '#64748b', fontSize: '11px' }}>Current slide photo preview</small>
+                          </div>
+                        )}
                       </label>
                       <label className="modal-field">
                         <span>Photo credit</span>

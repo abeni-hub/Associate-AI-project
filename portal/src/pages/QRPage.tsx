@@ -32,9 +32,9 @@ export const QRPage: React.FC<QRPageProps> = ({
     return null;
   }, [apiQrResponse]);
 
-  const activeCodeId = activeQr?.code || 'QR-REV-001';
+  const activeCodeId = activeQr?.code || '—';
   const targetUrl = activeQr?.target_url || `${window.location.origin}/#feedback`;
-  const scanCount = activeQr?.scan_count ?? 64;
+  const scanCount = activeQr?.scan_count ?? 0;
 
   const onGenerate =
     propOnGenerate ||
@@ -124,9 +124,9 @@ export const QRPage: React.FC<QRPageProps> = ({
           </span>
           <span>
             <b>{activeCodeId}</b>
-            <small>Active code ID</small>
+            <small>{activeQr ? 'Active code ID' : 'No active QR code'}</small>
           </span>
-          <StatusPill>Active</StatusPill>
+          <StatusPill>{activeQr ? 'Active' : 'Not generated'}</StatusPill>
         </div>
         <div className="panel qr-stat">
           <span className="metric-icon gold">
@@ -136,7 +136,7 @@ export const QRPage: React.FC<QRPageProps> = ({
             <b>{scanCount} scans</b>
             <small>Feedback visits this month</small>
           </span>
-          <em>↗ 16%</em>
+          {activeQr && <em>↗ 16%</em>}
         </div>
         <div className="panel qr-stat">
           <span className="metric-icon sage">

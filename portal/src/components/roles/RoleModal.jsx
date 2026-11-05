@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import Icon from '../ui/Icon.jsx'
+import { useGetOrganizationTypesQuery } from '../../services/organizationsApi'
 
 const HIERARCHY_TIERS = [
   {
@@ -92,7 +93,91 @@ const getDefaultNavForScope = (scope) => {
   return ['overview', 'services', 'feedback', 'routes']
 }
 
-function RoleFormInner({ role, onClose, onSave }) {
+function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
+  const { data: apiOrgTypes } = useGetOrganizationTypesQuery();
+
+  const hierarchyTiers = useMemo(() => {
+    const list = [
+      {
+        scope: 'Platform',
+        label: 'Platform-wide (Root)',
+        badge: 'Tier 0 · Root',
+        badgeTone: '#ecfdf5',
+        color: '#047857',
+        parentOf: 'Sub-City Admins & Platform Modules',
+        reportsTo: 'None (Root Platform Authority)',
+        desc: 'Platform-wide administrator with full authority across all modules and sub-cities.',
+        icon: 'shield',
+      },
+    ];
+
+    if (apiOrgTypes?.data && apiOrgTypes.data.length > 0) {
+      apiOrgTypes.data.forEach((t) => {
+        list.push({
+          scope: t.name,
+          label: `${t.name} Level`,
+          badge: `Tier ${t.level} · ${t.name}`,
+          badgeTone: t.level === 1 ? '#eff6ff' : t.level === 2 ? '#f5f3ff' : '#fffbeb',
+          color: t.level === 1 ? '#1d4ed8' : t.level === 2 ? '#6d28d9' : '#b45309',
+          parentOf: `Child units under ${t.name}`,
+          reportsTo: 'Supervising Tier',
+          desc: t.description || `Administers ${t.name} jurisdictional operations.`,
+          icon: t.level === 1 ? 'map' : t.level === 2 ? 'building' : 'sitemap',
+        });
+      });
+    } else {
+      list.push(
+        {
+          scope: 'Sub-city',
+          label: 'Sub-City Level',
+          badge: 'Tier 1 · Sub-City',
+          badgeTone: '#eff6ff',
+          color: '#1d4ed8',
+          parentOf: 'Woreda Admins & Sub-City Sector Bureaus',
+          reportsTo: 'Platform Super Admin',
+          desc: 'Administers own Sub-City jurisdiction and supervises all child Woredas and Bureaus.',
+          icon: 'map',
+        },
+        {
+          scope: 'Woreda',
+          label: 'Woreda Level',
+          badge: 'Tier 2 · Woreda',
+          badgeTone: '#f5f3ff',
+          color: '#6d28d9',
+          parentOf: 'Woreda Bureaus, Service Desks & Local Staff',
+          reportsTo: 'Sub-City Admin',
+          desc: 'Administers local Woreda municipal operations, public service queues, and citizen desks.',
+          icon: 'building',
+        },
+        {
+          scope: 'Bureau',
+          label: 'Bureau / Office Level',
+          badge: 'Tier 3 · Bureau',
+          badgeTone: '#fffbeb',
+          color: '#b45309',
+          parentOf: 'Operational Front-Desk Staff & Room Clerks',
+          reportsTo: 'Sub-City Admin or Woreda Admin',
+          desc: 'Supervises sector-specific service workflows, room guides, and operational attendants.',
+          icon: 'sitemap',
+        }
+      );
+    }
+
+    list.push({
+      scope: 'Staff',
+      label: 'Operational Desk Staff',
+      badge: 'Tier 4 · Front-line',
+      badgeTone: '#f8fafc',
+      color: '#475569',
+      parentOf: 'Citizen Service Execution (No subordinates)',
+      reportsTo: 'Bureau Admin or Woreda Admin',
+      desc: 'Front-desk operator receiving citizens, checking documents, and updating room steps.',
+      icon: 'activity',
+    });
+
+    return list;
+  }, [apiOrgTypes]);
+
   const [step, setStep] = useState(1)
   const [name, setName] = useState(role?.name || '')
   const [scope, setScope] = useState(role?.scope || 'Platform')
@@ -105,7 +190,7 @@ function RoleFormInner({ role, onClose, onSave }) {
   )
   const [errorMsg, setErrorMsg] = useState(null)
 
-  const currentTier = HIERARCHY_TIERS.find((t) => t.scope.toLowerCase() === scope.toLowerCase()) || HIERARCHY_TIERS[0]
+  const currentTier = hierarchyTiers.find((t) => t.scope.toLowerCase() === scope.toLowerCase()) || hierarchyTiers[0]
 
   const handleScopeChange = (newScope) => {
     setScope(newScope)
@@ -238,11 +323,11 @@ function RoleFormInner({ role, onClose, onSave }) {
           <label className="modal-field full">
             <span>Organizational boundary scope <i>*</i></span>
             <select value={scope} onChange={(e) => handleScopeChange(e.target.value)}>
-              <option value="Platform">Platform-wide (All jurisdictions — Root)</option>
-              <option value="Sub-city">Sub-city level (Child of Platform, Parent of Woredas)</option>
-              <option value="Woreda">Woreda level (Child of Sub-City, Parent of Bureaus)</option>
-              <option value="Bureau">Bureau / office level (Child of Woreda/Sub-City)</option>
-              <option value="Staff">Operational desk staff (Front-line clerk)</option>
+              {hierarchyTiers.map((tier) => (
+                <option key={tier.scope} value={tier.scope}>
+                  {tier.label}
+                </option>
+              ))}
             </select>
           </label>
 
@@ -307,9 +392,9 @@ function RoleFormInner({ role, onClose, onSave }) {
               </div>
             </div>
 
-            {/* Complete 5-tier chain visualization */}
+            {/* Complete dynamic chain visualization */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', fontSize: '11px' }}>
-              {HIERARCHY_TIERS.map((tier, idx) => {
+              {hierarchyTiers.map((tier, idx) => {
                 const isSelected = tier.scope.toLowerCase() === scope.toLowerCase()
                 return (
                   <div key={tier.scope} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -328,7 +413,7 @@ function RoleFormInner({ role, onClose, onSave }) {
                     >
                       {tier.label.split(' ')[0]}
                     </span>
-                    {idx < HIERARCHY_TIERS.length - 1 && <span style={{ color: '#94a3b8' }}>&rarr;</span>}
+                    {idx < hierarchyTiers.length - 1 && <span style={{ color: '#94a3b8' }}>&rarr;</span>}
                   </div>
                 )
               })}
@@ -444,11 +529,11 @@ function RoleFormInner({ role, onClose, onSave }) {
               Back
             </button>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button type="button" className="button secondary" onClick={onClose}>
+              <button type="button" className="button secondary" onClick={onClose} disabled={isLoading}>
                 Cancel
               </button>
-              <button type="submit" className="button primary">
-                {role ? 'Save role changes' : 'Create role'} <Icon name="arrow" size={15} />
+              <button type="submit" className="button primary" disabled={isLoading}>
+                {isLoading ? 'Saving...' : (role ? 'Save role changes' : 'Create role')} <Icon name="arrow" size={15} />
               </button>
             </div>
           </>
@@ -458,7 +543,7 @@ function RoleFormInner({ role, onClose, onSave }) {
   )
 }
 
-function RoleModal({ role, isOpen, onClose, onSave }) {
+function RoleModal({ role, isOpen, onClose, onSave, isLoading = false }) {
   if (!isOpen) return null
 
   return createPortal(
@@ -473,7 +558,7 @@ function RoleModal({ role, isOpen, onClose, onSave }) {
         aria-label={role ? 'Edit custom role' : 'Create custom role'}
         style={{ maxWidth: '640px', width: '92%' }}
       >
-        <RoleFormInner key={role ? role.id : 'new'} role={role} onClose={onClose} onSave={onSave} />
+        <RoleFormInner key={role ? role.id : 'new'} role={role} onClose={onClose} onSave={onSave} isLoading={isLoading} />
       </section>
     </div>,
     document.body

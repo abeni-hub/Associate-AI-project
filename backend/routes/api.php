@@ -268,7 +268,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         // Super Admin CMS Landing Page Management
         Route::prefix('cms')->name('cms.')->group(function () {
-            Route::put('/landing-page', [CmsController::class, 'update'])
+            Route::match(['PUT', 'POST', 'PATCH'], '/landing-page', [CmsController::class, 'update'])
                 ->middleware('permission:cms.manage')
                 ->name('landing-page.update');
 

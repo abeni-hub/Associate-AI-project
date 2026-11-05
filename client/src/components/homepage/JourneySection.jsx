@@ -47,6 +47,11 @@ function splitConfiguredTitle(title, fallbackLines) {
 }
 
 export default function JourneySection({ t, onGoToFeedback, journey }) {
+  if (journey?.enabled === false) return null
+
+  const kickerNum = journey?.kickerNum || '03'
+  const kicker = journey?.kicker || 'SIMPLE FROM START TO FINISH'
+ 
   const cards = journey?.steps?.length
     ? journey.steps.map((step, index) => {
         const fallback = journeyCards[index] || journeyCards[0]
@@ -64,7 +69,7 @@ export default function JourneySection({ t, onGoToFeedback, journey }) {
       <div className="section-wrap">
         <div className="section-intro journey-intro scroll-reveal">
           <div>
-            <div className="section-kicker"><span>03</span> {t('SIMPLE FROM START TO FINISH')}</div>
+            <div className="section-kicker"><span>{kickerNum}</span> {t(kicker)}</div>
             <h2>{t('Three moments.')}<br /><em>{t('One smoother journey.')}</em></h2>
           </div>
           <p>{t(journey?.title || 'From the moment you start planning to the moment you share your experience, everything you need is easy to find.')}</p>

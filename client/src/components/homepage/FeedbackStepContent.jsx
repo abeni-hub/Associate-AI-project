@@ -48,17 +48,13 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
   const { data: servicesData } = useGetServicesQuery()
 
   const activeServices = (() => {
-    if (servicesData?.data && Array.isArray(servicesData.data) && servicesData.data.length > 0) {
+    if (servicesData?.data && Array.isArray(servicesData.data)) {
       return servicesData.data.map((s) => ({
         id: s.code || String(s.id),
         label: s.name,
       }))
     }
-    return serviceCatalog[feedback.bureau] ?? [
-      { id: 'general-inquiry', label: 'General Inquiry & Front Desk' },
-      { id: 'document-attestation', label: 'Document Verification' },
-      { id: 'service-application', label: 'Service Application' },
-    ]
+    return []
   })()
 
   if (step === 1) {

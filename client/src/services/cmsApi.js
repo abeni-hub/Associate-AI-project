@@ -7,6 +7,7 @@ export const cmsApi = baseApi.injectEndpoints({
         url: '/cms/landing-page',
         method: 'GET',
       }),
+      transformResponse: (response) => response?.data || response,
       providesTags: ['Cms'],
     }),
   }),

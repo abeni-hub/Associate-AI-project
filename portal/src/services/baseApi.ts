@@ -10,7 +10,9 @@ const getBaseUrl = (): string => {
   const envUrl = import.meta.env.VITE_API_BASE_URL;
   if (typeof envUrl === 'string' && envUrl.trim().length > 0) {
     let url = envUrl.trim().replace(/\/+$/, '');
-    if (!url.endsWith('/api/v1')) {
+    if (url.endsWith('/api')) {
+      url = `${url}/v1`;
+    } else if (!url.endsWith('/api/v1')) {
       url = `${url}/api/v1`;
     }
     return url;
@@ -18,7 +20,7 @@ const getBaseUrl = (): string => {
   if (import.meta.env.DEV) {
     return '/api/v1';
   }
-  return 'http://civiclink.pharmasoft-et.com/api/v1';
+  return 'https://civillink.jobaleengineering.com/api/v1';
 };
 
 /**

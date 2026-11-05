@@ -12,6 +12,7 @@ export interface AccountModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave?: (saved: any) => void;
+  isLoading?: boolean;
 }
 
 const slugifyUsername = (text: string) =>
@@ -24,6 +25,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  isLoading = false,
 }) => {
   const { data: apiRoles } = useGetRolesQuery(undefined, { skip: !isOpen });
   const { data: apiOrgs } = useGetOrganizationsQuery(undefined, { skip: !isOpen });
@@ -96,8 +98,8 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         value: org.id,
         label: org.name,
         code: org.code,
-        badge: org.organization_type_id === 1 ? 'Sub-City' : org.organization_type_id === 2 ? 'Woreda' : 'Bureau',
-        badgeTone: org.organization_type_id === 1 ? 'sage' : org.organization_type_id === 2 ? 'blue' : 'gold',
+        badge: org.type?.name || (org.organization_type_id === 1 ? 'Sub-City' : org.organization_type_id === 2 ? 'Woreda' : 'Bureau'),
+        badgeTone: (org.type?.level === 1 || org.organization_type_id === 1) ? 'sage' : (org.type?.level === 2 || org.organization_type_id === 2) ? 'blue' : 'gold',
         secondary: org.address || `${org.code} jurisdictional office`,
       })),
     ];
@@ -116,29 +118,24 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       return [];
     }
 
-    const rawRoles: any[] = propRoles?.length ? propRoles : apiRoles?.data || [
-      { id: 1, name: 'Super Admin', slug: 'super_admin', description: 'Platform-wide authority with unrestricted access.' },
-      { id: 2, name: 'Sub-City Admin', slug: 'sub_city_admin', description: 'Sub-City administrator managing own unit and descendants.' },
-      { id: 3, name: 'Woreda Admin', slug: 'woreda_admin', description: 'Woreda administrator managing local municipal unit.' },
-      { id: 4, name: 'Bureau Admin', slug: 'bureau_admin', description: 'Bureau administrator managing sectoral staff and workflows.' },
-      { id: 5, name: 'Staff', slug: 'staff', description: 'Operational government staff member.' },
-    ];
+    const rawRoles: any[] = propRoles?.length ? propRoles : apiRoles?.data || [];
 
     let allowed: any[] = [];
     if (Number(organizationId) === 0) {
       allowed = rawRoles.filter((r) => r.slug === 'super_admin' || r.id === 1);
-    } else if (selectedOrg?.organization_type_id === 1) {
-      // Sub-City
-      allowed = rawRoles.filter((r) => r.slug === 'sub_city_admin' || r.slug === 'staff' || r.id === 2 || r.id === 5);
-    } else if (selectedOrg?.organization_type_id === 2) {
-      // Woreda
-      allowed = rawRoles.filter((r) => r.slug === 'woreda_admin' || r.slug === 'staff' || r.id === 3 || r.id === 5);
-    } else if (selectedOrg?.organization_type_id === 3) {
-      // Bureau
-      allowed = rawRoles.filter((r) => r.slug === 'bureau_admin' || r.slug === 'staff' || r.id === 4 || r.id === 5);
     } else {
-      // Fallback for custom organizations
-      allowed = rawRoles.filter((r) => r.slug !== 'super_admin' && r.id !== 1);
+      const orgTypeCode = (selectedOrg?.type?.code || '').toLowerCase();
+      const orgTypeId = selectedOrg?.type?.id || selectedOrg?.organization_type_id;
+
+      if (orgTypeId === 1 || orgTypeCode === 'sub_city') {
+        allowed = rawRoles.filter((r) => r.slug === 'sub_city_admin' || r.slug === 'staff' || (!r.is_system && r.slug !== 'super_admin'));
+      } else if (orgTypeId === 2 || orgTypeCode === 'woreda') {
+        allowed = rawRoles.filter((r) => r.slug === 'woreda_admin' || r.slug === 'staff' || (!r.is_system && r.slug !== 'super_admin'));
+      } else if (orgTypeId === 3 || orgTypeCode === 'bureau') {
+        allowed = rawRoles.filter((r) => r.slug === 'bureau_admin' || r.slug === 'staff' || (!r.is_system && r.slug !== 'super_admin'));
+      } else {
+        allowed = rawRoles.filter((r) => r.slug !== 'super_admin');
+      }
     }
 
     return allowed.map((r: any) => ({
@@ -384,11 +381,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({
           <div className="modal-footer">
             <span />
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button type="button" className="button secondary" onClick={onClose}>
+              <button type="button" className="button secondary" onClick={onClose} disabled={isLoading}>
                 Cancel
               </button>
-              <button type="submit" className="button primary">
-                {account ? 'Save changes' : 'Create account'} <Icon name="arrow" size={15} />
+              <button type="submit" className="button primary" disabled={isLoading}>
+                {isLoading ? 'Saving...' : (account ? 'Save changes' : 'Create account')} <Icon name="arrow" size={15} />
               </button>
             </div>
           </div>

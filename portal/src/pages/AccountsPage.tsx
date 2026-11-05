@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { usePortal } from '../context';
+import { usePermissions } from '../hooks/usePermissions';
 import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
 import { MetricCard } from '../components/shared/MetricCard';
@@ -36,9 +37,10 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
   const setSearch = propSetSearch || portal.setSearch;
 
   const { data: usersResponse, isLoading } = useGetUsersQuery();
-  const [createUserTrigger] = useCreateUserMutation();
-  const [updateUserTrigger] = useUpdateUserMutation();
+  const [createUserTrigger, { isLoading: isCreatingUser }] = useCreateUserMutation();
+  const [updateUserTrigger, { isLoading: isUpdatingUser }] = useUpdateUserMutation();
   const [deleteUserTrigger] = useDeleteUserMutation();
+  const isSavingUser = isCreatingUser || isUpdatingUser;
 
   const items: AccountItem[] = useMemo(() => {
     if (propItems && propItems.length > 0) return propItems;
@@ -95,6 +97,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
       } else {
         await createUserTrigger(payload).unwrap();
       }
+      setIsAccountModalOpen(false);
+      setSelectedAccountForEdit(null);
     } catch (err: any) {
       window.alert(err?.data?.message || 'Failed to save account.');
     }
@@ -121,14 +125,20 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
   const activeCount = items.filter((i) => i.status === 'Active').length;
   const inactiveCount = items.filter((i) => i.status !== 'Active').length;
 
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('users.create');
+  const canUpdate = hasPermission('users.update');
+  const canManageRoles = hasPermission('roles.manage');
+  const canDelete = hasPermission('users.delete');
+
   return (
     <>
       <PageHeading
         eyebrow="ACCESS & PERMISSIONS"
         title="Accounts"
         subtitle="Manage administrator access and credentials across every connected organization."
-        action="Create account"
-        onAction={handleOpenAdd}
+        action={canCreate ? 'Create account' : undefined}
+        onAction={canCreate ? handleOpenAdd : undefined}
         secondary="Export list"
         onSecondary={() => window.alert('Account list export is ready.')}
       />
@@ -136,21 +146,21 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
         <MetricCard
           icon="users"
           label="Total accounts"
-          value={items.length}
+          value={isLoading && !usersResponse ? '...' : items.length}
           note="Across administrative hierarchy"
           tone="teal"
         />
         <MetricCard
           icon="check"
           label="Active accounts"
-          value={activeCount}
+          value={isLoading && !usersResponse ? '...' : activeCount}
           note="Access confirmed"
           tone="sage"
         />
         <MetricCard
           icon="clock"
           label="Inactive accounts"
-          value={inactiveCount}
+          value={isLoading && !usersResponse ? '...' : inactiveCount}
           note="Access suspended"
           tone="gold"
         />
@@ -185,12 +195,14 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
             </select>
           </div>
         </div>
-        {isLoading && (
-          <div style={{ padding: '24px', textAlign: 'center' }}>
-            <p>Loading accounts...</p>
+        {isLoading && !usersResponse ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', gap: '12px' }}>
+            <div className="loading-spinner" />
+            <p style={{ margin: 0, color: '#00485a', fontWeight: 600, fontSize: '14px' }}>Loading administrator accounts...</p>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>Fetching roles and credentials</p>
           </div>
-        )}
-        <div className="table-scroll">
+        ) : (
+          <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>
@@ -229,30 +241,36 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
                   </td>
                   <td>{item.lastActive}</td>
                   <td className="table-action-cell" style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      className="button secondary small-button"
-                      onClick={() => handleOpenEdit(item)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="button secondary small-button"
-                      onClick={() => {
-                        setSelectedAccountForRole(item);
-                        setIsRoleModalOpen(true);
-                      }}
-                      title="Manage roles and custom permissions"
-                    >
-                      Role
-                    </button>
-                    <button
-                      className="button secondary small-button"
-                      style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
-                      onClick={() => handleDeleteUser(item)}
-                      title="Delete account"
-                    >
-                      Delete
-                    </button>
+                    {canUpdate && (
+                      <button
+                        className="button secondary small-button"
+                        onClick={() => handleOpenEdit(item)}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {canManageRoles && (
+                      <button
+                        className="button secondary small-button"
+                        onClick={() => {
+                          setSelectedAccountForRole(item);
+                          setIsRoleModalOpen(true);
+                        }}
+                        title="Manage roles and custom permissions"
+                      >
+                        Role
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        className="button secondary small-button"
+                        style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
+                        onClick={() => handleDeleteUser(item)}
+                        title="Delete account"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -265,6 +283,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
             </div>
           )}
         </div>
+        )}
       </section>
 
       <AccountModal
@@ -275,6 +294,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
           setSelectedAccountForEdit(null);
         }}
         onSave={handleSaveAccount}
+        isLoading={isSavingUser}
       />
 
       <EditUserRoleModal

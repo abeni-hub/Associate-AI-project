@@ -39,17 +39,21 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   const [period, setPeriod] = useState('This week');
 
   // Unified Dashboard API Queries (api.md Section 12)
-  const { data: dashboardOverview } = useGetDashboardOverviewQuery();
+  const { data: dashboardOverview, isLoading: overviewLoading } = useGetDashboardOverviewQuery();
   const { data: recentActivity, isLoading: activityLoading } = useGetRecentActivityQuery({ limit: 15 });
   const { data: feedbackReport } = useGetFeedbackReportQuery();
   const { data: servicesReport } = useGetServicesReportQuery();
   const { data: orgsReport } = useGetOrganizationsReportQuery();
 
   // Resource queries (live backend data)
-  const { data: servicesData } = useGetServicesQuery();
-  const { data: orgsData } = useGetOrganizationsQuery();
-  const { data: usersData } = useGetUsersQuery();
-  const { data: feedbackData } = useGetFeedbackListQuery();
+  const { data: servicesData, isLoading: servicesLoading } = useGetServicesQuery();
+  const { data: orgsData, isLoading: orgsLoading } = useGetOrganizationsQuery();
+  const { data: usersData, isLoading: usersLoading } = useGetUsersQuery();
+  const { data: feedbackData, isLoading: feedbackLoading } = useGetFeedbackListQuery();
+
+  const isPageLoading =
+    (overviewLoading || (!dashboardOverview && (servicesLoading || orgsLoading || usersLoading || feedbackLoading))) &&
+    !dashboardOverview;
 
   const role = (propRole || portal.role || 'super') as RoleKey;
   const onNavigate = propOnNavigate || ((path: string) => navigate(path.startsWith('/') ? path : `/${path}`));
@@ -260,10 +264,11 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             className="button secondary"
             onClick={handleExportReport}
             title="Download executive CSV report"
+            disabled={isPageLoading}
           >
             <Icon name="download" size={16} /> Export report
           </button>
-          <button className="button primary" onClick={() => onCreate()}>
+          <button className="button primary" onClick={() => onCreate()} disabled={isPageLoading}>
             <Icon name="plus" size={16} />{' '}
             {role === 'super'
               ? 'New office'
@@ -274,66 +279,91 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         </div>
       </div>
 
-      <section className="metric-grid">
-        {metrics.map(([icon, label, value, note, trend], i) => (
-          <MetricCard
-            key={label}
-            icon={icon}
-            label={label}
-            value={value}
-            note={note}
-            trend={trend}
-            tone={(['teal', 'sage', 'gold', 'blue'] as const)[i]}
-          />
-        ))}
-      </section>
+      {isPageLoading ? (
+        <section
+          className="panel"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '320px',
+            gap: '14px',
+            textAlign: 'center',
+            padding: '48px 24px',
+            margin: '20px 0',
+          }}
+        >
+          <div className="loading-spinner" />
+          <h3 style={{ margin: 0, color: '#00485a', fontSize: '17px', fontWeight: 600 }}>Loading overview...</h3>
+          <p style={{ margin: 0, color: '#608288', fontSize: '13px' }}>
+            Fetching platform metrics, engagement, and citizen feedback
+          </p>
+        </section>
+      ) : (
+        <>
+          <section className="metric-grid">
+            {metrics.map(([icon, label, value, note, trend], i) => (
+              <MetricCard
+                key={label}
+                icon={icon}
+                label={label}
+                value={value}
+                note={note}
+                trend={trend}
+                tone={(['teal', 'sage', 'gold', 'blue'] as const)[i]}
+              />
+            ))}
+          </section>
 
-      <section className="dashboard-grid">
-        <article className="panel activity-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="panel-eyebrow">PLATFORM PULSE</span>
-              <h2>Citizen engagement</h2>
-            </div>
-            <button
-              className="select-like"
-              onClick={() =>
-                setPeriod((current) => (current === 'This week' ? 'Last week' : 'This week'))
-              }
-            >
-              {period} <Icon name="chevron" size={14} />
-            </button>
-          </div>
-          <ActivityChart
-            period={period}
-            totalCount={totalFeedback}
-            recentActivities={recentActivity?.data}
-            feedbackReport={feedbackReport?.data}
-          />
-        </article>
-        <SatisfactionPanel
-          onNavigate={onNavigate}
-          feedbackReport={feedbackReport?.data}
-          feedbackOverview={dData?.feedback}
-        />
-      </section>
+          <section className="dashboard-grid">
+            <article className="panel activity-panel">
+              <div className="panel-heading">
+                <div>
+                  <span className="panel-eyebrow">PLATFORM PULSE</span>
+                  <h2>Citizen engagement</h2>
+                </div>
+                <button
+                  className="select-like"
+                  onClick={() =>
+                    setPeriod((current) => (current === 'This week' ? 'Last week' : 'This week'))
+                  }
+                >
+                  {period} <Icon name="chevron" size={14} />
+                </button>
+              </div>
+              <ActivityChart
+                period={period}
+                totalCount={totalFeedback}
+                recentActivities={recentActivity?.data}
+                feedbackReport={feedbackReport?.data}
+              />
+            </article>
+            <SatisfactionPanel
+              onNavigate={onNavigate}
+              feedbackReport={feedbackReport?.data}
+              feedbackOverview={dData?.feedback}
+            />
+          </section>
 
-      <section className="dashboard-grid lower-grid">
-        <FeedbackFocusList items={focus} onFeedback={onFeedback} onNavigate={onNavigate} />
-        <QuickActions items={quick} onNavigate={onNavigate} onCreate={onCreate} />
-      </section>
+          <section className="dashboard-grid lower-grid">
+            <FeedbackFocusList items={focus} onFeedback={onFeedback} onNavigate={onNavigate} />
+            <QuickActions items={quick} onNavigate={onNavigate} onCreate={onCreate} />
+          </section>
 
-      <section className="dashboard-grid">
-        <RecentActivityFeed
-          activities={recentActivity?.data}
-          isLoading={activityLoading}
-          onNavigate={onNavigate}
-        />
-      </section>
+          <section className="dashboard-grid">
+            <RecentActivityFeed
+              activities={recentActivity?.data}
+              isLoading={activityLoading}
+              onNavigate={onNavigate}
+            />
+          </section>
 
-      <p className="data-footnote">
-        Connected to CivicLink Government Platform API — workspace role: {displayRoleLabel}
-      </p>
+          <p className="data-footnote">
+            Connected to CivicLink Government Platform API — workspace role: {displayRoleLabel}
+          </p>
+        </>
+      )}
     </>
   );
 };

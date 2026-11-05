@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePortal } from '../context';
+import { usePermissions } from '../hooks/usePermissions';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
@@ -63,11 +64,12 @@ export const NewsPage: React.FC<NewsPageProps> = ({
   // Backend API queries
   const { data: newsApiResponse, isLoading: isNewsLoading } = useGetNewsListQuery();
   const { data: eventsApiResponse, isLoading: isEventsLoading } = useGetEventsQuery();
-  const [createNews] = useCreateNewsMutation();
-  const [updateNews] = useUpdateNewsMutation();
+  const [createNews, { isLoading: isCreatingNews }] = useCreateNewsMutation();
+  const [updateNews, { isLoading: isUpdatingNews }] = useUpdateNewsMutation();
   const [deleteNews] = useDeleteNewsMutation();
-  const [createEvent] = useCreateEventMutation();
+  const [createEvent, { isLoading: isCreatingEvent }] = useCreateEventMutation();
   const [deleteEvent] = useDeleteEventMutation();
+  const isSavingPost = isCreatingNews || isUpdatingNews || isCreatingEvent;
 
   const items: PostItem[] = useMemo(() => {
     if (propItems && propItems.length > 0) return propItems;
@@ -192,6 +194,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({
           window.alert(
             'Updating an existing event is not supported by the backend. You can create a new event or delete the previous one.'
           );
+          return;
         } else {
           await createEvent({
             organization_id: payload.organization_id,
@@ -219,6 +222,8 @@ export const NewsPage: React.FC<NewsPageProps> = ({
           await createNews(payload).unwrap();
         }
       }
+      setIsNewsModalOpen(false);
+      setSelectedNewsForEdit(null);
     } catch (err: any) {
       window.alert(err?.data?.message || err?.message || 'Failed to save item.');
     }
@@ -274,14 +279,20 @@ export const NewsPage: React.FC<NewsPageProps> = ({
     return matchesType && matchesPublication && searchable.includes(search.toLowerCase());
   });
 
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission(['news.create', 'events.create']);
+  const canUpdate = hasPermission(['news.update', 'events.update']);
+  const canPublish = hasPermission(['news.publish', 'events.publish']);
+  const canDelete = hasPermission(['news.delete', 'events.delete']);
+
   return (
     <>
       <PageHeading
         eyebrow="PUBLIC INFORMATION"
         title="News & events"
         subtitle="Manage the bilingual updates and public events shown to residents in the client app."
-        action="Create an update"
-        onAction={handleOpenAdd}
+        action={canCreate ? 'Create an update' : undefined}
+        onAction={canCreate ? handleOpenAdd : undefined}
       />
 
       <section className="feed-overview" aria-label="Public client feed status">
@@ -308,11 +319,11 @@ export const NewsPage: React.FC<NewsPageProps> = ({
           </div>
           <div>
             <dt>Published</dt>
-            <dd>{publishedCount}</dd>
+            <dd>{isNewsLoading || isEventsLoading ? '...' : publishedCount}</dd>
           </div>
           <div>
             <dt>Published events</dt>
-            <dd>{eventCount}</dd>
+            <dd>{isNewsLoading || isEventsLoading ? '...' : eventCount}</dd>
           </div>
         </dl>
       </section>
@@ -348,85 +359,99 @@ export const NewsPage: React.FC<NewsPageProps> = ({
           </div>
         </div>
 
-        <div className="news-grid">
-          {filtered.map((item) => {
-            const isEvent = normalizeType(item) === 'event';
-            const date = isEvent ? item.eventDate || item.date : item.publishedAt || item.date;
-            const subCity = getSubCity(item);
-            const status = isPublished(item) ? 'Published' : 'Draft';
-            const summary = item.summary || item.excerpt || 'No summary has been added yet.';
+        {(isNewsLoading || isEventsLoading) && items.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', gap: '12px' }}>
+            <div className="loading-spinner" />
+            <p style={{ margin: 0, color: '#00485a', fontWeight: 600, fontSize: '14px' }}>Loading public updates and events...</p>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>Fetching official notices and civic announcements</p>
+          </div>
+        ) : (
+          <div className="news-grid">
+            {filtered.map((item) => {
+              const isEvent = normalizeType(item) === 'event';
+              const date = isEvent ? item.eventDate || item.date : item.publishedAt || item.date;
+              const subCity = getSubCity(item);
+              const status = isPublished(item) ? 'Published' : 'Draft';
+              const summary = item.summary || item.excerpt || 'No summary has been added yet.';
 
-            return (
-              <article className="news-admin-card" key={item.id}>
-                <Link className="news-card-link" to={'/news/' + encodeURIComponent(String(item.id))}>
-                  <div className="news-card-media">
-                    {item.coverImage ? (
-                      <img src={item.coverImage} alt="" loading="lazy" />
-                    ) : (
-                      <span className="news-card-image-placeholder" aria-hidden="true">
-                        <Icon name={isEvent ? 'calendar' : 'news'} size={28} />
-                      </span>
-                    )}
-                    <span className="news-card-category">{item.category || (isEvent ? 'Community event' : 'Public notice')}</span>
-                    {isEvent && date && (
-                      <span className="news-card-date-badge">{formatDate(date)}</span>
-                    )}
-                  </div>
-                  <div className="news-card-copy">
-                    <div className="news-card-meta">
-                      <span>{isEvent ? 'Event' : 'News'}</span>
-                      {!isEvent && <span>{formatDate(date)}</span>}
-                    </div>
-                    <h3>{item.title}</h3>
-                    <p>{summary}</p>
-                    <div className="news-card-byline">
-                      <span>{item.bureau || item.organizer || 'CivicLink Ethiopia'}</span>
-                      {subCity && <span>{subCity}</span>}
-                      {!isEvent && item.readTimeMinutes && (
-                        <span>{item.readTimeMinutes} min read</span>
+              return (
+                <article className="news-admin-card" key={item.id}>
+                  <Link className="news-card-link" to={'/news/' + encodeURIComponent(String(item.id))}>
+                    <div className="news-card-media">
+                      {item.coverImage ? (
+                        <img src={item.coverImage} alt="" loading="lazy" />
+                      ) : (
+                        <span className="news-card-image-placeholder" aria-hidden="true">
+                          <Icon name={isEvent ? 'calendar' : 'news'} size={28} />
+                        </span>
+                      )}
+                      <span className="news-card-category">{item.category || (isEvent ? 'Community event' : 'Public notice')}</span>
+                      {isEvent && date && (
+                        <span className="news-card-date-badge">{formatDate(date)}</span>
                       )}
                     </div>
-                    <span className="news-card-read-link">
-                      View public detail <Icon name="arrow" size={15} />
-                    </span>
+                    <div className="news-card-copy">
+                      <div className="news-card-meta">
+                        <span>{isEvent ? 'Event' : 'News'}</span>
+                        {!isEvent && <span>{formatDate(date)}</span>}
+                      </div>
+                      <h3>{item.title}</h3>
+                      <p>{summary}</p>
+                      <div className="news-card-byline">
+                        <span>{item.bureau || item.organizer || 'CivicLink Ethiopia'}</span>
+                        {subCity && <span>{subCity}</span>}
+                        {!isEvent && item.readTimeMinutes && (
+                          <span>{item.readTimeMinutes} min read</span>
+                        )}
+                      </div>
+                      <span className="news-card-read-link">
+                        View public detail <Icon name="arrow" size={15} />
+                      </span>
+                    </div>
+                  </Link>
+                  <div className="news-card-admin-actions">
+                    <StatusPill>{status}</StatusPill>
+                    {canUpdate && (
+                      <button
+                        type="button"
+                        className="button secondary small-button"
+                        onClick={() => handleOpenEdit(item)}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {canPublish && (
+                      <button
+                        type="button"
+                        className="button secondary small-button"
+                        onClick={() => onTogglePublish(item.id)}
+                      >
+                        {status === 'Published' ? 'Unpublish' : 'Publish'}
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        type="button"
+                        className="button secondary small-button"
+                        style={{ color: '#c0392b' }}
+                        onClick={() => handleDelete(item)}
+                        title="Delete update"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
-                </Link>
-                <div className="news-card-admin-actions">
-                  <StatusPill>{status}</StatusPill>
-                  <button
-                    type="button"
-                    className="button secondary small-button"
-                    onClick={() => handleOpenEdit(item)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="button secondary small-button"
-                    onClick={() => onTogglePublish(item.id)}
-                  >
-                    {status === 'Published' ? 'Unpublish' : 'Publish'}
-                  </button>
-                  <button
-                    type="button"
-                    className="button secondary small-button"
-                    style={{ color: '#c0392b' }}
-                    onClick={() => handleDelete(item)}
-                    title="Delete update"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-          {!filtered.length && (
-            <div className="empty-state news-empty-state">
-              <b>No updates found</b>
-              <p>Try another search or change the filters.</p>
-            </div>
-          )}
-        </div>
+                </article>
+              );
+            })}
+            {!filtered.length && (
+              <div className="empty-state news-empty-state">
+                <b>No updates found</b>
+                <p>Try another search or change the filters.</p>
+              </div>
+            )}
+          </div>
+        )}
         <div className="table-footer">
           <span>
             Showing <b>{filtered.length}</b> of <b>{items.length}</b> updates
@@ -442,6 +467,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({
           setSelectedNewsForEdit(null);
         }}
         onSave={handleSaveNews}
+        isLoading={isSavingPost}
       />
     </>
   );

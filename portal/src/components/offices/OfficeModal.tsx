@@ -15,10 +15,23 @@ export interface OfficeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave?: (saved: any) => void;
+  isLoading?: boolean;
 }
 
 const slugify = (text: string) =>
-  text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '');
+
+const formatApiError = (err: any): string => {
+  if (err?.data?.errors && typeof err.data.errors === 'object') {
+    const errorEntries = Object.entries(err.data.errors);
+    if (errorEntries.length > 0) {
+      return errorEntries
+        .map(([_, msgs]) => (Array.isArray(msgs) ? msgs.join(' ') : String(msgs)))
+        .join(' • ');
+    }
+  }
+  return err?.data?.message || err?.message || 'Validation failed. Please verify the office details.';
+};
 
 export const OfficeModal: React.FC<OfficeModalProps> = ({
   office,
@@ -27,6 +40,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  isLoading = false,
 }) => {
   const { data: apiOrgTypes } = useGetOrganizationTypesQuery(undefined, { skip: !isOpen });
   const { data: apiOrgs } = useGetOrganizationsQuery(undefined, { skip: !isOpen });
@@ -34,7 +48,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
   // Form states strictly matching organizations table schema
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
-  const [typeId, setTypeId] = useState<number>(2); // 1 = Sub-City, 2 = Woreda, 3 = Bureau
+  const [typeId, setTypeId] = useState<number>(1); // 1 = Sub-City (Root), 2 = Woreda, 3 = Bureau
   const [parentId, setParentId] = useState<number | null>(null);
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
@@ -48,7 +62,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
     if (isOpen) {
       setName(office?.name || '');
       setCode(office?.code || (office?.name ? slugify(office.name) : ''));
-      const initialType = Number(office?.organization_type_id || office?.typeId || 2);
+      const initialType = Number(office?.organization_type_id || office?.typeId || 1);
       setTypeId(initialType);
       setParentId(office?.parent_organization_id ?? office?.parentId ?? null);
       setAddress(office?.address || '');
@@ -62,51 +76,75 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
 
   // Classification options
   const classificationOptions: SearchSelectOption[] = useMemo(() => {
-    const raw = propTypes?.length ? propTypes : apiOrgTypes?.data;
-    if (raw?.length) {
-      return raw.map((t: any) => ({
-        value: t.id,
-        label: t.name,
-        code: t.code,
-        badge: `Level ${t.level}`,
-        badgeTone: t.level === 1 ? 'sage' : t.level === 2 ? 'blue' : 'gold',
-        secondary: t.description || (t.can_be_root || t.level === 1 ? 'Root platform tier' : 'Requires parent organization'),
-      }));
-    }
-    return [
-      { value: 1, label: 'Sub-City', code: 'sub_city', badge: 'Level 1', badgeTone: 'sage', secondary: 'Chartered administration (Root tier)' },
-      { value: 2, label: 'Woreda', code: 'woreda', badge: 'Level 2', badgeTone: 'blue', secondary: 'Local administrative district (Reports to Sub-City)' },
-      { value: 3, label: 'Bureau', code: 'bureau', badge: 'Level 3', badgeTone: 'gold', secondary: 'Sectoral municipal office (Reports to Sub-City or Woreda)' },
-    ];
+    const raw: any[] = propTypes?.length ? propTypes : apiOrgTypes?.data || [];
+    return raw.map((t: any) => ({
+      value: t.id,
+      label: t.name,
+      code: t.code,
+      badge: `Level ${t.level ?? (t.id === 1 ? 1 : t.id === 2 ? 2 : 3)}`,
+      badgeTone: (t.level === 1 || t.id === 1) ? 'sage' : (t.level === 2 || t.id === 2) ? 'blue' : 'gold',
+      secondary: t.description || (t.can_be_root || t.level === 1 ? 'Root platform tier' : 'Requires parent organization'),
+    }));
   }, [propTypes, apiOrgTypes]);
 
-  const isSubCity = Number(typeId) === 1;
-  const isWoreda = Number(typeId) === 2;
-  const isBureau = Number(typeId) === 3;
+  // Resolve currently selected classification tier
+  const selectedType = useMemo(() => {
+    const list: any[] = propTypes?.length ? propTypes : apiOrgTypes?.data || [];
+    return list.find((t: any) => Number(t.id) === Number(typeId)) || null;
+  }, [propTypes, apiOrgTypes, typeId]);
 
-  // Filter eligible parents: Sub-City (none), Woreda (Sub-City only), Bureau (Sub-City or Woreda)
+  const isRootType = useMemo(() => {
+    if (!selectedType) return Number(typeId) === 1;
+    return Boolean(selectedType.can_be_root || selectedType.level === 1 || selectedType.code === 'sub_city');
+  }, [selectedType, typeId]);
+
+  const currentLevel = useMemo(() => {
+    if (selectedType?.level) return Number(selectedType.level);
+    return isRootType ? 1 : Number(typeId) === 3 ? 3 : 2;
+  }, [selectedType, isRootType, typeId]);
+
+  // Filter eligible parents: parent must have higher statutory rank (lower level number)
   const parentOptions: SearchSelectOption[] = useMemo(() => {
-    if (isSubCity) {
-      return [{ value: 0, label: 'None (Root Organization)', code: 'root', badge: 'Root', badgeTone: 'sage', secondary: 'Sub-Cities have no parent organization.' }];
+    if (isRootType) {
+      return [
+        {
+          value: 0,
+          label: 'None (Root Organization)',
+          code: 'root',
+          badge: 'Root',
+          badgeTone: 'sage',
+          secondary: `${selectedType?.name || 'Sub-Cities'} have no parent organization.`,
+        },
+      ];
     }
 
     const orgsList: any[] = propOffices?.length ? propOffices : apiOrgs?.data || [];
-    return orgsList
-      .filter((org) => {
-        if (office && org.id === office.id) return false;
-        const orgTypeId = org.organization_type_id ?? org.typeId;
-        if (isWoreda) return orgTypeId === 1;
-        if (isBureau) return orgTypeId === 1 || orgTypeId === 2;
-        return true;
-      })
-      .map((org) => ({
+
+    const eligible = orgsList.filter((org) => {
+      if (office && (org.id === office.id || org.id === office?.id)) return false;
+      const orgLevel =
+        org.type?.level ??
+        (org.typeId === 1 || org.organization_type_id === 1
+          ? 1
+          : org.typeId === 2 || org.organization_type_id === 2
+            ? 2
+            : 3);
+      return orgLevel < currentLevel;
+    });
+
+    return eligible.map((org) => {
+      const orgLevel =
+        org.type?.level ?? (org.typeId === 1 || org.organization_type_id === 1 ? 1 : 2);
+      return {
         value: org.id,
         label: org.name,
         code: org.code,
-        badge: (org.organization_type_id ?? org.typeId) === 1 ? 'Sub-City' : 'Woreda',
-        badgeTone: (org.organization_type_id ?? org.typeId) === 1 ? 'sage' : 'blue',
-      }));
-  }, [propOffices, apiOrgs, isSubCity, isWoreda, isBureau, office]);
+        badge: orgLevel === 1 ? 'Sub-City' : 'Woreda',
+        badgeTone: orgLevel === 1 ? 'sage' : 'blue',
+        secondary: org.address || `${org.code || ''} office`,
+      };
+    });
+  }, [propOffices, apiOrgs, isRootType, currentLevel, selectedType, office]);
 
   const handleNameChange = (val: string) => {
     setName(val);
@@ -117,36 +155,55 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
     const nextTypeId = Number(val) || 2;
     setTypeId(nextTypeId);
     setErrorMsg(null);
-    if (nextTypeId === 1) setParentId(null);
+    const targetType = (propTypes?.length ? propTypes : apiOrgTypes?.data || []).find(
+      (t: any) => Number(t.id) === nextTypeId
+    );
+    const targetIsRoot = targetType
+      ? Boolean(targetType.can_be_root || targetType.level === 1 || targetType.code === 'sub_city')
+      : nextTypeId === 1;
+    if (targetIsRoot) setParentId(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return setErrorMsg('Office name is required.');
-    if (!code.trim()) return setErrorMsg('Office code identifier is required.');
-    if (isWoreda && (!parentId || Number(parentId) === 0)) {
-      return setErrorMsg('A Woreda must have a parent Sub-City selected.');
+    const cleanCode = code.toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-').replace(/(^-+|-+$)/g, '');
+    if (!cleanCode) return setErrorMsg('Office code identifier is required.');
+    if (!isRootType && (!parentId || Number(parentId) <= 0)) {
+      const parentLabel = Number(typeId) === 2 ? 'Sub-City' : 'Sub-City or Woreda';
+      return setErrorMsg(`A ${selectedType?.name || 'child office'} must have a parent ${parentLabel} selected.`);
     }
-    if (isBureau && (!parentId || Number(parentId) === 0)) {
-      return setErrorMsg('A Bureau must be linked to a Sub-City or Woreda parent.');
+    const cleanEmail = email.trim();
+    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return setErrorMsg('Please enter a valid email address (e.g., info@office.gov.et).');
     }
     setErrorMsg(null);
+
+    const resolvedParentId =
+      isRootType || !parentId || Number(parentId) <= 0 ? null : Number(parentId);
 
     const payload = {
       ...(office?.id ? { id: office.id } : {}),
       name: name.trim(),
-      code: code.toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-'),
+      code: cleanCode,
       organization_type_id: Number(typeId),
-      parent_organization_id: isSubCity ? null : Number(parentId),
+      parent_organization_id: resolvedParentId,
       description: description.trim() || null,
       address: address.trim() || null,
       phone: phone.trim() || null,
-      email: email.trim() || null,
+      email: cleanEmail || null,
       status,
     };
 
-    onSave?.(payload);
-    onClose();
+    try {
+      if (onSave) {
+        await onSave(payload);
+      }
+      onClose();
+    } catch (err: any) {
+      const msg = formatApiError(err);
+      setErrorMsg(msg);
+    }
   };
 
   if (!isOpen) return null;
@@ -231,17 +288,35 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
             {/* Parent */}
             <div className="modal-field full">
               <SearchSelect
-                label="Parent Organization"
-                required={!isSubCity}
-                value={isSubCity ? 0 : parentId}
+                label={
+                  isRootType
+                    ? 'Parent Organization'
+                    : Number(typeId) === 2
+                      ? 'Parent Sub-City'
+                      : 'Parent Organization'
+                }
+                required={!isRootType}
+                value={isRootType ? 0 : parentId}
                 onChange={(val) => {
-                  setParentId(val ? Number(val) : null);
+                  setParentId(val && Number(val) > 0 ? Number(val) : null);
                   setErrorMsg(null);
                 }}
                 options={parentOptions}
-                disabled={isSubCity}
-                placeholder={isSubCity ? 'None (Sub-City is Root Tier)' : 'Select parent organization...'}
-                helperText={isSubCity ? 'Sub-Cities are root-level tiers with no parent organization.' : undefined}
+                disabled={isRootType}
+                placeholder={
+                  isRootType
+                    ? 'None (Sub-City is Root Tier)'
+                    : Number(typeId) === 2
+                      ? 'Select governing Sub-City...'
+                      : 'Select parent office...'
+                }
+                helperText={
+                  isRootType
+                    ? `${selectedType?.name || 'Sub-Cities'} are root-level platform anchors and do not have a parent.`
+                    : Number(typeId) === 2
+                      ? 'Every Woreda must be assigned to its governing Sub-City (e.g., Bole, Yeka, Kirkos).'
+                      : 'Bureaus must report to an administrative Sub-City or Woreda.'
+                }
               />
             </div>
 
@@ -302,11 +377,11 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
           <div className="modal-footer">
             <span />
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button type="button" className="button secondary" onClick={onClose}>
+              <button type="button" className="button secondary" onClick={onClose} disabled={isLoading}>
                 Cancel
               </button>
-              <button type="submit" className="button primary">
-                {office ? 'Save changes' : 'Create office'} <Icon name="arrow" size={15} />
+              <button type="submit" className="button primary" disabled={isLoading}>
+                {isLoading ? 'Saving...' : (office ? 'Save changes' : 'Create office')} <Icon name="arrow" size={15} />
               </button>
             </div>
           </div>

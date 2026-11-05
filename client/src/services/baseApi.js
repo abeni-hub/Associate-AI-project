@@ -4,7 +4,9 @@ const getBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
   if (typeof envUrl === 'string' && envUrl.trim().length > 0) {
     let url = envUrl.trim().replace(/\/+$/, '');
-    if (!url.endsWith('/api/v1')) {
+    if (url.endsWith('/api')) {
+      url = `${url}/v1`;
+    } else if (!url.endsWith('/api/v1')) {
       url = `${url}/api/v1`;
     }
     return url;

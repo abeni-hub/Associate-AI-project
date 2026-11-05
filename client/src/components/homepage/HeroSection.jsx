@@ -23,8 +23,12 @@ export default function HeroSection({ activeHeroSlide, activeIndex, onSlideChang
         <h1>{t(titleLead)}{titleEmphasis && <><br /><em>{t(titleEmphasis)}</em></>}</h1>
         <p className="hero-lede">{t(subtitle?.trim() || 'The right information makes every visit easier. Find your service, prepare your documents, and know exactly where to go before you leave home.')}</p>
         <div className="hero-actions">
-          <a className="button button-primary" href="#find-service">{t('Find a service')} <Icon name="arrow" size={18} /></a>
-          <button className="button button-secondary" type="button" onClick={onGoToFeedback}><span className="feedback-play">↗</span> {t('I’ve already visited')}</button>
+          <a className="button button-primary" href={heroContent?.primaryCtaUrl || "#find-service"}>
+            {t(heroContent?.primaryCtaText || 'Find a service')} <Icon name="arrow" size={18} />
+          </a>
+          <button className="button button-secondary" type="button" onClick={onGoToFeedback}>
+            <span className="feedback-play">↗</span> {t(heroContent?.secondaryCtaText || 'I’ve already visited')}
+          </button>
         </div>
       </div>
       <HeroBureauCarousel

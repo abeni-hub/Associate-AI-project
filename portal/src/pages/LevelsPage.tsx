@@ -72,17 +72,13 @@ export const LevelsPage: React.FC = () => {
     can_be_root: boolean;
     is_active: boolean;
   }) => {
-    try {
-      if (payload.id) {
-        await updateType(payload as any).unwrap();
-      } else {
-        await createType(payload).unwrap();
-      }
-      setIsModalOpen(false);
-      setSelectedLevel(null);
-    } catch (err: any) {
-      window.alert(err?.data?.message || 'Failed to save organization level.');
+    if (payload.id) {
+      await updateType(payload as any).unwrap();
+    } else {
+      await createType(payload).unwrap();
     }
+    setIsModalOpen(false);
+    setSelectedLevel(null);
   };
 
   const handleDelete = async (lvl: OrganizationTypeItem) => {
@@ -266,8 +262,15 @@ export const LevelsPage: React.FC = () => {
               })}
               {!filteredLevels.length && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '2rem 1rem', color: '#64748b' }}>
-                    {isLoading ? 'Loading hierarchy levels...' : 'No organization levels found matching criteria.'}
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#64748b' }}>
+                    {isLoading ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                        <div className="loading-spinner" />
+                        <span style={{ fontWeight: 600, color: '#00485a', fontSize: '13.5px' }}>Loading hierarchy levels...</span>
+                      </div>
+                    ) : (
+                      'No organization levels found matching criteria.'
+                    )}
                   </td>
                 </tr>
               )}
