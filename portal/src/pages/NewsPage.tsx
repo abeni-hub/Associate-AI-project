@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePortal } from '../context';
+import { usePermissions } from '../hooks/usePermissions';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
@@ -274,14 +275,20 @@ export const NewsPage: React.FC<NewsPageProps> = ({
     return matchesType && matchesPublication && searchable.includes(search.toLowerCase());
   });
 
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission(['news.create', 'events.create']);
+  const canUpdate = hasPermission(['news.update', 'events.update']);
+  const canPublish = hasPermission(['news.publish', 'events.publish']);
+  const canDelete = hasPermission(['news.delete', 'events.delete']);
+
   return (
     <>
       <PageHeading
         eyebrow="PUBLIC INFORMATION"
         title="News & events"
         subtitle="Manage the bilingual updates and public events shown to residents in the client app."
-        action="Create an update"
-        onAction={handleOpenAdd}
+        action={canCreate ? 'Create an update' : undefined}
+        onAction={canCreate ? handleOpenAdd : undefined}
       />
 
       <section className="feed-overview" aria-label="Public client feed status">
@@ -393,29 +400,35 @@ export const NewsPage: React.FC<NewsPageProps> = ({
                 </Link>
                 <div className="news-card-admin-actions">
                   <StatusPill>{status}</StatusPill>
-                  <button
-                    type="button"
-                    className="button secondary small-button"
-                    onClick={() => handleOpenEdit(item)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="button secondary small-button"
-                    onClick={() => onTogglePublish(item.id)}
-                  >
-                    {status === 'Published' ? 'Unpublish' : 'Publish'}
-                  </button>
-                  <button
-                    type="button"
-                    className="button secondary small-button"
-                    style={{ color: '#c0392b' }}
-                    onClick={() => handleDelete(item)}
-                    title="Delete update"
-                  >
-                    Delete
-                  </button>
+                  {canUpdate && (
+                    <button
+                      type="button"
+                      className="button secondary small-button"
+                      onClick={() => handleOpenEdit(item)}
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {canPublish && (
+                    <button
+                      type="button"
+                      className="button secondary small-button"
+                      onClick={() => onTogglePublish(item.id)}
+                    >
+                      {status === 'Published' ? 'Unpublish' : 'Publish'}
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      type="button"
+                      className="button secondary small-button"
+                      style={{ color: '#c0392b' }}
+                      onClick={() => handleDelete(item)}
+                      title="Delete update"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </article>
             );

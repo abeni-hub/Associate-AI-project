@@ -23,9 +23,9 @@ export const NAV = {
 }
 
 export const INITIAL_OFFICE_TYPES = [
-  { id: 1, name: 'Sub-city', description: 'Municipal sub-city administrative center', level: 1 },
-  { id: 2, name: 'Bureau', description: 'Specialized public service bureau or sector office', level: 2 },
-  { id: 3, name: 'Woreda Office', description: 'Local community administrative branch', level: 3 },
+  { id: 1, name: 'Sub-City', description: 'Municipal sub-city administrative center', level: 1 },
+  { id: 2, name: 'Woreda', description: 'Local community administrative branch', level: 2 },
+  { id: 3, name: 'Bureau', description: 'Specialized public service bureau or sector office', level: 3 },
   { id: 4, name: 'Service Center', description: 'Walk-in civic service desk or satellite branch', level: 4 },
 ]
 

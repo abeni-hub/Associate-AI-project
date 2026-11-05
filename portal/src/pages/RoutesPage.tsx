@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { usePortal } from '../context';
+import { usePermissions } from '../hooks/usePermissions';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
@@ -25,6 +26,8 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
   setSearch: propSetSearch,
 }) => {
   const portal = usePortal();
+  const { hasPermission } = usePermissions();
+  const canManageSteps = hasPermission('service_steps.manage');
 
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;
@@ -170,10 +173,12 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
                 </div>
               ))}
             </div>
-            <button className="route-edit-button" onClick={() => onEdit(item)}>
-              {item.status === 'Draft' ? 'Finish this route' : 'Edit room sequence'}{' '}
-              <Icon name="arrow" size={15} />
-            </button>
+            {canManageSteps && (
+              <button className="route-edit-button" onClick={() => onEdit(item)}>
+                {item.status === 'Draft' ? 'Finish this route' : 'Edit room sequence'}{' '}
+                <Icon name="arrow" size={15} />
+              </button>
+            )}
           </article>
         ))}
         {!filtered.length && (

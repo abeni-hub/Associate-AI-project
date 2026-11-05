@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { usePortal } from '../context';
+import { usePermissions } from '../hooks/usePermissions';
 import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
 import { MetricCard } from '../components/shared/MetricCard';
@@ -121,14 +122,20 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
   const activeCount = items.filter((i) => i.status === 'Active').length;
   const inactiveCount = items.filter((i) => i.status !== 'Active').length;
 
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('users.create');
+  const canUpdate = hasPermission('users.update');
+  const canManageRoles = hasPermission('roles.manage');
+  const canDelete = hasPermission('users.delete');
+
   return (
     <>
       <PageHeading
         eyebrow="ACCESS & PERMISSIONS"
         title="Accounts"
         subtitle="Manage administrator access and credentials across every connected organization."
-        action="Create account"
-        onAction={handleOpenAdd}
+        action={canCreate ? 'Create account' : undefined}
+        onAction={canCreate ? handleOpenAdd : undefined}
         secondary="Export list"
         onSecondary={() => window.alert('Account list export is ready.')}
       />
@@ -229,30 +236,36 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
                   </td>
                   <td>{item.lastActive}</td>
                   <td className="table-action-cell" style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      className="button secondary small-button"
-                      onClick={() => handleOpenEdit(item)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="button secondary small-button"
-                      onClick={() => {
-                        setSelectedAccountForRole(item);
-                        setIsRoleModalOpen(true);
-                      }}
-                      title="Manage roles and custom permissions"
-                    >
-                      Role
-                    </button>
-                    <button
-                      className="button secondary small-button"
-                      style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
-                      onClick={() => handleDeleteUser(item)}
-                      title="Delete account"
-                    >
-                      Delete
-                    </button>
+                    {canUpdate && (
+                      <button
+                        className="button secondary small-button"
+                        onClick={() => handleOpenEdit(item)}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {canManageRoles && (
+                      <button
+                        className="button secondary small-button"
+                        onClick={() => {
+                          setSelectedAccountForRole(item);
+                          setIsRoleModalOpen(true);
+                        }}
+                        title="Manage roles and custom permissions"
+                      >
+                        Role
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        className="button secondary small-button"
+                        style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
+                        onClick={() => handleDeleteUser(item)}
+                        title="Delete account"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

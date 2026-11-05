@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import RoleModal from '../components/roles/RoleModal';
+import { usePermissions } from '../hooks/usePermissions';
 import type { RoleItem } from '../types/portal.types';
 import {
   useGetRolesQuery,
@@ -12,336 +13,94 @@ import {
 } from '../services/rolesApi';
 import { INITIAL_ROLES } from '../data/portalData';
 
-export interface ModuleDefinition {
-  id: string;
-  name: string;
-  desc: string;
-  actions: string[];
-}
-
-export interface ActionColumn {
-  id: string;
-  label: string;
-  width: string;
-}
-
-const MODULE_DEFINITIONS: ModuleDefinition[] = [
-  {
-    id: 'offices',
-    name: 'Offices & administrative tree',
-    desc: 'Manage sub-cities, bureaus, branches and organizational hierarchy',
-    actions: ['view', 'create', 'edit', 'delete'],
-  },
-  {
-    id: 'accounts',
-    name: 'User accounts & authentication',
-    desc: 'Create administrators, manage temporary credentials and passwords',
-    actions: ['view', 'create', 'edit', 'delete'],
-  },
-  {
-    id: 'services',
-    name: 'Service standards & guides',
-    desc: 'Define citizen prerequisites, required documents and expectations',
-    actions: ['view', 'create', 'edit', 'delete', 'publish'],
-  },
-  {
-    id: 'routes',
-    name: 'Room routes & office navigation',
-    desc: 'Configure room sequence directions for citizens during office visits',
-    actions: ['view', 'edit'],
-  },
-  {
-    id: 'feedback',
-    name: 'Citizen feedback & voice',
-    desc: 'Review complaints, suggestions, satisfaction ratings and update statuses',
-    actions: ['view', 'status_update'],
-  },
-  {
-    id: 'news',
-    name: 'News, events & public notices',
-    desc: 'Draft community announcements and publish to citizen portal',
-    actions: ['view', 'create', 'edit', 'delete', 'publish'],
-  },
-  {
-    id: 'cms',
-    name: 'Landing page CMS studio',
-    desc: 'Edit homepage announcement banners, hero slides, and journey steps',
-    actions: ['view', 'edit', 'publish'],
-  },
-  {
-    id: 'roles',
-    name: 'Roles & security permissions',
-    desc: 'Configure access control policies and create custom administrative roles',
-    actions: ['view', 'create', 'edit'],
-  },
-];
-
-const ACTION_COLUMNS: ActionColumn[] = [
-  { id: 'view', label: 'View', width: '8%' },
-  { id: 'create', label: 'Create', width: '8%' },
-  { id: 'edit', label: 'Edit', width: '8%' },
-  { id: 'delete', label: 'Delete', width: '8%' },
-  { id: 'publish', label: 'Publish', width: '12%' },
-  { id: 'status_update', label: 'Update status', width: '20%' },
-];
-
 /**
  * Standardized system permissions catalog matching backend PermissionSeeder & GET /api/v1/permissions.
  */
 export const SYSTEM_PERMISSIONS_CATALOG: PermissionItem[] = [
   // Organizations
-  { id: 1, key: 'organizations.view', name: 'View Organizations', group: 'organizations', description: 'View organization profiles and hierarchy.' },
-  { id: 2, key: 'organizations.create', name: 'Create Organizations', group: 'organizations', description: 'Create new government organizations.' },
-  { id: 3, key: 'organizations.update', name: 'Update Organizations', group: 'organizations', description: 'Edit organization details.' },
-  { id: 4, key: 'organizations.delete', name: 'Delete Organizations', group: 'organizations', description: 'Deactivate or soft-delete organizations.' },
+  { id: 1, key: 'organizations.view', name: 'View Organizations', group: 'organizations', description: 'View organization profiles and administrative hierarchy.' },
+  { id: 2, key: 'organizations.create', name: 'Create Organizations', group: 'organizations', description: 'Create new government organizations, sub-cities, and bureaus.' },
+  { id: 3, key: 'organizations.update', name: 'Update Organizations', group: 'organizations', description: 'Edit organization details, contact info, and leadership.' },
+  { id: 4, key: 'organizations.delete', name: 'Delete Organizations', group: 'organizations', description: 'Deactivate or soft-delete organizational units.' },
 
   // Users
-  { id: 5, key: 'users.view', name: 'View Users', group: 'users', description: 'View user lists and profiles.' },
-  { id: 6, key: 'users.create', name: 'Create Users', group: 'users', description: 'Create staff or administrative users.' },
-  { id: 7, key: 'users.update', name: 'Update Users', group: 'users', description: 'Modify user details and account status.' },
-  { id: 8, key: 'users.delete', name: 'Delete Users', group: 'users', description: 'Deactivate or remove user accounts.' },
-  { id: 9, key: 'users.reset_password', name: 'Reset User Password', group: 'users', description: 'Initiate administrative password resets.' },
+  { id: 5, key: 'users.view', name: 'View Users', group: 'users', description: 'View user lists, administrative profiles, and assigned scopes.' },
+  { id: 6, key: 'users.create', name: 'Create Users', group: 'users', description: 'Provision staff or administrative accounts with temporary credentials.' },
+  { id: 7, key: 'users.update', name: 'Update Users', group: 'users', description: 'Modify user profiles, email addresses, and account status.' },
+  { id: 8, key: 'users.delete', name: 'Delete Users', group: 'users', description: 'Deactivate or remove administrative user accounts.' },
+  { id: 9, key: 'users.reset_password', name: 'Reset User Password', group: 'users', description: 'Initiate administrative password resets and temporary OTPs.' },
 
   // Roles & Permissions
-  { id: 10, key: 'roles.view', name: 'View Roles', group: 'roles', description: 'View roles and permission matrices.' },
-  { id: 11, key: 'roles.manage', name: 'Manage Roles', group: 'roles', description: 'Create and modify roles and assigned permissions.' },
+  { id: 10, key: 'roles.view', name: 'View Roles', group: 'roles', description: 'View role definitions, governance scopes, and permission catalogs.' },
+  { id: 11, key: 'roles.manage', name: 'Manage Roles', group: 'roles', description: 'Create custom administrative roles and synchronize policy permissions.' },
 
   // Services & Subservices
-  { id: 12, key: 'services.view', name: 'View Services', group: 'services', description: 'View government services and subservices.' },
-  { id: 13, key: 'services.create', name: 'Create Services', group: 'services', description: 'Add new services or subservices to catalog.' },
-  { id: 14, key: 'services.update', name: 'Update Services', group: 'services', description: 'Update service catalog information.' },
-  { id: 15, key: 'services.delete', name: 'Delete Services', group: 'services', description: 'Deactivate or archive services.' },
-  { id: 16, key: 'services.manage', name: 'Manage Service Access', group: 'services', description: 'Configure organizational service access levels.' },
+  { id: 12, key: 'services.view', name: 'View Services', group: 'services', description: 'Browse government public services, subservices, and guides.' },
+  { id: 13, key: 'services.create', name: 'Create Services', group: 'services', description: 'Add new public services or subservices to the service catalog.' },
+  { id: 14, key: 'services.update', name: 'Update Services', group: 'services', description: 'Update service prerequisites, fees, turnaround times, and details.' },
+  { id: 15, key: 'services.delete', name: 'Delete Services', group: 'services', description: 'Deactivate or archive public services from citizen view.' },
+  { id: 16, key: 'services.manage', name: 'Manage Service Access', group: 'services', description: 'Configure organizational service assignments and access tiers.' },
 
   // Required Documents
-  { id: 17, key: 'documents.view', name: 'View Required Documents', group: 'documents', description: 'View required document templates and criteria.' },
-  { id: 18, key: 'documents.manage', name: 'Manage Required Documents', group: 'documents', description: 'Create, edit, and link documents to services.' },
+  { id: 17, key: 'documents.view', name: 'View Required Documents', group: 'documents', description: 'Inspect citizen required document templates and criteria.' },
+  { id: 18, key: 'documents.manage', name: 'Manage Required Documents', group: 'documents', description: 'Create, edit, and link required document checklists to services.' },
 
   // Service Steps (Room-by-Room Instructions)
-  { id: 19, key: 'service_steps.view', name: 'View Service Steps', group: 'service_steps', description: 'View physical room-by-room navigation steps.' },
-  { id: 20, key: 'service_steps.manage', name: 'Manage Service Steps', group: 'service_steps', description: 'Create and reorder room instructions.' },
+  { id: 19, key: 'service_steps.view', name: 'View Service Steps', group: 'service_steps', description: 'View physical room-by-room navigation steps for office visitors.' },
+  { id: 20, key: 'service_steps.manage', name: 'Manage Service Steps', group: 'service_steps', description: 'Configure and reorder physical room numbers and visitor instructions.' },
 
   // News Management
-  { id: 21, key: 'news.view', name: 'View News', group: 'news', description: 'View internal and public news articles.' },
-  { id: 22, key: 'news.create', name: 'Create News', group: 'news', description: 'Draft news announcements.' },
-  { id: 23, key: 'news.update', name: 'Update News', group: 'news', description: 'Edit news drafts and published items.' },
-  { id: 24, key: 'news.publish', name: 'Publish News', group: 'news', description: 'Publish or archive news announcements.' },
-  { id: 25, key: 'news.delete', name: 'Delete News', group: 'news', description: 'Delete news items.' },
+  { id: 21, key: 'news.view', name: 'View News', group: 'news', description: 'View official municipal notices, draft announcements, and articles.' },
+  { id: 22, key: 'news.create', name: 'Create News', group: 'news', description: 'Draft civic notices, news articles, and citizen announcements.' },
+  { id: 23, key: 'news.update', name: 'Update News', group: 'news', description: 'Edit news content, illustrations, headlines, and summaries.' },
+  { id: 24, key: 'news.publish', name: 'Publish News', group: 'news', description: 'Publish announcements directly to the citizen app feed or archive them.' },
+  { id: 25, key: 'news.delete', name: 'Delete News', group: 'news', description: 'Remove public notices and announcements from the system.' },
 
   // Events Management
-  { id: 26, key: 'events.view', name: 'View Events', group: 'events', description: 'View scheduled government events.' },
-  { id: 27, key: 'events.create', name: 'Create Events', group: 'events', description: 'Create calendar event entries.' },
-  { id: 28, key: 'events.update', name: 'Update Events', group: 'events', description: 'Update event times and details.' },
-  { id: 29, key: 'events.publish', name: 'Publish Events', group: 'events', description: 'Publish or cancel events.' },
-  { id: 30, key: 'events.delete', name: 'Delete Events', group: 'events', description: 'Delete event records.' },
+  { id: 26, key: 'events.view', name: 'View Events', group: 'events', description: 'View scheduled town halls, public consultations, and civic events.' },
+  { id: 27, key: 'events.create', name: 'Create Events', group: 'events', description: 'Schedule new public gatherings, venues, and calendar items.' },
+  { id: 28, key: 'events.update', name: 'Update Events', group: 'events', description: 'Modify event dates, venue locations, times, and agendas.' },
+  { id: 29, key: 'events.publish', name: 'Publish Events', group: 'events', description: 'Publish events to citizen calendars or cancel them.' },
+  { id: 30, key: 'events.delete', name: 'Delete Events', group: 'events', description: 'Delete public event entries and historical records.' },
 
   // Citizen Feedback
-  { id: 31, key: 'feedback.view_own', name: 'View Own Feedback', group: 'feedback', description: 'View feedback submitted to own organization.' },
-  { id: 32, key: 'feedback.view_descendants', name: 'View Descendant Feedback', group: 'feedback', description: 'Read-only visibility into feedback submitted to descendant organizations.' },
-  { id: 33, key: 'feedback.update_status', name: 'Update Feedback Status', group: 'feedback', description: 'Change status of feedback (e.g., under_review, resolved, closed).' },
+  { id: 31, key: 'feedback.view_own', name: 'View Own Feedback', group: 'feedback', description: 'Inspect feedback, complaints, and ratings submitted to own organization.' },
+  { id: 32, key: 'feedback.view_descendants', name: 'View Descendant Feedback', group: 'feedback', description: 'Supervisory visibility into feedback submitted to child sub-cities or woredas.' },
+  { id: 33, key: 'feedback.update_status', name: 'Update Feedback Status', group: 'feedback', description: 'Update complaint resolution status (under_review, resolved, closed).' },
 
   // QR Codes
-  { id: 34, key: 'qr_codes.view', name: 'View QR Codes', group: 'qr_codes', description: 'View generated QR code tokens and routing.' },
-  { id: 35, key: 'qr_codes.manage', name: 'Manage QR Codes', group: 'qr_codes', description: 'Generate, activate, and deactivate QR codes.' },
+  { id: 34, key: 'qr_codes.view', name: 'View QR Codes', group: 'qr_codes', description: 'View office QR tokens, assigned service desks, and feedback routing.' },
+  { id: 35, key: 'qr_codes.manage', name: 'Manage QR Codes', group: 'qr_codes', description: 'Generate, download, activate, and deactivate physical office QR codes.' },
 
   // Dashboards & Audit Logs
-  { id: 36, key: 'dashboard.view', name: 'View Dashboard', group: 'dashboard', description: 'Access role-aware and organization-scoped metrics.' },
-  { id: 37, key: 'audit_logs.view', name: 'View Audit Logs', group: 'audit_logs', description: 'Inspect administrative audit trails.' },
+  { id: 36, key: 'dashboard.view', name: 'View Dashboard', group: 'dashboard', description: 'Access role-aware and organization-scoped metrics and activity charts.' },
+  { id: 37, key: 'audit_logs.view', name: 'View Audit Logs', group: 'audit_logs', description: 'Inspect immutable system security trails, logins, and permission changes.' },
+
+  // CMS Landing Page Management
+  { id: 38, key: 'cms.manage', name: 'Manage Landing Page CMS', group: 'cms', description: 'Manage citizen landing page CMS, hero banner, announcement, and public experience.' },
 ];
 
 /**
- * Domain groupings friendly labels.
+ * Domain groupings with metadata & icon mappings.
  */
-export const DOMAIN_GROUPS: { id: string; label: string; desc: string }[] = [
-  { id: 'organizations', label: 'Organizations & Offices', desc: 'Jurisdictional structures, sub-cities, and bureaus.' },
-  { id: 'users', label: 'User Accounts & Access', desc: 'Administrative staff provisioning and authentication.' },
-  { id: 'roles', label: 'Roles & Governance', desc: 'Access control matrices and policy governance.' },
-  { id: 'services', label: 'Public Services Catalog', desc: 'Government service criteria and citizen requirements.' },
-  { id: 'documents', label: 'Required Documents', desc: 'Citizen document prerequisites and checklists.' },
-  { id: 'service_steps', label: 'Room Navigation Routes', desc: 'Physical room sequence directions for office visitors.' },
-  { id: 'news', label: 'News & Announcements', desc: 'Citizen news items and public notices.' },
-  { id: 'events', label: 'Calendar Events', desc: 'Government community events and schedules.' },
-  { id: 'feedback', label: 'Citizen Voice & Feedback', desc: 'Complaints, compliments, and citizen resolution.' },
-  { id: 'qr_codes', label: 'Office QR Codes', desc: 'Physical desk QR tokens for direct feedback routing.' },
-  { id: 'dashboard', label: 'Dashboard & Metrics', desc: 'Role-aware operational insights and analytics.' },
-  { id: 'audit_logs', label: 'Security Audit Logs', desc: 'Immutable administrative system activity logs.' },
+export const DOMAIN_GROUPS: { id: string; label: string; desc: string; icon: string }[] = [
+  { id: 'organizations', label: 'Organizations & Offices', desc: 'Jurisdictional structures, sub-cities, and bureaus.', icon: 'building' },
+  { id: 'users', label: 'User Accounts & Access', desc: 'Administrative staff provisioning and authentication.', icon: 'users' },
+  { id: 'roles', label: 'Roles & Governance', desc: 'Access control policies and administrative role definitions.', icon: 'shield' },
+  { id: 'services', label: 'Public Services Catalog', desc: 'Government service criteria, subservices, and citizen guides.', icon: 'layers' },
+  { id: 'documents', label: 'Required Documents', desc: 'Citizen document prerequisites and checklists.', icon: 'layers' },
+  { id: 'service_steps', label: 'Room Navigation Routes', desc: 'Physical room sequence directions for office visitors.', icon: 'route' },
+  { id: 'news', label: 'News & Announcements', desc: 'Citizen news items and public notices.', icon: 'news' },
+  { id: 'events', label: 'Calendar Events', desc: 'Government community events and schedules.', icon: 'calendar' },
+  { id: 'feedback', label: 'Citizen Voice & Feedback', desc: 'Complaints, compliments, and citizen resolution.', icon: 'message' },
+  { id: 'qr_codes', label: 'Office QR Codes', desc: 'Physical desk QR tokens for direct feedback routing.', icon: 'qr' },
+  { id: 'dashboard', label: 'Dashboard & Metrics', desc: 'Role-aware operational insights and analytics.', icon: 'activity' },
+  { id: 'audit_logs', label: 'Security Audit Logs', desc: 'Immutable administrative system activity logs.', icon: 'lock' },
+  { id: 'cms', label: 'Citizen Landing Page CMS', desc: 'Manage citizen portal landing page, announcement banner, and footer.', icon: 'palette' },
 ];
-
-/**
- * Maps an array of PermissionItems into the UI matrix format.
- */
-function mapPermissionsListToUiMatrix(permissions: PermissionItem[]): Record<string, string[]> {
-  const perms: Record<string, string[]> = {
-    offices: [],
-    accounts: [],
-    services: [],
-    routes: [],
-    feedback: [],
-    news: [],
-    cms: [],
-    roles: [],
-  };
-
-  const grant = (mod: string, act: string) => {
-    if (perms[mod] && !perms[mod].includes(act)) {
-      perms[mod].push(act);
-    }
-  };
-
-  permissions.forEach((p) => {
-    const key = p.key;
-
-    // Organizations -> offices
-    if (key === 'organizations.view') grant('offices', 'view');
-    if (key === 'organizations.create') grant('offices', 'create');
-    if (key === 'organizations.update') grant('offices', 'edit');
-    if (key === 'organizations.delete') grant('offices', 'delete');
-
-    // Users -> accounts
-    if (key === 'users.view') grant('accounts', 'view');
-    if (key === 'users.create') grant('accounts', 'create');
-    if (key === 'users.update' || key === 'users.reset_password') grant('accounts', 'edit');
-    if (key === 'users.delete') grant('accounts', 'delete');
-
-    // Services & Documents -> services
-    if (key === 'services.view' || key === 'documents.view') grant('services', 'view');
-    if (key === 'services.create') grant('services', 'create');
-    if (key === 'services.update' || key === 'documents.manage') grant('services', 'edit');
-    if (key === 'services.delete') grant('services', 'delete');
-    if (key === 'services.manage') grant('services', 'publish');
-
-    // Physical navigation -> routes
-    if (key === 'service_steps.view') grant('routes', 'view');
-    if (key === 'service_steps.manage') grant('routes', 'edit');
-
-    // Feedback & QR codes -> feedback
-    if (key === 'feedback.view_own' || key === 'feedback.view_descendants' || key === 'qr_codes.view') {
-      grant('feedback', 'view');
-    }
-    if (key === 'feedback.update_status' || key === 'qr_codes.manage') {
-      grant('feedback', 'status_update');
-    }
-
-    // News & Events -> news
-    if (key === 'news.view' || key === 'events.view') grant('news', 'view');
-    if (key === 'news.create' || key === 'events.create') grant('news', 'create');
-    if (key === 'news.update' || key === 'events.update') grant('news', 'edit');
-    if (key === 'news.publish' || key === 'events.publish') grant('news', 'publish');
-    if (key === 'news.delete' || key === 'events.delete') grant('news', 'delete');
-
-    // Security & Roles -> roles
-    if (key === 'roles.view' || key === 'audit_logs.view') grant('roles', 'view');
-    if (key === 'roles.manage') {
-      grant('roles', 'create');
-      grant('roles', 'edit');
-    }
-  });
-
-  return perms;
-}
-
-/**
- * Maps the UI module-action map into permission IDs based on the catalog.
- */
-function mapUiMatrixToPermissionIds(uiPerms: Record<string, string[]>, catalog: PermissionItem[]): number[] {
-  const keys = new Set<string>();
-  let hasAnyView = false;
-
-  Object.entries(uiPerms).forEach(([mod, acts]) => {
-    if (acts.includes('view')) hasAnyView = true;
-
-    if (mod === 'offices') {
-      if (acts.includes('view')) keys.add('organizations.view');
-      if (acts.includes('create')) keys.add('organizations.create');
-      if (acts.includes('edit')) keys.add('organizations.update');
-      if (acts.includes('delete')) keys.add('organizations.delete');
-    }
-
-    if (mod === 'accounts') {
-      if (acts.includes('view')) keys.add('users.view');
-      if (acts.includes('create')) keys.add('users.create');
-      if (acts.includes('edit')) {
-        keys.add('users.update');
-        keys.add('users.reset_password');
-      }
-      if (acts.includes('delete')) keys.add('users.delete');
-    }
-
-    if (mod === 'services') {
-      if (acts.includes('view')) {
-        keys.add('services.view');
-        keys.add('documents.view');
-      }
-      if (acts.includes('create')) keys.add('services.create');
-      if (acts.includes('edit')) {
-        keys.add('services.update');
-        keys.add('documents.manage');
-      }
-      if (acts.includes('delete')) keys.add('services.delete');
-      if (acts.includes('publish')) keys.add('services.manage');
-    }
-
-    if (mod === 'routes') {
-      if (acts.includes('view')) keys.add('service_steps.view');
-      if (acts.includes('edit')) keys.add('service_steps.manage');
-    }
-
-    if (mod === 'feedback') {
-      if (acts.includes('view')) {
-        keys.add('feedback.view_own');
-        keys.add('feedback.view_descendants');
-        keys.add('qr_codes.view');
-      }
-      if (acts.includes('status_update')) {
-        keys.add('feedback.update_status');
-        keys.add('qr_codes.manage');
-      }
-    }
-
-    if (mod === 'news') {
-      if (acts.includes('view')) {
-        keys.add('news.view');
-        keys.add('events.view');
-      }
-      if (acts.includes('create')) {
-        keys.add('news.create');
-        keys.add('events.create');
-      }
-      if (acts.includes('edit')) {
-        keys.add('news.update');
-        keys.add('events.update');
-      }
-      if (acts.includes('publish')) {
-        keys.add('news.publish');
-        keys.add('events.publish');
-      }
-      if (acts.includes('delete')) {
-        keys.add('news.delete');
-        keys.add('events.delete');
-      }
-    }
-
-    if (mod === 'roles') {
-      if (acts.includes('view')) {
-        keys.add('roles.view');
-        keys.add('audit_logs.view');
-      }
-      if (acts.includes('create') || acts.includes('edit')) {
-        keys.add('roles.manage');
-      }
-    }
-  });
-
-  if (hasAnyView) {
-    keys.add('dashboard.view');
-  }
-
-  return catalog.filter((p) => keys.has(p.key)).map((p) => p.id);
-}
 
 export interface RolesPermissionsPageProps {
   roles?: RoleItem[];
-  onUpdateRolePermissions?: (roleId: string, moduleId: string, actions: string[]) => void;
   onCreateRole?: (role: RoleItem) => void;
   onUpdateRole?: (role: RoleItem) => void;
   onDeleteRole?: (roleId: string) => void;
@@ -349,7 +108,6 @@ export interface RolesPermissionsPageProps {
 
 export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   roles: propRoles,
-  onUpdateRolePermissions,
   onCreateRole,
   onUpdateRole,
   onDeleteRole,
@@ -361,17 +119,25 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   const { data: apiPermissions } = useGetPermissionsQuery();
 
   // 3. PUT /api/v1/roles/{id}/permissions (sync permission IDs)
-  const [updateRolePermissionsTrigger] = useUpdateRolePermissionsMutation();
+  const [updateRolePermissionsTrigger, { isLoading: isSavingPermissions }] =
+    useUpdateRolePermissionsMutation();
 
-  const [viewMode, setViewMode] = useState<'matrix' | 'domain'>('matrix');
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
+
+  // Search and Filter States for Domain Catalog
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDomainFilter, setSelectedDomainFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'granted' | 'revoked'>('all');
 
   const [internalRoles, setInternalRoles] = useState<RoleItem[]>(
     () => propRoles || (INITIAL_ROLES as RoleItem[])
   );
 
-  // Active permissions catalog (backend if available, otherwise complete standardized catalog)
+  const { hasPermission } = usePermissions();
+  const canManageRoles = hasPermission('roles.manage');
+
+  // Active permissions catalog (backend if available, otherwise standardized catalog)
   const allPermissions = useMemo<PermissionItem[]>(() => {
     if (apiPermissions?.data && apiPermissions.data.length > 0) {
       return apiPermissions.data;
@@ -385,7 +151,10 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     if (apiRoles?.data && apiRoles.data.length > 0) {
       const mappedApiRoles: RoleItem[] = apiRoles.data.map((r) => {
         const fallback = internalRoles.find(
-          (ir) => ir.slug === r.slug || ir.id === r.slug || ir.name.toLowerCase() === r.name.toLowerCase()
+          (ir) =>
+            ir.slug === r.slug ||
+            ir.id === r.slug ||
+            ir.name.toLowerCase() === r.name.toLowerCase()
         );
         return {
           id: String(r.id),
@@ -406,11 +175,6 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                     ? 'Operational desk'
                     : 'Bureau local',
           userCount: fallback?.userCount || 0,
-          permissions: fallback?.permissions || {
-            offices: ['view'],
-            services: ['view'],
-            feedback: ['view'],
-          },
         };
       });
 
@@ -428,7 +192,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<RoleItem | null>(null);
 
-  // Locate active role by id, slug, or legacy aliases
+  // Locate active role by id or slug
   const activeRole = useMemo<RoleItem | null>(() => {
     if (!roles || roles.length === 0) return null;
     if (selectedRoleId) {
@@ -460,7 +224,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   const effectivePermissionIds = useMemo<number[]>(() => {
     if (!activeRole) return [];
 
-    // Super Admin receives all 37 platform permissions
+    // Super Admin receives all platform permissions
     if (isSuperAdmin) {
       return allPermissions.map((p) => p.id);
     }
@@ -475,39 +239,8 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
       return activeRole.permissionIds;
     }
 
-    // 3. Fallback: derived from role's module permissions
-    if (activeRole.permissions) {
-      return mapUiMatrixToPermissionIds(activeRole.permissions, allPermissions);
-    }
-
     return [];
   }, [activeRole, activeRoleDetail, allPermissions, isSuperAdmin]);
-
-  // Effective UI permissions matrix
-  const rolePermissions = useMemo<Record<string, string[]>>(() => {
-    if (!activeRole) return {};
-
-    if (isSuperAdmin) {
-      const all: Record<string, string[]> = {};
-      MODULE_DEFINITIONS.forEach((m) => {
-        all[m.id] = [...m.actions];
-      });
-      return all;
-    }
-
-    // If active role permissions are loaded from backend
-    if (activeRoleDetail?.data?.permissions && activeRoleDetail.data.permissions.length > 0) {
-      return mapPermissionsListToUiMatrix(activeRoleDetail.data.permissions);
-    }
-
-    // Fallback: map effective IDs or role's permissions
-    if (effectivePermissionIds.length > 0) {
-      const permsList = allPermissions.filter((p) => effectivePermissionIds.includes(p.id));
-      return mapPermissionsListToUiMatrix(permsList);
-    }
-
-    return activeRole.permissions || {};
-  }, [activeRole, activeRoleDetail, allPermissions, effectivePermissionIds, isSuperAdmin]);
 
   // Display count of active permissions
   const activePermissionsCount = isSuperAdmin
@@ -517,10 +250,9 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   /**
    * Dispatches PUT /api/v1/roles/{id}/permissions to synchronize permission IDs.
    */
-  const syncPermissionsToBackend = async (newPermissionIds: number[], updatedMatrix: Record<string, string[]>) => {
+  const syncPermissionsToBackend = async (newPermissionIds: number[]) => {
     if (!activeRole) return;
 
-    // Super Admin protection rule (HTTP 422: Super Admin permissions cannot be modified.)
     if (isSuperAdmin) {
       setErrorStatus('Super Admin permissions cannot be modified.');
       setTimeout(() => setErrorStatus(null), 4000);
@@ -535,7 +267,6 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
               ...item,
               permissionIds: newPermissionIds,
               permissionsCount: newPermissionIds.length,
-              permissions: updatedMatrix,
             }
           : item
       )
@@ -550,7 +281,9 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
         }).unwrap();
 
         if (result.success) {
-          setSaveStatus(`Role permissions updated successfully (${newPermissionIds.length} permissions active).`);
+          setSaveStatus(
+            `Role permissions updated successfully (${newPermissionIds.length} permissions active).`
+          );
         } else {
           setSaveStatus(result.message || 'Permissions updated.');
         }
@@ -566,45 +299,22 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
       }
     }
 
-    setSaveStatus(`Security policy updated locally for ${activeRole.name} (${newPermissionIds.length} permissions active).`);
+    setSaveStatus(
+      `Security policy updated locally for ${activeRole.name} (${newPermissionIds.length} permissions active).`
+    );
     setTimeout(() => setSaveStatus(null), 3000);
   };
 
   /**
-   * Toggles permission in Matrix View.
+   * Toggles individual permission in Domain Catalog.
    */
-  const handleToggleMatrixAction = async (moduleId: string, action: string) => {
-    if (!activeRole || isSuperAdmin) {
-      if (isSuperAdmin) {
-        setErrorStatus('Super Admin permissions cannot be modified.');
-        setTimeout(() => setErrorStatus(null), 3500);
-      }
+  const handleToggleDomainPermission = async (permissionId: number) => {
+    if (!canManageRoles) {
+      setErrorStatus('Permission denied: roles.manage is required to modify policy permissions.');
+      setTimeout(() => setErrorStatus(null), 3500);
       return;
     }
 
-    const currentActions = rolePermissions[moduleId] || [];
-    const hasAction = currentActions.includes(action);
-    const newActions = hasAction
-      ? currentActions.filter((a) => a !== action)
-      : [...currentActions, action];
-
-    const updatedPermissionsMap = {
-      ...rolePermissions,
-      [moduleId]: newActions,
-    };
-
-    if (onUpdateRolePermissions) {
-      onUpdateRolePermissions(String(activeRole.id), moduleId, newActions);
-    }
-
-    const newPermissionIds = mapUiMatrixToPermissionIds(updatedPermissionsMap, allPermissions);
-    await syncPermissionsToBackend(newPermissionIds, updatedPermissionsMap);
-  };
-
-  /**
-   * Toggles individual permission in Domain Catalog View.
-   */
-  const handleToggleDomainPermission = async (permissionId: number) => {
     if (!activeRole || isSuperAdmin) {
       if (isSuperAdmin) {
         setErrorStatus('Super Admin permissions cannot be modified.');
@@ -618,10 +328,37 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
       ? effectivePermissionIds.filter((id) => id !== permissionId)
       : [...effectivePermissionIds, permissionId];
 
-    const permsList = allPermissions.filter((p) => newPermissionIds.includes(p.id));
-    const updatedMatrix = mapPermissionsListToUiMatrix(permsList);
+    await syncPermissionsToBackend(newPermissionIds);
+  };
 
-    await syncPermissionsToBackend(newPermissionIds, updatedMatrix);
+  /**
+   * Bulk toggle all permissions in a specific domain.
+   */
+  const handleToggleDomainAll = async (domainId: string, grant: boolean) => {
+    if (!canManageRoles || !activeRole || isSuperAdmin) return;
+    const domainPermIds = allPermissions.filter((p) => p.group === domainId).map((p) => p.id);
+    let newPermissionIds: number[];
+    if (grant) {
+      newPermissionIds = Array.from(new Set([...effectivePermissionIds, ...domainPermIds]));
+    } else {
+      newPermissionIds = effectivePermissionIds.filter((id) => !domainPermIds.includes(id));
+    }
+    await syncPermissionsToBackend(newPermissionIds);
+  };
+
+  /**
+   * Bulk toggle all permissions matching current filter.
+   */
+  const handleBulkToggleFiltered = async (grant: boolean) => {
+    if (!canManageRoles || !activeRole || isSuperAdmin) return;
+    const filteredIds = filteredPermissions.map((p) => p.id);
+    let newPermissionIds: number[];
+    if (grant) {
+      newPermissionIds = Array.from(new Set([...effectivePermissionIds, ...filteredIds]));
+    } else {
+      newPermissionIds = effectivePermissionIds.filter((id) => !filteredIds.includes(id));
+    }
+    await syncPermissionsToBackend(newPermissionIds);
   };
 
   const handleSaveRole = (saved: any) => {
@@ -638,7 +375,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
       if (onCreateRole) {
         onCreateRole(saved);
       }
-      const initialPermIds = saved.permissionIds || mapUiMatrixToPermissionIds(saved.permissions || {}, allPermissions);
+      const initialPermIds = saved.permissionIds || [];
       const newRole: RoleItem = {
         ...saved,
         permissionIds: initialPermIds,
@@ -646,112 +383,156 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
       };
       setInternalRoles((prev) => [...prev, newRole]);
       setSelectedRoleId(String(saved.id));
-      setSaveStatus(`Custom role "${saved.name}" created with ${initialPermIds.length} permissions.`);
+      setSaveStatus(
+        `Custom role "${saved.name}" created with ${initialPermIds.length} permissions.`
+      );
     }
-    setTimeout(() => setSaveStatus(null), 3500);
+    setTimeout(() => setSaveStatus(null), 3000);
   };
 
   const handleDeleteRole = (roleToDelete: RoleItem) => {
-    if (roleToDelete.isSystem) return;
-    if (window.confirm(`Are you sure you want to delete the "${roleToDelete.name}" custom role?`)) {
+    if (roleToDelete.isSystem) {
+      setErrorStatus('System roles are essential to platform governance and cannot be deleted.');
+      setTimeout(() => setErrorStatus(null), 3500);
+      return;
+    }
+    if (window.confirm(`Are you sure you want to delete the role "${roleToDelete.name}"?`)) {
       if (onDeleteRole) {
         onDeleteRole(String(roleToDelete.id));
       }
       setInternalRoles((prev) => prev.filter((r) => String(r.id) !== String(roleToDelete.id)));
-      setSelectedRoleId(roles[0]?.id || 'super_admin');
+      setSelectedRoleId(roles[0]?.id || '');
       setSaveStatus(`Role "${roleToDelete.name}" deleted.`);
       setTimeout(() => setSaveStatus(null), 3000);
     }
   };
 
-  const handleVerifyPolicy = () => {
-    if (!activeRole) return;
-    const msg = isSuperAdmin
-      ? `Verified: Root platform authority granted across all modules (${allPermissions.length} permissions active).`
-      : `Verified: ${activeRole.name} has ${activePermissionsCount} active permissions out of ${allPermissions.length} total platform permissions. Governed by Least Privilege Access standard.`;
-    window.alert(msg);
-  };
+  // Filtered Permissions based on Search Query, Domain Filter, and Status Filter
+  const filteredPermissions = useMemo(() => {
+    return allPermissions.filter((perm) => {
+      // 1. Domain filter
+      if (selectedDomainFilter !== 'all' && perm.group !== selectedDomainFilter) {
+        return false;
+      }
 
-  const handleExportAudit = () => {
-    if (!activeRole) return;
-    const activePermList = allPermissions.filter((p) => effectivePermissionIds.includes(p.id));
-    const auditData = {
-      exported_at: new Date().toISOString(),
-      role: {
-        id: activeRole.id,
-        name: activeRole.name,
-        slug: activeRole.slug,
-        description: activeRole.description,
-        is_system: activeRole.isSystem,
-        is_active: true,
-        permissions_count: activePermissionsCount,
-      },
-      permission_ids: effectivePermissionIds,
-      permissions: activePermList,
-      matrix: rolePermissions,
-      standard: 'CivicLink Role-Based Access Governance (RBAC)',
-    };
+      // 2. Status filter
+      const isGranted = effectivePermissionIds.includes(perm.id);
+      if (statusFilter === 'granted' && !isGranted) return false;
+      if (statusFilter === 'revoked' && isGranted) return false;
 
-    const blob = new Blob([JSON.stringify(auditData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `role-permissions-${activeRole.slug || activeRole.id}-${Date.now()}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
+      // 3. Search query filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const domain = DOMAIN_GROUPS.find((d) => d.id === perm.group);
+        const matchName = perm.name.toLowerCase().includes(q);
+        const matchKey = perm.key.toLowerCase().includes(q);
+        const matchDesc = perm.description.toLowerCase().includes(q);
+        const matchDomain = domain ? domain.label.toLowerCase().includes(q) : false;
+        return matchName || matchKey || matchDesc || matchDomain;
+      }
+
+      return true;
+    });
+  }, [allPermissions, selectedDomainFilter, statusFilter, searchQuery, effectivePermissionIds]);
+
+  // Group filtered permissions by Domain Group
+  const visibleDomainGroups = useMemo(() => {
+    return DOMAIN_GROUPS.map((domain) => {
+      const perms = filteredPermissions.filter((p) => p.group === domain.id);
+      const allDomainPerms = allPermissions.filter((p) => p.group === domain.id);
+      const grantedCount = allDomainPerms.filter((p) =>
+        effectivePermissionIds.includes(p.id)
+      ).length;
+      return {
+        ...domain,
+        perms,
+        totalInDomain: allDomainPerms.length,
+        grantedInDomain: grantedCount,
+      };
+    }).filter((g) => g.perms.length > 0);
+  }, [filteredPermissions, allPermissions, effectivePermissionIds]);
+
+  const hasActiveFilters =
+    searchQuery.trim().length > 0 || selectedDomainFilter !== 'all' || statusFilter !== 'all';
 
   return (
     <>
       <PageHeading
-        eyebrow="SECURITY & ACCESS GOVERNANCE"
+        eyebrow="ACCESS CONTROL & GOVERNANCE"
         title="Roles & permissions"
-        subtitle="Manage platform roles, customize permission assignments, and configure domain policies."
-        action="Create custom role"
-        onAction={() => {
-          setEditingRole(null);
-          setModalOpen(true);
-        }}
-        secondary="Export audit log"
-        onSecondary={handleExportAudit}
+        subtitle="Configure role-based access control (RBAC), security policies, and domain permissions."
+        action={canManageRoles ? "+ New role" : undefined}
+        onAction={
+          canManageRoles
+            ? () => {
+                setEditingRole(null);
+                setModalOpen(true);
+              }
+            : undefined
+        }
       />
 
-      {/* Permissions Matrix Panel */}
+      {/* Role Management Card & Header */}
       {!activeRole ? (
-        <section className="panel" style={{ padding: '2rem', textAlign: 'center' }}>
-          <p>{loadingRoles ? 'Loading security roles from /api/v1/roles...' : 'No role selected.'}</p>
+        <section className="panel" style={{ padding: '2.5rem', textAlign: 'center' }}>
+          <p>Loading security roles & permissions...</p>
         </section>
       ) : (
-        <section className="panel table-panel permissions-matrix-panel">
-          <div className="table-toolbar">
+        <section className="panel permissions-catalog-panel" style={{ marginBottom: '2rem' }}>
+          {/* Top Role Header Banner */}
+          <div
+            style={{
+              padding: '1.25rem 1.75rem',
+              borderBottom: '1px solid #edf1ed',
+              background: '#fcfdfc',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '16px',
+            }}
+          >
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <h2>Permissions matrix: {activeRole.name}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: isSuperAdmin ? '#ecfdf5' : '#eff6ff',
+                    color: isSuperAdmin ? '#047857' : '#1d4ed8',
+                  }}
+                >
+                  <Icon name={isSuperAdmin ? 'shield' : 'users'} size={18} />
+                </span>
+                <h2 style={{ fontSize: '18px', margin: 0, color: '#164a54' }}>
+                  {activeRole.name}
+                </h2>
                 <code
                   style={{
-                    background: '#eef5f1',
-                    color: '#164a54',
+                    fontSize: '11.5px',
+                    background: '#f1f5f9',
+                    color: '#475569',
                     padding: '2px 7px',
                     borderRadius: '4px',
-                    fontSize: '12px',
-                    fontWeight: 600,
                   }}
                 >
                   {activeRole.slug || activeRole.id}
                 </code>
                 <span
                   style={{
-                    background: '#e0f2fe',
-                    color: '#0369a1',
+                    background: isSuperAdmin ? '#ecfdf5' : '#e0f2fe',
+                    color: isSuperAdmin ? '#047857' : '#0369a1',
                     padding: '2px 8px',
                     borderRadius: '12px',
                     fontSize: '11px',
                     fontWeight: 700,
                   }}
                 >
-                  {activePermissionsCount} / {allPermissions.length} permissions active
+                  {activePermissionsCount} / {allPermissions.length} active
                 </span>
                 {activeRole.isSystem ? (
                   <span
@@ -781,63 +562,28 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                   </span>
                 )}
               </div>
-              <p style={{ marginTop: '4px' }}>{activeRole.description}</p>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
+                {activeRole.description}
+              </p>
             </div>
 
-            <div className="toolbar-tools permissions-toolbar-tools">
-              {/* Dual View Mode Switcher */}
-              <div
-                style={{
-                  display: 'inline-flex',
-                  background: '#f1f5f9',
-                  padding: '3px',
-                  borderRadius: '6px',
-                  marginRight: '8px',
-                }}
-                role="tablist"
-                aria-label="View mode"
-              >
-                <button
-                  type="button"
-                  style={{
-                    padding: '4px 10px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    borderRadius: '4px',
-                    border: 'none',
-                    background: viewMode === 'matrix' ? '#ffffff' : 'transparent',
-                    color: viewMode === 'matrix' ? '#164a54' : '#64748b',
-                    boxShadow: viewMode === 'matrix' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setViewMode('matrix')}
-                >
-                  Matrix view
-                </button>
-                <button
-                  type="button"
-                  style={{
-                    padding: '4px 10px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    borderRadius: '4px',
-                    border: 'none',
-                    background: viewMode === 'domain' ? '#ffffff' : 'transparent',
-                    color: viewMode === 'domain' ? '#164a54' : '#64748b',
-                    boxShadow: viewMode === 'domain' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setViewMode('domain')}
-                >
-                  Domain catalog
-                </button>
-              </div>
-
-              <label className="role-picker-control">
-                <span>Role</span>
+            {/* Role Selector and Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
+                <span>Role:</span>
                 <select
                   value={String(activeRole.id)}
                   onChange={(event) => setSelectedRoleId(event.target.value)}
+                  style={{
+                    minHeight: '34px',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: '#fff',
+                    fontSize: '13px',
+                    color: '#1e293b',
+                    fontWeight: 600,
+                  }}
                 >
                   {roles.map((roleItem: RoleItem) => (
                     <option key={roleItem.id} value={roleItem.id}>
@@ -847,24 +593,23 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                 </select>
               </label>
 
-              <span className="role-scope-indicator">
-                <Icon name="shield" size={14} /> Scope: <strong>{activeRole.scope}</strong>
-              </span>
-
-              <button
-                type="button"
-                className="button primary small-button"
-                style={{ padding: '6px 12px', fontSize: '12.5px', whiteSpace: 'nowrap' }}
-                onClick={() => {
-                  setEditingRole(null);
-                  setModalOpen(true);
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '12px',
+                  background: '#f1f5f9',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  color: '#475569',
                 }}
               >
-                + New role
-              </button>
+                <Icon name="shield" size={13} /> Scope: <b>{activeRole.scope}</b>
+              </span>
 
               {!activeRole.isSystem && (
-                <div style={{ display: 'inline-flex', gap: '8px' }}>
+                <div style={{ display: 'inline-flex', gap: '6px' }}>
                   <button
                     type="button"
                     className="button secondary small-button"
@@ -888,11 +633,11 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
             </div>
           </div>
 
-          {/* Success Banner */}
+          {/* Feedback & Notice Banners */}
           {saveStatus && (
             <div
               className="tip-banner inline-tip"
-              style={{ margin: '0.75rem 1.25rem', borderColor: '#00485a', background: '#f0fdf4' }}
+              style={{ margin: '0.75rem 1.5rem', borderColor: '#00485a', background: '#f0fdf4' }}
             >
               <span className="tip-icon" style={{ color: '#16a34a' }}>
                 <Icon name="check" size={16} />
@@ -904,174 +649,314 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
             </div>
           )}
 
-          {/* Error Banner (e.g. 422 Super Admin protection) */}
           {errorStatus && (
             <div
               className="tip-banner inline-tip"
-              style={{ margin: '0.75rem 1.25rem', borderColor: '#dc2626', background: '#fef2f2' }}
+              style={{ margin: '0.75rem 1.5rem', borderColor: '#dc2626', background: '#fef2f2' }}
             >
               <span className="tip-icon" style={{ color: '#dc2626' }}>
                 <Icon name="close" size={16} />
               </span>
               <span>
-                <b>Action Restricted (HTTP 422)</b>
+                <b>Action Restricted</b>
                 <small>{errorStatus}</small>
               </span>
             </div>
           )}
 
-          {/* Policy Information Notice */}
           {isSuperAdmin ? (
-            <div className="tip-banner inline-tip" style={{ margin: '0.75rem 1.25rem' }}>
+            <div className="tip-banner inline-tip" style={{ margin: '0.75rem 1.5rem' }}>
               <span className="tip-icon">
                 <Icon name="lock" size={16} />
               </span>
               <span>
-                <b>Root platform authority (Protected)</b>
+                <b>Root Platform Authority (Inherently Granted)</b>
                 <small>
-                  Super Admin permissions cannot be modified. Super Admin holds all platform
-                  authorities across all 37 permissions. Select another role or create a custom role
-                  to configure tailored policies.
+                  Super Admin possesses all 37 platform authorities across all domains.
+                  Permissions are immutable for this role. To configure a specialized policy,
+                  select a municipal tier (e.g. Sub-City, Woreda, Bureau) or create a custom role.
                 </small>
               </span>
             </div>
           ) : (
             <div
               className="tip-banner inline-tip"
-              style={{ margin: '0.75rem 1.25rem', background: '#f8fafc', borderColor: '#cbd5e1' }}
+              style={{ margin: '0.75rem 1.5rem', background: '#f8fafc', borderColor: '#cbd5e1' }}
             >
               <span className="tip-icon">
-                <Icon name="key" size={16} />
+                <Icon name="shield" size={16} />
               </span>
               <span>
-                <b>Configurable Access Policy ({activeRole.slug?.replace('_', ' ') || activeRole.id}/permissions)</b>
+                <b>Granular Role Permissions Catalog</b>
                 <small>
-                  Click any checkbox below to synchronize permissions for this role.
-                  Governed by the Least Privilege Access standard.
+                  Toggle individual permissions below to define what administrative actions
+                  users holding the <strong>{activeRole.name}</strong> role can perform. Changes
+                  synchronize immediately.
                 </small>
               </span>
             </div>
           )}
 
-          {/* VIEW MODE 1: MATRIX VIEW */}
-          {viewMode === 'matrix' ? (
-            <div className="table-scroll">
-              <table className="data-table permissions-table">
-                <colgroup>
-                  <col style={{ width: '36%' }} />
-                  {ACTION_COLUMNS.map((column) => (
-                    <col key={column.id} style={{ width: column.width }} />
+          {/* Search & Filter Toolbar */}
+          <div
+            style={{
+              padding: '1rem 1.5rem',
+              background: '#ffffff',
+              borderBottom: '1px solid #edf1ed',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+              {/* Search Box */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  padding: '4px 10px',
+                  gap: '8px',
+                  flex: '1',
+                  minWidth: '260px',
+                  maxWidth: '440px',
+                }}
+              >
+                <Icon name="search" size={16} />
+                <input
+                  type="text"
+                  placeholder="Search permissions by name, key (e.g. services.create), or domain..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    outline: 'none',
+                    fontSize: '13px',
+                    width: '100%',
+                    color: '#1e293b',
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    style={{
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      color: '#94a3b8',
+                    }}
+                    title="Clear search"
+                  >
+                    <Icon name="close" size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Filters */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                {/* Domain Selector */}
+                <select
+                  value={selectedDomainFilter}
+                  onChange={(e) => setSelectedDomainFilter(e.target.value)}
+                  style={{
+                    minHeight: '34px',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: '#fff',
+                    fontSize: '12.5px',
+                    color: '#334155',
+                  }}
+                >
+                  <option value="all">All Domains ({DOMAIN_GROUPS.length})</option>
+                  {DOMAIN_GROUPS.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.label}
+                    </option>
                   ))}
-                </colgroup>
-                <thead>
-                  <tr className="permission-group-head">
-                    <th rowSpan={2} scope="col">
-                      Platform module
-                    </th>
-                    <th colSpan={1} scope="colgroup">
-                      Access
-                    </th>
-                    <th colSpan={3} scope="colgroup">
-                      Manage
-                    </th>
-                    <th colSpan={2} scope="colgroup">
-                      Publish & respond
-                    </th>
-                  </tr>
-                  <tr className="permission-action-head">
-                    {ACTION_COLUMNS.map((col) => (
-                      <th key={col.id} scope="col">
-                        {col.label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {MODULE_DEFINITIONS.map((module) => {
-                    const roleActions = rolePermissions[module.id] || [];
+                </select>
 
-                    return (
-                      <tr key={module.id}>
-                        <td>
-                          <div className="module-info-cell">
-                            <b>{module.name}</b>
-                            <p>{module.desc}</p>
-                          </div>
-                        </td>
-                        {ACTION_COLUMNS.map((col) => {
-                          const isApplicable = module.actions.includes(col.id);
-                          const isGranted = roleActions.includes(col.id);
+                {/* Status Filter */}
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    background: '#f1f5f9',
+                    padding: '2px',
+                    borderRadius: '6px',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter('all')}
+                    style={{
+                      border: 'none',
+                      background: statusFilter === 'all' ? '#fff' : 'transparent',
+                      color: statusFilter === 'all' ? '#00485a' : '#64748b',
+                      fontWeight: statusFilter === 'all' ? 700 : 500,
+                      fontSize: '12px',
+                      padding: '4px 10px',
+                      borderRadius: '4px',
+                      boxShadow: statusFilter === 'all' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    All ({allPermissions.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter('granted')}
+                    style={{
+                      border: 'none',
+                      background: statusFilter === 'granted' ? '#fff' : 'transparent',
+                      color: statusFilter === 'granted' ? '#047857' : '#64748b',
+                      fontWeight: statusFilter === 'granted' ? 700 : 500,
+                      fontSize: '12px',
+                      padding: '4px 10px',
+                      borderRadius: '4px',
+                      boxShadow: statusFilter === 'granted' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Granted ({effectivePermissionIds.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter('revoked')}
+                    style={{
+                      border: 'none',
+                      background: statusFilter === 'revoked' ? '#fff' : 'transparent',
+                      color: statusFilter === 'revoked' ? '#dc2626' : '#64748b',
+                      fontWeight: statusFilter === 'revoked' ? 700 : 500,
+                      fontSize: '12px',
+                      padding: '4px 10px',
+                      borderRadius: '4px',
+                      boxShadow: statusFilter === 'revoked' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Revoked ({allPermissions.length - effectivePermissionIds.length})
+                  </button>
+                </div>
 
-                          if (!isApplicable) {
-                            return (
-                              <td
-                                key={col.id}
-                                className="permission-not-applicable"
-                                title="Not applicable to this module"
-                                aria-label={`${module.name}: ${col.label} not applicable`}
-                              >
-                                —
-                              </td>
-                            );
-                          }
-
-                          if (isSuperAdmin) {
-                            return (
-                              <td key={col.id} style={{ textAlign: 'center' }}>
-                                <span
-                                  className="perm-status-icon granted"
-                                  role="img"
-                                  aria-label="Granted"
-                                  title="Root permission granted"
-                                >
-                                  <Icon name="check" size={15} />
-                                </span>
-                              </td>
-                            );
-                          }
-
-                          return (
-                            <td key={col.id} style={{ textAlign: 'center' }}>
-                              <button
-                                type="button"
-                                className={`perm-toggle-btn${isGranted ? ' granted' : ''}`}
-                                onClick={() => handleToggleMatrixAction(module.id, col.id)}
-                                aria-pressed={isGranted}
-                                title={
-                                  isGranted
-                                    ? `${col.label} granted (click to revoke)`
-                                    : `${col.label} not granted (click to grant)`
-                                }
-                                aria-label={`Toggle ${col.label} for ${module.name}`}
-                              >
-                                <Icon name={isGranted ? 'check' : 'close'} size={14} />
-                              </button>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                {/* Bulk Actions for Filtered Results */}
+                {!isSuperAdmin && canManageRoles && filteredPermissions.length > 0 && (
+                  <div style={{ display: 'inline-flex', gap: '6px' }}>
+                    <button
+                      type="button"
+                      className="button secondary small-button"
+                      style={{ padding: '4px 10px', fontSize: '11.5px' }}
+                      onClick={() => handleBulkToggleFiltered(true)}
+                      title="Grant all permissions currently displayed"
+                    >
+                      Grant shown
+                    </button>
+                    <button
+                      type="button"
+                      className="button secondary small-button"
+                      style={{ padding: '4px 10px', fontSize: '11.5px' }}
+                      onClick={() => handleBulkToggleFiltered(false)}
+                      title="Revoke all permissions currently displayed"
+                    >
+                      Revoke shown
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          ) : (
-            /* VIEW MODE 2: DOMAIN PERMISSIONS CATALOG VIEW */
-            <div style={{ padding: '1rem 1.5rem' }}>
+
+            {/* Status bar & match counter */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#64748b' }}>
+              <span>
+                Showing <b>{filteredPermissions.length}</b> of <b>{allPermissions.length}</b> permissions
+                {hasActiveFilters && (
+                  <>
+                    {' '}· Filter active ({searchQuery ? `"${searchQuery}", ` : ''}
+                    {selectedDomainFilter !== 'all' ? `domain: ${selectedDomainFilter}, ` : ''}
+                    {statusFilter !== 'all' ? `status: ${statusFilter}` : ''})
+                  </>
+                )}
+              </span>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedDomainFilter('all');
+                    setStatusFilter('all');
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#00485a',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    padding: 0,
+                  }}
+                >
+                  Reset filters
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Enhanced Domain Permissions Catalog Grid */}
+          <div style={{ padding: '1.25rem 1.5rem', background: '#f8fafc' }}>
+            {visibleDomainGroups.length === 0 ? (
+              <div
+                style={{
+                  background: '#ffffff',
+                  border: '1px dashed #cbd5e1',
+                  borderRadius: '8px',
+                  padding: '3rem 1.5rem',
+                  textAlign: 'center',
+                }}
+              >
+                <div style={{ display: 'inline-flex', padding: '12px', borderRadius: '50%', background: '#f1f5f9', color: '#64748b', marginBottom: '12px' }}>
+                  <Icon name="search" size={24} />
+                </div>
+                <h3 style={{ margin: '0 0 6px', fontSize: '15px', color: '#1e293b' }}>
+                  No permissions found
+                </h3>
+                <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
+                  No system permissions match the search query &quot;{searchQuery}&quot; and current filters.
+                </p>
+                <button
+                  type="button"
+                  className="button secondary small-button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedDomainFilter('all');
+                    setStatusFilter('all');
+                  }}
+                >
+                  Clear all filters
+                </button>
+              </div>
+            ) : (
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
                   gap: '1.25rem',
                 }}
               >
-                {DOMAIN_GROUPS.map((domain) => {
-                  const domainPerms = allPermissions.filter((p) => p.group === domain.id);
-                  if (domainPerms.length === 0) return null;
-
-                  const domainGrantedCount = domainPerms.filter((p) =>
-                    effectivePermissionIds.includes(p.id)
-                  ).length;
+                {visibleDomainGroups.map((domain) => {
+                  const isAllDomainGranted = domain.grantedInDomain === domain.totalInDomain;
+                  const isNoneDomainGranted = domain.grantedInDomain === 0;
 
                   return (
                     <div
@@ -1079,93 +964,181 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                       style={{
                         background: '#ffffff',
                         border: '1px solid #e2e8f0',
-                        borderRadius: '8px',
-                        padding: '1rem',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                        borderRadius: '10px',
+                        overflow: 'hidden',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                        display: 'flex',
+                        flexDirection: 'column',
                       }}
                     >
+                      {/* Domain Card Header */}
                       <div
                         style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'baseline',
+                          padding: '12px 16px',
                           borderBottom: '1px solid #f1f5f9',
-                          paddingBottom: '8px',
-                          marginBottom: '10px',
+                          background: '#fcfdfc',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '12px',
                         }}
                       >
-                        <div>
-                          <b style={{ color: '#164a54', fontSize: '13.5px' }}>{domain.label}</b>
-                          <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b' }}>
-                            {domain.desc}
-                          </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '6px',
+                              background: '#e8f2ed',
+                              color: '#00485a',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Icon name={domain.icon || 'shield'} size={16} />
+                          </span>
+                          <div>
+                            <b style={{ color: '#0f172a', fontSize: '13.5px', display: 'block' }}>
+                              {domain.label}
+                            </b>
+                            <span style={{ fontSize: '11px', color: '#64748b' }}>
+                              {domain.desc}
+                            </span>
+                          </div>
                         </div>
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            padding: '2px 7px',
-                            borderRadius: '10px',
-                            background:
-                              domainGrantedCount === domainPerms.length
+
+                        {/* Grant badge & Quick Select All Toggle */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              background: isAllDomainGranted
                                 ? '#dcfce7'
-                                : domainGrantedCount > 0
-                                  ? '#e0f2fe'
-                                  : '#f1f5f9',
-                            color:
-                              domainGrantedCount === domainPerms.length
+                                : isNoneDomainGranted
+                                  ? '#f1f5f9'
+                                  : '#e0f2fe',
+                              color: isAllDomainGranted
                                 ? '#15803d'
-                                : domainGrantedCount > 0
-                                  ? '#0369a1'
-                                  : '#64748b',
-                          }}
-                        >
-                          {domainGrantedCount} / {domainPerms.length}
-                        </span>
+                                : isNoneDomainGranted
+                                  ? '#64748b'
+                                  : '#0369a1',
+                            }}
+                          >
+                            {isAllDomainGranted
+                              ? `✓ All ${domain.totalInDomain}`
+                              : `${domain.grantedInDomain}/${domain.totalInDomain}`}
+                          </span>
+
+                          {!isSuperAdmin && canManageRoles && (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleDomainAll(domain.id, !isAllDomainGranted)}
+                              style={{
+                                border: 'none',
+                                background: 'transparent',
+                                color: '#00485a',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                padding: '2px 4px',
+                              }}
+                              title={
+                                isAllDomainGranted
+                                  ? `Revoke all in ${domain.label}`
+                                  : `Grant all in ${domain.label}`
+                              }
+                            >
+                              {isAllDomainGranted ? 'Revoke all' : 'Grant all'}
+                            </button>
+                          )}
+                        </div>
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {domainPerms.map((perm) => {
+                      {/* Permissions List for this Domain */}
+                      <div
+                        style={{
+                          padding: '10px 14px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          flex: 1,
+                        }}
+                      >
+                        {domain.perms.map((perm) => {
                           const isGranted = effectivePermissionIds.includes(perm.id);
 
                           return (
-                            <label
+                            <div
                               key={perm.id}
+                              onClick={() => !isSuperAdmin && handleToggleDomainPermission(perm.id)}
                               style={{
                                 display: 'flex',
                                 alignItems: 'flex-start',
                                 gap: '10px',
-                                padding: '6px 8px',
+                                padding: '8px 10px',
                                 borderRadius: '6px',
-                                background: isGranted ? '#f8fafc' : '#ffffff',
-                                border: `1px solid ${isGranted ? '#cbd5e1' : '#f1f5f9'}`,
-                                cursor: isSuperAdmin ? 'not-allowed' : 'pointer',
+                                background: isGranted ? '#f0fdf4' : '#ffffff',
+                                border: `1px solid ${isGranted ? '#bbf7d0' : '#f1f5f9'}`,
+                                cursor: isSuperAdmin ? 'default' : 'pointer',
                                 transition: 'all 0.15s ease',
                               }}
                             >
-                              <input
-                                type="checkbox"
-                                checked={isGranted}
-                                disabled={isSuperAdmin}
-                                onChange={() => handleToggleDomainPermission(perm.id)}
-                                style={{ marginTop: '3px', cursor: isSuperAdmin ? 'not-allowed' : 'pointer' }}
-                              />
+                              <div style={{ paddingTop: '2px' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isGranted}
+                                  disabled={isSuperAdmin || !canManageRoles}
+                                  onChange={() => handleToggleDomainPermission(perm.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{
+                                    cursor: (isSuperAdmin || !canManageRoles) ? 'default' : 'pointer',
+                                    accentColor: '#00485a',
+                                    width: '15px',
+                                    height: '15px',
+                                  }}
+                                />
+                              </div>
+
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#1e293b' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                  <span
+                                    style={{
+                                      fontSize: '12.5px',
+                                      fontWeight: 600,
+                                      color: isGranted ? '#14532d' : '#1e293b',
+                                    }}
+                                  >
                                     {perm.name}
                                   </span>
-                                  <code style={{ fontSize: '10.5px', color: '#64748b', background: '#f1f5f9', padding: '1px 4px', borderRadius: '3px' }}>
+                                  <code
+                                    style={{
+                                      fontSize: '10.5px',
+                                      background: isGranted ? '#dcfce7' : '#f1f5f9',
+                                      color: isGranted ? '#166534' : '#64748b',
+                                      padding: '1px 5px',
+                                      borderRadius: '4px',
+                                    }}
+                                  >
                                     {perm.key}
                                   </code>
                                 </div>
-                                {perm.description && (
-                                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b', lineHeight: 1.35 }}>
-                                    {perm.description}
-                                  </p>
-                                )}
+                                <p
+                                  style={{
+                                    margin: '2px 0 0',
+                                    fontSize: '11px',
+                                    color: '#64748b',
+                                    lineHeight: 1.4,
+                                  }}
+                                >
+                                  {perm.description}
+                                </p>
                               </div>
-                            </label>
+                            </div>
                           );
                         })}
                       </div>
@@ -1173,32 +1146,44 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                   );
                 })}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          <div className="table-footer">
+          {/* Footer Policy Info */}
+          <div
+            style={{
+              padding: '10px 1.5rem',
+              background: '#fcfdfc',
+              borderTop: '1px solid #edf1ed',
+              fontSize: '12px',
+              color: '#64748b',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
             <span>
-              Policy: <strong>{activeRole.name}</strong> · Governed by Least Privilege Access standard ·{' '}
-              <code>{activePermissionsCount}</code> permissions assigned
+              Policy Target: <b>{activeRole.name}</b> · Governed by Least Privilege Access Standard
             </span>
-            <button
-              type="button"
-              className="button secondary small-button"
-              onClick={handleVerifyPolicy}
-            >
-              Verify policy
-            </button>
+            <span>
+              {isSavingPermissions ? (
+                <span style={{ color: '#00485a', fontWeight: 600 }}>Syncing changes to server...</span>
+              ) : (
+                <span>All changes persist live to backend RBAC schema.</span>
+              )}
+            </span>
           </div>
         </section>
       )}
 
+      {/* Role Creation / Editing Modal */}
       <RoleModal
-        role={editingRole}
         isOpen={modalOpen}
         onClose={() => {
           setModalOpen(false);
           setEditingRole(null);
         }}
+        role={editingRole}
         onSave={handleSaveRole}
       />
     </>

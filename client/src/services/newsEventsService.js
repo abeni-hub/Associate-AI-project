@@ -1038,9 +1038,22 @@ export async function getHomeHighlights() {
   };
 }
 
+function getApiBaseUrl() {
+  const envUrl = import.meta.env?.VITE_API_BASE_URL || import.meta.env?.VITE_API_URL;
+  if (typeof envUrl === 'string' && envUrl.trim().length > 0) {
+    let url = envUrl.trim().replace(/\/+$/, '');
+    if (!url.endsWith('/api/v1')) {
+      url = `${url}/api/v1`;
+    }
+    return url;
+  }
+  return '/api/v1';
+}
+
 async function fetchBackendNews() {
   try {
-    const res = await fetch('/api/v1/news');
+    const base = getApiBaseUrl();
+    const res = await fetch(`${base}/news`);
     if (!res.ok) return null;
     const json = await res.json();
     if (json.success && Array.isArray(json.data) && json.data.length > 0) {
@@ -1054,7 +1067,8 @@ async function fetchBackendNews() {
 
 async function fetchBackendEvents() {
   try {
-    const res = await fetch('/api/v1/events');
+    const base = getApiBaseUrl();
+    const res = await fetch(`${base}/events`);
     if (!res.ok) return null;
     const json = await res.json();
     const eventData = json.data?.data || json.data;
@@ -1188,11 +1202,12 @@ export async function fetchCombinedFeed({
  */
 export async function getItemById(id) {
   const cleanId = String(id).replace(/^(news-|event-)/, '');
+  const base = getApiBaseUrl();
 
   // 1. If ID explicitly indicates event or starts with event-
   if (String(id).startsWith('event-')) {
     try {
-      const res = await fetch(`/api/v1/events/${cleanId}`);
+      const res = await fetch(`${base}/events/${cleanId}`);
       if (res.ok) {
         const json = await res.json();
         const ev = json.data;
@@ -1205,7 +1220,7 @@ export async function getItemById(id) {
 
   // 2. Try news endpoint
   try {
-    const res = await fetch(`/api/v1/news/${cleanId}`);
+    const res = await fetch(`${base}/news/${cleanId}`);
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.data) {
@@ -1219,7 +1234,7 @@ export async function getItemById(id) {
   // 3. Fallback: try event endpoint if not previously checked
   if (!String(id).startsWith('event-')) {
     try {
-      const res = await fetch(`/api/v1/events/${cleanId}`);
+      const res = await fetch(`${base}/events/${cleanId}`);
       if (res.ok) {
         const json = await res.json();
         const ev = json.data;

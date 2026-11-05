@@ -8,7 +8,42 @@ import ItemDetailPage from './pages/ItemDetailPage'
 import './styles/newsEvents.css'
 import { translate } from './i18n/translations.js'
 import HomePage from './pages/HomePage'
+import { useGetLandingPageCmsQuery } from './services/cmsApi.js'
+
 function App() {
+  const { data: apiCmsData } = useGetLandingPageCmsQuery()
+  const [cachedCms, setCachedCms] = useState(() => {
+    try {
+      const local = localStorage.getItem('CIVIC_LANDING_CMS_CACHE')
+      return local ? JSON.parse(local) : null
+    } catch {
+      return null
+    }
+  })
+
+  useEffect(() => {
+    const handleCmsUpdate = (e) => {
+      if (e?.detail) {
+        setCachedCms(e.detail)
+      } else {
+        try {
+          const local = localStorage.getItem('CIVIC_LANDING_CMS_CACHE')
+          if (local) setCachedCms(JSON.parse(local))
+        } catch {
+          // ignore
+        }
+      }
+    }
+    window.addEventListener('civiclink-cms-updated', handleCmsUpdate)
+    window.addEventListener('storage', handleCmsUpdate)
+    return () => {
+      window.removeEventListener('civiclink-cms-updated', handleCmsUpdate)
+      window.removeEventListener('storage', handleCmsUpdate)
+    }
+  }, [])
+
+  const cmsConfig = apiCmsData?.data || cachedCms
+
   const [language, setLanguage] = useState(() => window.localStorage.getItem('civiclink-language') === 'am' ? 'am' : 'en')
   const [detailItemId, setDetailItemId] = useState(() => {
     const hash = window.location.hash
@@ -142,7 +177,11 @@ function App() {
 
   return (
     <div className={`site-shell ${currentView === 'news-events' ? 'site-shell-hub' : currentView === 'detail' ? 'site-shell-detail' : ''}`} lang={language}>
-      <AnnouncementBar t={t} onNavigateToHomeSection={navigateToHomeSection} />
+      <AnnouncementBar
+        t={t}
+        onNavigateToHomeSection={navigateToHomeSection}
+        announcement={cmsConfig?.announcement}
+      />
       <SiteHeader
         currentView={currentView}
         language={language}
@@ -179,6 +218,7 @@ function App() {
         <HomePage
           language={language}
           t={t}
+          cmsConfig={cmsConfig}
           onNavigateToHub={(tab) => {
             setNewsEventsTab(tab || 'all')
             setCurrentView('news-events')
@@ -189,7 +229,11 @@ function App() {
         />
       )}
 
-      <SiteFooter t={t} onNavigateToHomeSection={navigateToHomeSection} />
+      <SiteFooter
+        t={t}
+        onNavigateToHomeSection={navigateToHomeSection}
+        footerContent={cmsConfig?.footer}
+      />
     </div>
   )
 }

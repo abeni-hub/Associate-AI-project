@@ -51,6 +51,8 @@ export interface OfficeType {
 export interface OfficeItem {
   id: number;
   typeId: number;
+  typeName?: string;
+  typeCode?: string;
   name: string;
   code?: string;
   parentId: number | null;

@@ -53,7 +53,7 @@ class UpdateLandingPageCmsRequest extends FormRequest
             'hero.slides.*.title' => ['required', 'string', 'max:150'],
             'hero.slides.*.bureau' => ['required', 'string', 'max:100'],
             'hero.slides.*.category' => ['nullable', 'string', 'max:100'],
-            'hero.slides.*.image' => ['nullable', 'string', 'max:1000'],
+            'hero.slides.*.image' => ['nullable', 'string'],
             'hero.slides.*.alt' => ['nullable', 'string', 'max:255'],
             'hero.slides.*.credit' => ['nullable', 'string', 'max:255'],
             'hero.slides.*.source' => ['nullable', 'string', 'max:500'],

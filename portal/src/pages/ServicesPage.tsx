@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { usePortal } from '../context';
+import { usePermissions } from '../hooks/usePermissions';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
@@ -192,14 +193,19 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
         .includes(search.toLowerCase())
   );
 
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('services.create');
+  const canUpdate = hasPermission('services.update');
+  const canDelete = hasPermission('services.delete');
+
   return (
     <>
       <PageHeading
         eyebrow="SERVICE INFORMATION"
         title="Service standards"
         subtitle="Set clear, consistent requirements and expectations for every bureau in your jurisdiction."
-        action="Create a service"
-        onAction={onAdd}
+        action={canCreate ? 'Create a service' : undefined}
+        onAction={canCreate ? onAdd : undefined}
       />
       <div className="service-intro">
         <div className="service-intro-mark">
@@ -273,27 +279,33 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
               </div>
             </div>
             <div className="service-card-side">
-              <button
-                className="button secondary small-button"
-                onClick={() => onEdit(item)}
-              >
-                Edit standard
-              </button>
-              <button
-                className="button secondary small-button"
-                style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
-                onClick={() => handleDeleteService(item)}
-                title="Delete service standard"
-              >
-                Delete
-              </button>
-              <button
-                className={`publish-toggle${item.published ? ' is-on' : ''}`}
-                aria-label={item.published ? 'Unpublish service' : 'Publish service'}
-                onClick={() => onTogglePublish(item.id)}
-              >
-                <i />
-              </button>
+              {canUpdate && (
+                <button
+                  className="button secondary small-button"
+                  onClick={() => onEdit(item)}
+                >
+                  Edit standard
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  className="button secondary small-button"
+                  style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
+                  onClick={() => handleDeleteService(item)}
+                  title="Delete service standard"
+                >
+                  Delete
+                </button>
+              )}
+              {canUpdate && (
+                <button
+                  className={`publish-toggle${item.published ? ' is-on' : ''}`}
+                  aria-label={item.published ? 'Unpublish service' : 'Publish service'}
+                  onClick={() => onTogglePublish(item.id)}
+                >
+                  <i />
+                </button>
+              )}
             </div>
             <div className="service-expectation">
               <span>EXPECTATIONS</span>

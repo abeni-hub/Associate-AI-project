@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Icon } from '../shared/Icon';
+import { usePermissions } from '../../hooks/usePermissions';
 import type { FeedbackItem, FeedbackModalConfig } from '../../types/portal.types';
 
 export interface FeedbackDetailProps {
@@ -17,6 +18,8 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
 }) => {
   const item = propItem || modal?.item;
   const onUpdate = propOnUpdate || modal?.onUpdate || (() => {});
+  const { hasPermission } = usePermissions();
+  const canUpdateStatus = hasPermission('feedback.update_status');
 
   const [status, setStatus] = useState<string>(() => item?.status || 'Open');
   const [responseText, setResponseText] = useState<string>('');
@@ -113,7 +116,8 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => setStatus(s.id)}
+                  disabled={!canUpdateStatus}
+                  onClick={() => canUpdateStatus && setStatus(s.id)}
                   style={{
                     flex: '1 1 calc(50% - 4px)',
                     minWidth: '130px',
@@ -125,7 +129,8 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    cursor: 'pointer',
+                    cursor: canUpdateStatus ? 'pointer' : 'default',
+                    opacity: canUpdateStatus ? 1 : 0.8,
                     transition: 'all 0.15s ease',
                     boxShadow: isSelected ? `0 0 0 2px ${s.color}20` : 'none',
                   }}
@@ -147,7 +152,8 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
           <textarea
             value={responseText}
             onChange={(e) => setResponseText(e.target.value)}
-            placeholder="Write official resolution notes or citizen response..."
+            disabled={!canUpdateStatus}
+            placeholder={canUpdateStatus ? "Write official resolution notes or citizen response..." : "Read-only: permission required to update feedback status"}
             rows={3}
             style={{
               width: '100%',
@@ -157,6 +163,8 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
               fontSize: '13px',
               fontFamily: 'inherit',
               resize: 'vertical',
+              opacity: canUpdateStatus ? 1 : 0.75,
+              background: canUpdateStatus ? '#ffffff' : '#f8fafc',
             }}
           />
         </div>
@@ -182,16 +190,18 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
           >
             Close
           </button>
-          <button
-            type="button"
-            className="button primary"
-            onClick={() => {
-              onUpdate(status, responseText);
-              onClose();
-            }}
-          >
-            Save follow-up <Icon name="check" size={15} />
-          </button>
+          {canUpdateStatus && (
+            <button
+              type="button"
+              className="button primary"
+              onClick={() => {
+                onUpdate(status, responseText);
+                onClose();
+              }}
+            >
+              Save follow-up <Icon name="check" size={15} />
+            </button>
+          )}
         </div>
       </div>
     </div>

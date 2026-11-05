@@ -195,6 +195,7 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
         onSubmit={handleFindService}
         subCityOptions={subCityOptions}
         bureauOptions={bureauOptions}
+        quickSearchContent={cmsConfig?.quickSearch}
       />
       <ServiceGuideSection t={t} serviceGuide={serviceGuide} guideService={guideService} guideBureau={guideBureau} />
       <JourneySection t={t} onGoToFeedback={goToFeedback} journey={cmsConfig?.journey} />
@@ -205,7 +206,7 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
         onSelectItem={onSelectItem}
       />
       <FeedbackSection language={language} t={t} />
-      <AdminStrip t={t} />
+      <AdminStrip t={t} adminStripContent={cmsConfig?.footer} />
     </main>
   )
 }
