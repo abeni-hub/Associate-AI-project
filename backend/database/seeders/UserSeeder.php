@@ -35,19 +35,5 @@ class UserSeeder extends Seeder
                 'must_change_password' => $requireChange,
             ]
         );
-
-        // 2. Documented API Test User (matches docs/api.md)
-        User::updateOrCreate(
-            ['username' => 'abebe.k'],
-            [
-                'name' => 'Abebe Kebede',
-                'email' => 'abebe@bole.gov.et',
-                'password' => Hash::make('CorrectPassword123!'),
-                'role_id' => $subCityAdminRole->id,
-                'status' => 'active',
-                'phone' => '+251911234567',
-                'must_change_password' => false,
-            ]
-        );
     }
 }
