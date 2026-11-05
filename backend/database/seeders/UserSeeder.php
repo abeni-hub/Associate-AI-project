@@ -16,8 +16,16 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        $superAdminRole = Role::where('slug', 'super_admin')->firstOrFail();
-        $subCityAdminRole = Role::where('slug', 'sub_city_admin')->first() ?? $superAdminRole;
+        $superAdminRole = Role::firstOrCreate(
+            ['slug' => 'super_admin'],
+            [
+                'name' => 'Super Administrator',
+                'description' => 'Global system administrator with unrestricted platform access.',
+                'is_system' => true,
+                'is_active' => true,
+                'scope_level' => 'global',
+            ]
+        );
 
         $initialAdminPassword = env('INITIAL_SUPER_ADMIN_PASSWORD', 'Admin123!Secure');
         $requireChange = empty(env('INITIAL_SUPER_ADMIN_PASSWORD')) || app()->isProduction();
