@@ -79,7 +79,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="levels"
           element={
-            <RoleGuard allowedRoles={['super']}>
+            <RoleGuard allowedRoles={['super']} requiredPermission="organizations.view">
               <LevelsPage />
             </RoleGuard>
           }

@@ -25,18 +25,18 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
     return children;
   }
 
-  // Check required permission if configured
-  if (requiredPermission && !hasPermission(requiredPermission)) {
+  // 1. Check required permission: If specified, permission is the primary authorization check
+  if (requiredPermission) {
+    if (!hasPermission(requiredPermission)) {
+      return <Navigate to="/overview" replace />;
+    }
+  } else if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+    // 2. Only check role restriction if no specific permission was required
     return <Navigate to="/overview" replace />;
   }
 
-  // Check required scope level rank if configured
+  // 3. Check required scope level rank if configured
   if (requiredScope && !canManageScope(requiredScope)) {
-    return <Navigate to="/overview" replace />;
-  }
-
-  // Check role restriction if configured
-  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(role)) {
     return <Navigate to="/overview" replace />;
   }
 

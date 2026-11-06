@@ -5,6 +5,7 @@ import { SearchBox } from '../components/shared/SearchBox';
 import { StatusPill } from '../components/shared/StatusPill';
 import { Icon } from '../components/shared/Icon';
 import { LevelModal } from '../components/levels/LevelModal';
+import { usePermissions } from '../hooks/usePermissions';
 import {
   useGetOrganizationTypesQuery,
   useCreateOrganizationTypeMutation,
@@ -22,6 +23,11 @@ export const LevelsPage: React.FC = () => {
   const [createType, { isLoading: isCreating }] = useCreateOrganizationTypeMutation();
   const [updateType, { isLoading: isUpdating }] = useUpdateOrganizationTypeMutation();
   const [deleteType, { isLoading: isDeleting }] = useDeleteOrganizationTypeMutation();
+
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('organizations.create');
+  const canUpdate = hasPermission('organizations.update');
+  const canDelete = hasPermission('organizations.delete');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<OrganizationTypeItem | null>(null);
@@ -118,8 +124,8 @@ export const LevelsPage: React.FC = () => {
         eyebrow="SUPER ADMIN · HIERARCHY STRUCTURE"
         title="Organization levels"
         subtitle="Manage the hierarchy ranks and classification tiers (Sub-City, Woreda, Bureau, etc.) used when registering offices."
-        action="Add tier level"
-        onAction={handleOpenAdd}
+        action={canCreate ? "Add tier level" : undefined}
+        onAction={canCreate ? handleOpenAdd : undefined}
       />
 
       <div className="metric-grid compact-metrics">
@@ -249,42 +255,48 @@ export const LevelsPage: React.FC = () => {
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                        <button
-                          type="button"
-                          className="button secondary small-button"
-                          disabled={lvl.level <= 1 || isUpdating}
-                          onClick={() => handleMoveRank(lvl, 'up')}
-                          title="Shift rank up (higher authority)"
-                          style={{ padding: '3px 7px', fontSize: '12px' }}
-                        >
-                          &uarr;
-                        </button>
-                        <button
-                          type="button"
-                          className="button secondary small-button"
-                          disabled={lvl.level >= levels.length || isUpdating}
-                          onClick={() => handleMoveRank(lvl, 'down')}
-                          title="Shift rank down (lower authority)"
-                          style={{ padding: '3px 7px', fontSize: '12px' }}
-                        >
-                          &darr;
-                        </button>
-                        <button
-                          type="button"
-                          className="button secondary small-button"
-                          onClick={() => handleOpenEdit(lvl)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="button secondary small-button"
-                          style={{ color: '#dc2626' }}
-                          onClick={() => handleDelete(lvl)}
-                          title="Delete level"
-                        >
-                          Delete
-                        </button>
+                        {canUpdate && (
+                          <>
+                            <button
+                              type="button"
+                              className="button secondary small-button"
+                              disabled={lvl.level <= 1 || isUpdating}
+                              onClick={() => handleMoveRank(lvl, 'up')}
+                              title="Shift rank up (higher authority)"
+                              style={{ padding: '3px 7px', fontSize: '12px' }}
+                            >
+                              &uarr;
+                            </button>
+                            <button
+                              type="button"
+                              className="button secondary small-button"
+                              disabled={lvl.level >= levels.length || isUpdating}
+                              onClick={() => handleMoveRank(lvl, 'down')}
+                              title="Shift rank down (lower authority)"
+                              style={{ padding: '3px 7px', fontSize: '12px' }}
+                            >
+                              &darr;
+                            </button>
+                            <button
+                              type="button"
+                              className="button secondary small-button"
+                              onClick={() => handleOpenEdit(lvl)}
+                            >
+                              Edit
+                            </button>
+                          </>
+                        )}
+                        {canDelete && (
+                          <button
+                            type="button"
+                            className="button secondary small-button"
+                            style={{ color: '#dc2626' }}
+                            onClick={() => handleDelete(lvl)}
+                            title="Delete level"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

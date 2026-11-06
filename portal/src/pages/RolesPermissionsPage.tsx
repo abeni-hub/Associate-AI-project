@@ -643,13 +643,20 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                 <Icon name="shield" size={13} /> Scope: <b>{activeRole.scope}</b>
               </span>
 
-              {!activeRole.isSystem && (
+              {!activeRole.isSystem && canManageRoles && (
                 <div style={{ display: 'inline-flex', gap: '6px' }}>
                   <button
                     type="button"
                     className="button secondary small-button"
                     onClick={() => {
-                      setEditingRole(activeRole);
+                      const detailData: any = activeRoleDetail?.data?.data || activeRoleDetail?.data;
+                      const fullRole = {
+                        ...activeRole,
+                        navigation_item_ids: detailData?.navigation_item_ids || [],
+                        permission_ids: effectivePermissionIds,
+                        permissions: detailData?.permissions || [],
+                      };
+                      setEditingRole(fullRole as any);
                       setModalOpen(true);
                     }}
                   >
@@ -1128,7 +1135,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                           return (
                             <div
                               key={perm.id}
-                              onClick={() => !isSuperAdmin && handleToggleDomainPermission(perm.id)}
+                              onClick={() => !isSuperAdmin && canManageRoles && handleToggleDomainPermission(perm.id)}
                               style={{
                                 display: 'flex',
                                 alignItems: 'flex-start',
@@ -1137,7 +1144,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                                 borderRadius: '6px',
                                 background: isGranted ? '#f0fdf4' : '#ffffff',
                                 border: `1px solid ${isGranted ? '#bbf7d0' : '#f1f5f9'}`,
-                                cursor: isSuperAdmin ? 'default' : 'pointer',
+                                cursor: (isSuperAdmin || !canManageRoles) ? 'default' : 'pointer',
                                 transition: 'all 0.15s ease',
                               }}
                             >

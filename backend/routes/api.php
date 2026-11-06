@@ -85,7 +85,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
     // Authenticated Administration Endpoints
     Route::middleware(['auth:sanctum', 'account.active'])->group(function () {
-        // Dynamic Sidebar Navigation
+        // Dynamic Navigation Items
+        Route::get('/navigation/items', [NavigationController::class, 'index'])
+            ->name('navigation.items');
         Route::get('/navigation/sidebar', [NavigationController::class, 'sidebar'])
             ->name('navigation.sidebar');
 
@@ -109,6 +111,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::put('/{role}/permissions', [RoleController::class, 'updatePermissions'])
                 ->middleware('permission:roles.manage')
                 ->name('update-permissions');
+            Route::put('/{role}/navigation-items', [RoleController::class, 'updateNavigationItems'])
+                ->middleware('permission:roles.manage')
+                ->name('update-navigation-items');
         });
 
         Route::get('/permissions', [PermissionController::class, 'index'])

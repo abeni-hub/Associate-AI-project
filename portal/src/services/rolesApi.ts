@@ -164,6 +164,43 @@ export const rolesApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [{ type: 'Role', id: 'LIST' }],
     }),
+
+    getNavigationItems: builder.query<ApiResponse<any[]>, void>({
+      query: () => ({
+        url: '/navigation/items',
+        method: 'GET',
+      }),
+      transformResponse: (response: any) => {
+        if (!response) return { success: true, message: '', data: [] };
+        let list = response.data !== undefined ? response.data : response;
+        if (list && list.data && Array.isArray(list.data)) {
+          list = list.data;
+        }
+        if (!Array.isArray(list)) {
+          list = [];
+        }
+        return {
+          success: response.success ?? true,
+          message: response.message || '',
+          data: list,
+        };
+      },
+    }),
+
+    updateRoleNavigationItems: builder.mutation<ApiResponse<RoleDetailItem>, {
+      roleId: number | string;
+      navigation_items: any[];
+    }>({
+      query: ({ roleId, navigation_items }) => ({
+        url: `/roles/${roleId}/navigation-items`,
+        method: 'PUT',
+        body: { navigation_items },
+      }),
+      invalidatesTags: (_result, _error, { roleId }) => [
+        { type: 'Role', id: roleId },
+        { type: 'Role', id: 'LIST' },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -172,7 +209,9 @@ export const {
   useGetRolesQuery,
   useGetRoleByIdQuery,
   useGetPermissionsQuery,
+  useGetNavigationItemsQuery,
   useUpdateRolePermissionsMutation,
+  useUpdateRoleNavigationItemsMutation,
   useCreateRoleMutation,
   useUpdateRoleMutation,
   useDeleteRoleMutation,

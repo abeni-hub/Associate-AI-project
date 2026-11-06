@@ -39,7 +39,11 @@ class UserResource extends JsonResource
                 'id' => $this->role->id,
                 'name' => $this->role->name,
                 'slug' => $this->role->slug,
+                'scope_level' => $this->role->scope_level ?? 'global',
             ] : null,
+            'permissions' => $this->isSuperAdmin()
+                ? ['*']
+                : ($this->role ? $this->role->permissions()->pluck('key')->all() : []),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

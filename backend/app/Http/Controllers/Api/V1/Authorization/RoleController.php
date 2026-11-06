@@ -53,7 +53,7 @@ class RoleController extends Controller
      */
     public function show(Role $role): JsonResponse
     {
-        $role->load('permissions');
+        $role->load(['permissions', 'navigationItems']);
 
         return ApiResponse::success(
             data: new RoleResource($role),
@@ -106,22 +106,11 @@ class RoleController extends Controller
                 $role->permissions()->sync($validated['permission_ids']);
             }
 
-            if (!empty($validated['navigation_items']) && method_exists($role, 'navigationItems')) {
-                $navQueries = array_map(fn ($item) => (string) $item, $validated['navigation_items']);
-                $navIds = NavigationItem::where(function ($q) use ($navQueries) {
-                    $q->whereIn('id', array_filter($navQueries, 'is_numeric'));
-                    foreach ($navQueries as $navKey) {
-                        $trimmed = trim($navKey, '/');
-                        $q->orWhere('route', 'like', "%{$trimmed}%");
-                    }
-                })->pluck('id');
-
-                if ($navIds->isNotEmpty()) {
-                    $role->navigationItems()->sync($navIds);
-                }
+            if (isset($validated['navigation_items'])) {
+                $this->syncNavigationItems($role, $validated['navigation_items']);
             }
 
-            $role->load('permissions');
+            $role->load(['permissions', 'navigationItems']);
             return $role;
         });
 
@@ -160,24 +149,15 @@ class RoleController extends Controller
                 $role->permissions()->sync($validated['permission_ids']);
             }
 
-            if (isset($validated['navigation_items']) && method_exists($role, 'navigationItems')) {
-                $navQueries = array_map(fn ($item) => (string) $item, $validated['navigation_items']);
-                $navIds = NavigationItem::where(function ($q) use ($navQueries) {
-                    $q->whereIn('id', array_filter($navQueries, 'is_numeric'));
-                    foreach ($navQueries as $navKey) {
-                        $trimmed = trim($navKey, '/');
-                        $q->orWhere('route', 'like', "%{$trimmed}%");
-                    }
-                })->pluck('id');
-
-                $role->navigationItems()->sync($navIds);
+            if (isset($validated['navigation_items'])) {
+                $this->syncNavigationItems($role, $validated['navigation_items']);
             }
 
-            $role->load('permissions');
+            $role->load(['permissions', 'navigationItems']);
         });
 
         return ApiResponse::success(
-            data: new RoleResource($role->fresh('permissions')),
+            data: new RoleResource($role->fresh(['permissions', 'navigationItems'])),
             message: 'Role updated successfully.'
         );
     }
@@ -229,12 +209,101 @@ class RoleController extends Controller
 
         DB::transaction(function () use ($role, $request) {
             $role->permissions()->sync($request->validated('permission_ids'));
-            $role->load('permissions');
+            $role->load(['permissions', 'navigationItems']);
         });
 
         return ApiResponse::success(
             data: new RoleResource($role),
             message: 'Role permissions updated successfully.'
         );
+    }
+
+    /**
+     * Update navigation items assigned to a role.
+     */
+    public function updateNavigationItems(Request $request, Role $role): JsonResponse
+    {
+        $validated = $request->validate([
+            'navigation_items' => ['required', 'array'],
+        ]);
+
+        DB::transaction(function () use ($role, $validated) {
+            $this->syncNavigationItems($role, $validated['navigation_items']);
+            $role->load(['permissions', 'navigationItems']);
+        });
+
+        return ApiResponse::success(
+            data: new RoleResource($role->fresh(['permissions', 'navigationItems'])),
+            message: 'Role navigation items updated successfully.'
+        );
+    }
+
+    /**
+     * Map arbitrary navigation identifiers (integers, routes, aliases) to navigation_items IDs and sync.
+     */
+    private function syncNavigationItems(Role $role, array $navInputs): void
+    {
+        if (!method_exists($role, 'navigationItems')) {
+            return;
+        }
+
+        $navIds = collect();
+
+        // 1. Direct integer IDs
+        $numericIds = array_filter($navInputs, fn ($i) => is_numeric($i));
+        if (!empty($numericIds)) {
+            $navIds = $navIds->merge(NavigationItem::whereIn('id', array_map('intval', $numericIds))->pluck('id'));
+        }
+
+        // 2. String keys, routes, or aliases
+        $stringKeys = array_filter($navInputs, fn ($i) => !is_numeric($i) && is_string($i));
+        if (!empty($stringKeys)) {
+            $aliasMap = [
+                'overview' => '/admin/overview',
+                'dashboard' => '/admin/overview',
+                'offices' => '/admin/subcities',
+                'subcities' => '/admin/subcities',
+                'subcity' => '/admin/subcities',
+                'directory' => '/admin/subcities',
+                'levels' => '/admin/levels',
+                'accounts' => '/admin/accounts',
+                'users' => '/admin/accounts',
+                'staff' => '/admin/accounts',
+                'roles' => '/admin/roles',
+                'permissions' => '/admin/roles',
+                'services' => '/admin/services',
+                'routes' => '/admin/routes',
+                'service_steps' => '/admin/routes',
+                'steps' => '/admin/routes',
+                'feedback' => '/admin/feedback',
+                'feedbacks' => '/admin/feedback',
+                'qr' => '/admin/qr',
+                'qr_codes' => '/admin/qr',
+                'news' => '/admin/news',
+                'events' => '/admin/news',
+                'cms' => '/admin/cms',
+                'landing_page' => '/admin/cms',
+                'activity' => '/admin/activity',
+                'audit' => '/admin/activity',
+                'audit_logs' => '/admin/activity',
+            ];
+
+            foreach ($stringKeys as $key) {
+                $normalized = strtolower(trim((string) $key, '/'));
+                $targetRoute = $aliasMap[$normalized] ?? null;
+
+                $matches = NavigationItem::where(function ($q) use ($normalized, $targetRoute) {
+                    if ($targetRoute) {
+                        $q->where('route', $targetRoute);
+                    }
+                    $q->orWhere('route', 'like', "%{$normalized}%")
+                      ->orWhere('required_permission', 'like', "%{$normalized}%");
+                })->pluck('id');
+
+                $navIds = $navIds->merge($matches);
+            }
+        }
+
+        $role->navigationItems()->sync($navIds->unique()->values()->all());
     }
 }
