@@ -27,9 +27,10 @@ class RoleController extends Controller
 
         if ($request->filled('search')) {
             $search = (string) $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                    ->orWhere('slug', 'ilike', "%{$search}%");
+            $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->where(function ($q) use ($search, $like) {
+                $q->where('name', $like, "%{$search}%")
+                    ->orWhere('slug', $like, "%{$search}%");
             });
         }
 
