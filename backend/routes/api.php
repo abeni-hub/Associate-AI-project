@@ -177,8 +177,6 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         // Service Administrative Management
         Route::prefix('services')->name('services.')->group(function () {
-            Route::get('/', [ServiceController::class, 'index'])
-                ->name('index');
             Route::post('/', [ServiceController::class, 'store'])
                 ->middleware('permission:services.create')
                 ->name('store');

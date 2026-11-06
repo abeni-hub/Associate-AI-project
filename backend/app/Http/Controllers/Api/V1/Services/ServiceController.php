@@ -34,7 +34,7 @@ class ServiceController extends Controller
             ->withCount(['subservices', 'requiredDocuments', 'offeringOrganizations', 'steps']);
 
         // Public citizens only see active services unless caller has management rights
-        $user = $request->user();
+        $user = $request->user() ?? auth('sanctum')->user();
         if (! $user || ! $user->hasPermission('services.update')) {
             $query->where('is_active', true);
         } elseif ($request->has('is_active')) {
@@ -96,7 +96,7 @@ class ServiceController extends Controller
     /**
      * Show detailed service profile (lookup by ID or unique code slug).
      */
-    public function show(string $identifier): JsonResponse
+    public function show(Request $request, string $identifier): JsonResponse
     {
         $query = Service::with([
             'parent',
@@ -116,6 +116,16 @@ class ServiceController extends Controller
                 message: 'Service not found.',
                 statusCode: 404
             );
+        }
+
+        if (! $service->is_active) {
+            $user = $request->user() ?? auth('sanctum')->user();
+            if (! $user || ! $user->hasPermission('services.update')) {
+                return ApiResponse::error(
+                    message: 'Service not found.',
+                    statusCode: 404
+                );
+            }
         }
 
         return ApiResponse::success(

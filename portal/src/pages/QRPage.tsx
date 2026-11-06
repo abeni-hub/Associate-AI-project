@@ -4,12 +4,15 @@ import { usePermissions } from '../hooks/usePermissions';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { StatusPill } from '../components/shared/StatusPill';
+import { MetricCard } from '../components/shared/MetricCard';
+import { SearchBox } from '../components/shared/SearchBox';
 import { QRPattern } from '../components/shared/QRPattern';
 import {
   useGetQrCodesQuery,
   useDeleteQrCodeMutation,
   type QrCodeItem,
 } from '../services/qrCodesApi';
+import { useGetOrganizationsQuery } from '../services/organizationsApi';
 
 export interface QRPageProps {
   onGenerate?: () => void;
@@ -26,8 +29,12 @@ export const QRPage: React.FC<QRPageProps> = ({
 
   const [copied, setCopied] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [search, setSearch] = useState('');
+  const [officeFilter, setOfficeFilter] = useState('All offices');
+  const [statusFilter, setStatusFilter] = useState('All statuses');
 
   const { data: apiQrResponse, isLoading } = useGetQrCodesQuery();
+  const { data: orgsResponse } = useGetOrganizationsQuery({ per_page: 100 });
   const [deleteQrTrigger] = useDeleteQrCodeMutation();
 
   const qrList: QrCodeItem[] = useMemo(() => {
@@ -37,13 +44,40 @@ export const QRPage: React.FC<QRPageProps> = ({
     return [];
   }, [apiQrResponse]);
 
+  const organizations = useMemo(() => {
+    if (!orgsResponse?.data) return [];
+    if (Array.isArray(orgsResponse.data)) return orgsResponse.data;
+    if (Array.isArray((orgsResponse.data as any).data)) return (orgsResponse.data as any).data;
+    return [];
+  }, [orgsResponse]);
+
+  // Filtered list based on search, office, and status filters
+  const filtered = useMemo(() => {
+    return qrList.filter((qr) => {
+      const matchesSearch = `${qr.label} ${qr.code} ${qr.organization?.name || ''} ${qr.target_url}`
+        .toLowerCase()
+        .includes(search.toLowerCase());
+
+      const matchesOffice =
+        officeFilter === 'All offices' ||
+        (qr.organization?.name && qr.organization.name === officeFilter) ||
+        (qr.organization?.code && qr.organization.code === officeFilter);
+
+      const matchesStatus =
+        statusFilter === 'All statuses' ||
+        (statusFilter === 'Active' ? qr.status === 'active' : qr.status !== 'active');
+
+      return matchesSearch && matchesOffice && matchesStatus;
+    });
+  }, [qrList, search, officeFilter, statusFilter]);
+
   const activeQr = useMemo(() => {
     if (selectedId) {
       const match = qrList.find((q) => q.id === selectedId);
       if (match) return match;
     }
-    return qrList[0] || null;
-  }, [qrList, selectedId]);
+    return filtered[0] || qrList[0] || null;
+  }, [filtered, qrList, selectedId]);
 
   const activeCodeId = activeQr?.code || '—';
   const targetUrl = activeQr?.target_url || `${window.location.origin}/#feedback`;
@@ -51,7 +85,12 @@ export const QRPage: React.FC<QRPageProps> = ({
   const officeName =
     activeQr?.organization?.name ||
     portal.session?.user?.organization?.name ||
-    'PUBLIC SERVICE BUREAU';
+    'Public Service Bureau';
+
+  // Metrics
+  const activeCount = qrList.filter((q) => q.status === 'active').length;
+  const totalScans = qrList.reduce((acc, q) => acc + (q.scan_count || 0), 0);
+  const bureauCount = new Set(qrList.map((q) => q.organization_id)).size;
 
   const onGenerate =
     propOnGenerate ||
@@ -78,7 +117,7 @@ export const QRPage: React.FC<QRPageProps> = ({
 
   const handleDelete = async (e: React.MouseEvent, id: number, code: string) => {
     e.stopPropagation();
-    if (window.confirm(`Are you sure you want to delete QR poster ${code}?`)) {
+    if (window.confirm(`Are you sure you want to delete QR poster "${code}"?`)) {
       try {
         await deleteQrTrigger(id).unwrap();
         if (selectedId === id) setSelectedId(null);
@@ -93,10 +132,45 @@ export const QRPage: React.FC<QRPageProps> = ({
       <PageHeading
         eyebrow="CITIZEN ACCESS"
         title="Feedback QR codes"
-        subtitle="Help citizens open the right feedback form from a poster or service desk."
+        subtitle="Help citizens open the right feedback form from a physical poster or service desk."
         action={canManageQrCodes ? 'Generate QR code' : undefined}
         onAction={onGenerate}
+        secondary="Export list"
+        onSecondary={() => window.alert('QR poster access directory exported.')}
       />
+
+      {/* Metrics Grid matching other portal pages */}
+      <div className="metric-grid compact-metrics">
+        <MetricCard
+          icon="qr"
+          label="Total posters"
+          value={isLoading && !apiQrResponse ? '...' : qrList.length}
+          note="Configured citizen touchpoints"
+          tone="teal"
+        />
+        <MetricCard
+          icon="check"
+          label="Active posters"
+          value={isLoading && !apiQrResponse ? '...' : activeCount}
+          note="Live scannable display tokens"
+          tone="sage"
+        />
+        <MetricCard
+          icon="message"
+          label="Citizen scans"
+          value={isLoading && !apiQrResponse ? '...' : totalScans}
+          note="Total feedback visits recorded"
+          trend={totalScans > 0 ? 'Live' : undefined}
+          tone="gold"
+        />
+        <MetricCard
+          icon="building"
+          label="Connected offices"
+          value={isLoading && !apiQrResponse ? '...' : bureauCount}
+          note="Jurisdictions with active posters"
+          tone="blue"
+        />
+      </div>
 
       {isLoading && !apiQrResponse ? (
         <div
@@ -119,9 +193,10 @@ export const QRPage: React.FC<QRPageProps> = ({
         </div>
       ) : (
         <>
+          {/* Active Poster Featured Card */}
           <div className="qr-hero panel">
             <div className="qr-hero-copy">
-              <span className="panel-eyebrow">YOUR OFFICE · {officeName.toUpperCase()}</span>
+              <span className="panel-eyebrow">OFFICE DISPLAY · {officeName.toUpperCase()}</span>
               <h2>
                 Make your voice
                 <br />
@@ -129,7 +204,7 @@ export const QRPage: React.FC<QRPageProps> = ({
               </h2>
               <p>
                 {activeQr
-                  ? `Active poster: ${activeQr.label}. Place this code at your service desk so citizens can scan to submit feedback.`
+                  ? `Active poster: ${activeQr.label}. Place this physical token at your service reception desk so citizens can scan and review official procedures.`
                   : 'No QR code generated yet for this office. Click Generate QR code above to create a scannable citizen poster.'}
               </p>
               <div className="qr-hero-actions">
@@ -149,8 +224,6 @@ export const QRPage: React.FC<QRPageProps> = ({
                   className="button secondary"
                   onClick={() => {
                     onCopy();
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 1800);
                   }}
                 >
                   <Icon name="external" size={15} /> {copied ? 'Link copied' : 'Copy feedback link'}
@@ -167,82 +240,77 @@ export const QRPage: React.FC<QRPageProps> = ({
                 <small>{activeQr?.code || 'Scan to leave feedback'}</small>
               </div>
               <span className="qr-live">
-                <i /> {activeQr ? 'ACTIVE' : 'READY'}
+                <i /> {activeQr?.status === 'active' ? 'ACTIVE' : activeQr ? 'INACTIVE' : 'READY'}
               </span>
             </div>
             <div className="qr-hero-glow" />
           </div>
 
-          <div className="qr-stats-grid">
-            <div className="panel qr-stat">
-              <span className="metric-icon teal">
-                <Icon name="qr" />
-              </span>
-              <span>
-                <b>{activeCodeId}</b>
-                <small>{activeQr ? activeQr.label : 'No active QR code'}</small>
-              </span>
-              <StatusPill>{activeQr ? activeQr.status : 'Not generated'}</StatusPill>
-            </div>
-            <div className="panel qr-stat">
-              <span className="metric-icon gold">
-                <Icon name="message" />
-              </span>
-              <span>
-                <b>{scanCount} scans</b>
-                <small>Total citizen visits recorded</small>
-              </span>
-              {activeQr && <em>↗ Live</em>}
-            </div>
-            <div className="panel qr-stat">
-              <span className="metric-icon sage">
-                <Icon name="globe" />
-              </span>
-              <span>
-                <b>Public feedback form</b>
-                <small>{targetUrl.replace(/^https?:\/\//, '')}</small>
-              </span>
-              <button
-                className="row-more"
-                aria-label="Copy feedback link"
-                onClick={() => {
-                  onCopy();
-                  setCopied(true);
-                }}
-              >
-                <Icon name="external" size={16} />
-              </button>
-            </div>
-          </div>
-
-          {/* Configured Posters List Panel */}
-          {qrList.length > 0 && (
-            <section className="panel table-panel" style={{ marginTop: '24px' }}>
-              <div className="table-toolbar">
-                <div>
-                  <h2>Configured QR posters ({qrList.length})</h2>
-                  <p>Click any poster to preview and print its physical display token.</p>
-                </div>
+          {/* Configured Posters List Panel matching table-panel on other pages */}
+          <section className="panel table-panel" style={{ marginTop: '24px' }}>
+            <div className="table-toolbar">
+              <div>
+                <h2>Configured QR posters ({filtered.length})</h2>
+                <p>Physical display tokens and scannable citizen touchpoints across jurisdictions.</p>
+              </div>
+              <div className="toolbar-tools">
+                <SearchBox value={search} onChange={setSearch} placeholder="Search posters or codes" />
+                <select
+                  className="filter-select"
+                  value={officeFilter}
+                  onChange={(e) => setOfficeFilter(e.target.value)}
+                  aria-label="Filter by office"
+                >
+                  <option>All offices</option>
+                  {organizations.map((org) => (
+                    <option key={org.id} value={org.name}>
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="filter-select"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  aria-label="Filter by status"
+                >
+                  <option>All statuses</option>
+                  <option>Active</option>
+                  <option>Inactive</option>
+                </select>
                 {canManageQrCodes && (
                   <button className="button secondary small-button" onClick={onGenerate}>
                     <Icon name="plus" size={14} /> Add poster
                   </button>
                 )}
               </div>
-              <div className="table-scroll">
-                <table className="data-table">
-                  <thead>
+            </div>
+            <div className="table-scroll">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '220px' }}>CODE & LABEL</th>
+                    <th>OFFICE / BUREAU</th>
+                    <th>DESTINATION TARGET URL</th>
+                    <th style={{ width: '90px' }}>SCANS</th>
+                    <th style={{ width: '100px' }}>STATUS</th>
+                    <th style={{ width: '140px', textAlign: 'right' }}>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.length === 0 ? (
                     <tr>
-                      <th style={{ width: '220px' }}>CODE & LOCATION</th>
-                      <th>OFFICE / BUREAU</th>
-                      <th>TARGET URL</th>
-                      <th style={{ width: '90px' }}>SCANS</th>
-                      <th style={{ width: '100px' }}>STATUS</th>
-                      <th style={{ width: '140px', textAlign: 'right' }}>ACTIONS</th>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '36px 16px', color: '#64748b' }}>
+                        <b>No QR posters found</b>
+                        <p style={{ margin: '4px 0 0', fontSize: '12px' }}>
+                          {qrList.length === 0
+                            ? 'No posters have been generated yet. Click "Generate QR code" above to create one.'
+                            : 'No posters match your current search or filters.'}
+                        </p>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {qrList.map((qr) => {
+                  ) : (
+                    filtered.map((qr) => {
                       const isSelected = activeQr?.id === qr.id;
                       return (
                         <tr
@@ -251,6 +319,7 @@ export const QRPage: React.FC<QRPageProps> = ({
                           onClick={() => setSelectedId(qr.id)}
                           style={{
                             background: isSelected ? 'rgba(0, 72, 90, 0.05)' : undefined,
+                            cursor: 'pointer',
                           }}
                         >
                           <td>
@@ -260,19 +329,19 @@ export const QRPage: React.FC<QRPageProps> = ({
                             </p>
                           </td>
                           <td>
-                            <b>{qr.organization?.name || 'Bureau'}</b>
+                            <b>{qr.organization?.name || 'Public Bureau'}</b>
                             <small style={{ display: 'block', color: '#94a3b8' }}>
                               {qr.organization?.code || 'bureau'}
                             </small>
                           </td>
-                          <td style={{ fontSize: '12px', color: '#475569', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <td style={{ fontSize: '12px', color: '#475569', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {qr.target_url}
                           </td>
                           <td>
                             <b>{qr.scan_count ?? 0}</b>
                           </td>
                           <td>
-                            <StatusPill>{qr.status}</StatusPill>
+                            <StatusPill>{qr.status === 'active' ? 'Active' : 'Inactive'}</StatusPill>
                           </td>
                           <td style={{ textAlign: 'right' }}>
                             <div style={{ display: 'inline-flex', gap: '6px' }}>
@@ -303,58 +372,14 @@ export const QRPage: React.FC<QRPageProps> = ({
                           </td>
                         </tr>
                       );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )}
-
-          <div className="panel qr-instructions" style={{ marginTop: '24px' }}>
-            <div>
-              <span className="panel-eyebrow">A SIMPLE WAY TO LISTEN</span>
-              <h2>From scan to response</h2>
-              <p>
-                Your QR code takes citizens to a guided feedback form. Responses appear in your bureau inbox and the sub-city dashboard.
-              </p>
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
-            <div className="qr-flow">
-              <div>
-                <span>01</span>
-                <Icon name="qr" />
-                <b>Citizen scans</b>
-                <small>At your office</small>
-              </div>
-              <i />
-              <div>
-                <span>02</span>
-                <Icon name="message" />
-                <b>They share</b>
-                <small>Feedback in minutes</small>
-              </div>
-              <i />
-              <div>
-                <span>03</span>
-                <Icon name="activity" />
-                <b>Your team responds</b>
-                <small>In the admin inbox</small>
-              </div>
-            </div>
-          </div>
+          </section>
         </>
       )}
-
-      <div className="tip-banner">
-        <span className="tip-icon">
-          <Icon name="shield" size={17} />
-        </span>
-        <span>
-          <b>Keep printed codes easy to find</b>
-          <small>
-            Place the QR poster near the exit or service desk, with clear instructions in the languages your citizens use.
-          </small>
-        </span>
-      </div>
     </>
   );
 };

@@ -57,7 +57,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
           ? Array.from({ length: s.required_documents_count }, (_, i) => `Required Document #${i + 1}`)
           : [],
         bureaus: s.offering_organizations_count ?? 0,
-        published: s.is_active,
+        published: Boolean(s.is_active),
         customerExpectations: s.fee_amount
           ? `Standard fee: ${s.fee_amount} ${s.fee_currency}`
           : 'Free public citizen service.',
@@ -166,10 +166,11 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
       const target = items.find((i) => i.id === id);
       if (target) {
         setTogglingId(id);
+        const nextState = !target.published;
         try {
           await updateServiceTrigger({
             id,
-            is_active: !target.published,
+            is_active: nextState,
           }).unwrap();
         } catch (err: any) {
           window.alert(err?.data?.message || 'Failed to update service active status.');
