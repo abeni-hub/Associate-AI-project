@@ -158,18 +158,23 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
       });
     });
 
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
   const onTogglePublish =
     propOnTogglePublish ||
     (async (id: number) => {
       const target = items.find((i) => i.id === id);
       if (target) {
+        setTogglingId(id);
         try {
           await updateServiceTrigger({
             id,
             is_active: !target.published,
           }).unwrap();
-        } catch {
-          portal.onToggleServicePublish?.(id);
+        } catch (err: any) {
+          window.alert(err?.data?.message || 'Failed to update service active status.');
+        } finally {
+          setTogglingId(null);
         }
       }
     });
@@ -237,11 +242,26 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
         </div>
       </div>
       <section className="service-list">
-        {isLoading && (
-          <div className="panel" style={{ padding: '24px', textAlign: 'center' }}>
-            <p>Loading live service standards from API...</p>
+        {isLoading && !apiServices ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '48px 24px',
+              gap: '12px',
+            }}
+          >
+            <div className="loading-spinner" />
+            <p style={{ margin: 0, color: '#00485a', fontWeight: 600, fontSize: '14px' }}>
+              Loading service standards...
+            </p>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>
+              Connecting to public service catalog
+            </p>
           </div>
-        )}
+        ) : null}
         {filtered.map((item) => (
           <article className="panel service-card" key={item.id}>
             <div className="service-card-main">
@@ -255,7 +275,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                     {item.serviceType || 'Main service'}
                     {item.parentService ? ` · ${item.parentService}` : ''}
                   </span>
-                  <StatusPill>{item.published ? 'Published' : 'Draft'}</StatusPill>
+                  <StatusPill>{item.published ? 'Active' : 'Inactive'}</StatusPill>
                 </div>
                 <h2>{item.name}</h2>
                 <p>{item.description}</p>
@@ -298,13 +318,38 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                 </button>
               )}
               {canUpdate && (
-                <button
-                  className={`publish-toggle${item.published ? ' is-on' : ''}`}
-                  aria-label={item.published ? 'Unpublish service' : 'Publish service'}
-                  onClick={() => onTogglePublish(item.id)}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '2px',
+                  }}
                 >
-                  <i />
-                </button>
+                  <button
+                    className={`publish-toggle${item.published ? ' is-on' : ''}`}
+                    title={item.published ? 'Deactivate service (toggle off)' : 'Activate service (toggle on)'}
+                    aria-label={item.published ? 'Deactivate service' : 'Activate service'}
+                    disabled={togglingId === item.id}
+                    onClick={() => onTogglePublish(item.id)}
+                    style={{
+                      opacity: togglingId === item.id ? 0.6 : 1,
+                      cursor: togglingId === item.id ? 'wait' : 'pointer',
+                    }}
+                  >
+                    <i />
+                  </button>
+                  <small
+                    style={{
+                      fontSize: '9.5px',
+                      color: item.published ? '#15803d' : '#94a3b8',
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    {item.published ? 'ACTIVE' : 'INACTIVE'}
+                  </small>
+                </div>
               )}
             </div>
             <div className="service-expectation">

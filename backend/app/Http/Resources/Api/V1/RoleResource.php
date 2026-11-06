@@ -20,6 +20,7 @@ class RoleResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'slug' => $this->slug,
+            'scope_level' => $this->scope_level ?? 'global',
             'description' => $this->description,
             'is_system' => (bool) $this->is_system,
             'is_active' => (bool) $this->is_active,

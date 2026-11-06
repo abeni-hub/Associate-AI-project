@@ -94,9 +94,18 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/', [RoleController::class, 'index'])
                 ->middleware('permission:roles.view')
                 ->name('index');
+            Route::post('/', [RoleController::class, 'store'])
+                ->middleware('permission:roles.manage')
+                ->name('store');
             Route::get('/{role}', [RoleController::class, 'show'])
                 ->middleware('permission:roles.view')
                 ->name('show');
+            Route::put('/{role}', [RoleController::class, 'update'])
+                ->middleware('permission:roles.manage')
+                ->name('update');
+            Route::delete('/{role}', [RoleController::class, 'destroy'])
+                ->middleware('permission:roles.manage')
+                ->name('destroy');
             Route::put('/{role}/permissions', [RoleController::class, 'updatePermissions'])
                 ->middleware('permission:roles.manage')
                 ->name('update-permissions');
@@ -168,6 +177,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         // Service Administrative Management
         Route::prefix('services')->name('services.')->group(function () {
+            Route::get('/', [ServiceController::class, 'index'])
+                ->name('index');
             Route::post('/', [ServiceController::class, 'store'])
                 ->middleware('permission:services.create')
                 ->name('store');

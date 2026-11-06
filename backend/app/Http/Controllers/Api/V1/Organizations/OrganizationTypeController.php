@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Organizations;
 
+use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Models\OrganizationType;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\OrganizationTypeResource;
@@ -129,6 +130,20 @@ class OrganizationTypeController extends Controller
         }
 
         DB::transaction(function () use ($organizationType) {
+            $trashedOrgIds = Organization::withTrashed()
+                ->where('organization_type_id', $organizationType->id)
+                ->pluck('id');
+
+            if ($trashedOrgIds->isNotEmpty()) {
+                Organization::withTrashed()
+                    ->whereIn('parent_organization_id', $trashedOrgIds)
+                    ->update(['parent_organization_id' => null]);
+
+                Organization::withTrashed()
+                    ->whereIn('id', $trashedOrgIds)
+                    ->forceDelete();
+            }
+
             $organizationType->delete();
             $this->resequenceAndNormalize();
         });
