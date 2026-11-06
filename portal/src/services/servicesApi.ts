@@ -173,6 +173,27 @@ export const servicesApi = baseApi.injectEndpoints({
         { type: 'Service', id },
         { type: 'Service', id: 'LIST' },
       ],
+      async onQueryStarted({ id, ...patch }, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          servicesApi.util.updateQueryData('getServices', undefined, (draft) => {
+            if (draft?.data && Array.isArray(draft.data)) {
+              const item = draft.data.find((s) => s.id === id);
+              if (item) {
+                if (patch.is_active !== undefined) {
+                  item.is_active = patch.is_active;
+                }
+                if (patch.name !== undefined) item.name = patch.name;
+                if (patch.description !== undefined) item.description = patch.description;
+              }
+            }
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
     }),
 
     deleteService: builder.mutation<ApiResponse<null>, number>({

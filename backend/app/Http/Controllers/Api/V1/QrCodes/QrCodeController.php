@@ -34,8 +34,8 @@ class QrCodeController extends Controller
 
         $qrCodes = $query->paginate(20);
 
-        return ApiResponse::success(
-            data: $qrCodes,
+        return ApiResponse::paginated(
+            paginator: $qrCodes,
             message: 'QR codes retrieved successfully.'
         );
     }

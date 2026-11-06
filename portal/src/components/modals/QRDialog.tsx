@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { usePortal } from '../../context';
 import { Icon } from '../shared/Icon';
 import { StatusPill } from '../shared/StatusPill';
 import { QRPattern } from '../shared/QRPattern';
 import type { QRModalConfig } from '../../types/portal.types';
 import { useCreateQrCodeMutation } from '../../services/qrCodesApi';
-import { useGetOrganizationsQuery } from '../../services/organizationsApi';
+import { useGetOrganizationsQuery, type OrganizationItem } from '../../services/organizationsApi';
 
 export interface QRDialogProps {
   modal?: QRModalConfig;
@@ -22,46 +22,78 @@ export const QRDialog: React.FC<QRDialogProps> = ({
   const existingQr = modal?.qr;
   const userOrg = portal.session?.user?.organization;
 
-  const { data: orgsData } = useGetOrganizationsQuery();
+  const { data: orgsData } = useGetOrganizationsQuery({ per_page: 100 });
   const [createQrTrigger, { isLoading: isCreating }] = useCreateQrCodeMutation();
 
-  const organizations = orgsData?.data || [];
-  const defaultOrgId = userOrg?.id || (organizations[0]?.id ?? 2);
+  const organizations: OrganizationItem[] = useMemo(() => {
+    if (!orgsData?.data) return [];
+    if (Array.isArray(orgsData.data)) return orgsData.data;
+    if (Array.isArray((orgsData.data as any).data)) return (orgsData.data as any).data;
+    return [];
+  }, [orgsData]);
 
-  const [orgId, setOrgId] = useState<number>(defaultOrgId);
+  const [selectedOrgId, setSelectedOrgId] = useState<number | null>(userOrg?.id || null);
+  const effectiveOrgId = selectedOrgId || organizations[0]?.id || 1;
+
+  const activeOrg = useMemo(() => {
+    return organizations.find((o) => o.id === effectiveOrgId) || userOrg || null;
+  }, [organizations, effectiveOrgId, userOrg]);
+
   const [label, setLabel] = useState(existingQr?.label || 'Public Service Reception Desk');
   const [code, setCode] = useState(
     existingQr?.code ||
-      `QR-${(userOrg?.code || 'BUREAU').toUpperCase().replace(/[^A-Z0-9]/g, '')}-${Date.now().toString().slice(-4)}`
+      `QR-${(activeOrg?.code || userOrg?.code || 'OFFICE').toUpperCase().replace(/[^A-Z0-9]/g, '')}-${Date.now().toString().slice(-4)}`
   );
   const [targetUrl, setTargetUrl] = useState(
     existingQr?.target_url || `${window.location.origin}/#feedback`
   );
+  const [status, setStatus] = useState<'active' | 'inactive'>(
+    (existingQr?.status as 'active' | 'inactive') || 'active'
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleOrgChange = (newOrgId: number) => {
+    setSelectedOrgId(newOrgId);
+    const org = organizations.find((o) => o.id === newOrgId);
+    if (org) {
+      const cleanPrefix = (org.code || 'OFFICE').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      setCode(`QR-${cleanPrefix}-${Date.now().toString().slice(-4)}`);
+      setTargetUrl(`${window.location.origin}/#feedback?org=${encodeURIComponent(org.code)}`);
+    }
+  };
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!label.trim()) {
+    const cleanLabel = label.trim();
+    const cleanCode = code.trim().toUpperCase().replace(/[^A-Za-z0-9\-]/g, '');
+    const cleanUrl = targetUrl.trim();
+
+    if (!effectiveOrgId) {
+      setErrorMessage('Please select an organization for this QR poster.');
+      return;
+    }
+    if (!cleanLabel) {
       setErrorMessage('Please enter a descriptive label for the QR poster.');
       return;
     }
-    if (!code.trim()) {
-      setErrorMessage('Please enter a unique QR code identifier.');
+    if (!cleanCode) {
+      setErrorMessage('Please enter a unique alphanumeric QR code identifier.');
       return;
     }
-    if (!targetUrl.trim() || !targetUrl.startsWith('http')) {
+    if (!cleanUrl || !cleanUrl.startsWith('http')) {
       setErrorMessage('Please enter a valid HTTP/HTTPS destination URL.');
       return;
     }
 
     try {
       const res = await createQrTrigger({
-        organization_id: Number(orgId),
-        label: label.trim(),
-        code: code.trim(),
-        target_url: targetUrl.trim(),
+        organization_id: effectiveOrgId,
+        label: cleanLabel,
+        code: cleanCode,
+        target_url: cleanUrl,
+        status,
       }).unwrap();
 
       if (modal?.onCreated) {
@@ -147,7 +179,7 @@ export const QRDialog: React.FC<QRDialogProps> = ({
     <form onSubmit={handleGenerate}>
       <div className="modal-header">
         <div>
-          <span className="panel-eyebrow">CITIZEN ENGAGEMENT</span>
+          <span className="panel-eyebrow">CITIZEN ACCESS & POSTERS</span>
           <h2>Generate feedback QR poster</h2>
           <p>Create a physical access token linking citizens directly to your service feedback portal.</p>
         </div>
@@ -162,85 +194,134 @@ export const QRDialog: React.FC<QRDialogProps> = ({
       </div>
 
       {errorMessage && (
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px' }}>
+        <div
+          style={{
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#991b1b',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            marginBottom: '16px',
+            fontSize: '13px',
+          }}
+        >
           {errorMessage}
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '24px', margin: '20px 0' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {organizations.length > 1 && (
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                Assigned Office / Bureau
-              </label>
-              <select
-                className="filter-select"
-                style={{ width: '100%', padding: '8px 12px' }}
-                value={orgId}
-                onChange={(e) => setOrgId(Number(e.target.value))}
-              >
-                {organizations.map((org) => (
-                  <option key={org.id} value={org.id}>
-                    {org.name} ({org.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+      <div className="modal-form-grid" style={{ marginBottom: '16px' }}>
+        <label className="modal-field full">
+          <span>
+            Assigned Organization / Bureau <i>*</i>
+          </span>
+          <select
+            value={effectiveOrgId}
+            onChange={(e) => handleOrgChange(Number(e.target.value))}
+            required
+          >
+            {organizations.length === 0 && (
+              <option value={effectiveOrgId}>
+                {userOrg?.name || 'Default Administrative Office'}
+              </option>
+            )}
+            {organizations.map((org) => (
+              <option key={org.id} value={org.id}>
+                {org.name} {org.type?.name ? `(${org.type.name})` : `(${org.code})`}
+              </option>
+            ))}
+          </select>
+        </label>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-              Poster Location / Desk Label *
-            </label>
-            <input
-              type="text"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              placeholder="e.g. Main Public Service Reception Desk"
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
-              required
-            />
-          </div>
+        <label className="modal-field full">
+          <span>
+            Poster Location / Desk Label <i>*</i>
+          </span>
+          <input
+            type="text"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="e.g. Main Public Service Reception Desk"
+            maxLength={150}
+            required
+          />
+        </label>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-              Unique QR Code ID *
-            </label>
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="e.g. QR-BOLE-001"
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
-              required
-            />
-          </div>
+        <label className="modal-field">
+          <span>
+            Unique QR Code ID <i>*</i>
+          </span>
+          <input
+            type="text"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Za-z0-9\-]/g, ''))}
+            placeholder="e.g. QR-BOLE-001"
+            maxLength={64}
+            required
+          />
+        </label>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-              Destination Target URL *
-            </label>
-            <input
-              type="url"
-              value={targetUrl}
-              onChange={(e) => setTargetUrl(e.target.value)}
-              placeholder="https://..."
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
-              required
-            />
-          </div>
+        <label className="modal-field">
+          <span>Status</span>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}
+          >
+            <option value="active">Active (Scannable)</option>
+            <option value="inactive">Inactive (Disabled)</option>
+          </select>
+        </label>
+
+        <label className="modal-field full">
+          <span>
+            Destination Target URL <i>*</i>
+          </span>
+          <input
+            type="url"
+            value={targetUrl}
+            onChange={(e) => setTargetUrl(e.target.value)}
+            placeholder="https://..."
+            maxLength={2048}
+            required
+          />
+        </label>
+      </div>
+
+      {/* Live Scannable Preview Box */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          background: '#f8fafc',
+          padding: '16px',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0',
+          marginBottom: '20px',
+        }}
+      >
+        <div
+          style={{
+            width: '100px',
+            height: '100px',
+            flex: '0 0 auto',
+            background: '#fff',
+            padding: '6px',
+            borderRadius: '6px',
+            border: '1px solid #cbd5e1',
+          }}
+        >
+          <QRPattern data={targetUrl} />
         </div>
-
-        {/* Live Scannable Preview */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-          <div style={{ width: '130px', height: '130px', background: '#fff', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', marginBottom: '12px' }}>
-            <QRPattern data={targetUrl} />
-          </div>
-          <b style={{ fontSize: '13px', color: '#00485a' }}>{code || 'QR-CODE'}</b>
-          <small style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-            Live preview of scannable poster
-          </small>
+        <div>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#00485a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {activeOrg?.name || 'Selected Office'}
+          </span>
+          <b style={{ display: 'block', fontSize: '15px', color: '#1e293b', marginTop: '2px' }}>
+            {code || 'QR-CODE'}
+          </b>
+          <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>
+            {label || 'Desk Poster'} · {targetUrl}
+          </p>
         </div>
       </div>
 

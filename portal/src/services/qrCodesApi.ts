@@ -24,6 +24,7 @@ export interface CreateQrCodePayload {
   code: string;
   label: string;
   target_url: string;
+  status?: 'active' | 'inactive';
 }
 
 export const qrCodesApi = baseApi.injectEndpoints({
@@ -34,13 +35,17 @@ export const qrCodesApi = baseApi.injectEndpoints({
         method: 'GET',
         params: params || undefined,
       }),
-      providesTags: (result) =>
-        result?.data
-          ? [
-              ...result.data.map(({ id }) => ({ type: 'QrCode' as const, id })),
-              { type: 'QrCode', id: 'LIST' },
-            ]
-          : [{ type: 'QrCode', id: 'LIST' }],
+      providesTags: (result) => {
+        const list = Array.isArray(result?.data)
+          ? result.data
+          : Array.isArray((result?.data as any)?.data)
+            ? (result?.data as any).data
+            : [];
+        return [
+          ...list.map(({ id }: { id: number }) => ({ type: 'QrCode' as const, id })),
+          { type: 'QrCode', id: 'LIST' },
+        ];
+      },
     }),
 
     getQrCodeById: builder.query<ApiResponse<QrCodeItem>, number>({
