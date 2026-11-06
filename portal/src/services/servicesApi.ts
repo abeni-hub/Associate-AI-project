@@ -15,6 +15,14 @@ export interface ServiceListItem {
   subservices_count?: number;
   required_documents_count?: number;
   offering_organizations_count?: number;
+  steps_count?: number;
+  steps?: ServiceStep[];
+  organization?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  created_at?: string;
 }
 
 export interface ServiceDetail extends ServiceListItem {
@@ -229,6 +237,36 @@ export const servicesApi = baseApi.injectEndpoints({
         { type: 'ServiceStep', id: `SERVICE-${serviceId}` },
       ],
     }),
+
+    syncServiceSteps: builder.mutation<
+      ApiResponse<ServiceStep[]>,
+      {
+        serviceId: number | string;
+        steps: Array<{
+          step_number?: number;
+          title: string;
+          instruction?: string;
+          room_number?: string | null;
+          floor?: string | null;
+          building?: string | null;
+          department_name?: string | null;
+          responsible_title?: string | null;
+          estimated_duration_minutes?: number;
+          is_active?: boolean;
+        }>;
+      }
+    >({
+      query: ({ serviceId, steps }) => ({
+        url: `/services/${serviceId}/steps/sync`,
+        method: 'POST',
+        body: { steps },
+      }),
+      invalidatesTags: (_result, _error, { serviceId }) => [
+        { type: 'ServiceStep', id: `SERVICE-${serviceId}` },
+        { type: 'Service', id: serviceId },
+        { type: 'Service', id: 'LIST' },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -245,4 +283,5 @@ export const {
   useUpdateServiceStepMutation,
   useDeleteServiceStepMutation,
   useReorderServiceStepsMutation,
+  useSyncServiceStepsMutation,
 } = servicesApi;

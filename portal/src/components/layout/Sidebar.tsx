@@ -7,6 +7,7 @@ import { usePortal } from '../../context';
 import { usePermissions } from '../../hooks/usePermissions';
 import type { RoleKey } from '../../types/portal.types';
 import { useGetSidebarNavigationQuery } from '../../services/navigationApi';
+import { tokenStorage } from '../../utils/tokenStorage';
 
 const NAV_ITEM_PERMISSION_MAP: Record<string, string> = {
   overview: 'dashboard.view',
@@ -56,7 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const onLogout = propOnLogout || portal.signOut;
 
   const { data: apiNavResponse } = useGetSidebarNavigationQuery(undefined, {
-    skip: !portal.session?.user,
+    skip: !portal.session?.user && !portal.authUser && !tokenStorage.hasToken(),
   });
 
   const data = ROLE[role] || ROLE.super;
@@ -64,21 +65,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (apiNavResponse?.data && apiNavResponse.data.length > 0) {
       const items = apiNavResponse.data
         .map((item) => {
-          let pathId = item.route.replace(/^\/admin\/?/, '').replace(/^\/portal\/?/, '') || 'overview';
-          if (pathId === 'organizations') pathId = 'offices';
-          if (pathId === 'users') pathId = 'accounts';
+          let pathId = item.route
+            .replace(/^\/admin\/?/, '')
+            .replace(/^\/portal\/?/, '')
+            .replace(/^\//, '') || 'overview';
 
-        let iconName = 'layers';
-        const labelLower = item.label.toLowerCase();
-        if (labelLower.includes('overview') || labelLower.includes('home')) iconName = 'chart';
-        else if (labelLower.includes('organization') || labelLower.includes('office')) iconName = 'building';
-        else if (labelLower.includes('user') || labelLower.includes('account')) iconName = 'users';
-        else if (labelLower.includes('service')) iconName = 'layers';
-        else if (labelLower.includes('document')) iconName = 'file';
-        else if (labelLower.includes('feedback')) iconName = 'message';
-        else if (labelLower.includes('news')) iconName = 'news';
-        else if (labelLower.includes('role')) iconName = 'shield';
-        else if (labelLower.includes('qr')) iconName = 'qr';
+          if (pathId === 'organizations') pathId = 'subcities';
+          if (pathId === 'users') pathId = 'accounts';
+          if (pathId === 'dashboard') pathId = 'overview';
+
+          let iconName = 'layers';
+          const labelLower = item.label.toLowerCase();
+          const routeLower = item.route.toLowerCase();
+
+          if (labelLower.includes('overview') || routeLower.includes('overview')) iconName = 'chart';
+          else if (labelLower.includes('sub-cit') || labelLower.includes('organization') || labelLower.includes('office') || routeLower.includes('subcit')) iconName = 'building';
+          else if (labelLower.includes('user') || labelLower.includes('account') || routeLower.includes('account')) iconName = 'users';
+          else if (labelLower.includes('service') || routeLower.includes('services')) iconName = 'layers';
+          else if (labelLower.includes('route') || routeLower.includes('routes')) iconName = 'route';
+          else if (labelLower.includes('document') || routeLower.includes('documents')) iconName = 'file';
+          else if (labelLower.includes('feedback') || routeLower.includes('feedback')) iconName = 'message';
+          else if (labelLower.includes('news') || routeLower.includes('news')) iconName = 'news';
+          else if (labelLower.includes('role') || routeLower.includes('roles')) iconName = 'shield';
+          else if (labelLower.includes('qr') || routeLower.includes('qr')) iconName = 'qr';
+          else if (labelLower.includes('cms') || routeLower.includes('cms')) iconName = 'palette';
+          else if (labelLower.includes('activity') || routeLower.includes('activity')) iconName = 'activity';
 
           return {
             id: pathId,
@@ -88,6 +99,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
           };
         })
         .filter((item) => !item.required_permission || hasPermission(item.required_permission));
+
+      // Ensure authorized portal sections are always accessible in the sidebar
+      if (hasPermission('roles.view') && !items.some((i) => i.id === 'roles')) {
+        items.push({
+          id: 'roles',
+          text: 'Roles & permissions',
+          icon: 'shield',
+          required_permission: 'roles.view',
+        });
+      }
+      if (hasPermission('news.view') && !items.some((i) => i.id === 'news')) {
+        items.push({
+          id: 'news',
+          text: 'News & events',
+          icon: 'news',
+          required_permission: 'news.view',
+        });
+      }
+      if (hasPermission('audit_logs.view') && !items.some((i) => i.id === 'activity')) {
+        items.push({
+          id: 'activity',
+          text: 'Activity log',
+          icon: 'activity',
+          required_permission: 'audit_logs.view',
+        });
+      }
 
       return [{ label: '', items }];
     }

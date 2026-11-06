@@ -178,28 +178,28 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
         <MetricCard
           icon="message"
           label="All responses"
-          value={items.length}
+          value={isLoading && !apiFeedback ? '...' : items.length}
           note="Active feedback queue"
           tone="teal"
         />
         <MetricCard
           icon="clock"
           label="Open items"
-          value={openCount}
+          value={isLoading && !apiFeedback ? '...' : openCount}
           note="Awaiting first review"
           tone="gold"
         />
         <MetricCard
           icon="activity"
           label="In review"
-          value={inReviewCount}
+          value={isLoading && !apiFeedback ? '...' : inReviewCount}
           note="Actively being resolved"
           tone="blue"
         />
         <MetricCard
           icon="check"
           label="Resolution rate"
-          value={`${resolutionRate}%`}
+          value={isLoading && !apiFeedback ? '...' : `${resolutionRate}%`}
           note="Resolved responses"
           tone="sage"
         />
@@ -234,23 +234,28 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
             </select>
           </div>
         </div>
-        {isLoading && (
-          <div style={{ padding: '24px', textAlign: 'center' }}>
-            <p>Loading feedback items from API...</p>
+        {isLoading && !apiFeedback ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', gap: '12px' }}>
+            <div className="loading-spinner" />
+            <p style={{ margin: 0, color: '#00485a', fontWeight: 600, fontSize: '14px' }}>Loading citizen feedback...</p>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>Fetching incoming complaints and suggestions</p>
           </div>
+        ) : (
+          <>
+            <FeedbackTable items={filtered} onOpen={onOpen} />
+            <div className="table-footer">
+              <span>
+                Showing <b>{filtered.length}</b> responses
+              </span>
+              <div>
+                <button disabled>Previous</button>
+                <button>
+                  Next <Icon name="arrow" size={13} />
+                </button>
+              </div>
+            </div>
+          </>
         )}
-        <FeedbackTable items={filtered} onOpen={onOpen} />
-        <div className="table-footer">
-          <span>
-            Showing <b>{filtered.length}</b> responses
-          </span>
-          <div>
-            <button disabled>Previous</button>
-            <button>
-              Next <Icon name="arrow" size={13} />
-            </button>
-          </div>
-        </div>
       </section>
       <div className="tip-banner">
         <span className="tip-icon">

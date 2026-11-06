@@ -56,6 +56,16 @@ export const ActivityPage: React.FC = () => {
           changeFrom = 'Active';
           changeTo = 'Deleted (Purged)';
           changeSummary = `${log.entity_type} removed from database`;
+        } else if (log.action === 'login') {
+          changeField = 'Session State';
+          changeFrom = 'Signed Out';
+          changeTo = 'Authenticated';
+          changeSummary = `User signed in successfully`;
+        } else if (log.action === 'logout') {
+          changeField = 'Session State';
+          changeFrom = 'Authenticated';
+          changeTo = 'Signed Out';
+          changeSummary = `User signed out of session`;
         } else if (log.old_values && log.new_values) {
           const changedKey = Object.keys(log.new_values).find(
             (k) => JSON.stringify(log.old_values?.[k]) !== JSON.stringify(log.new_values?.[k])
@@ -93,10 +103,22 @@ export const ActivityPage: React.FC = () => {
             })
           : 'Today';
 
+        const isLogin = log.action === 'login';
+        const isLogout = log.action === 'logout';
+        const actionLabel = isLogin
+          ? `User sign-in authenticated (${actorName})`
+          : isLogout
+          ? `User session signed out (${actorName})`
+          : `${log.action.charAt(0).toUpperCase() + log.action.slice(1)} ${log.entity_type.toLowerCase()} record #${log.entity_id || log.id}`;
+
+        const targetName = isLogin || isLogout
+          ? `Portal User: ${actorUsername}`
+          : `${log.entity_type} #${log.entity_id || log.id}`;
+
         return {
           id: `LOG-${String(log.id).padStart(4, '0')}`,
           actionType,
-          actionLabel: `${log.action.charAt(0).toUpperCase() + log.action.slice(1)} ${log.entity_type.toLowerCase()} record #${log.entity_id || log.id}`,
+          actionLabel,
           category,
           fullTimestamp,
           timestamp: shortDate,
@@ -108,7 +130,7 @@ export const ActivityPage: React.FC = () => {
             tone: 'teal',
           },
           target: {
-            name: `${log.entity_type} #${log.entity_id || log.id}`,
+            name: targetName,
             type: log.entity_type,
             jurisdiction: log.organization?.name || 'City Administration',
             id: String(log.entity_id || log.id),
@@ -289,7 +311,7 @@ export const ActivityPage: React.FC = () => {
         <MetricCard
           icon="activity"
           label="Logged system actions"
-          value={activities.length}
+          value={isLoading && !apiLogs ? '...' : activities.length}
           note="Across administrative hierarchy"
           tone="teal"
         />
@@ -297,9 +319,11 @@ export const ActivityPage: React.FC = () => {
           icon="edit"
           label="State & config changes"
           value={
-            activities.filter(
-              (a) => a.actionType === 'UPDATE' || a.actionType === 'STATUS'
-            ).length
+            isLoading && !apiLogs
+              ? '...'
+              : activities.filter(
+                  (a) => a.actionType === 'UPDATE' || a.actionType === 'STATUS'
+                ).length
           }
           note="Tracked with before/after diffs"
           tone="gold"
@@ -307,7 +331,11 @@ export const ActivityPage: React.FC = () => {
         <MetricCard
           icon="shield"
           label="Security & sign-ins"
-          value={activities.filter((a) => a.actionType === 'SECURITY').length}
+          value={
+            isLoading && !apiLogs
+              ? '...'
+              : activities.filter((a) => a.actionType === 'SECURITY').length
+          }
           note="Fayda SSO & 2FA verified"
           tone="sage"
         />
@@ -327,7 +355,7 @@ export const ActivityPage: React.FC = () => {
           <div>
             <h2>Recorded audit entries</h2>
             <p>
-              Showing {filteredActivities.length} events with full user action, state change diffs, and network metadata.
+              Showing {isLoading && !apiLogs ? '...' : filteredActivities.length} events with full user action, state change diffs, and network metadata.
             </p>
           </div>
 
@@ -397,7 +425,17 @@ export const ActivityPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredActivities.length === 0 ? (
+              {isLoading && !apiLogs ? (
+                <tr>
+                  <td colSpan={7}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', gap: '12px' }}>
+                      <div className="loading-spinner" />
+                      <p style={{ margin: 0, color: '#00485a', fontWeight: 600, fontSize: '14px' }}>Loading audit records...</p>
+                      <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>Connecting to administrative audit log</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredActivities.length === 0 ? (
                 <tr>
                   <td colSpan={7}>
                     <div className="empty-state">

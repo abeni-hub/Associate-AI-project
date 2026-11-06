@@ -22,7 +22,6 @@ class SubmitFeedbackAction
                 'feedback_type' => $data->feedbackType,
                 'full_name' => $data->fullName,
                 'phone_number' => $data->phoneNumber,
-                'email' => $data->email,
             ];
 
             if ($data->feedbackType === 'complaint') {

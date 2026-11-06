@@ -8,8 +8,7 @@ import { StatusPill } from '../components/shared/StatusPill';
 import type { RouteItem, RouteStep } from '../types/portal.types';
 import {
   useGetServicesQuery,
-  useGetServiceStepsQuery,
-  useCreateServiceStepMutation,
+  useSyncServiceStepsMutation,
 } from '../services/servicesApi';
 
 export interface RoutesPageProps {
@@ -32,22 +31,24 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;
 
-  const { data: apiServices } = useGetServicesQuery();
-  const { data: birthCertSteps } = useGetServiceStepsQuery('birth-certificate');
-  const [createStepTrigger] = useCreateServiceStepMutation();
+  const { data: apiServices, isLoading } = useGetServicesQuery();
+  const [syncStepsTrigger] = useSyncServiceStepsMutation();
 
   const items: RouteItem[] = useMemo(() => {
     if (propItems && propItems.length > 0) return propItems;
 
     if (apiServices?.data && apiServices.data.length > 0) {
       return apiServices.data.map((s) => {
-        const isBirth = (s.code && s.code.includes('birth')) || s.name.toLowerCase().includes('birth');
         const liveSteps: RouteStep[] =
-          isBirth && birthCertSteps?.data && birthCertSteps.data.length > 0
-            ? birthCertSteps.data.map((step) => ({
+          s.steps && s.steps.length > 0
+            ? s.steps.map((step) => ({
+                id: step.id,
                 room: step.room_number || `Room ${step.step_number}`,
                 title: step.title,
                 detail: step.instruction,
+                floor: step.floor,
+                building: step.building,
+                department: step.department_name,
               }))
             : [];
 
@@ -55,16 +56,23 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
           id: s.id,
           service: s.name,
           category: s.is_master ? 'Master Catalog' : 'Sub-service',
-          bureau: 'Addis Ababa City Administration',
-          status: s.is_active ? 'Active' : 'Draft',
-          updated: 'Live from API',
+          bureau: s.organization?.name || 'Addis Ababa City Administration',
+          status: s.is_active ? (liveSteps.length > 0 ? 'Active' : 'Draft') : 'Disabled',
+          updated: s.created_at ? new Date(s.created_at).toLocaleDateString() : 'Live from API',
           steps: liveSteps,
         };
       });
     }
 
     return [];
-  }, [propItems, apiServices, birthCertSteps]);
+  }, [propItems, apiServices]);
+
+  const configuredCount = useMemo(
+    () => items.filter((item) => item.steps.length > 0).length,
+    [items]
+  );
+  const readinessPercent =
+    items.length > 0 ? Math.round((configuredCount / items.length) * 100) : 0;
 
   const onEdit =
     propOnEdit ||
@@ -74,25 +82,20 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
         route,
         onSave: async (steps: RouteStep[]) => {
           portal.saveRouteSteps(route.id, steps);
-          // Persist step update to backend service
           try {
-            const targetServiceId = route.id;
-            for (let i = 0; i < steps.length; i++) {
-              const s = steps[i];
-              await createStepTrigger({
-                serviceId: targetServiceId,
-                step_number: i + 1,
-                title: s.title,
-                instruction: s.detail,
-                room_number: s.room,
-                floor: 'Ground Floor',
-                building: 'Main Administration Block',
-                department_name: 'Public Desk',
-                responsible_title: 'Officer',
-                estimated_duration_minutes: 15,
+            await syncStepsTrigger({
+              serviceId: route.id,
+              steps: steps.map((s, idx) => ({
+                step_number: idx + 1,
+                title: s.title || `Step ${idx + 1}`,
+                instruction: s.detail || '',
+                room_number: s.room || null,
+                floor: s.floor || 'Ground Floor',
+                building: s.building || 'Main Administration Block',
+                department_name: s.department || 'Public Desk',
                 is_active: true,
-              }).unwrap();
-            }
+              })),
+            }).unwrap();
           } catch (err) {
             console.warn('API service step sync notice:', err);
           }
@@ -121,16 +124,20 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
             <Icon name="route" />
           </span>
           <span>
-            <b>{items.length} service routes</b>
+            <b>{isLoading && !apiServices ? '...' : `${items.length} service routes`}</b>
             <small>Configured for municipal administrative offices</small>
           </span>
         </div>
         <span className="summary-divider" />
         <div>
-          <span className="route-progress-big">85%</span>
+          <span className="route-progress-big">
+            {isLoading && !apiServices ? '...' : `${readinessPercent}%`}
+          </span>
           <span>
             <b>Route readiness</b>
-            <small>Synchronized with physical service catalog</small>
+            <small>
+              {configuredCount} of {items.length} services configured with physical rooms
+            </small>
           </span>
         </div>
         <span className="summary-note">
@@ -145,44 +152,71 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
         <SearchBox value={search} onChange={setSearch} placeholder="Search routes" />
       </div>
       <div className="route-grid">
-        {filtered.map((item) => (
-          <article className="panel route-card" key={item.id}>
-            <div className="route-card-header">
-              <span className="route-card-icon">
-                <Icon name="route" size={18} />
-              </span>
-              <StatusPill>{item.status}</StatusPill>
-              <button className="row-more" aria-label="Route actions">
-                <Icon name="dots" />
-              </button>
-            </div>
-            <span className="service-category">{item.category}</span>
-            <h3>{item.service}</h3>
-            <p className="route-card-office">
-              {item.bureau} <span>·</span> Updated {item.updated}
+        {isLoading && !apiServices ? (
+          <div
+            style={{
+              gridColumn: '1 / -1',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '48px 24px',
+              gap: '12px',
+            }}
+          >
+            <div className="loading-spinner" />
+            <p style={{ margin: 0, color: '#00485a', fontWeight: 600, fontSize: '14px' }}>
+              Loading service routes...
             </p>
-            <div className="mini-route">
-              {item.steps.map((step, index) => (
-                <div className="mini-route-step" key={`${item.id}-${step.room}-${index}`}>
-                  <span className="mini-route-room">{step.room}</span>
-                  <span className="mini-route-copy">
-                    <b>{step.title}</b>
-                    <small>{step.detail}</small>
-                  </span>
-                  {index < item.steps.length - 1 && <i className="mini-route-line" />}
-                </div>
-              ))}
-            </div>
-            {canManageSteps && (
-              <button className="route-edit-button" onClick={() => onEdit(item)}>
-                {item.status === 'Draft' ? 'Finish this route' : 'Edit room sequence'}{' '}
-                <Icon name="arrow" size={15} />
-              </button>
-            )}
-          </article>
-        ))}
-        {!filtered.length && (
-          <div className="panel empty-state">
+            <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>
+              Connecting to room navigation catalog
+            </p>
+          </div>
+        ) : (
+          filtered.map((item) => (
+            <article className="panel route-card" key={item.id}>
+              <div className="route-card-header">
+                <span className="route-card-icon">
+                  <Icon name="route" size={18} />
+                </span>
+                <StatusPill>{item.status}</StatusPill>
+                <button className="row-more" aria-label="Route actions">
+                  <Icon name="dots" />
+                </button>
+              </div>
+              <span className="service-category">{item.category}</span>
+              <h3>{item.service}</h3>
+              <p className="route-card-office">
+                {item.bureau} <span>·</span> Updated {item.updated}
+              </p>
+              <div className="mini-route">
+                {item.steps.map((step, index) => (
+                  <div className="mini-route-step" key={`${item.id}-${step.room}-${index}`}>
+                    <span className="mini-route-room">{step.room}</span>
+                    <span className="mini-route-copy">
+                      <b>{step.title}</b>
+                      <small>{step.detail}</small>
+                    </span>
+                    {index < item.steps.length - 1 && <i className="mini-route-line" />}
+                  </div>
+                ))}
+                {item.steps.length === 0 && (
+                  <p style={{ margin: '8px 0', fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
+                    No room sequence configured yet. Click below to add steps.
+                  </p>
+                )}
+              </div>
+              {canManageSteps && (
+                <button className="route-edit-button" onClick={() => onEdit(item)}>
+                  {item.steps.length === 0 ? 'Configure route' : 'Edit room sequence'}{' '}
+                  <Icon name="arrow" size={15} />
+                </button>
+              )}
+            </article>
+          ))
+        )}
+        {!isLoading && !filtered.length && (
+          <div className="panel empty-state" style={{ gridColumn: '1 / -1' }}>
             <b>No room routes found</b>
             <p>Try another search.</p>
           </div>

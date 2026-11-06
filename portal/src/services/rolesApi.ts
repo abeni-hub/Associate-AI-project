@@ -13,11 +13,14 @@ export interface RoleDetailItem {
   id: number;
   name: string;
   slug: string;
+  scope_level?: string;
   description?: string;
   is_system: boolean;
   is_active: boolean;
   permissions_count?: number;
   permissions?: PermissionItem[];
+  permission_ids?: number[];
+  navigation_items?: string[];
   created_at?: string;
 }
 
@@ -35,11 +38,26 @@ export const rolesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getRoles: builder.query<ApiResponse<RoleDetailItem[]>, void>({
       query: () => ({
-        url: '/roles',
+        url: '/roles?per_page=100',
         method: 'GET',
       }),
+      transformResponse: (response: any) => {
+        if (!response) return { success: true, message: '', data: [] };
+        let list = response.data !== undefined ? response.data : response;
+        if (list && list.data && Array.isArray(list.data)) {
+          list = list.data;
+        }
+        if (!Array.isArray(list)) {
+          list = [];
+        }
+        return {
+          success: response.success ?? true,
+          message: response.message || '',
+          data: list,
+        };
+      },
       providesTags: (result) =>
-        result?.data
+        result?.data && Array.isArray(result.data)
           ? [
               ...result.data.map(({ id }) => ({ type: 'Role' as const, id })),
               { type: 'Role', id: 'LIST' },
@@ -52,6 +70,18 @@ export const rolesApi = baseApi.injectEndpoints({
         url: `/roles/${id}`,
         method: 'GET',
       }),
+      transformResponse: (response: any) => {
+        if (!response) return { success: true, message: '', data: null as any };
+        let item = response.data !== undefined ? response.data : response;
+        if (item && item.data && typeof item.data === 'object' && !Array.isArray(item.data)) {
+          item = item.data;
+        }
+        return {
+          success: response.success ?? true,
+          message: response.message || '',
+          data: item,
+        };
+      },
       providesTags: (_result, _error, id) => [{ type: 'Role', id }],
     }),
 
@@ -60,6 +90,21 @@ export const rolesApi = baseApi.injectEndpoints({
         url: '/permissions',
         method: 'GET',
       }),
+      transformResponse: (response: any) => {
+        if (!response) return { success: true, message: '', data: [] };
+        let list = response.data !== undefined ? response.data : response;
+        if (list && list.data && Array.isArray(list.data)) {
+          list = list.data;
+        }
+        if (!Array.isArray(list)) {
+          list = [];
+        }
+        return {
+          success: response.success ?? true,
+          message: response.message || '',
+          data: list,
+        };
+      },
       providesTags: ['Permission'],
     }),
 
@@ -74,6 +119,51 @@ export const rolesApi = baseApi.injectEndpoints({
         { type: 'Role', id: 'LIST' },
       ],
     }),
+
+    createRole: builder.mutation<ApiResponse<RoleDetailItem>, {
+      name: string;
+      slug?: string;
+      scope_level?: string;
+      description?: string;
+      is_active?: boolean;
+      permission_ids?: number[];
+      navigation_items?: string[];
+    }>({
+      query: (body) => ({
+        url: '/roles',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'Role', id: 'LIST' }],
+    }),
+
+    updateRole: builder.mutation<ApiResponse<RoleDetailItem>, {
+      id: number | string;
+      name?: string;
+      scope_level?: string;
+      description?: string;
+      is_active?: boolean;
+      permission_ids?: number[];
+      navigation_items?: string[];
+    }>({
+      query: ({ id, ...body }) => ({
+        url: `/roles/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Role', id },
+        { type: 'Role', id: 'LIST' },
+      ],
+    }),
+
+    deleteRole: builder.mutation<ApiResponse<null>, number | string>({
+      query: (id) => ({
+        url: `/roles/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'Role', id: 'LIST' }],
+    }),
   }),
   overrideExisting: false,
 });
@@ -83,4 +173,7 @@ export const {
   useGetRoleByIdQuery,
   useGetPermissionsQuery,
   useUpdateRolePermissionsMutation,
+  useCreateRoleMutation,
+  useUpdateRoleMutation,
+  useDeleteRoleMutation,
 } = rolesApi;

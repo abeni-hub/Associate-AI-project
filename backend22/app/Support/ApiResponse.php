@@ -50,6 +50,26 @@ class ApiResponse
         ], $statusCode);
     }
 
+    public static function created(mixed $data = null, string $message = 'Resource created successfully.'): JsonResponse
+    {
+        return self::success($data, $message, 201);
+    }
+
+    public static function notFound(string $message = 'Resource not found.'): JsonResponse
+    {
+        return self::error($message, 404);
+    }
+
+    public static function forbidden(string $message = 'Forbidden.'): JsonResponse
+    {
+        return self::error($message, 403);
+    }
+
+    public static function unauthorized(string $message = 'Unauthenticated.'): JsonResponse
+    {
+        return self::error($message, 401);
+    }
+
     /**
      * Return a standardized paginated JSON response.
      */

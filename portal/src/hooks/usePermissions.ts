@@ -158,9 +158,20 @@ export function usePermissions() {
     return (
       role === 'super' ||
       authUser?.role?.slug === 'super_admin' ||
-      authUser?.role?.slug === 'super'
+      authUser?.role?.slug === 'super' ||
+      authUser?.role?.scope_level === 'global'
     );
   }, [role, authUser]);
+
+  const scopeLevel = useMemo<'global' | 'sub_city' | 'woreda' | 'bureau' | 'staff'>(() => {
+    if (isSuperAdmin) return 'global';
+    const s = authUser?.role?.scope_level;
+    if (s === 'global' || s === 'sub_city' || s === 'woreda' || s === 'bureau' || s === 'staff') {
+      return s;
+    }
+    if (role === 'subcity') return 'sub_city';
+    return 'bureau';
+  }, [isSuperAdmin, authUser, role]);
 
   const userPermissions = useMemo<string[]>(() => {
     if (isSuperAdmin) {
@@ -172,6 +183,9 @@ export function usePermissions() {
       Array.isArray(authUser.permissions) &&
       authUser.permissions.length > 0
     ) {
+      if (authUser.permissions.includes('*')) {
+        return [...ALL_SYSTEM_PERMISSIONS];
+      }
       return authUser.permissions;
     }
     // Check role default fallback
@@ -205,11 +219,58 @@ export function usePermissions() {
     [isSuperAdmin, userPermissions]
   );
 
+  /**
+   * Privilege escalation prevention check:
+   * Returns true if caller's administrative scope rank is high enough to manage the target scope.
+   */
+  const canManageScope = useCallback(
+    (targetScope?: string | null): boolean => {
+      if (isSuperAdmin) return true;
+      if (!targetScope) return true;
+      const ranks: Record<string, number> = {
+        global: 1,
+        platform: 1,
+        sub_city: 2,
+        subcity: 2,
+        woreda: 3,
+        bureau: 4,
+        office: 4,
+        staff: 5,
+      };
+      const actorRank = ranks[scopeLevel] || 99;
+      const targetRank = ranks[targetScope.toLowerCase()] || 99;
+      return actorRank <= targetRank;
+    },
+    [isSuperAdmin, scopeLevel]
+  );
+
+  /**
+   * Organization data access boundary check:
+   * Returns true if target organization ID is in caller's accessible organization hierarchy.
+   */
+  const canAccessOrganization = useCallback(
+    (orgId?: number | null): boolean => {
+      if (isSuperAdmin) return true;
+      if (!orgId) return false;
+      if (authUser?.accessible_organization_ids) {
+        return authUser.accessible_organization_ids.includes(orgId);
+      }
+      if (authUser?.organization?.id === orgId) return true;
+      return false;
+    },
+    [isSuperAdmin, authUser]
+  );
+
   return {
     isSuperAdmin,
+    scopeLevel,
     permissions: userPermissions,
+    accessibleOrganizationIds: authUser?.accessible_organization_ids ?? null,
     hasPermission,
     hasAllPermissions,
+    canManageScope,
+    canAccessOrganization,
+    canManageRoles: hasPermission('roles.manage'),
   };
 }
 

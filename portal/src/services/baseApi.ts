@@ -20,7 +20,7 @@ const getBaseUrl = (): string => {
   if (import.meta.env.DEV) {
     return '/api/v1';
   }
-  return 'https://civillink.jobaleengineering.com/api/v1';
+  return 'http://127.0.0.1:8000/api/v1';
 };
 
 /**

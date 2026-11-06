@@ -47,10 +47,13 @@ class AuditLogDatabaseTest extends TestCase
 
         $log = AuditLog::create([
             'user_id' => $user->id,
-            'organization_id' => $org->id,
             'action' => 'update',
             'entity_type' => Organization::class,
             'entity_id' => (string) $org->id,
+            'status' => 'success',
+            'status_code' => 200,
+            'request_payload' => ['status' => 'active'],
+            'response_payload' => ['success' => true],
             'old_values' => ['status' => 'inactive'],
             'new_values' => ['status' => 'active'],
             'ip_address' => '127.0.0.1',
@@ -58,7 +61,10 @@ class AuditLogDatabaseTest extends TestCase
         ]);
 
         $this->assertEquals($user->id, $log->user->id);
-        $this->assertEquals($org->id, $log->organization->id);
+        $this->assertEquals('success', $log->status);
+        $this->assertEquals(200, $log->status_code);
+        $this->assertEquals(['status' => 'active'], $log->request_payload);
+        $this->assertEquals(['success' => true], $log->response_payload);
         $this->assertEquals(['status' => 'inactive'], $log->old_values);
         $this->assertEquals(['status' => 'active'], $log->new_values);
     }

@@ -30,8 +30,8 @@ class ServiceController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Service::with(['organization', 'parent'])
-            ->withCount(['subservices', 'requiredDocuments', 'offeringOrganizations']);
+        $query = Service::with(['organization', 'parent', 'steps.organization'])
+            ->withCount(['subservices', 'requiredDocuments', 'offeringOrganizations', 'steps']);
 
         // Public citizens only see active services unless caller has management rights
         $user = $request->user();

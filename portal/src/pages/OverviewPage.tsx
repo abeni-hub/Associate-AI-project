@@ -149,7 +149,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   const quick =
     role === 'super'
       ? [
-          { text: 'Create an office', icon: 'building', page: 'offices' },
+          { text: 'Manage offices', icon: 'building', page: 'offices' },
           { text: 'Manage accounts', icon: 'users', page: 'accounts' },
           { text: 'Review feedback', icon: 'message', page: 'feedback' },
         ]
@@ -268,14 +268,12 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           >
             <Icon name="download" size={16} /> Export report
           </button>
-          <button className="button primary" onClick={() => onCreate()} disabled={isPageLoading}>
-            <Icon name="plus" size={16} />{' '}
-            {role === 'super'
-              ? 'New office'
-              : role === 'subcity'
-                ? 'Create a service'
-                : 'Update room route'}
-          </button>
+          {role !== 'super' && (
+            <button className="button primary" onClick={() => onCreate()} disabled={isPageLoading}>
+              <Icon name="plus" size={16} />{' '}
+              {role === 'subcity' ? 'Create a service' : 'Update room route'}
+            </button>
+          )}
         </div>
       </div>
 

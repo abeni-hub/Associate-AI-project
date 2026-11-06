@@ -115,12 +115,12 @@ class DashboardMetricsService
 
         // 4. Services summary
         $serviceStats = Service::query()
-            ->selectRaw("
+            ->selectRaw('
                 count(*) as total_services,
                 sum(case when is_active = true then 1 else 0 end) as active_services,
                 sum(case when parent_id is null then 1 else 0 end) as master_services,
                 sum(case when parent_id is not null then 1 else 0 end) as subservices
-            ")
+            ')
             ->first();
         $totalServices = (int) ($serviceStats->total_services ?? 0);
         $activeServices = (int) ($serviceStats->active_services ?? 0);
@@ -143,10 +143,10 @@ class DashboardMetricsService
 
         // 5. Documents summary
         $docStats = Document::query()
-            ->selectRaw("
+            ->selectRaw('
                 count(*) as total_docs,
                 sum(case when is_active = true then 1 else 0 end) as active_docs
-            ")
+            ')
             ->first();
         $totalDocs = (int) ($docStats->total_docs ?? 0);
         $activeDocs = (int) ($docStats->active_docs ?? 0);
@@ -193,10 +193,10 @@ class DashboardMetricsService
         $this->scopeService->applyScope($newsQuery, $user, 'organization_id', includeDescendants: true);
 
         $newsStats = (clone $newsQuery)
-            ->selectRaw("
+            ->selectRaw('
                 count(*) as total,
                 sum(case when created_at >= ? then 1 else 0 end) as recent
-            ", [now()->subDays(30)])
+            ', [now()->subDays(30)])
             ->first();
 
         $totalNews = (int) ($newsStats->total ?? 0);
@@ -347,7 +347,7 @@ class DashboardMetricsService
         $isGlobal = $user->isSuperAdmin();
 
         $serviceStats = Service::query()
-            ->selectRaw("
+            ->selectRaw('
                 count(*) as total_services,
                 sum(case when parent_id is null then 1 else 0 end) as master_services,
                 sum(case when parent_id is not null then 1 else 0 end) as subservices,
@@ -359,7 +359,7 @@ class DashboardMetricsService
                 avg(estimated_duration_minutes) as avg_duration,
                 min(estimated_duration_minutes) as min_duration,
                 max(estimated_duration_minutes) as max_duration
-            ")
+            ')
             ->first();
 
         $totalServices = (int) ($serviceStats->total_services ?? 0);
@@ -519,9 +519,13 @@ class DashboardMetricsService
         $limit = max(1, min(50, $limit));
 
         $query = AuditLog::query()
-            ->with(['user:id,name,email,username', 'organization:id,name,code']);
+            ->with(['user.organization:id,name,code']);
 
-        $this->scopeService->applyScope($query, $user, 'organization_id', includeDescendants: true);
+        if (! $user->isSuperAdmin()) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $this->scopeService->applyScope($q, $user, 'organization_id', includeDescendants: true);
+            });
+        }
 
         if ($entityType) {
             $query->where('entity_type', $entityType);
@@ -546,9 +550,9 @@ class DashboardMetricsService
                     'email' => $log->user?->email,
                 ],
                 'organization' => [
-                    'id' => $log->organization?->id,
-                    'name' => $log->organization?->name,
-                    'code' => $log->organization?->code,
+                    'id' => $log->user?->organization?->id,
+                    'name' => $log->user?->organization?->name,
+                    'code' => $log->user?->organization?->code,
                 ],
                 'ip_address' => $log->ip_address,
                 'created_at' => $log->created_at?->toIso8601String(),

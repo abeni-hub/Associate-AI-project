@@ -75,6 +75,27 @@ class QrCodeController extends Controller
     }
 
     /**
+     * Delete an existing QR code poster.
+     */
+    public function destroy(QrCode $qrCode, Request $request): JsonResponse
+    {
+        $this->auditLogger->execute(
+            action: 'deleted',
+            entity: $qrCode,
+            actor: $request->user(),
+            oldValues: $qrCode->toArray(),
+            request: $request
+        );
+
+        $qrCode->delete();
+
+        return ApiResponse::success(
+            data: null,
+            message: 'QR code deleted successfully.'
+        );
+    }
+
+    /**
      * Public scan tracking endpoint: increments scan counter and returns destination URL.
      */
     public function scan(string $code): JsonResponse

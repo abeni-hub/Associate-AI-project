@@ -95,6 +95,16 @@ export const LevelsPage: React.FC = () => {
     }
   };
 
+  const handleMoveRank = async (lvl: OrganizationTypeItem, direction: 'up' | 'down') => {
+    const targetRank = direction === 'up' ? lvl.level - 1 : lvl.level + 1;
+    if (targetRank < 1 || targetRank > levels.length) return;
+    try {
+      await updateType({ id: lvl.id, level: targetRank }).unwrap();
+    } catch (err: any) {
+      window.alert(err?.data?.message || 'Failed to shift level rank.');
+    }
+  };
+
   const getRankBadgeTone = (levelRank: number) => {
     if (levelRank === 1) return { bg: '#ecfdf5', text: '#047857', border: '#a7f3d0' };
     if (levelRank === 2) return { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe' };
@@ -238,7 +248,27 @@ export const LevelsPage: React.FC = () => {
                       <StatusPill>{lvl.is_active ? 'Active' : 'Inactive'}</StatusPill>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '6px' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <button
+                          type="button"
+                          className="button secondary small-button"
+                          disabled={lvl.level <= 1 || isUpdating}
+                          onClick={() => handleMoveRank(lvl, 'up')}
+                          title="Shift rank up (higher authority)"
+                          style={{ padding: '3px 7px', fontSize: '12px' }}
+                        >
+                          &uarr;
+                        </button>
+                        <button
+                          type="button"
+                          className="button secondary small-button"
+                          disabled={lvl.level >= levels.length || isUpdating}
+                          onClick={() => handleMoveRank(lvl, 'down')}
+                          title="Shift rank down (lower authority)"
+                          style={{ padding: '3px 7px', fontSize: '12px' }}
+                        >
+                          &darr;
+                        </button>
                         <button
                           type="button"
                           className="button secondary small-button"
@@ -288,6 +318,7 @@ export const LevelsPage: React.FC = () => {
       <LevelModal
         isOpen={isModalOpen}
         level={selectedLevel}
+        existingLevels={levels}
         onClose={() => {
           setIsModalOpen(false);
           setSelectedLevel(null);

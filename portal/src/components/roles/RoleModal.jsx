@@ -209,7 +209,7 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
     setStep(2)
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (step === 1) {
       handleNext(e)
@@ -223,40 +223,48 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
 
     setErrorMsg(null)
 
-    if (role) {
-      onSave({
-        ...role,
-        name: name.trim(),
-        scope,
-        description: description.trim() || 'Custom administrative role with tailored access.',
-        navigationItems: selectedNavItems,
-        dashboard_pages: selectedNavItems,
-      })
-    } else {
-      const generatedId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '')
-      onSave({
-        id: generatedId || `role_${Date.now()}`,
-        name: name.trim(),
-        slug: generatedId,
-        scope,
-        description: description.trim() || 'Custom administrative role with tailored access.',
-        userCount: 0,
-        isSystem: false,
-        navigationItems: selectedNavItems,
-        dashboard_pages: selectedNavItems,
-        permissions: {
-          offices: ['view'],
-          accounts: scope === 'Platform' || scope === 'Sub-city' ? ['view'] : [],
-          services: ['view'],
-          routes: scope === 'Bureau' || scope === 'Woreda' ? ['view', 'edit'] : ['view'],
-          feedback: ['view', 'status_update'],
-          news: scope === 'Platform' || scope === 'Sub-city' ? ['view', 'create', 'edit'] : ['view'],
-          cms: scope === 'Platform' ? ['view'] : [],
-          roles: [],
-        },
-      })
+    const normalizeScope = (s) => {
+      const lower = (s || '').toLowerCase()
+      if (lower.includes('platform') || lower.includes('global')) return 'global'
+      if (lower.includes('subcity') || lower.includes('sub-city') || lower.includes('sub_city')) return 'sub_city'
+      if (lower.includes('woreda')) return 'woreda'
+      if (lower.includes('bureau') || lower.includes('office')) return 'bureau'
+      if (lower.includes('staff')) return 'staff'
+      return lower.replace(/[^a-z0-9]+/g, '_')
     }
-    onClose()
+
+    try {
+      if (role) {
+        await onSave({
+          ...role,
+          name: name.trim(),
+          scope,
+          scope_level: normalizeScope(scope),
+          description: description.trim() || 'Custom administrative role with tailored access.',
+          navigationItems: selectedNavItems,
+          navigation_items: selectedNavItems,
+          dashboard_pages: selectedNavItems,
+        })
+      } else {
+        const generatedId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '')
+        await onSave({
+          id: generatedId || `role_${Date.now()}`,
+          name: name.trim(),
+          slug: generatedId,
+          scope,
+          scope_level: normalizeScope(scope),
+          description: description.trim() || 'Custom administrative role with tailored access.',
+          userCount: 0,
+          isSystem: false,
+          navigationItems: selectedNavItems,
+          navigation_items: selectedNavItems,
+          dashboard_pages: selectedNavItems,
+        })
+      }
+      onClose()
+    } catch (err) {
+      setErrorMsg(err?.message || 'Failed to save role.')
+    }
   }
 
   return (

@@ -21,11 +21,24 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({
   const [steps, setSteps] = useState<RouteStep[]>(() =>
     route?.steps ? route.steps.map((step) => ({ ...step })) : []
   );
+  const [saving, setSaving] = useState(false);
 
   const update = (index: number, key: keyof RouteStep, value: string) =>
     setSteps((items) =>
       items.map((step, i) => (i === index ? { ...step, [key]: value } : step))
     );
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await Promise.resolve(onSave(steps));
+      onClose();
+    } catch {
+      // Handled in caller
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (!route) return null;
 
@@ -109,18 +122,17 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({
             type="button"
             className="button secondary"
             onClick={onClose}
+            disabled={saving}
           >
             Cancel
           </button>
           <button
             type="button"
             className="button primary"
-            onClick={() => {
-              onSave(steps);
-              onClose();
-            }}
+            onClick={handleSave}
+            disabled={saving}
           >
-            Save route <Icon name="arrow" size={15} />
+            {saving ? 'Saving sequence...' : 'Save route'} <Icon name="arrow" size={15} />
           </button>
         </div>
       </div>

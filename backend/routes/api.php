@@ -203,6 +203,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/', [ServiceStepController::class, 'store'])
                 ->middleware('permission:service_steps.manage')
                 ->name('store');
+            Route::post('/sync', [ServiceStepController::class, 'sync'])
+                ->middleware('permission:service_steps.manage')
+                ->name('sync');
             Route::post('/reorder', [ServiceStepController::class, 'reorder'])
                 ->middleware('permission:service_steps.manage')
                 ->name('reorder');
@@ -288,6 +291,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/', [QrCodeController::class, 'store'])
                 ->middleware('permission:qr_codes.manage')
                 ->name('store');
+            Route::delete('/{qrCode}', [QrCodeController::class, 'destroy'])
+                ->middleware('permission:qr_codes.manage')
+                ->name('destroy');
         });
 
         // Event Management

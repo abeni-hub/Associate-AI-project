@@ -5,6 +5,7 @@ import type { OrganizationTypeItem } from '../../services/organizationsApi';
 
 export interface LevelModalProps {
   level?: OrganizationTypeItem | null;
+  existingLevels?: OrganizationTypeItem[];
   isOpen: boolean;
   onClose: () => void;
   onSave: (payload: {
@@ -24,6 +25,7 @@ const slugify = (text: string) =>
 
 export const LevelModal: React.FC<LevelModalProps> = ({
   level,
+  existingLevels,
   isOpen,
   onClose,
   onSave,
@@ -47,13 +49,17 @@ export const LevelModal: React.FC<LevelModalProps> = ({
       } else {
         setName('');
         setCode('');
-        setRank(1);
+        const nextRank =
+          existingLevels && existingLevels.length > 0
+            ? Math.max(...existingLevels.map((l) => Number(l.level) || 0)) + 1
+            : 1;
+        setRank(nextRank);
         setIsActive(true);
         setDescription('');
       }
       setErrorMsg(null);
     }
-  }, [isOpen, level]);
+  }, [isOpen, level, existingLevels]);
 
   const handleNameChange = (val: string) => {
     setName(val);
@@ -161,6 +167,17 @@ export const LevelModal: React.FC<LevelModalProps> = ({
                 value={rank}
                 onChange={(e) => setRank(e.target.value)}
               />
+              <small style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                {(() => {
+                  const num = Number(rank);
+                  const duplicate = existingLevels?.find(
+                    (l) => Number(l.level) === num && (!level || l.id !== level.id)
+                  );
+                  return duplicate
+                    ? `Rank ${num} currently belongs to "${duplicate.name}". Other levels will automatically shift.`
+                    : 'Lower number = higher authority (1 is Root).';
+                })()}
+              </small>
             </label>
 
             {/* Status */}

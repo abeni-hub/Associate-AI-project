@@ -30,7 +30,68 @@ export const INITIAL_OFFICE_TYPES = [
 
 export const INITIAL_OFFICES = []
 
-export const INITIAL_ROLES = []
+export const INITIAL_ROLES = [
+  {
+    id: '1',
+    name: 'Super Admin',
+    slug: 'super_admin',
+    scope: 'Platform',
+    scope_level: 'global',
+    description: 'Platform-wide administrator with full authority across all modules.',
+    isSystem: true,
+    permissionsCount: 38,
+    permissionIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38],
+    userCount: 2,
+  },
+  {
+    id: '2',
+    name: 'Sub-City Admin',
+    slug: 'sub_city_admin',
+    scope: 'Sub-city',
+    scope_level: 'sub_city',
+    description: 'Sub-City level administrator managing own organization and descendant Woredas/Bureaus.',
+    isSystem: true,
+    permissionsCount: 28,
+    permissionIds: [1, 2, 3, 5, 6, 7, 8, 9, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37],
+    userCount: 11,
+  },
+  {
+    id: '3',
+    name: 'Woreda Admin',
+    slug: 'woreda_admin',
+    scope: 'Woreda',
+    scope_level: 'woreda',
+    description: 'Woreda level administrator managing Woreda operations and descendant Bureaus.',
+    isSystem: true,
+    permissionsCount: 20,
+    permissionIds: [1, 5, 6, 7, 9, 12, 17, 19, 20, 21, 22, 23, 24, 26, 27, 28, 29, 31, 32, 33, 34, 35, 36],
+    userCount: 45,
+  },
+  {
+    id: '4',
+    name: 'Bureau Admin',
+    slug: 'bureau_admin',
+    scope: 'Bureau',
+    scope_level: 'bureau',
+    description: 'Bureau level administrator managing Bureau staff, service steps, and own feedback.',
+    isSystem: true,
+    permissionsCount: 16,
+    permissionIds: [1, 5, 12, 17, 19, 20, 21, 22, 23, 24, 26, 27, 28, 29, 31, 33, 34, 36],
+    userCount: 30,
+  },
+  {
+    id: '5',
+    name: 'Operational Staff',
+    slug: 'staff',
+    scope: 'Staff',
+    scope_level: 'staff',
+    description: 'Operational government staff member with service navigation and feedback viewing rights.',
+    isSystem: true,
+    permissionsCount: 5,
+    permissionIds: [12, 17, 19, 31, 36],
+    userCount: 120,
+  },
+]
 
 export const INITIAL_CMS_CONFIG = {
   announcement: {

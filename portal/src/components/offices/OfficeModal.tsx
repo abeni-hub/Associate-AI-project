@@ -48,7 +48,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
   // Form states strictly matching organizations table schema
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
-  const [typeId, setTypeId] = useState<number>(1); // 1 = Sub-City (Root), 2 = Woreda, 3 = Bureau
+  const [typeId, setTypeId] = useState<number>(0);
   const [parentId, setParentId] = useState<number | null>(null);
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
@@ -57,12 +57,36 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Dynamic organization types lookup
+  const allTypes: any[] = useMemo(() => {
+    const fromApi = apiOrgTypes?.data;
+    if (fromApi && Array.isArray(fromApi) && fromApi.length > 0) return fromApi;
+    if (propTypes && Array.isArray(propTypes) && propTypes.length > 0) return propTypes;
+    return [];
+  }, [propTypes, apiOrgTypes]);
+
+  const typeMap = useMemo(() => {
+    const map = new Map<number, any>();
+    allTypes.forEach((t) => map.set(Number(t.id), t));
+    return map;
+  }, [allTypes]);
+
+  // Root platform classification tier (level 1 or can_be_root)
+  const rootType = useMemo(() => {
+    return allTypes.find((t: any) => Boolean(t.can_be_root || Number(t.level) === 1)) || allTypes[0] || null;
+  }, [allTypes]);
+
   // Sync form fields when opening or switching office
   useEffect(() => {
     if (isOpen) {
       setName(office?.name || '');
       setCode(office?.code || (office?.name ? slugify(office.name) : ''));
-      const initialType = Number(office?.organization_type_id || office?.typeId || 1);
+      const initialType = Number(
+        office?.organization_type_id ||
+          office?.typeId ||
+          rootType?.id ||
+          (allTypes[0]?.id ?? 0)
+      );
       setTypeId(initialType);
       setParentId(office?.parent_organization_id ?? office?.parentId ?? null);
       setAddress(office?.address || '');
@@ -72,38 +96,78 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
       setStatus(office?.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active');
       setErrorMsg(null);
     }
-  }, [isOpen, office]);
+  }, [isOpen, office, allTypes, rootType]);
+
+  // Ensure typeId resolves to a valid tier once allTypes loads
+  useEffect(() => {
+    if (isOpen && !office && allTypes.length > 0) {
+      if (!typeId || !typeMap.has(Number(typeId))) {
+        const bestRootId = rootType?.id ?? allTypes[0]?.id;
+        if (bestRootId) setTypeId(Number(bestRootId));
+      }
+    }
+  }, [isOpen, office, allTypes, typeId, typeMap, rootType]);
 
   // Classification options
   const classificationOptions: SearchSelectOption[] = useMemo(() => {
-    const raw: any[] = propTypes?.length ? propTypes : apiOrgTypes?.data || [];
-    return raw.map((t: any) => ({
+    return allTypes.map((t: any) => ({
       value: t.id,
       label: t.name,
       code: t.code,
-      badge: `Level ${t.level ?? (t.id === 1 ? 1 : t.id === 2 ? 2 : 3)}`,
-      badgeTone: (t.level === 1 || t.id === 1) ? 'sage' : (t.level === 2 || t.id === 2) ? 'blue' : 'gold',
+      badge: `Level ${t.level ?? 1}`,
+      badgeTone: t.level === 1 ? 'sage' : t.level === 2 ? 'blue' : 'gold',
       secondary: t.description || (t.can_be_root || t.level === 1 ? 'Root platform tier' : 'Requires parent organization'),
     }));
-  }, [propTypes, apiOrgTypes]);
+  }, [allTypes]);
 
   // Resolve currently selected classification tier
   const selectedType = useMemo(() => {
-    const list: any[] = propTypes?.length ? propTypes : apiOrgTypes?.data || [];
-    return list.find((t: any) => Number(t.id) === Number(typeId)) || null;
-  }, [propTypes, apiOrgTypes, typeId]);
+    return typeMap.get(Number(typeId)) || allTypes.find((t: any) => Number(t.id) === Number(typeId)) || allTypes[0] || null;
+  }, [typeMap, allTypes, typeId]);
 
   const isRootType = useMemo(() => {
-    if (!selectedType) return Number(typeId) === 1;
-    return Boolean(selectedType.can_be_root || selectedType.level === 1 || selectedType.code === 'sub_city');
-  }, [selectedType, typeId]);
+    if (!selectedType) return false;
+    return Boolean(selectedType.can_be_root || Number(selectedType.level) === 1);
+  }, [selectedType]);
 
   const currentLevel = useMemo(() => {
-    if (selectedType?.level) return Number(selectedType.level);
-    return isRootType ? 1 : Number(typeId) === 3 ? 3 : 2;
-  }, [selectedType, isRootType, typeId]);
+    if (selectedType?.level != null) return Number(selectedType.level);
+    return isRootType ? 1 : 2;
+  }, [selectedType, isRootType]);
 
-  // Filter eligible parents: parent must have higher statutory rank (lower level number)
+  // Helper to reliably determine any organization's hierarchy level depth
+  const getOrgLevel = (org: any): number => {
+    if (org.type?.level != null) return Number(org.type.level);
+    if (org.level != null) return Number(org.level);
+    const tId = Number(org.organization_type_id || org.typeId || org.type?.id || 0);
+    if (tId && typeMap.has(tId)) {
+      const found = typeMap.get(tId);
+      if (found?.level != null) return Number(found.level);
+    }
+    const typeName = (org.typeName || org.type?.name || org.typeCode || org.type?.code || '').toLowerCase();
+    for (const t of allTypes) {
+      if (t.name?.toLowerCase() === typeName || t.code?.toLowerCase() === typeName) {
+        return Number(t.level);
+      }
+    }
+    return 1;
+  };
+
+  // Immediate parent tier (strictly Level - 1)
+  const parentTier = useMemo(() => {
+    if (isRootType) return null;
+    return (
+      allTypes.find((t) => Number(t.level) === currentLevel - 1) ||
+      allTypes.find((t) => Number(t.level) < currentLevel) ||
+      rootType ||
+      null
+    );
+  }, [allTypes, isRootType, currentLevel, rootType]);
+
+  const targetParentLevel = parentTier?.level != null ? Number(parentTier.level) : currentLevel - 1;
+  const parentTierName = parentTier?.name || `Level ${targetParentLevel}`;
+
+  // Filter eligible parents strictly for the immediate supervising parent tier (Level - 1)
   const parentOptions: SearchSelectOption[] = useMemo(() => {
     if (isRootType) {
       return [
@@ -113,38 +177,60 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
           code: 'root',
           badge: 'Root',
           badgeTone: 'sage',
-          secondary: `${selectedType?.name || 'Sub-Cities'} have no parent organization.`,
+          secondary: `${selectedType?.name || 'Root organizations'} have no parent organization.`,
         },
       ];
     }
 
-    const orgsList: any[] = propOffices?.length ? propOffices : apiOrgs?.data || [];
+    // Combine both direct live API organizations and passed prop organizations
+    const rawList: any[] = [];
+    const seenIds = new Set<number>();
 
-    const eligible = orgsList.filter((org) => {
-      if (office && (org.id === office.id || org.id === office?.id)) return false;
-      const orgLevel =
-        org.type?.level ??
-        (org.typeId === 1 || org.organization_type_id === 1
-          ? 1
-          : org.typeId === 2 || org.organization_type_id === 2
-            ? 2
-            : 3);
-      return orgLevel < currentLevel;
+    const addOrg = (org: any) => {
+      if (!org || typeof org !== 'object') return;
+      const id = Number(org.id);
+      if (!id || seenIds.has(id)) return;
+      if (office && (id === Number(office.id) || id === Number(office?.id))) return;
+      seenIds.add(id);
+      rawList.push(org);
+    };
+
+    (apiOrgs?.data || []).forEach(addOrg);
+    (propOffices || []).forEach(addOrg);
+
+    const eligible = rawList.filter((org) => {
+      const orgLvl = getOrgLevel(org);
+      return orgLvl === targetParentLevel;
     });
 
+    if (eligible.length === 0) {
+      return [
+        {
+          value: 0,
+          label: `No ${parentTierName} (Level ${targetParentLevel}) parent offices exist yet`,
+          code: 'none',
+          disabled: true,
+          badge: 'Notice',
+          badgeTone: 'gray',
+          secondary: `A supervising ${parentTierName} office must be created first before a ${selectedType?.name || 'child office'} can be registered.`,
+        },
+      ];
+    }
+
     return eligible.map((org) => {
-      const orgLevel =
-        org.type?.level ?? (org.typeId === 1 || org.organization_type_id === 1 ? 1 : 2);
+      const orgType = org.type || typeMap.get(Number(org.organization_type_id || org.typeId));
+      const orgLevel = getOrgLevel(org);
+      const typeName = org.typeName || orgType?.name || parentTierName;
       return {
         value: org.id,
         label: org.name,
         code: org.code,
-        badge: orgLevel === 1 ? 'Sub-City' : 'Woreda',
-        badgeTone: orgLevel === 1 ? 'sage' : 'blue',
-        secondary: org.address || `${org.code || ''} office`,
+        badge: typeName,
+        badgeTone: orgLevel === 1 ? 'sage' : orgLevel === 2 ? 'blue' : 'gold',
+        secondary: org.address ? `${typeName}: ${org.address}` : `${org.code || ''} (${typeName})`,
       };
     });
-  }, [propOffices, apiOrgs, isRootType, currentLevel, selectedType, office]);
+  }, [propOffices, apiOrgs, isRootType, currentLevel, selectedType, office, typeMap, targetParentLevel, parentTierName]);
 
   const handleNameChange = (val: string) => {
     setName(val);
@@ -152,16 +238,23 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
   };
 
   const handleTypeSelect = (val: string | number | null) => {
-    const nextTypeId = Number(val) || 2;
+    const nextTypeId = Number(val);
     setTypeId(nextTypeId);
     setErrorMsg(null);
-    const targetType = (propTypes?.length ? propTypes : apiOrgTypes?.data || []).find(
-      (t: any) => Number(t.id) === nextTypeId
-    );
-    const targetIsRoot = targetType
-      ? Boolean(targetType.can_be_root || targetType.level === 1 || targetType.code === 'sub_city')
-      : nextTypeId === 1;
-    if (targetIsRoot) setParentId(null);
+    const targetType = typeMap.get(nextTypeId);
+    const targetIsRoot = targetType ? Boolean(targetType.can_be_root || Number(targetType.level) === 1) : false;
+    if (targetIsRoot) {
+      setParentId(null);
+    } else if (parentId) {
+      const currentParentOrg = (propOffices?.length ? propOffices : apiOrgs?.data || []).find(
+        (o: any) => o.id === parentId
+      );
+      const parentLevel = currentParentOrg ? getOrgLevel(currentParentOrg) : 1;
+      const expectedParentLevel = (targetType?.level ? Number(targetType.level) : 2) - 1;
+      if (parentLevel !== expectedParentLevel) {
+        setParentId(null);
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,8 +263,9 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
     const cleanCode = code.toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-').replace(/(^-+|-+$)/g, '');
     if (!cleanCode) return setErrorMsg('Office code identifier is required.');
     if (!isRootType && (!parentId || Number(parentId) <= 0)) {
-      const parentLabel = Number(typeId) === 2 ? 'Sub-City' : 'Sub-City or Woreda';
-      return setErrorMsg(`A ${selectedType?.name || 'child office'} must have a parent ${parentLabel} selected.`);
+      return setErrorMsg(
+        `A ${selectedType?.name || 'child office'} must have a parent ${parentTierName || 'organization'} selected.`
+      );
     }
     const cleanEmail = email.trim();
     if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
@@ -285,16 +379,10 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
               />
             </div>
 
-            {/* Parent */}
+            {/* Parent Organization SearchSelect */}
             <div className="modal-field full">
               <SearchSelect
-                label={
-                  isRootType
-                    ? 'Parent Organization'
-                    : Number(typeId) === 2
-                      ? 'Parent Sub-City'
-                      : 'Parent Organization'
-                }
+                label={`Governing Parent ${isRootType ? '(Not required - Root Level)' : 'Organization'}`}
                 required={!isRootType}
                 value={isRootType ? 0 : parentId}
                 onChange={(val) => {
@@ -305,19 +393,57 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
                 disabled={isRootType}
                 placeholder={
                   isRootType
-                    ? 'None (Sub-City is Root Tier)'
-                    : Number(typeId) === 2
-                      ? 'Select governing Sub-City...'
-                      : 'Select parent office...'
+                    ? `None (${selectedType?.name || 'Tier'} is a Root Organization)`
+                    : parentOptions.some((o) => !o.disabled && o.value !== 0)
+                      ? `Select governing ${parentTierName} parent office for this ${selectedType?.name || 'unit'}...`
+                      : `No ${parentTierName} (Level ${targetParentLevel}) parent offices exist yet`
                 }
                 helperText={
                   isRootType
-                    ? `${selectedType?.name || 'Sub-Cities'} are root-level platform anchors and do not have a parent.`
-                    : Number(typeId) === 2
-                      ? 'Every Woreda must be assigned to its governing Sub-City (e.g., Bole, Yeka, Kirkos).'
-                      : 'Bureaus must report to an administrative Sub-City or Woreda.'
+                    ? `${selectedType?.name || 'Root organizations'} have the highest administrative authority and have no parent.`
+                    : parentOptions.some((o) => !o.disabled && o.value !== 0)
+                      ? `Select an office of ${parentTierName} authority that supervises this ${selectedType?.name || 'office'}.`
+                      : `A ${parentTierName} (Level ${targetParentLevel}) office must be created first before a ${selectedType?.name || 'child office'} can be registered.`
                 }
               />
+              {!isRootType && !parentOptions.some((o) => !o.disabled && o.value !== 0) && (
+                <div
+                  style={{
+                    marginTop: '6px',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    background: '#fffbeb',
+                    border: '1px solid #fef3c7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                  }}
+                >
+                  <span style={{ fontSize: '12px', color: '#92400e', lineHeight: 1.4 }}>
+                    No {parentTierName} (Level {targetParentLevel}) parent offices exist yet. Please register a {parentTierName} office first.
+                  </span>
+                  {parentTier && (
+                    <button
+                      type="button"
+                      onClick={() => handleTypeSelect(parentTier.id)}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '11.5px',
+                        fontWeight: 600,
+                        background: '#164a54',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Create {parentTier.name} first
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Address */}

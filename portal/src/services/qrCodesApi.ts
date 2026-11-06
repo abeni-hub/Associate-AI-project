@@ -59,6 +59,14 @@ export const qrCodesApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [{ type: 'QrCode', id: 'LIST' }],
     }),
+
+    deleteQrCode: builder.mutation<ApiResponse<null>, number>({
+      query: (id) => ({
+        url: `/qr-codes/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'QrCode', id: 'LIST' }],
+    }),
   }),
   overrideExisting: false,
 });
@@ -67,5 +75,6 @@ export const {
   useGetQrCodesQuery,
   useGetQrCodeByIdQuery,
   useCreateQrCodeMutation,
+  useDeleteQrCodeMutation,
 } = qrCodesApi;
 

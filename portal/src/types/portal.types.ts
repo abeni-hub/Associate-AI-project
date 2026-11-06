@@ -46,6 +46,7 @@ export interface OfficeType {
   name: string;
   description: string;
   level: number;
+  can_be_root?: boolean;
 }
 
 export interface OfficeItem {
@@ -113,9 +114,13 @@ export interface ServiceItem {
 }
 
 export interface RouteStep {
+  id?: number;
   room: string;
   title: string;
   detail: string;
+  floor?: string;
+  building?: string;
+  department?: string;
 }
 
 export interface RouteItem {
@@ -250,7 +255,9 @@ export interface FeedbackModalConfig {
 
 export interface QRModalConfig {
   kind: 'qr';
-  onGenerate: () => void;
+  qr?: any;
+  onGenerate?: () => void;
+  onCreated?: (created: any) => void;
 }
 
 export type ModalConfig =

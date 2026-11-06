@@ -58,6 +58,7 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
         id: t.id,
         name: t.name,
         level: t.level,
+        can_be_root: t.can_be_root,
         description: t.description || '',
       }));
     }
@@ -66,25 +67,15 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
 
   const offices: OfficeItem[] = useMemo(() => {
     if (propOffices && propOffices.length > 0) return propOffices;
+    const typesList = apiOrgTypes?.data || [];
+    const typesById = new Map<number, any>();
+    typesList.forEach((t) => typesById.set(Number(t.id), t));
+
     if (apiOrgs?.data) {
       return apiOrgs.data.map((o: any) => {
-        let resolvedTypeId = Number(o.type?.id || o.organization_type_id || 0);
-        const code = (o.type?.code || o.code || '').toLowerCase();
-        const name = (o.type?.name || o.name || '').toLowerCase();
-
-        if (!resolvedTypeId) {
-          if (code.includes('subcity') || code.includes('sub_city') || name.includes('sub-city') || name.includes('subcity')) {
-            resolvedTypeId = 1;
-          } else if (code.includes('woreda') || name.includes('woreda')) {
-            resolvedTypeId = 2;
-          } else if (code.includes('bureau') || name.includes('bureau') || name.includes('office') || name.includes('agency')) {
-            resolvedTypeId = 3;
-          } else {
-            resolvedTypeId = 1;
-          }
-        }
-
-        const resolvedTypeName = o.type?.name || (resolvedTypeId === 1 ? 'Sub-City' : resolvedTypeId === 2 ? 'Woreda' : 'Bureau');
+        const typeFromRef = o.type || typesById.get(Number(o.organization_type_id || 0));
+        const resolvedTypeId = Number(typeFromRef?.id || o.organization_type_id || (typesList[0]?.id ?? 1));
+        const resolvedTypeName = typeFromRef?.name || (resolvedTypeId === 1 ? 'Root Tier' : 'Office');
 
         return {
           id: o.id,
@@ -92,7 +83,7 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
           code: o.code,
           typeId: resolvedTypeId,
           typeName: resolvedTypeName,
-          typeCode: o.type?.code || o.code,
+          typeCode: typeFromRef?.code || o.code,
           parentId: o.parent?.id ?? o.parent_organization_id ?? null,
           parentName: o.parent?.name,
           admin: o.email || o.phone || 'Administrative Desk',
@@ -107,17 +98,25 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
       });
     }
     return [];
-  }, [propOffices, apiOrgs]);
+  }, [propOffices, apiOrgs, apiOrgTypes]);
 
   const role = propRole || portal.role || 'super';
   const search = propSearch !== undefined ? propSearch : (portal.search !== undefined ? portal.search : internalSearch);
   const setSearch = propSetSearch || portal.setSearch || setInternalSearch;
 
-  // Scope filter: if subcity admin, show only their sub-city and child offices
-  const scopedOffices =
-    role === 'subcity'
-      ? offices.filter((office: OfficeItem) => getOfficeSubcityId(office, offices) === 1)
-      : offices;
+  const { hasPermission, canAccessOrganization, isSuperAdmin } = usePermissions();
+  const canCreate = hasPermission('organizations.create');
+  const canUpdate = hasPermission('organizations.update');
+  const canDelete = hasPermission('organizations.delete');
+
+  // Scope filter: Super Admin views all; hierarchy users view permitted hierarchy
+  const scopedOffices = useMemo(() => {
+    if (isSuperAdmin) return offices;
+    return offices.filter((office: OfficeItem) => {
+      const orgId = Number(office.id);
+      return canAccessOrganization(orgId) || canAccessOrganization(office.parentId);
+    });
+  }, [offices, isSuperAdmin, canAccessOrganization]);
 
   const filtered = scopedOffices.filter((item: OfficeItem) => {
     const type = officeTypes.find((t: OfficeType) => t.id === item.typeId);
@@ -170,10 +169,7 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
     }
   };
 
-  const { hasPermission } = usePermissions();
-  const canCreate = hasPermission('organizations.create');
-  const canUpdate = hasPermission('organizations.update');
-  const canDelete = hasPermission('organizations.delete');
+
 
   return (
     <>
@@ -349,26 +345,33 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
                         <StatusPill>{item.status}</StatusPill>
                       </td>
                       <td style={{ display: 'flex', gap: '6px' }}>
-                        {canUpdate && (
-                          <button
-                            type="button"
-                            className="button secondary small-button"
-                            onClick={() => handleOpenEdit(item)}
-                          >
-                            Edit
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            type="button"
-                            className="button secondary small-button"
-                            style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
-                            onClick={() => handleDeleteOffice(item)}
-                            title="Delete office"
-                          >
-                            Delete
-                          </button>
-                        )}
+                        {(() => {
+                          const canManageThisOffice = isSuperAdmin || canAccessOrganization(Number(item.id));
+                          return (
+                            <>
+                              {canUpdate && canManageThisOffice && (
+                                <button
+                                  type="button"
+                                  className="button secondary small-button"
+                                  onClick={() => handleOpenEdit(item)}
+                                >
+                                  Edit
+                                </button>
+                              )}
+                              {canDelete && canManageThisOffice && (
+                                <button
+                                  type="button"
+                                  className="button secondary small-button"
+                                  style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
+                                  onClick={() => handleDeleteOffice(item)}
+                                  title="Delete office"
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
                       </td>
                     </tr>
                   );
