@@ -4,6 +4,8 @@ import { Icon } from '../shared/Icon';
 import { SearchSelect, type SearchSelectOption } from '../shared/SearchSelect';
 import { useGetOrganizationsQuery } from '../../services/organizationsApi';
 import { useUploadCmsImageMutation } from '../../services/cmsApi';
+import { usePortal } from '../../context';
+import { useGetMeQuery } from '../../services/authApi';
 
 export interface ImageItem {
   id: string;
@@ -29,6 +31,15 @@ export const NewsModal: React.FC<NewsModalProps> = ({
   onSave,
   isLoading = false,
 }) => {
+  const portal = usePortal();
+  const { data: meResponse } = useGetMeQuery(undefined, { skip: !isOpen });
+  const currentUser = meResponse?.data || portal.authUser || portal.session?.user;
+  const userOrg = currentUser?.organization;
+  const isSuperAdmin =
+    currentUser?.role?.slug === 'super_admin' ||
+    portal.role === 'super' ||
+    currentUser?.role?.scope_level === 'global';
+
   const { data: apiOrgs } = useGetOrganizationsQuery(undefined, { skip: !isOpen });
   const [uploadCmsImage] = useUploadCmsImageMutation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,7 +77,15 @@ export const NewsModal: React.FC<NewsModalProps> = ({
       setContentType(isEvt ? 'event' : 'news');
 
       setTitle(item?.title || item?.news_title || '');
-      setOrganizationId(item?.organization_id || item?.organization?.id || null);
+
+      // Autofetch organization: existing item org > logged-in user org > first platform org
+      const autoOrgId =
+        item?.organization_id ||
+        item?.organization?.id ||
+        (userOrg?.id ? Number(userOrg.id) : null) ||
+        (apiOrgs?.data?.[0]?.id ? Number(apiOrgs.data[0].id) : null);
+
+      setOrganizationId(autoOrgId);
 
       // Extract images from multiple formats
       const initialImages: ImageItem[] = [];
@@ -148,7 +167,18 @@ export const NewsModal: React.FC<NewsModalProps> = ({
       setShowUrlInput(false);
       setUrlInputValue('');
     }
-  }, [isOpen, item]);
+  }, [isOpen, item, userOrg, apiOrgs]);
+
+  // Autofetch user organization when creating new item if not yet populated
+  useEffect(() => {
+    if (isOpen && !item && !organizationId) {
+      if (userOrg?.id) {
+        setOrganizationId(Number(userOrg.id));
+      } else if (apiOrgs?.data && apiOrgs.data.length > 0) {
+        setOrganizationId(Number(apiOrgs.data[0].id));
+      }
+    }
+  }, [isOpen, item, organizationId, userOrg, apiOrgs]);
 
   // Organization options for publisher link
   const organizationOptions: SearchSelectOption[] = useMemo(() => {
@@ -500,17 +530,119 @@ export const NewsModal: React.FC<NewsModalProps> = ({
 
             {/* Publishing Organization */}
             <div className="modal-field full">
-              <SearchSelect
-                label={contentType === 'event' ? 'Host Organization' : 'Publishing Organization'}
-                required
-                value={organizationId}
-                onChange={(val) => {
-                  setOrganizationId(val ? Number(val) : null);
-                  setErrorMsg(null);
-                }}
-                options={organizationOptions}
-                placeholder="Select publishing bureau or sub-city..."
-              />
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                {contentType === 'event' ? 'Host Organization' : 'Publishing Organization'} <i style={{ color: '#dc2626' }}>*</i>
+              </label>
+
+              {!isSuperAdmin && userOrg ? (
+                /* Autofetched Organization Card for Scoped Users */
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 14px',
+                    background: '#f8fafc',
+                    border: '1.5px solid #cbd5e1',
+                    borderRadius: '8px',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '6px',
+                        background: '#e8f2ed',
+                        color: '#00485a',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon name="building" size={17} />
+                    </span>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <b style={{ fontSize: '13.5px', color: '#0f172a' }}>
+                          {userOrg.name}
+                        </b>
+                        {userOrg.code && (
+                          <code
+                            style={{
+                              fontSize: '11px',
+                              background: '#e2e8f0',
+                              color: '#334155',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {userOrg.code}
+                          </code>
+                        )}
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            background: '#dcfce7',
+                            color: '#15803d',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          <Icon name="check" size={11} /> Autofetched
+                        </span>
+                      </div>
+                      <small style={{ color: '#64748b', fontSize: '11.5px', marginTop: '2px', display: 'block' }}>
+                        {contentType === 'event' ? 'Public event' : 'Official notice'} will be published under your assigned municipal organization.
+                      </small>
+                    </div>
+                  </div>
+                  <input type="hidden" name="organization_id" value={organizationId || userOrg.id} />
+                </div>
+              ) : (
+                /* Super Admin or fallback: SearchSelect prefilled with autofetched organization */
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '11.5px', color: '#047857', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Icon name="check" size={12} /> Autofetched default organization
+                    </span>
+                    {userOrg && organizationId !== userOrg.id && (
+                      <button
+                        type="button"
+                        onClick={() => setOrganizationId(Number(userOrg.id))}
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          color: '#00485a',
+                          fontSize: '11.5px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          padding: 0,
+                          textDecoration: 'underline',
+                        }}
+                      >
+                        Reset to my organization ({userOrg.name})
+                      </button>
+                    )}
+                  </div>
+                  <SearchSelect
+                    value={organizationId}
+                    onChange={(val) => {
+                      setOrganizationId(val ? Number(val) : null);
+                      setErrorMsg(null);
+                    }}
+                    options={organizationOptions}
+                    placeholder="Select publishing bureau or sub-city..."
+                  />
+                </div>
+              )}
             </div>
 
             {/* Event Specific: Location and Dates */}

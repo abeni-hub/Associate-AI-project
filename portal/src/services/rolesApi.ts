@@ -9,6 +9,16 @@ export interface PermissionItem {
   description?: string;
 }
 
+export interface NavigationItemData {
+  id: number;
+  label: string;
+  route: string;
+  icon?: string;
+  required_permission?: string | null;
+  display_order?: number;
+  description?: string;
+}
+
 export interface RoleDetailItem {
   id: number;
   name: string;
@@ -20,7 +30,8 @@ export interface RoleDetailItem {
   permissions_count?: number;
   permissions?: PermissionItem[];
   permission_ids?: number[];
-  navigation_items?: string[];
+  navigation_items?: (NavigationItemData | string)[];
+  navigation_item_ids?: number[];
   created_at?: string;
 }
 
@@ -117,6 +128,7 @@ export const rolesApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { roleId }) => [
         { type: 'Role', id: roleId },
         { type: 'Role', id: 'LIST' },
+        'Navigation',
       ],
     }),
 
@@ -199,6 +211,7 @@ export const rolesApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { roleId }) => [
         { type: 'Role', id: roleId },
         { type: 'Role', id: 'LIST' },
+        'Navigation',
       ],
     }),
   }),

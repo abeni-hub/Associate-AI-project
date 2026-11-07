@@ -365,6 +365,55 @@ export const NewsPage: React.FC<NewsPageProps> = ({
             <p style={{ margin: 0, color: '#00485a', fontWeight: 600, fontSize: '14px' }}>Loading public updates and events...</p>
             <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>Fetching official notices and civic announcements</p>
           </div>
+        ) : items.length === 0 ? (
+          <div
+            style={{
+              padding: '64px 24px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              background: '#ffffff',
+              borderRadius: '8px',
+              margin: '1.25rem 0',
+              border: '1px dashed #cbd5e1',
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                background: '#f1f5f9',
+                color: '#64748b',
+              }}
+            >
+              <Icon name="news" size={28} />
+            </span>
+            <div>
+              <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: '#0f172a', fontWeight: 700 }}>
+                No news is recorded
+              </h3>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', maxWidth: '420px' }}>
+                There are currently no official municipal notices or civic announcements recorded in the system.
+              </p>
+            </div>
+            {canCreate && (
+              <button
+                type="button"
+                className="button primary"
+                style={{ marginTop: '6px' }}
+                onClick={handleOpenAdd}
+              >
+                + Create news article
+              </button>
+            )}
+          </div>
         ) : (
           <div className="news-grid">
             {filtered.map((item) => {
@@ -446,8 +495,20 @@ export const NewsPage: React.FC<NewsPageProps> = ({
             })}
             {!filtered.length && (
               <div className="empty-state news-empty-state">
-                <b>No updates found</b>
+                <b>No matching updates found</b>
                 <p>Try another search or change the filters.</p>
+                <button
+                  type="button"
+                  className="button secondary small-button"
+                  style={{ marginTop: '8px' }}
+                  onClick={() => {
+                    setSearch?.('');
+                    setTypeFilter('all');
+                    setPublicationFilter('all');
+                  }}
+                >
+                  Clear filters
+                </button>
               </div>
             )}
           </div>

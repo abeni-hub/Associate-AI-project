@@ -8,11 +8,14 @@ import {
   useGetRolesQuery,
   useGetRoleByIdQuery,
   useGetPermissionsQuery,
+  useGetNavigationItemsQuery,
   useUpdateRolePermissionsMutation,
+  useUpdateRoleNavigationItemsMutation,
   useCreateRoleMutation,
   useUpdateRoleMutation,
   useDeleteRoleMutation,
   type PermissionItem,
+  type NavigationItemData,
 } from '../services/rolesApi';
 /**
  * Domain groupings with metadata & icon mappings.
@@ -32,6 +35,55 @@ export const DOMAIN_GROUPS: { id: string; label: string; desc: string; icon: str
   { id: 'audit_logs', label: 'Security Audit Logs', desc: 'Immutable administrative system activity logs.', icon: 'lock' },
   { id: 'cms', label: 'Citizen Landing Page CMS', desc: 'Manage citizen portal landing page, announcement banner, and footer.', icon: 'palette' },
 ];
+
+/**
+ * Standard portal navigation modules metadata
+ */
+interface RoleNavItemDisplay {
+  id: number;
+  key: string;
+  label: string;
+  route: string;
+  icon: string;
+  desc: string;
+  required_permission: string | null;
+  display_order: number;
+}
+
+const CANONICAL_NAVIGATION_ITEMS: RoleNavItemDisplay[] = [
+  { id: 1, key: 'overview', label: 'Overview', route: '/admin/overview', icon: 'overview', desc: 'KPI metrics, service volume charts, and recent activity feed', required_permission: 'dashboard.view', display_order: 1 },
+  { id: 2, key: 'offices', label: 'Offices & Directory', route: '/admin/subcities', icon: 'building', desc: 'Jurisdictional hierarchy, sub-cities, woredas, and bureaus directory', required_permission: 'organizations.view', display_order: 2 },
+  { id: 3, key: 'levels', label: 'Organization Levels', route: '/admin/levels', icon: 'layers', desc: 'Configure municipal tier levels, hierarchy rank depth, and status', required_permission: 'organizations.view', display_order: 3 },
+  { id: 4, key: 'accounts', label: 'Accounts & Staff', route: '/admin/accounts', icon: 'users', desc: 'Manage administrative staff accounts and roles', required_permission: 'users.view', display_order: 4 },
+  { id: 5, key: 'roles', label: 'Roles & Permissions', route: '/admin/roles', icon: 'shield', desc: 'Access control policies, security roles, and permission matrix', required_permission: 'roles.view', display_order: 5 },
+  { id: 6, key: 'services', label: 'Services & Standards', route: '/admin/services', icon: 'file', desc: 'Public service catalog, requirements, and completion tracking', required_permission: 'services.view', display_order: 6 },
+  { id: 7, key: 'routes', label: 'Room Routes & Steps', route: '/admin/routes', icon: 'route', desc: 'Physical room-by-room citizen navigation guides and floor steps', required_permission: 'service_steps.view', display_order: 7 },
+  { id: 8, key: 'feedback', label: 'Citizen Feedback', route: '/admin/feedback', icon: 'message', desc: 'Citizen complaints, ratings, and feedback resolution inbox', required_permission: 'feedback.view_own', display_order: 8 },
+  { id: 9, key: 'qr', label: 'Feedback QR Codes', route: '/admin/qr', icon: 'qr', desc: 'Printable service QR posters and counter rating placards', required_permission: 'qr_codes.view', display_order: 9 },
+  { id: 10, key: 'news', label: 'News & Announcements', route: '/admin/news', icon: 'news', desc: 'Publish public notices, press releases, and municipal events', required_permission: 'news.view', display_order: 10 },
+  { id: 11, key: 'cms', label: 'Landing Page CMS', route: '/admin/cms', icon: 'palette', desc: 'Configure citizen portal spotlight, hero banner, and FAQs', required_permission: 'cms.manage', display_order: 11 },
+  { id: 12, key: 'activity', label: 'Activity Log', route: '/admin/activity', icon: 'activity', desc: 'Audit trails and historical administrative event logs', required_permission: 'audit_logs.view', display_order: 12 },
+];
+
+/**
+ * Returns recommended default navigation item IDs for a given scope level.
+ */
+const getScopeDefaultNavIds = (scopeLevel?: string): number[] => {
+  const s = (scopeLevel || '').toLowerCase();
+  if (s === 'platform' || s === 'global' || s === 'super_admin') {
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  }
+  if (s.includes('subcity') || s.includes('sub_city') || s.includes('sub-city')) {
+    return [1, 2, 4, 6, 7, 8, 9, 10, 12];
+  }
+  if (s.includes('woreda')) {
+    return [1, 4, 6, 7, 8, 9, 10];
+  }
+  if (s.includes('bureau')) {
+    return [1, 4, 6, 7, 8, 9];
+  }
+  return [1, 6, 7, 8];
+};
 
 /**
  * Mapping navigation item routes to relevant backend permission keys
@@ -71,9 +123,14 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   // 2. GET /api/v1/permissions (grouped domain catalog)
   const { data: apiPermissions, isLoading: loadingPermissions } = useGetPermissionsQuery();
 
-  // 3. PUT /api/v1/roles/{id}/permissions (sync permission IDs)
+  // 3. GET /api/v1/navigation/items (all active navigation items)
+  const { data: apiNavItems, isLoading: loadingNavItems, refetch: refetchNavItems } = useGetNavigationItemsQuery();
+
+  // 4. PUT mutations
   const [updateRolePermissionsTrigger, { isLoading: isSavingPermissions }] =
     useUpdateRolePermissionsMutation();
+  const [updateRoleNavigationItemsTrigger, { isLoading: isSavingNavItems }] =
+    useUpdateRoleNavigationItemsMutation();
   const [createRoleTrigger, { isLoading: isCreatingRole }] = useCreateRoleMutation();
   const [updateRoleTrigger, { isLoading: isUpdatingRole }] = useUpdateRoleMutation();
   const [deleteRoleTrigger, { isLoading: isDeletingRole }] = useDeleteRoleMutation();
@@ -85,6 +142,11 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDomainFilter, setSelectedDomainFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'granted' | 'revoked'>('all');
+
+  // Search and Filter States for Navigation Items (Granted vs Revoked)
+  const [navSearchQuery, setNavSearchQuery] = useState('');
+  const [navTabFilter, setNavTabFilter] = useState<'all' | 'granted' | 'revoked'>('all');
+  const [isNavSectionCollapsed, setIsNavSectionCollapsed] = useState(false);
 
   const { hasPermission } = usePermissions();
   const canManageRoles = hasPermission('roles.manage');
@@ -197,6 +259,215 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   const activePermissionsCount = isSuperAdmin
     ? allPermissions.length
     : (effectivePermissionIds.length || activeRole?.permissionsCount || 0);
+
+  // Unified list of all 12 platform navigation items merging backend with canonical metadata
+  const allNavigationItems = useMemo<RoleNavItemDisplay[]>(() => {
+    if (apiNavItems?.data && Array.isArray(apiNavItems.data) && apiNavItems.data.length > 0) {
+      return apiNavItems.data
+        .map((item) => {
+          const canonical = CANONICAL_NAVIGATION_ITEMS.find(
+            (c) =>
+              c.id === Number(item.id) ||
+              c.route.toLowerCase() === (item.route || '').toLowerCase() ||
+              c.label.toLowerCase() === (item.label || '').toLowerCase()
+          );
+          const routeKey = (item.route || '').replace(/^\/admin\//, '').replace(/^\//, '');
+          return {
+            id: Number(item.id),
+            key: canonical?.key || routeKey || `nav_${item.id}`,
+            label: item.label || canonical?.label || `Navigation ${item.id}`,
+            route: item.route || canonical?.route || `/admin/${item.id}`,
+            icon: canonical?.icon || 'layers',
+            desc: canonical?.desc || item.description || `Access to ${item.label} portal module.`,
+            required_permission: item.required_permission || canonical?.required_permission || null,
+            display_order: Number(item.display_order ?? item.id),
+          };
+        })
+        .sort((a, b) => a.display_order - b.display_order);
+    }
+    return CANONICAL_NAVIGATION_ITEMS;
+  }, [apiNavItems]);
+
+  // Effective navigation item IDs granted to active role
+  const effectiveNavIds = useMemo<number[]>(() => {
+    if (!activeRole) return [];
+    if (isSuperAdmin) {
+      return allNavigationItems.map((n) => n.id);
+    }
+    const detailData: any = activeRoleDetail?.data?.data || activeRoleDetail?.data;
+    if (detailData?.navigation_item_ids && Array.isArray(detailData.navigation_item_ids)) {
+      return detailData.navigation_item_ids.map((id: any) => Number(id));
+    }
+    if (detailData?.navigation_items && Array.isArray(detailData.navigation_items)) {
+      return detailData.navigation_items
+        .map((item: any) => {
+          if (typeof item === 'number') return item;
+          if (typeof item === 'object' && item !== null && item.id) return Number(item.id);
+          if (typeof item === 'string') {
+            const match = allNavigationItems.find(
+              (n) => n.key === item || n.route === item || n.label.toLowerCase() === item.toLowerCase()
+            );
+            return match ? match.id : null;
+          }
+          return null;
+        })
+        .filter((n: any): n is number => n !== null && !isNaN(n));
+    }
+    return [];
+  }, [activeRole, isSuperAdmin, allNavigationItems, activeRoleDetail]);
+
+  // Granted navigation items for active role
+  const grantedNavItems = useMemo(() => {
+    return allNavigationItems.filter((item) => effectiveNavIds.includes(item.id));
+  }, [allNavigationItems, effectiveNavIds]);
+
+  // Revoked navigation items (available to add) for active role
+  const revokedNavItems = useMemo(() => {
+    return allNavigationItems.filter((item) => !effectiveNavIds.includes(item.id));
+  }, [allNavigationItems, effectiveNavIds]);
+
+  // Filtered navigation items based on search query
+  const filteredGrantedNavItems = useMemo(() => {
+    if (!navSearchQuery.trim()) return grantedNavItems;
+    const q = navSearchQuery.toLowerCase().trim();
+    return grantedNavItems.filter(
+      (item) =>
+        item.label.toLowerCase().includes(q) ||
+        item.route.toLowerCase().includes(q) ||
+        item.desc.toLowerCase().includes(q) ||
+        (item.required_permission && item.required_permission.toLowerCase().includes(q))
+    );
+  }, [grantedNavItems, navSearchQuery]);
+
+  const filteredRevokedNavItems = useMemo(() => {
+    if (!navSearchQuery.trim()) return revokedNavItems;
+    const q = navSearchQuery.toLowerCase().trim();
+    return revokedNavItems.filter(
+      (item) =>
+        item.label.toLowerCase().includes(q) ||
+        item.route.toLowerCase().includes(q) ||
+        item.desc.toLowerCase().includes(q) ||
+        (item.required_permission && item.required_permission.toLowerCase().includes(q))
+    );
+  }, [revokedNavItems, navSearchQuery]);
+
+  /**
+   * Synchronizes navigation items to backend for active role.
+   */
+  const syncNavItemsToBackend = async (
+    newNavIds: number[],
+    itemName?: string,
+    action?: 'granted' | 'revoked' | 'all_granted' | 'all_revoked' | 'reset'
+  ) => {
+    if (!activeRole || !activeRole.id || isNaN(Number(activeRole.id))) return;
+
+    if (isSuperAdmin) {
+      setErrorStatus('Super Admin navigation access is root-level and cannot be modified.');
+      setTimeout(() => setErrorStatus(null), 3500);
+      return;
+    }
+
+    try {
+      const result = await updateRoleNavigationItemsTrigger({
+        roleId: Number(activeRole.id),
+        navigation_items: newNavIds,
+      }).unwrap();
+
+      // If a navigation item was granted and its required permission is not yet active, auto-grant it
+      if (action === 'granted' && itemName) {
+        const grantedItem = allNavigationItems.find((n) => n.label === itemName);
+        if (grantedItem?.required_permission) {
+          const permObj = allPermissions.find((p) => p.key === grantedItem.required_permission);
+          if (permObj && !effectivePermissionIds.includes(permObj.id)) {
+            const updatedPerms = [...effectivePermissionIds, permObj.id];
+            await updateRolePermissionsTrigger({
+              roleId: Number(activeRole.id),
+              permission_ids: updatedPerms,
+            }).unwrap();
+          }
+        }
+      }
+
+      await refetchRoles();
+      if (refetchNavItems) {
+        await refetchNavItems();
+      }
+
+      if (action === 'granted') {
+        setSaveStatus(`Navigation item "${itemName}" granted to role "${activeRole.name}".`);
+      } else if (action === 'revoked') {
+        setSaveStatus(`Navigation item "${itemName}" revoked from role "${activeRole.name}".`);
+      } else if (action === 'all_granted') {
+        setSaveStatus(`All ${newNavIds.length} navigation modules granted to role "${activeRole.name}".`);
+      } else if (action === 'all_revoked') {
+        setSaveStatus(`All navigation modules revoked from role "${activeRole.name}".`);
+      } else if (action === 'reset') {
+        setSaveStatus(`Navigation items reset to ${activeRole.scope} defaults (${newNavIds.length} granted).`);
+      } else {
+        setSaveStatus(result.message || 'Navigation items updated successfully.');
+      }
+      setTimeout(() => setSaveStatus(null), 3500);
+    } catch (err: any) {
+      console.error('Backend updateRoleNavigationItems error:', err);
+      const msg = err?.data?.message || err?.message || 'Failed to update navigation items on backend.';
+      setErrorStatus(msg);
+      setTimeout(() => setErrorStatus(null), 4500);
+    }
+  };
+
+  /**
+   * Grant a single revoked navigation item to active role.
+   */
+  const handleGrantNavItem = async (navItemId: number) => {
+    if (!canManageRoles) {
+      setErrorStatus('Permission denied: roles.manage is required to modify navigation items.');
+      setTimeout(() => setErrorStatus(null), 3500);
+      return;
+    }
+    const item = allNavigationItems.find((n) => n.id === navItemId);
+    const newNavIds = Array.from(new Set([...effectiveNavIds, navItemId]));
+    await syncNavItemsToBackend(newNavIds, item?.label, 'granted');
+  };
+
+  /**
+   * Revoke a single granted navigation item from active role.
+   */
+  const handleRevokeNavItem = async (navItemId: number) => {
+    if (!canManageRoles) {
+      setErrorStatus('Permission denied: roles.manage is required to modify navigation items.');
+      setTimeout(() => setErrorStatus(null), 3500);
+      return;
+    }
+    const item = allNavigationItems.find((n) => n.id === navItemId);
+    const newNavIds = effectiveNavIds.filter((id) => id !== navItemId);
+    await syncNavItemsToBackend(newNavIds, item?.label, 'revoked');
+  };
+
+  /**
+   * Grant all 12 navigation items to active role.
+   */
+  const handleGrantAllNavItems = async () => {
+    if (!canManageRoles || isSuperAdmin) return;
+    const allIds = allNavigationItems.map((n) => n.id);
+    await syncNavItemsToBackend(allIds, undefined, 'all_granted');
+  };
+
+  /**
+   * Revoke all navigation items from active role.
+   */
+  const handleRevokeAllNavItems = async () => {
+    if (!canManageRoles || isSuperAdmin) return;
+    await syncNavItemsToBackend([], undefined, 'all_revoked');
+  };
+
+  /**
+   * Reset navigation items to scope-level recommended defaults.
+   */
+  const handleResetNavScopeDefaults = async () => {
+    if (!canManageRoles || isSuperAdmin || !activeRole) return;
+    const defaultIds = getScopeDefaultNavIds(activeRole.scope_level);
+    await syncNavItemsToBackend(defaultIds, undefined, 'reset');
+  };
 
   /**
    * Dispatches PUT /api/v1/roles/{id}/permissions to synchronize permission IDs.
@@ -738,6 +1009,881 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
               </span>
             </div>
           )}
+
+          {/* ========================================================================= */}
+          {/* Sidebar Navigation Items: Granted vs Revoked Access Card */}
+          {/* ========================================================================= */}
+          <div
+            style={{
+              margin: '0.75rem 1.5rem 1.5rem',
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              overflow: 'hidden',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            }}
+          >
+            {/* Navigation Card Header */}
+            <div
+              style={{
+                padding: '12px 18px',
+                background: '#f8fafc',
+                borderBottom: isNavSectionCollapsed ? 'none' : '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '8px',
+                    background: '#e8f2ed',
+                    color: '#00485a',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon name="layers" size={18} />
+                </span>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
+                      Sidebar Navigation Access
+                    </h3>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        background: '#dcfce7',
+                        color: '#15803d',
+                      }}
+                    >
+                      {grantedNavItems.length} Granted
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        background: revokedNavItems.length > 0 ? '#fef3c7' : '#f1f5f9',
+                        color: revokedNavItems.length > 0 ? '#92400e' : '#64748b',
+                      }}
+                    >
+                      {revokedNavItems.length} Revoked
+                    </span>
+                  </div>
+                  <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>
+                    Manage navigation items granted to or revoked from{' '}
+                    <strong style={{ color: '#1e293b' }}>{activeRole.name}</strong>. Granted items appear in the portal sidebar.
+                  </p>
+                </div>
+              </div>
+
+              {/* Navigation Card Actions & Collapse Toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                {!isSuperAdmin && canManageRoles && (
+                  <>
+                    <button
+                      type="button"
+                      className="button secondary small-button"
+                      style={{ fontSize: '11.5px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      onClick={handleGrantAllNavItems}
+                      disabled={isSavingNavItems || revokedNavItems.length === 0}
+                      title="Grant all 12 navigation modules to this role"
+                    >
+                      <Icon name="check" size={13} /> Grant all
+                    </button>
+                    <button
+                      type="button"
+                      className="button secondary small-button"
+                      style={{ fontSize: '11.5px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      onClick={handleRevokeAllNavItems}
+                      disabled={isSavingNavItems || grantedNavItems.length === 0}
+                      title="Revoke all navigation modules from this role"
+                    >
+                      <Icon name="close" size={13} /> Revoke all
+                    </button>
+                    <button
+                      type="button"
+                      className="button secondary small-button"
+                      style={{ fontSize: '11.5px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      onClick={handleResetNavScopeDefaults}
+                      disabled={isSavingNavItems}
+                      title="Reset navigation items to scope-level recommended defaults"
+                    >
+                      <Icon name="refresh" size={13} /> Reset defaults
+                    </button>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setIsNavSectionCollapsed((prev) => !prev)}
+                  style={{
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    borderRadius: '6px',
+                    padding: '5px 9px',
+                    cursor: 'pointer',
+                    color: '#475569',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                  }}
+                  title={isNavSectionCollapsed ? 'Expand navigation items' : 'Collapse navigation items'}
+                >
+                  <span>{isNavSectionCollapsed ? 'Show items' : 'Hide items'}</span>
+                  <span
+                    style={{
+                      transform: isNavSectionCollapsed ? 'rotate(0deg)' : 'rotate(180deg)',
+                      transition: 'transform 0.2s ease',
+                      display: 'inline-flex',
+                    }}
+                  >
+                    <Icon name="chevron" size={14} />
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Navigation Body (when expanded) */}
+            {!isNavSectionCollapsed && (
+              <>
+                {/* Search & Filter Tabs Toolbar */}
+                <div
+                  style={{
+                    padding: '10px 18px',
+                    borderBottom: '1px solid #edf1ed',
+                    background: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                  }}
+                >
+                  {/* Search Input */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
+                      gap: '8px',
+                      flex: '1',
+                      minWidth: '220px',
+                      maxWidth: '380px',
+                    }}
+                  >
+                    <Icon name="search" size={14} />
+                    <input
+                      type="text"
+                      placeholder="Search navigation items by title, route, or permission..."
+                      value={navSearchQuery}
+                      onChange={(e) => setNavSearchQuery(e.target.value)}
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        outline: 'none',
+                        fontSize: '12.5px',
+                        width: '100%',
+                        color: '#1e293b',
+                      }}
+                    />
+                    {navSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setNavSearchQuery('')}
+                        style={{
+                          border: 'none',
+                          background: 'none',
+                          cursor: 'pointer',
+                          padding: 0,
+                          color: '#94a3b8',
+                        }}
+                        title="Clear search"
+                      >
+                        <Icon name="close" size={13} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filter View Tabs */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        background: '#f1f5f9',
+                        padding: '2px',
+                        borderRadius: '6px',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setNavTabFilter('all')}
+                        style={{
+                          border: 'none',
+                          background: navTabFilter === 'all' ? '#ffffff' : 'transparent',
+                          color: navTabFilter === 'all' ? '#00485a' : '#64748b',
+                          fontWeight: navTabFilter === 'all' ? 700 : 500,
+                          fontSize: '12px',
+                          padding: '4px 10px',
+                          borderRadius: '4px',
+                          boxShadow: navTabFilter === 'all' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        All Modules ({allNavigationItems.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNavTabFilter('granted')}
+                        style={{
+                          border: 'none',
+                          background: navTabFilter === 'granted' ? '#ffffff' : 'transparent',
+                          color: navTabFilter === 'granted' ? '#047857' : '#64748b',
+                          fontWeight: navTabFilter === 'granted' ? 700 : 500,
+                          fontSize: '12px',
+                          padding: '4px 10px',
+                          borderRadius: '4px',
+                          boxShadow: navTabFilter === 'granted' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Granted ({grantedNavItems.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNavTabFilter('revoked')}
+                        style={{
+                          border: 'none',
+                          background: navTabFilter === 'revoked' ? '#ffffff' : 'transparent',
+                          color: navTabFilter === 'revoked' ? '#b45309' : '#64748b',
+                          fontWeight: navTabFilter === 'revoked' ? 700 : 500,
+                          fontSize: '12px',
+                          padding: '4px 10px',
+                          borderRadius: '4px',
+                          boxShadow: navTabFilter === 'revoked' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Revoked / Add ({revokedNavItems.length})
+                      </button>
+                    </div>
+
+                    {isSavingNavItems && (
+                      <span style={{ fontSize: '12px', color: '#00485a', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <span className="loading-spinner" style={{ width: '12px', height: '12px' }} /> Syncing sidebar...
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Navigation Items Content */}
+                <div style={{ padding: '16px 18px', background: '#fcfdfc' }}>
+                  {isSuperAdmin ? (
+                    <div
+                      style={{
+                        padding: '16px',
+                        background: '#ecfdf5',
+                        border: '1px solid #a7f3d0',
+                        borderRadius: '8px',
+                        color: '#065f46',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                      }}
+                    >
+                      <span style={{ display: 'inline-flex', padding: '6px', borderRadius: '50%', background: '#d1fae5' }}>
+                        <Icon name="shield" size={20} />
+                      </span>
+                      <div>
+                        <b style={{ fontSize: '13.5px', display: 'block' }}>Root Platform Navigation Authority</b>
+                        <span style={{ fontSize: '12px' }}>
+                          Super Admin has inherently granted access to all 12 platform navigation modules. Navigation items are immutable for this role.
+                        </span>
+                      </div>
+                    </div>
+                  ) : navTabFilter === 'all' ? (
+                    /* Two-Column Split: Granted on Left, Revoked on Right */
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+                        gap: '20px',
+                        alignItems: 'start',
+                      }}
+                    >
+                      {/* Left Column: GRANTED ITEMS */}
+                      <div
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #bbf7d0',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column',
+                        }}
+                      >
+                        <div
+                          style={{
+                            padding: '10px 14px',
+                            background: '#f0fdf4',
+                            borderBottom: '1px solid #dcfce7',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '50%',
+                                background: '#16a34a',
+                                color: '#ffffff',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                              }}
+                            >
+                              ✓
+                            </span>
+                            <b style={{ color: '#166534', fontSize: '13px' }}>
+                              Granted Navigation Items ({filteredGrantedNavItems.length})
+                            </b>
+                          </div>
+                          <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 600 }}>
+                            Active in Sidebar
+                          </span>
+                        </div>
+
+                        <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', minHeight: '120px' }}>
+                          {filteredGrantedNavItems.length === 0 ? (
+                            <div style={{ padding: '24px 16px', textAlign: 'center', color: '#64748b' }}>
+                              <p style={{ margin: 0, fontSize: '13px' }}>No granted navigation items match current search.</p>
+                              <small style={{ color: '#94a3b8' }}>Users holding this role cannot view any sidebar sections.</small>
+                            </div>
+                          ) : (
+                            filteredGrantedNavItems.map((item) => (
+                              <div
+                                key={item.id}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '8px 12px',
+                                  background: '#fafffa',
+                                  border: '1px solid #dcfce7',
+                                  borderRadius: '6px',
+                                  gap: '12px',
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: '28px',
+                                      height: '28px',
+                                      borderRadius: '6px',
+                                      background: '#dcfce7',
+                                      color: '#166534',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <Icon name={item.icon || 'layers'} size={15} />
+                                  </span>
+                                  <div style={{ minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                      <b style={{ fontSize: '13px', color: '#14532d' }}>{item.label}</b>
+                                      <code
+                                        style={{
+                                          fontSize: '10.5px',
+                                          background: '#f1f5f9',
+                                          color: '#475569',
+                                          padding: '1px 5px',
+                                          borderRadius: '4px',
+                                        }}
+                                      >
+                                        {item.route}
+                                      </code>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
+                                      <span style={{ fontSize: '11px', color: '#64748b' }}>{item.desc}</span>
+                                      {item.required_permission && (
+                                        <span
+                                          style={{
+                                            fontSize: '10px',
+                                            background: '#e0f2fe',
+                                            color: '#0369a1',
+                                            padding: '1px 5px',
+                                            borderRadius: '4px',
+                                            fontWeight: 600,
+                                          }}
+                                          title={`Requires permission: ${item.required_permission}`}
+                                        >
+                                          req: {item.required_permission}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div style={{ flexShrink: 0 }}>
+                                  {canManageRoles ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRevokeNavItem(item.id)}
+                                      disabled={isSavingNavItems}
+                                      style={{
+                                        border: '1px solid #fca5a5',
+                                        background: '#ffffff',
+                                        color: '#b91c1c',
+                                        borderRadius: '5px',
+                                        padding: '4px 9px',
+                                        fontSize: '11.5px',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                      }}
+                                      title={`Revoke "${item.label}" from ${activeRole.name}`}
+                                    >
+                                      <Icon name="close" size={12} /> Revoke
+                                    </button>
+                                  ) : (
+                                    <span
+                                      style={{
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        color: '#15803d',
+                                        background: '#dcfce7',
+                                        padding: '2px 8px',
+                                        borderRadius: '10px',
+                                      }}
+                                    >
+                                      Granted
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right Column: REVOKED ITEMS (Available to Add) */}
+                      <div
+                        style={{
+                          background: '#ffffff',
+                          border: '1px dashed #cbd5e1',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column',
+                        }}
+                      >
+                        <div
+                          style={{
+                            padding: '10px 14px',
+                            background: '#f8fafc',
+                            borderBottom: '1px solid #f1f5f9',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '50%',
+                                background: '#f1f5f9',
+                                color: '#64748b',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                              }}
+                            >
+                              +
+                            </span>
+                            <b style={{ color: '#334155', fontSize: '13px' }}>
+                              Revoked Items · Available to Add ({filteredRevokedNavItems.length})
+                            </b>
+                          </div>
+                          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                            Hidden from Sidebar
+                          </span>
+                        </div>
+
+                        <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', minHeight: '120px' }}>
+                          {filteredRevokedNavItems.length === 0 ? (
+                            <div style={{ padding: '24px 16px', textAlign: 'center', color: '#64748b' }}>
+                              <p style={{ margin: 0, fontSize: '13px', color: '#166534', fontWeight: 600 }}>
+                                ✓ All navigation modules are granted to this role!
+                              </p>
+                              <small style={{ color: '#64748b' }}>No revoked items remain to add.</small>
+                            </div>
+                          ) : (
+                            filteredRevokedNavItems.map((item) => (
+                              <div
+                                key={item.id}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '8px 12px',
+                                  background: '#ffffff',
+                                  border: '1px dashed #e2e8f0',
+                                  borderRadius: '6px',
+                                  gap: '12px',
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: '28px',
+                                      height: '28px',
+                                      borderRadius: '6px',
+                                      background: '#f1f5f9',
+                                      color: '#64748b',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <Icon name={item.icon || 'layers'} size={15} />
+                                  </span>
+                                  <div style={{ minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                      <b style={{ fontSize: '13px', color: '#334155' }}>{item.label}</b>
+                                      <code
+                                        style={{
+                                          fontSize: '10.5px',
+                                          background: '#f8fafc',
+                                          color: '#64748b',
+                                          padding: '1px 5px',
+                                          borderRadius: '4px',
+                                        }}
+                                      >
+                                        {item.route}
+                                      </code>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
+                                      <span style={{ fontSize: '11px', color: '#64748b' }}>{item.desc}</span>
+                                      {item.required_permission && (
+                                        <span
+                                          style={{
+                                            fontSize: '10px',
+                                            background: '#f1f5f9',
+                                            color: '#64748b',
+                                            padding: '1px 5px',
+                                            borderRadius: '4px',
+                                            fontWeight: 600,
+                                          }}
+                                          title={`Requires permission: ${item.required_permission}`}
+                                        >
+                                          req: {item.required_permission}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div style={{ flexShrink: 0 }}>
+                                  {canManageRoles ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleGrantNavItem(item.id)}
+                                      disabled={isSavingNavItems}
+                                      style={{
+                                        border: 'none',
+                                        background: '#00485a',
+                                        color: '#ffffff',
+                                        borderRadius: '5px',
+                                        padding: '4px 11px',
+                                        fontSize: '11.5px',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        boxShadow: '0 1px 2px rgba(0,72,90,0.15)',
+                                      }}
+                                      title={`Grant "${item.label}" to ${activeRole.name}`}
+                                    >
+                                      <Icon name="plus" size={12} /> Add to role
+                                    </button>
+                                  ) : (
+                                    <span
+                                      style={{
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        color: '#64748b',
+                                        background: '#f1f5f9',
+                                        padding: '2px 8px',
+                                        borderRadius: '10px',
+                                      }}
+                                    >
+                                      Revoked
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : navTabFilter === 'granted' ? (
+                    /* Only Granted Items Grid */
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                        gap: '12px',
+                      }}
+                    >
+                      {filteredGrantedNavItems.length === 0 ? (
+                        <div style={{ padding: '30px', textAlign: 'center', gridColumn: '1 / -1', color: '#64748b' }}>
+                          <p style={{ margin: 0, fontSize: '14px' }}>No granted navigation items match filter.</p>
+                        </div>
+                      ) : (
+                        filteredGrantedNavItems.map((item) => (
+                          <div
+                            key={item.id}
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #bbf7d0',
+                              borderRadius: '8px',
+                              padding: '12px 14px',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '6px',
+                                  background: '#dcfce7',
+                                  color: '#166534',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <Icon name={item.icon || 'layers'} size={16} />
+                              </span>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                  <b style={{ fontSize: '13.5px', color: '#14532d' }}>{item.label}</b>
+                                  <code
+                                    style={{
+                                      fontSize: '11px',
+                                      background: '#f1f5f9',
+                                      color: '#475569',
+                                      padding: '1px 5px',
+                                      borderRadius: '4px',
+                                    }}
+                                  >
+                                    {item.route}
+                                  </code>
+                                </div>
+                                <p style={{ margin: '3px 0 0', fontSize: '11.5px', color: '#64748b' }}>
+                                  {item.desc}
+                                </p>
+                                {item.required_permission && (
+                                  <span
+                                    style={{
+                                      display: 'inline-block',
+                                      marginTop: '4px',
+                                      fontSize: '10.5px',
+                                      background: '#e0f2fe',
+                                      color: '#0369a1',
+                                      padding: '1px 6px',
+                                      borderRadius: '4px',
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    req: {item.required_permission}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {canManageRoles && (
+                              <button
+                                type="button"
+                                onClick={() => handleRevokeNavItem(item.id)}
+                                disabled={isSavingNavItems}
+                                style={{
+                                  border: '1px solid #fca5a5',
+                                  background: '#ffffff',
+                                  color: '#b91c1c',
+                                  borderRadius: '5px',
+                                  padding: '4px 10px',
+                                  fontSize: '11.5px',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  flexShrink: 0,
+                                }}
+                                title={`Revoke "${item.label}" from ${activeRole.name}`}
+                              >
+                                <Icon name="close" size={12} /> Revoke
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  ) : (
+                    /* Only Revoked Items Grid */
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                        gap: '12px',
+                      }}
+                    >
+                      {filteredRevokedNavItems.length === 0 ? (
+                        <div style={{ padding: '30px', textAlign: 'center', gridColumn: '1 / -1', color: '#166534' }}>
+                          <p style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>✓ All navigation items are granted to this role!</p>
+                          <small style={{ color: '#64748b' }}>None are currently revoked.</small>
+                        </div>
+                      ) : (
+                        filteredRevokedNavItems.map((item) => (
+                          <div
+                            key={item.id}
+                            style={{
+                              background: '#ffffff',
+                              border: '1px dashed #cbd5e1',
+                              borderRadius: '8px',
+                              padding: '12px 14px',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '6px',
+                                  background: '#f1f5f9',
+                                  color: '#64748b',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <Icon name={item.icon || 'layers'} size={16} />
+                              </span>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                  <b style={{ fontSize: '13.5px', color: '#334155' }}>{item.label}</b>
+                                  <code
+                                    style={{
+                                      fontSize: '11px',
+                                      background: '#f8fafc',
+                                      color: '#64748b',
+                                      padding: '1px 5px',
+                                      borderRadius: '4px',
+                                    }}
+                                  >
+                                    {item.route}
+                                  </code>
+                                </div>
+                                <p style={{ margin: '3px 0 0', fontSize: '11.5px', color: '#64748b' }}>
+                                  {item.desc}
+                                </p>
+                                {item.required_permission && (
+                                  <span
+                                    style={{
+                                      display: 'inline-block',
+                                      marginTop: '4px',
+                                      fontSize: '10.5px',
+                                      background: '#f1f5f9',
+                                      color: '#64748b',
+                                      padding: '1px 6px',
+                                      borderRadius: '4px',
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    req: {item.required_permission}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {canManageRoles && (
+                              <button
+                                type="button"
+                                onClick={() => handleGrantNavItem(item.id)}
+                                disabled={isSavingNavItems}
+                                style={{
+                                  border: 'none',
+                                  background: '#00485a',
+                                  color: '#ffffff',
+                                  borderRadius: '5px',
+                                  padding: '5px 12px',
+                                  fontSize: '11.5px',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  boxShadow: '0 1px 2px rgba(0,72,90,0.15)',
+                                  flexShrink: 0,
+                                }}
+                                title={`Grant "${item.label}" to ${activeRole.name}`}
+                              >
+                                <Icon name="plus" size={12} /> Add to role
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Search & Filter Toolbar */}
           <div

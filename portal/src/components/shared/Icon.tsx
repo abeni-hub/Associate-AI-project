@@ -109,6 +109,26 @@ export const Icon: React.FC<IconProps> = ({ name, size = 18, strokeWidth = 1.8 }
       </>
     ),
     check: <path d="m5 12 4 4L19 6" />,
+    file: (
+      <>
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="16" y1="13" x2="8" y2="13" />
+        <line x1="16" y1="17" x2="8" y2="17" />
+        <polyline points="10 9 9 9 8 9" />
+      </>
+    ),
+    trash: (
+      <>
+        <polyline points="3 6 5 6 21 6" />
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      </>
+    ),
+    refresh: (
+      <>
+        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-1.19" />
+      </>
+    ),
     lock: (
       <>
         <rect x="4" y="10" width="16" height="11" rx="2" />
