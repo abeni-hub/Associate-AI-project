@@ -64,10 +64,11 @@ class FeedbackController extends Controller
 
         if ($request->filled('search')) {
             $search = (string) $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('feedback_content', 'ilike', "%{$search}%")
-                    ->orWhere('full_name', 'ilike', "%{$search}%")
-                    ->orWhere('tracking_number', 'ilike', "%{$search}%");
+            $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->where(function ($q) use ($search, $like) {
+                $q->where('feedback_content', $like, "%{$search}%")
+                    ->orWhere('full_name', $like, "%{$search}%")
+                    ->orWhere('tracking_number', $like, "%{$search}%");
             });
         }
 

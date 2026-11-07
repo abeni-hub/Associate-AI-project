@@ -554,7 +554,11 @@ class DashboardMetricsService
                     'name' => $log->user?->organization?->name,
                     'code' => $log->user?->organization?->code,
                 ],
+                'old_values' => $log->old_values,
+                'new_values' => $log->new_values,
                 'ip_address' => $log->ip_address,
+                'user_agent' => $log->user_agent,
+                'status' => $log->status,
                 'created_at' => $log->created_at?->toIso8601String(),
             ])
             ->all();

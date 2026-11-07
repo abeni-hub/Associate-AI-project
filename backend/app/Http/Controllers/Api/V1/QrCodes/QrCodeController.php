@@ -34,8 +34,8 @@ class QrCodeController extends Controller
 
         $qrCodes = $query->paginate(20);
 
-        return ApiResponse::success(
-            data: $qrCodes,
+        return ApiResponse::paginated(
+            paginator: $qrCodes,
             message: 'QR codes retrieved successfully.'
         );
     }
@@ -71,6 +71,27 @@ class QrCodeController extends Controller
         return ApiResponse::created(
             data: $qrCode->load('organization:id,name,code'),
             message: 'QR code generated successfully.'
+        );
+    }
+
+    /**
+     * Delete an existing QR code poster.
+     */
+    public function destroy(QrCode $qrCode, Request $request): JsonResponse
+    {
+        $this->auditLogger->execute(
+            action: 'deleted',
+            entity: $qrCode,
+            actor: $request->user(),
+            oldValues: $qrCode->toArray(),
+            request: $request
+        );
+
+        $qrCode->delete();
+
+        return ApiResponse::success(
+            data: null,
+            message: 'QR code deleted successfully.'
         );
     }
 

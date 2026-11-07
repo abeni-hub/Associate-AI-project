@@ -30,11 +30,11 @@ class ServiceController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Service::with(['organization', 'parent'])
-            ->withCount(['subservices', 'requiredDocuments', 'offeringOrganizations']);
+        $query = Service::with(['organization', 'parent', 'steps.organization'])
+            ->withCount(['subservices', 'requiredDocuments', 'offeringOrganizations', 'steps']);
 
         // Public citizens only see active services unless caller has management rights
-        $user = $request->user();
+        $user = $request->user() ?? auth('sanctum')->user();
         if (! $user || ! $user->hasPermission('services.update')) {
             $query->where('is_active', true);
         } elseif ($request->has('is_active')) {
@@ -44,10 +44,11 @@ class ServiceController extends Controller
         // Search
         if ($request->filled('search')) {
             $search = (string) $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                    ->orWhere('code', 'ilike', "%{$search}%")
-                    ->orWhere('description', 'ilike', "%{$search}%");
+            $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->where(function ($q) use ($search, $like) {
+                $q->where('name', $like, "%{$search}%")
+                    ->orWhere('code', $like, "%{$search}%")
+                    ->orWhere('description', $like, "%{$search}%");
             });
         }
 
@@ -95,7 +96,7 @@ class ServiceController extends Controller
     /**
      * Show detailed service profile (lookup by ID or unique code slug).
      */
-    public function show(string $identifier): JsonResponse
+    public function show(Request $request, string $identifier): JsonResponse
     {
         $query = Service::with([
             'parent',
@@ -115,6 +116,16 @@ class ServiceController extends Controller
                 message: 'Service not found.',
                 statusCode: 404
             );
+        }
+
+        if (! $service->is_active) {
+            $user = $request->user() ?? auth('sanctum')->user();
+            if (! $user || ! $user->hasPermission('services.update')) {
+                return ApiResponse::error(
+                    message: 'Service not found.',
+                    statusCode: 404
+                );
+            }
         }
 
         return ApiResponse::success(

@@ -45,7 +45,8 @@ class NewsController extends Controller
 
         if ($request->filled('search')) {
             $search = (string) $request->input('search');
-            $query->where('news_title', 'ilike', "%{$search}%");
+            $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->where('news_title', $like, "%{$search}%");
         }
 
         if ($request->filled('organization_id')) {

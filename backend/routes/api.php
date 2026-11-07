@@ -85,7 +85,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
     // Authenticated Administration Endpoints
     Route::middleware(['auth:sanctum', 'account.active'])->group(function () {
-        // Dynamic Sidebar Navigation
+        // Dynamic Navigation Items
+        Route::get('/navigation/items', [NavigationController::class, 'index'])
+            ->name('navigation.items');
         Route::get('/navigation/sidebar', [NavigationController::class, 'sidebar'])
             ->name('navigation.sidebar');
 
@@ -94,12 +96,24 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::get('/', [RoleController::class, 'index'])
                 ->middleware('permission:roles.view')
                 ->name('index');
+            Route::post('/', [RoleController::class, 'store'])
+                ->middleware('permission:roles.manage')
+                ->name('store');
             Route::get('/{role}', [RoleController::class, 'show'])
                 ->middleware('permission:roles.view')
                 ->name('show');
+            Route::put('/{role}', [RoleController::class, 'update'])
+                ->middleware('permission:roles.manage')
+                ->name('update');
+            Route::delete('/{role}', [RoleController::class, 'destroy'])
+                ->middleware('permission:roles.manage')
+                ->name('destroy');
             Route::put('/{role}/permissions', [RoleController::class, 'updatePermissions'])
                 ->middleware('permission:roles.manage')
                 ->name('update-permissions');
+            Route::put('/{role}/navigation-items', [RoleController::class, 'updateNavigationItems'])
+                ->middleware('permission:roles.manage')
+                ->name('update-navigation-items');
         });
 
         Route::get('/permissions', [PermissionController::class, 'index'])
@@ -110,6 +124,15 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('/organization-types', [OrganizationTypeController::class, 'index'])
             ->middleware('permission:organizations.view')
             ->name('organization-types.index');
+        Route::post('/organization-types', [OrganizationTypeController::class, 'store'])
+            ->middleware('permission:organizations.create')
+            ->name('organization-types.store');
+        Route::put('/organization-types/{organizationType}', [OrganizationTypeController::class, 'update'])
+            ->middleware('permission:organizations.update')
+            ->name('organization-types.update');
+        Route::delete('/organization-types/{organizationType}', [OrganizationTypeController::class, 'destroy'])
+            ->middleware('permission:organizations.delete')
+            ->name('organization-types.destroy');
 
         Route::get('/organization', [OrganizationController::class, 'index'])
             ->middleware('permission:organizations.view');
@@ -194,6 +217,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/', [ServiceStepController::class, 'store'])
                 ->middleware('permission:service_steps.manage')
                 ->name('store');
+            Route::post('/sync', [ServiceStepController::class, 'sync'])
+                ->middleware('permission:service_steps.manage')
+                ->name('sync');
             Route::post('/reorder', [ServiceStepController::class, 'reorder'])
                 ->middleware('permission:service_steps.manage')
                 ->name('reorder');
@@ -279,6 +305,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/', [QrCodeController::class, 'store'])
                 ->middleware('permission:qr_codes.manage')
                 ->name('store');
+            Route::delete('/{qrCode}', [QrCodeController::class, 'destroy'])
+                ->middleware('permission:qr_codes.manage')
+                ->name('destroy');
         });
 
         // Event Management

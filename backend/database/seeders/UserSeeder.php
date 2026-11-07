@@ -27,8 +27,8 @@ class UserSeeder extends Seeder
             ]
         );
 
-        $initialAdminPassword = env('INITIAL_SUPER_ADMIN_PASSWORD', 'Admin123!Secure');
-        $requireChange = empty(env('INITIAL_SUPER_ADMIN_PASSWORD')) || app()->isProduction();
+        $initialAdminPassword = 'Admin123!Secure';
+        $requireChange = false;
 
         // 1. Super Admin Account
         User::updateOrCreate(

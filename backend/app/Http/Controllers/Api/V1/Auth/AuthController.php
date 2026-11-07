@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Domains\AuditLogs\Actions\RecordAuditLogAction;
 use App\Domains\Authentication\Actions\ChangePasswordAction;
 use App\Domains\Authentication\Services\AuthenticationService;
 use App\Http\Controllers\Controller;
@@ -19,8 +20,11 @@ class AuthController extends Controller
     /**
      * Authenticate user credentials and establish session.
      */
-    public function login(LoginRequest $request, AuthenticationService $authService): JsonResponse
-    {
+    public function login(
+        LoginRequest $request,
+        AuthenticationService $authService,
+        RecordAuditLogAction $auditLogger
+    ): JsonResponse {
         $user = $authService->authenticate(
             identifier: $request->getIdentifier(),
             password: (string) $request->input('password'),
@@ -28,6 +32,20 @@ class AuthController extends Controller
         );
 
         $token = $user->createToken('auth-token')->plainTextToken;
+
+        $auditLogger->execute(
+            action: 'login',
+            entity: $user,
+            actor: $user,
+            newValues: [
+                'username' => $user->username,
+                'email' => $user->email,
+                'role' => $user->role?->name ?? 'User',
+            ],
+            request: $request,
+            status: 'success',
+            statusCode: 200
+        );
 
         $userData = (new UserResource($user))->toArray($request);
         $userData['token'] = $token;
@@ -60,8 +78,28 @@ class AuthController extends Controller
     /**
      * Terminate the session and logout.
      */
-    public function logout(Request $request, AuthenticationService $authService): JsonResponse
-    {
+    public function logout(
+        Request $request,
+        AuthenticationService $authService,
+        RecordAuditLogAction $auditLogger
+    ): JsonResponse {
+        $user = $request->user();
+
+        if ($user) {
+            $auditLogger->execute(
+                action: 'logout',
+                entity: $user,
+                actor: $user,
+                newValues: [
+                    'username' => $user->username,
+                    'email' => $user->email,
+                ],
+                request: $request,
+                status: 'success',
+                statusCode: 200
+            );
+        }
+
         $authService->logout($request);
 
         return ApiResponse::success(
