@@ -77,6 +77,12 @@ export interface CreateServicePayload {
   fee_notes?: string;
   estimated_duration_minutes?: number;
   is_active?: boolean;
+  documents?: Array<{
+    document_id: number;
+    is_mandatory?: boolean;
+    order_column?: number;
+    notes?: string;
+  }>;
 }
 
 export interface UpdateServicePayload {
@@ -91,6 +97,12 @@ export interface UpdateServicePayload {
   fee_notes?: string;
   estimated_duration_minutes?: number;
   is_active?: boolean;
+  documents?: Array<{
+    document_id: number;
+    is_mandatory?: boolean;
+    order_column?: number;
+    notes?: string;
+  }>;
 }
 
 export interface CreateServiceStepPayload {
@@ -288,6 +300,29 @@ export const servicesApi = baseApi.injectEndpoints({
         { type: 'Service', id: 'LIST' },
       ],
     }),
+
+    syncServiceDocuments: builder.mutation<
+      ApiResponse<ServiceItemDetail>,
+      {
+        serviceId: number | string;
+        documents: Array<{
+          document_id: number;
+          is_mandatory?: boolean;
+          order_column?: number;
+          notes?: string;
+        }>;
+      }
+    >({
+      query: ({ serviceId, documents }) => ({
+        url: `/services/${serviceId}/documents`,
+        method: 'POST',
+        body: { documents },
+      }),
+      invalidatesTags: (_result, _error, { serviceId }) => [
+        { type: 'Service', id: serviceId },
+        { type: 'Service', id: 'LIST' },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -305,4 +340,5 @@ export const {
   useDeleteServiceStepMutation,
   useReorderServiceStepsMutation,
   useSyncServiceStepsMutation,
+  useSyncServiceDocumentsMutation,
 } = servicesApi;

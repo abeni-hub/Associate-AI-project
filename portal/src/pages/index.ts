@@ -15,3 +15,4 @@ export * from './RolesPermissionsPage';
 export * from './LandingPageCms';
 export * from './ActivityPage';
 export * from './LevelsPage';
+export * from './DocumentsPage';

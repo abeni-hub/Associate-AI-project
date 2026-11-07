@@ -8,11 +8,12 @@ export const ROLE = {
 export const NAV = {
   super: [
     { label: '', items: [{ id: 'overview', text: 'Overview', icon: 'overview' }, { id: 'offices', text: 'Offices & directory', icon: 'sitemap' }, { id: 'levels', text: 'Organization levels', icon: 'layers' }, { id: 'accounts', text: 'Accounts', icon: 'users' }, { id: 'roles', text: 'Roles & permissions', icon: 'key' }] },
+    { label: 'Public services', items: [{ id: 'services', text: 'Service standards', icon: 'layers' }, { id: 'documents', text: 'Required documents', icon: 'file' }] },
     { label: 'Public experience', items: [{ id: 'cms', text: 'Landing page CMS', icon: 'palette' }, { id: 'news', text: 'News & events', icon: 'news' }] },
     { label: 'Citizen voice', items: [{ id: 'feedback', text: 'Citizen feedback', icon: 'message', badge: '23' }, { id: 'activity', text: 'Activity log', icon: 'activity' }] },
   ],
   subcity: [
-    { label: 'Workspace', items: [{ id: 'overview', text: 'Overview', icon: 'overview' }, { id: 'offices', text: 'Bureaus & offices', icon: 'sitemap' }, { id: 'services', text: 'Service standards', icon: 'layers' }] },
+    { label: 'Workspace', items: [{ id: 'overview', text: 'Overview', icon: 'overview' }, { id: 'offices', text: 'Bureaus & offices', icon: 'sitemap' }, { id: 'services', text: 'Service standards', icon: 'layers' }, { id: 'documents', text: 'Required documents', icon: 'file' }] },
     { label: 'Community', items: [{ id: 'feedback', text: 'Citizen feedback', icon: 'message', badge: '8' }, { id: 'news', text: 'News & events', icon: 'news' }] },
   ],
   bureau: [

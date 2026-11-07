@@ -41,47 +41,77 @@ export const ActivityPage: React.FC = () => {
           .slice(0, 2)
           .toUpperCase();
 
-        let changeField = 'Payload';
-        let changeFrom = '—';
-        let changeTo = '—';
-        let changeSummary = 'Transaction logged';
+        // Extract diffs across all keys in old_values and new_values
+        const oldVals = (log.old_values && typeof log.old_values === 'object') ? (log.old_values as Record<string, unknown>) : {};
+        const newVals = (log.new_values && typeof log.new_values === 'object') ? (log.new_values as Record<string, unknown>) : {};
+        const allKeys = Array.from(new Set([...Object.keys(oldVals), ...Object.keys(newVals)]));
 
-        if (log.action === 'created') {
+        const diffs: Array<{ field: string; from: string; to: string }> = [];
+        for (const k of allKeys) {
+          if (JSON.stringify(oldVals[k]) !== JSON.stringify(newVals[k])) {
+            diffs.push({
+              field: k,
+              from: oldVals[k] !== undefined && oldVals[k] !== null
+                ? (typeof oldVals[k] === 'object' ? JSON.stringify(oldVals[k]) : String(oldVals[k]))
+                : 'None',
+              to: newVals[k] !== undefined && newVals[k] !== null
+                ? (typeof newVals[k] === 'object' ? JSON.stringify(newVals[k]) : String(newVals[k]))
+                : 'None',
+            });
+          }
+        }
+
+        const meaningfulDiffs = diffs.filter((d) => d.field !== 'updated_at' && d.field !== 'created_at');
+        const displayDiffs = meaningfulDiffs.length > 0 ? meaningfulDiffs : diffs;
+
+        // Telemetry & HTTP Status
+        const statusCode = Number(log.status_code) || (log.status === 'failed' ? 500 : (actionType === 'CREATE' ? 201 : 200));
+        const isSuccess = statusCode >= 200 && statusCode < 300 && log.status !== 'failed';
+        const statusTone = isSuccess ? 'success' : statusCode >= 400 && statusCode < 500 ? 'warning' : 'error';
+
+        let changeField = displayDiffs.length > 0 ? displayDiffs[0].field : 'Payload';
+        let changeFrom = displayDiffs.length > 0 ? displayDiffs[0].from : '—';
+        let changeTo = displayDiffs.length > 0 ? displayDiffs[0].to : '—';
+        let changeSummary = 'Transaction logged';
+        let communicativeTitle = '';
+
+        if (log.action === 'created' || actionType === 'CREATE') {
           changeField = 'Initial Record';
           changeFrom = 'None (New)';
           changeTo = `${log.entity_type} created`;
-          changeSummary = `New ${log.entity_type.toLowerCase()} instantiated`;
-        } else if (log.action === 'deleted') {
+          const newCount = Object.keys(newVals).length;
+          changeSummary = newCount > 0 ? `Created with ${newCount} initial properties` : `New ${log.entity_type.toLowerCase()} record created`;
+          communicativeTitle = `${actorName} created new ${log.entity_type} #${log.entity_id || log.id}`;
+        } else if (log.action === 'deleted' || actionType === 'DELETE') {
           changeField = 'Status';
           changeFrom = 'Active';
           changeTo = 'Deleted (Purged)';
           changeSummary = `${log.entity_type} removed from database`;
+          communicativeTitle = `${actorName} permanently purged ${log.entity_type} #${log.entity_id || log.id}`;
         } else if (log.action === 'login') {
           changeField = 'Session State';
           changeFrom = 'Signed Out';
           changeTo = 'Authenticated';
-          changeSummary = `User signed in successfully`;
+          changeSummary = `User signed in successfully via Sanctum SPA`;
+          communicativeTitle = `${actorName} authenticated into the administrative portal`;
         } else if (log.action === 'logout') {
           changeField = 'Session State';
           changeFrom = 'Authenticated';
           changeTo = 'Signed Out';
-          changeSummary = `User signed out of session`;
-        } else if (log.old_values && log.new_values) {
-          const changedKey = Object.keys(log.new_values).find(
-            (k) => JSON.stringify(log.old_values?.[k]) !== JSON.stringify(log.new_values?.[k])
-          );
-          if (changedKey) {
-            changeField = changedKey;
-            changeFrom =
-              typeof log.old_values[changedKey] === 'object'
-                ? JSON.stringify(log.old_values[changedKey])
-                : String(log.old_values[changedKey] ?? 'null');
-            changeTo =
-              typeof log.new_values[changedKey] === 'object'
-                ? JSON.stringify(log.new_values[changedKey])
-                : String(log.new_values[changedKey] ?? 'null');
-            changeSummary = `Updated ${changedKey} value`;
+          changeSummary = `User session terminated cleanly`;
+          communicativeTitle = `${actorName} signed out of portal session`;
+        } else if (displayDiffs.length > 0) {
+          if (displayDiffs.length === 1) {
+            changeSummary = `Updated ${displayDiffs[0].field}`;
+            communicativeTitle = `${actorName} updated ${displayDiffs[0].field} on ${log.entity_type} #${log.entity_id || log.id}`;
+          } else {
+            const fieldNames = displayDiffs.map((d) => d.field).slice(0, 3).join(', ');
+            const extra = displayDiffs.length > 3 ? ` +${displayDiffs.length - 3} more` : '';
+            changeSummary = `Updated ${displayDiffs.length} fields (${fieldNames}${extra})`;
+            communicativeTitle = `${actorName} updated ${displayDiffs.length} fields on ${log.entity_type} #${log.entity_id || log.id}`;
           }
+        } else {
+          communicativeTitle = `${actorName} performed ${log.action} on ${log.entity_type} #${log.entity_id || log.id}`;
         }
 
         const dateObj = new Date(log.created_at);
@@ -100,7 +130,7 @@ export const ActivityPage: React.FC = () => {
           ? dateObj.toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
-            })
+            }) + ' · ' + dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
           : 'Today';
 
         const isLogin = log.action === 'login';
@@ -115,10 +145,17 @@ export const ActivityPage: React.FC = () => {
           ? `Portal User: ${actorUsername}`
           : `${log.entity_type} #${log.entity_id || log.id}`;
 
+        const hasTelemetry = Boolean(
+          (log.request_payload && Object.keys(log.request_payload).length > 0) ||
+          (log.response_payload && Object.keys(log.response_payload).length > 0)
+        );
+
         return {
           id: `LOG-${String(log.id).padStart(4, '0')}`,
+          rawId: log.id,
           actionType,
           actionLabel,
+          communicativeTitle,
           category,
           fullTimestamp,
           timestamp: shortDate,
@@ -140,13 +177,26 @@ export const ActivityPage: React.FC = () => {
             from: changeFrom,
             to: changeTo,
             summary: changeSummary,
+            isChange: displayDiffs.length > 0,
           },
+          diffs,
+          displayDiffs,
           network: {
             ip: log.ip_address || '127.0.0.1',
             location: 'Addis Ababa, ET',
             userAgent: log.user_agent || 'Sanctum Web SPA',
             channel: 'Sanctum Web SPA',
           },
+          status: log.status || (isSuccess ? 'success' : 'failed'),
+          statusCode,
+          statusTone,
+          isSuccess,
+          errorMessage: log.error_message || null,
+          requestPayload: log.request_payload || null,
+          responsePayload: log.response_payload || null,
+          hasTelemetry,
+          oldValues: log.old_values || null,
+          newValues: log.new_values || null,
         };
       });
     }
@@ -174,7 +224,11 @@ export const ActivityPage: React.FC = () => {
       }
 
       // Action type filter
-      if (actionTypeFilter !== 'all' && item.actionType !== actionTypeFilter) {
+      if (actionTypeFilter === 'ERRORS') {
+        if (item.isSuccess && item.statusCode < 400 && !item.errorMessage) {
+          return false;
+        }
+      } else if (actionTypeFilter !== 'all' && item.actionType !== actionTypeFilter) {
         return false;
       }
 
@@ -186,19 +240,32 @@ export const ActivityPage: React.FC = () => {
           item.actor?.username?.toLowerCase().includes(q);
         const matchesAction =
           item.actionLabel?.toLowerCase().includes(q) ||
-          item.actionType?.toLowerCase().includes(q);
+          item.actionType?.toLowerCase().includes(q) ||
+          item.communicativeTitle?.toLowerCase().includes(q);
         const matchesTarget =
           item.target?.name?.toLowerCase().includes(q) ||
           item.target?.jurisdiction?.toLowerCase().includes(q) ||
+          item.target?.type?.toLowerCase().includes(q) ||
           item.target?.id?.toLowerCase().includes(q);
         const matchesChange =
           item.change?.field?.toLowerCase().includes(q) ||
           item.change?.from?.toLowerCase().includes(q) ||
           item.change?.to?.toLowerCase().includes(q) ||
           item.change?.summary?.toLowerCase().includes(q);
+        const matchesDiffs =
+          item.displayDiffs?.some(
+            (d: any) =>
+              d.field.toLowerCase().includes(q) ||
+              d.from.toLowerCase().includes(q) ||
+              d.to.toLowerCase().includes(q)
+          );
+        const matchesTelemetry =
+          String(item.statusCode).includes(q) ||
+          (item.errorMessage && item.errorMessage.toLowerCase().includes(q));
         const matchesNetwork =
           item.network?.ip?.includes(q) ||
-          item.network?.location?.toLowerCase().includes(q);
+          item.network?.location?.toLowerCase().includes(q) ||
+          item.network?.channel?.toLowerCase().includes(q);
         const matchesId = item.id?.toLowerCase().includes(q);
 
         return (
@@ -206,6 +273,8 @@ export const ActivityPage: React.FC = () => {
           matchesAction ||
           matchesTarget ||
           matchesChange ||
+          matchesDiffs ||
+          matchesTelemetry ||
           matchesNetwork ||
           matchesId
         );
@@ -223,14 +292,14 @@ export const ActivityPage: React.FC = () => {
       'Actor Name',
       'Actor Role',
       'Action',
+      'HTTP Status',
       'Category',
       'Target Name',
       'Target Jurisdiction',
-      'Changed Field',
-      'Value Before',
-      'Value After',
+      'Changed Fields Summary',
       'IP Address',
       'Channel',
+      'Has Wire Telemetry',
     ];
     const rows = filteredActivities.map((a) => [
       a.id,
@@ -238,14 +307,14 @@ export const ActivityPage: React.FC = () => {
       `"${a.actor?.name} (${a.actor?.username})"`,
       `"${a.actor?.role}"`,
       `"${a.actionType} - ${a.actionLabel}"`,
+      `"${a.statusCode} (${a.status})"`,
       `"${a.category}"`,
       `"${a.target?.name}"`,
       `"${a.target?.jurisdiction}"`,
-      `"${a.change?.field || 'N/A'}"`,
-      `"${(a.change?.from || '').replace(/"/g, '""')}"`,
-      `"${(a.change?.to || '').replace(/"/g, '""')}"`,
+      `"${(a.change?.summary || a.change?.field || '').replace(/"/g, '""')}"`,
       `"${a.network?.ip}"`,
       `"${a.network?.channel}"`,
+      `"${a.hasTelemetry ? 'YES (Req & Res)' : 'NO'}"`,
     ]);
 
     const csvContent =
@@ -317,33 +386,37 @@ export const ActivityPage: React.FC = () => {
         />
         <MetricCard
           icon="edit"
-          label="State & config changes"
+          label="State changes & diffs"
           value={
             isLoading && !apiLogs
               ? '...'
               : activities.filter(
-                  (a) => a.actionType === 'UPDATE' || a.actionType === 'STATUS'
+                  (a) => a.actionType === 'UPDATE' || a.actionType === 'STATUS' || a.displayDiffs?.length > 0
                 ).length
           }
-          note="Tracked with before/after diffs"
+          note="Field-level state transitions"
           tone="gold"
         />
         <MetricCard
-          icon="shield"
-          label="Security & sign-ins"
+          icon="file"
+          label="Wire telemetry captured"
           value={
             isLoading && !apiLogs
               ? '...'
-              : activities.filter((a) => a.actionType === 'SECURITY').length
+              : activities.filter((a) => a.hasTelemetry).length
           }
-          note="Fayda SSO & 2FA verified"
+          note="HTTP requests & responses"
           tone="sage"
         />
         <MetricCard
-          icon="lock"
-          label="Audit integrity"
-          value="100%"
-          note="Tamper-evident logs"
+          icon="shield"
+          label="Audit integrity rate"
+          value={
+            isLoading && !apiLogs
+              ? '...'
+              : `${activities.length ? Math.round((activities.filter((a) => a.isSuccess).length / activities.length) * 100) : 100}%`
+          }
+          note="Tamper-evident SHA-256"
           tone="blue"
         />
       </section>
@@ -364,7 +437,7 @@ export const ActivityPage: React.FC = () => {
               <Icon name="search" size={15} />
               <input
                 type="search"
-                placeholder="Search user, action, change diff, or IP..."
+                placeholder="Search user, action, diff, HTTP status, or IP..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -387,11 +460,13 @@ export const ActivityPage: React.FC = () => {
               aria-label="Filter by action type"
             >
               <option value="all">All action types</option>
-              <option value="UPDATE">Updates & changes (UPDATE)</option>
+              <option value="UPDATE">Updates & diffs (UPDATE)</option>
               <option value="CREATE">New additions (CREATE)</option>
               <option value="PUBLISH">Publications (PUBLISH)</option>
               <option value="SECURITY">Security & access (SECURITY)</option>
               <option value="STATUS">Status transitions (STATUS)</option>
+              <option value="DELETE">Record removals (DELETE)</option>
+              <option value="ERRORS">Errors & failed requests (HTTP 4xx/5xx)</option>
             </select>
           </div>
         </div>
@@ -416,9 +491,9 @@ export const ActivityPage: React.FC = () => {
             <thead>
               <tr>
                 <th style={{ width: 140 }}>TIME & EVENT ID</th>
-                <th style={{ width: 210 }}>USER (ACTOR)</th>
-                <th style={{ width: 170 }}>USER ACTION</th>
-                <th style={{ width: 220 }}>RESOURCE / TARGET</th>
+                <th style={{ width: 200 }}>USER (ACTOR)</th>
+                <th style={{ width: 190 }}>ACTION & HTTP STATUS</th>
+                <th style={{ width: 210 }}>RESOURCE / TARGET</th>
                 <th>WHAT CHANGED (FROM ➔ TO)</th>
                 <th style={{ width: 170 }}>ORIGIN & IP</th>
                 <th style={{ width: 90, textAlign: 'right' }}>DETAILS</th>
@@ -489,12 +564,22 @@ export const ActivityPage: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* User Action */}
+                      {/* User Action & HTTP Status */}
                       <td>
                         <div className="activity-action-column">
-                          <span className={`activity-action-tag ${tone}`}>
-                            <Icon name={icon} size={12} /> {event.actionType}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                            <span className={`activity-action-tag ${tone}`}>
+                              <Icon name={icon} size={12} /> {event.actionType}
+                            </span>
+                            <span className={`http-status-pill ${event.statusTone}`}>
+                              {event.statusCode}
+                            </span>
+                            {event.hasTelemetry && (
+                              <span className="telemetry-pill" title="Incoming request & outgoing response payload recorded">
+                                <Icon name="file" size={10} /> Req/Res
+                              </span>
+                            )}
+                          </div>
                           <span className="activity-action-title">{event.actionLabel}</span>
                         </div>
                       </td>
@@ -512,28 +597,58 @@ export const ActivityPage: React.FC = () => {
 
                       {/* What Changed */}
                       <td className="activity-diff-cell">
-                        {event.change?.isChange ? (
+                        {event.displayDiffs && event.displayDiffs.length > 0 ? (
                           <div className="diff-container">
                             <div className="diff-field-name">
-                              <Icon name="edit" size={11} /> {event.change.field}:
+                              <Icon name="edit" size={11} /> {event.displayDiffs[0].field}:
                             </div>
                             <div className="diff-flow">
-                              <span className="diff-from" title={`Previous: ${event.change.from}`}>
-                                <span className="diff-state-prefix">FROM:</span> {event.change.from}
+                              <span className="diff-from" title={`Previous: ${event.displayDiffs[0].from}`}>
+                                <span className="diff-state-prefix">FROM:</span> {event.displayDiffs[0].from}
                               </span>
                               <span className="diff-arrow" aria-hidden="true">➔</span>
-                              <span className="diff-to" title={`New: ${event.change.to}`}>
-                                <span className="diff-state-prefix">TO:</span> {event.change.to}
+                              <span className="diff-to" title={`New: ${event.displayDiffs[0].to}`}>
+                                <span className="diff-state-prefix">TO:</span> {event.displayDiffs[0].to}
                               </span>
                             </div>
-                            {event.change.summary && (
+                            {event.displayDiffs.length > 1 && (
+                              <span className="diff-more-badge">
+                                +{event.displayDiffs.length - 1} more fields modified ({event.displayDiffs.slice(1).map((d: any) => d.field).join(', ')})
+                              </span>
+                            )}
+                            {event.change?.summary && (
                               <p className="diff-summary-note">{event.change.summary}</p>
                             )}
+                          </div>
+                        ) : event.actionType === 'CREATE' ? (
+                          <div className="diff-container">
+                            <span className="diff-created-pill">
+                              <Icon name="plus" size={12} /> New Record Created
+                            </span>
+                            <p className="diff-summary-note">{event.change?.summary || 'Instantiated with initial properties'}</p>
+                          </div>
+                        ) : event.actionType === 'DELETE' ? (
+                          <div className="diff-container">
+                            <span className="diff-deleted-pill">
+                              <Icon name="trash" size={12} /> Record Purged
+                            </span>
+                            <p className="diff-summary-note">{event.change?.summary || 'Permanently removed from database'}</p>
+                          </div>
+                        ) : event.actionType === 'SECURITY' ? (
+                          <div className="diff-container">
+                            <span className="diff-auth-pill">
+                              <Icon name="shield" size={12} /> {event.change?.summary || 'Authenticated Session'}
+                            </span>
                           </div>
                         ) : (
                           <span className="diff-static-note">
                             {event.change?.summary || 'Standard operation completed.'}
                           </span>
+                        )}
+                        {event.errorMessage && (
+                          <div className="diff-error-pill" title={event.errorMessage} style={{ marginTop: 4 }}>
+                            <Icon name="alertTriangle" size={12} /> {event.errorMessage}
+                          </div>
                         )}
                       </td>
 

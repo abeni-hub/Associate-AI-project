@@ -6,7 +6,6 @@ import { PageHeading } from '../components/shared/PageHeading';
 import { StatusPill } from '../components/shared/StatusPill';
 import { MetricCard } from '../components/shared/MetricCard';
 import { SearchBox } from '../components/shared/SearchBox';
-import { QRPattern } from '../components/shared/QRPattern';
 import {
   useGetQrCodesQuery,
   useDeleteQrCodeMutation,
@@ -79,13 +78,7 @@ export const QRPage: React.FC<QRPageProps> = ({
     return filtered[0] || qrList[0] || null;
   }, [filtered, qrList, selectedId]);
 
-  const activeCodeId = activeQr?.code || '—';
   const targetUrl = activeQr?.target_url || `${window.location.origin}/#feedback`;
-  const scanCount = activeQr?.scan_count ?? 0;
-  const officeName =
-    activeQr?.organization?.name ||
-    portal.session?.user?.organization?.name ||
-    'Public Service Bureau';
 
   // Metrics
   const activeCount = qrList.filter((q) => q.status === 'active').length;
@@ -193,61 +186,8 @@ export const QRPage: React.FC<QRPageProps> = ({
         </div>
       ) : (
         <>
-          {/* Active Poster Featured Card */}
-          <div className="qr-hero panel">
-            <div className="qr-hero-copy">
-              <span className="panel-eyebrow">OFFICE DISPLAY · {officeName.toUpperCase()}</span>
-              <h2>
-                Make your voice
-                <br />
-                <em>easy to reach.</em>
-              </h2>
-              <p>
-                {activeQr
-                  ? `Active poster: ${activeQr.label}. Place this physical token at your service reception desk so citizens can scan and review official procedures.`
-                  : 'No QR code generated yet for this office. Click Generate QR code above to create a scannable citizen poster.'}
-              </p>
-              <div className="qr-hero-actions">
-                <button
-                  className="button primary"
-                  onClick={() => {
-                    if (activeQr) {
-                      portal.setModal({ kind: 'qr', qr: activeQr });
-                    } else {
-                      onGenerate();
-                    }
-                  }}
-                >
-                  <Icon name="download" size={16} /> Print QR poster
-                </button>
-                <button
-                  className="button secondary"
-                  onClick={() => {
-                    onCopy();
-                  }}
-                >
-                  <Icon name="external" size={15} /> {copied ? 'Link copied' : 'Copy feedback link'}
-                </button>
-              </div>
-            </div>
-            <div className="qr-preview-card">
-              <span className="qr-corner corner-tl" />
-              <span className="qr-corner corner-tr" />
-              <span className="qr-corner corner-bl" />
-              <QRPattern data={targetUrl} />
-              <div className="qr-preview-caption">
-                <b>{activeQr?.label || 'Share your experience'}</b>
-                <small>{activeQr?.code || 'Scan to leave feedback'}</small>
-              </div>
-              <span className="qr-live">
-                <i /> {activeQr?.status === 'active' ? 'ACTIVE' : activeQr ? 'INACTIVE' : 'READY'}
-              </span>
-            </div>
-            <div className="qr-hero-glow" />
-          </div>
-
           {/* Configured Posters List Panel matching table-panel on other pages */}
-          <section className="panel table-panel" style={{ marginTop: '24px' }}>
+          <section className="panel table-panel">
             <div className="table-toolbar">
               <div>
                 <h2>Configured QR posters ({filtered.length})</h2>

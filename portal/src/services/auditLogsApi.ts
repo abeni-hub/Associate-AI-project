@@ -6,6 +6,11 @@ export interface AuditLogItem {
   action: string;
   entity_type: string;
   entity_id: string | null;
+  status?: string | null;
+  status_code?: number | null;
+  error_message?: string | null;
+  request_payload?: Record<string, unknown> | null;
+  response_payload?: Record<string, unknown> | null;
   old_values: Record<string, unknown> | null;
   new_values: Record<string, unknown> | null;
   ip_address: string | null;

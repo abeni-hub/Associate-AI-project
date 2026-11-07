@@ -27,7 +27,7 @@ class DocumentController extends Controller
     {
         $query = Document::withCount('services');
 
-        $user = $request->user();
+        $user = $request->user('sanctum') ?? $request->user();
         if (! $user || ! $user->hasPermission('documents.manage')) {
             $query->where('is_active', true);
         } elseif ($request->has('is_active')) {

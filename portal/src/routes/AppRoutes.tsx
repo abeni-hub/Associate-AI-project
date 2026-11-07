@@ -18,6 +18,7 @@ import {
   RoutesPage,
   ServicesPage,
   LevelsPage,
+  DocumentsPage,
 } from '../pages';
 
 const AdminRedirect: React.FC = () => {
@@ -125,6 +126,14 @@ export const AppRoutes: React.FC = () => {
           element={
             <RoleGuard allowedRoles={['super', 'subcity']} requiredPermission="services.view">
               <ServicesPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="documents"
+          element={
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="documents.view">
+              <DocumentsPage />
             </RoleGuard>
           }
         />

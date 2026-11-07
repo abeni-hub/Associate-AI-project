@@ -5,18 +5,20 @@ import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
 import { StatusPill } from '../components/shared/StatusPill';
+import { ServiceModal } from '../components/services/ServiceModal';
 import type { ServiceItem } from '../types/portal.types';
 import {
   useGetServicesQuery,
   useCreateServiceMutation,
   useUpdateServiceMutation,
   useDeleteServiceMutation,
+  useSyncServiceDocumentsMutation,
 } from '../services/servicesApi';
 
 export interface ServicesPageProps {
-  items?: ServiceItem[];
+  items?: (ServiceItem & { raw?: any })[];
   onAdd?: () => void;
-  onEdit?: (item: ServiceItem) => void;
+  onEdit?: (item: ServiceItem & { raw?: any }) => void;
   search?: string;
   setSearch?: (s: string) => void;
   onTogglePublish?: (id: number) => void;
@@ -32,17 +34,20 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
 }) => {
   const portal = usePortal();
   const [serviceFilter, setServiceFilter] = useState('All services');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState<any | null>(null);
 
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;
 
   const { data: apiServices, isLoading } = useGetServicesQuery();
-  const [createServiceTrigger] = useCreateServiceMutation();
-  const [updateServiceTrigger] = useUpdateServiceMutation();
+  const [createServiceTrigger, { isLoading: isCreating }] = useCreateServiceMutation();
+  const [updateServiceTrigger, { isLoading: isUpdating }] = useUpdateServiceMutation();
   const [deleteServiceTrigger] = useDeleteServiceMutation();
+  const [syncDocsTrigger] = useSyncServiceDocumentsMutation();
 
   // Map backend services or merge with prop items
-  const items: ServiceItem[] = useMemo(() => {
+  const items: (ServiceItem & { raw?: any })[] = useMemo(() => {
     if (propItems && propItems.length > 0) return propItems;
 
     if (apiServices?.data) {
@@ -53,9 +58,11 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
         parentService: '',
         category: s.is_master ? 'Master Catalog' : 'Sub-service',
         description: s.description || 'Public government service delivery specification.',
-        documents: s.required_documents_count
-          ? Array.from({ length: s.required_documents_count }, (_, i) => `Required Document #${i + 1}`)
-          : [],
+        documents: (s.required_documents && s.required_documents.length > 0)
+          ? s.required_documents.map((d: any) => d.name)
+          : (s.required_documents_count
+              ? Array.from({ length: s.required_documents_count }, (_, i) => `Required Document #${i + 1}`)
+              : []),
         bureaus: s.offering_organizations_count ?? 0,
         published: Boolean(s.is_active),
         customerExpectations: s.fee_amount
@@ -64,6 +71,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
         bureauExpectations: s.estimated_duration_minutes
           ? `Target processing time: ${s.estimated_duration_minutes} minutes.`
           : 'Standard queue processing.',
+        raw: s,
       }));
     }
 
@@ -73,90 +81,42 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
   const onAdd =
     propOnAdd ||
     (() => {
-      portal.openForm({
-        eyebrow: 'SERVICE INFORMATION',
-        title: 'Create a service standard',
-        description: 'Define the service, required documents and expectations on both sides.',
-        submit: 'Save service',
-        fields: [
-          { name: 'name', label: 'Service name', required: true },
-          { name: 'code', label: 'Service Code (slug)', placeholder: 'e.g. business-renewal', required: true },
-          {
-            name: 'serviceType',
-            label: 'Service level',
-            type: 'select',
-            required: true,
-            options: ['Main service', 'Sub-service'],
-          },
-          { name: 'description', label: 'What this service does', type: 'textarea', full: true, required: true },
-          {
-            name: 'fee_amount',
-            label: 'Fee amount (ETB)',
-            placeholder: '0.00',
-          },
-          {
-            name: 'estimated_duration_minutes',
-            label: 'Estimated duration (minutes)',
-            placeholder: '30',
-          },
-        ],
-        onSubmit: async (v) => {
-          try {
-            await createServiceTrigger({
-              name: v.name,
-              code: (v.code || v.name.toLowerCase().replace(/\s+/g, '-')).toLowerCase(),
-              description: v.description,
-              is_active: true,
-              fee_amount: v.fee_amount ? Number(v.fee_amount) : 0,
-              fee_currency: 'ETB',
-              estimated_duration_minutes: v.estimated_duration_minutes ? Number(v.estimated_duration_minutes) : 30,
-            }).unwrap();
-          } catch {
-            // Local fallback
-            portal.createForPage('services');
-          }
-        },
-      });
+      setSelectedService(null);
+      setIsModalOpen(true);
     });
 
   const onEdit =
     propOnEdit ||
-    ((item: ServiceItem) => {
-      portal.openForm({
-        eyebrow: 'SERVICE UPDATE',
-        title: `Edit ${item.name}`,
-        description: 'Update requirements and official service definitions.',
-        submit: 'Save changes',
-        fields: [
-          { name: 'name', label: 'Service name', required: true, value: item.name },
-          { name: 'description', label: 'Description', type: 'textarea', full: true, required: true, value: item.description },
-          {
-            name: 'status',
-            label: 'Status',
-            type: 'select',
-            value: item.published ? 'Published' : 'Draft',
-            options: ['Published', 'Draft'],
-          },
-        ],
-        onSubmit: async (v) => {
-          try {
-            await updateServiceTrigger({
-              id: item.id,
-              name: v.name,
-              description: v.description,
-              is_active: v.status === 'Published',
-            }).unwrap();
-          } catch {
-            portal.onUpdateService?.({
-              ...item,
-              name: v.name,
-              description: v.description,
-              published: v.status === 'Published',
-            });
-          }
-        },
-      });
+    ((item: ServiceItem & { raw?: any }) => {
+      setSelectedService(item);
+      setIsModalOpen(true);
     });
+
+  const handleSaveService = async (payload: any) => {
+    try {
+      if (payload.id) {
+        await updateServiceTrigger(payload).unwrap();
+        if (payload.documents) {
+          await syncDocsTrigger({
+            serviceId: payload.id,
+            documents: payload.documents,
+          }).unwrap();
+        }
+      } else {
+        const res = await createServiceTrigger(payload).unwrap();
+        if (res?.data?.id && payload.documents && payload.documents.length > 0) {
+          await syncDocsTrigger({
+            serviceId: res.data.id,
+            documents: payload.documents,
+          }).unwrap();
+        }
+      }
+      setIsModalOpen(false);
+      setSelectedService(null);
+    } catch (err: any) {
+      window.alert(err?.data?.message || err?.message || 'Failed to save service standard.');
+    }
+  };
 
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
@@ -384,6 +344,17 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
           </small>
         </span>
       </div>
+
+      <ServiceModal
+        isOpen={isModalOpen}
+        service={selectedService}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedService(null);
+        }}
+        onSave={handleSaveService}
+        isLoading={isCreating || isUpdating}
+      />
     </>
   );
 };

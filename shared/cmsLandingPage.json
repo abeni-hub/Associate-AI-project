@@ -1,13 +1,13 @@
 {
   "announcement": {
-    "enabled": true,
+    "enabled": false,
     "tag": "",
     "message": "One clear place to plan your next public service",
     "linkText": "Explore the guide",
     "linkUrl": "#find-service"
   },
   "hero": {
-    "badge": "OFFICIAL CITIZEN PORTAL",
+    "badge": "OFFICIAL CITIZEN PORTA",
     "titleEn": "Know where to go. Arrive ready",
     "titleAm": "አገልግሎት የት እንደሚሰጥ ይወቁ። ተዘጋጅተው ይድረሱ።",
     "subtitleEn": "The right information makes every visit easier. Find your service, prepare your documents, and know exactly where to go before you leave home.",
@@ -26,7 +26,7 @@
         "alt": "Local government office building in Yeka Subcity, Addis Ababa.",
         "credit": "Yeka Subcity Office · Mjr74 (CC BY 4.0)",
         "source": "https://commons.wikimedia.org/wiki/File:Local_government_building,_Yeka_Subcity,_Addis_Ababa.jpg",
-        "tint": "#164d58"
+        "tint": "#ff0000"
       },
       {
         "id": 2,
@@ -64,8 +64,8 @@
     ]
   },
   "quickSearch": {
-    "enabled": true,
-    "kicker": "START HERE",
+    "enabled": false,
+    "kicker": "START HEREeee",
     "kickerNum": "01",
     "title": "What do you need help with?",
     "subtitle": "Choose a location and service to see your visit guide.",

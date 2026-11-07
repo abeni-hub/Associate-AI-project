@@ -437,6 +437,302 @@
 .modal-security-note { display: inline-flex; align-items: center; gap: 6px; color: #7f9188; font-size: 12px; }
 .modal-security-note svg { color: #4b7869; }
 
+/* HTTP Status and Telemetry badges in logs */
+.http-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.http-status-pill.success {
+  background: #eef8f2;
+  color: #1a6d3f;
+  border: 1px solid rgba(26, 109, 63, 0.22);
+}
+.http-status-pill.info {
+  background: #edf4fa;
+  color: #235d8d;
+  border: 1px solid rgba(35, 93, 141, 0.22);
+}
+.http-status-pill.warning {
+  background: #fdf5e6;
+  color: #9c6c12;
+  border: 1px solid rgba(156, 108, 18, 0.22);
+}
+.http-status-pill.error {
+  background: #fdf0ed;
+  color: #a13420;
+  border: 1px solid rgba(161, 52, 32, 0.22);
+}
+
+.diff-more-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 3px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: #eef3ef;
+  color: #3f6458;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: normal;
+}
+.diff-created-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #edf8f1;
+  color: #1e703f;
+  border: 1px solid rgba(30, 112, 63, 0.2);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.diff-deleted-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #fdf0ed;
+  color: #a13420;
+  border: 1px solid rgba(161, 52, 32, 0.2);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.diff-auth-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #f3eff9;
+  color: #5b3787;
+  border: 1px solid rgba(91, 55, 135, 0.2);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.diff-error-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #fff1ef;
+  color: #a13420;
+  border: 1px solid rgba(161, 52, 32, 0.25);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.telemetry-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #eaf4f4;
+  color: #195d66;
+  border: 1px solid rgba(25, 93, 102, 0.2);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Activity Modal Tabs */
+.activity-modal-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 24px;
+  background: #f5f8f5;
+  border-bottom: 1px solid #dce8e0;
+  overflow-x: auto;
+}
+.activity-modal-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 15px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #526c64;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.activity-modal-tab:hover {
+  color: #00485a;
+  background: #e9f0eb;
+}
+.activity-modal-tab.active {
+  color: #00485a;
+  border-bottom-color: #00485a;
+  font-weight: 700;
+  background: #fff;
+}
+.activity-modal-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  background: #dceae1;
+  color: #2b5448;
+}
+.activity-modal-tab.active .activity-modal-tab-badge {
+  background: #00485a;
+  color: #fff;
+}
+
+/* Multi-diff list styling */
+.audit-diff-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.audit-diff-row-card {
+  padding: 12px 14px;
+  border: 1px solid #dce8e0;
+  border-left: 3px solid #cca04b;
+  border-radius: 6px;
+  background: #fff;
+}
+.audit-diff-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+/* Telemetry Studio Panels */
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 768px) {
+  .telemetry-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.telemetry-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #dce8e0;
+  border-radius: 6px;
+  background: #fff;
+  overflow: hidden;
+}
+.telemetry-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 13px;
+  background: #f1f6f2;
+  border-bottom: 1px solid #dfe9e2;
+  font-size: 12px;
+  font-weight: 700;
+  color: #355b51;
+}
+.telemetry-code {
+  margin: 0;
+  padding: 12px 14px;
+  max-height: 280px;
+  overflow-y: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  background: #f8faf8;
+  color: #2b4f46;
+}
+.telemetry-empty-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 36px 16px;
+  color: #798d83;
+  font-size: 12.5px;
+  text-align: center;
+}
+.audit-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: #fdf1ef;
+  border: 1px solid #f2cec6;
+  border-left: 4px solid #a13420;
+  color: #8c2512;
+  font-size: 13px;
+}
+.audit-error-banner b {
+  display: block;
+  margin-bottom: 2px;
+  font-weight: 700;
+}
+
+/* Service Modal Document Checklist */
+.service-doc-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 250px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid #dce8e0;
+  border-radius: 6px;
+  background: #f8faf8;
+}
+.service-doc-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid #e1ece4;
+  border-radius: 5px;
+  background: #fff;
+  transition: all 0.15s ease;
+}
+.service-doc-item.selected {
+  border-color: #00485a;
+  background: #f2f8f7;
+}
+.service-doc-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+}
+.service-doc-label-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.service-doc-options-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 6px;
+  border-top: 1px dashed #d5e4db;
+  font-size: 12px;
+}
+
 
 .modal-overlay, .modal-backdrop { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; overflow-y: auto; padding: 22px; background: rgba(0,36,44,.55); backdrop-filter: blur(6px); animation: overlay-in .15s ease both; }
 @media (max-width: 640px) {

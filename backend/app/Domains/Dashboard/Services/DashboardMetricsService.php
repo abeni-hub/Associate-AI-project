@@ -556,9 +556,13 @@ class DashboardMetricsService
                 ],
                 'old_values' => $log->old_values,
                 'new_values' => $log->new_values,
+                'request_payload' => $log->request_payload,
+                'response_payload' => $log->response_payload,
+                'status' => $log->status ?? 'success',
+                'status_code' => $log->status_code,
+                'error_message' => $log->error_message,
                 'ip_address' => $log->ip_address,
                 'user_agent' => $log->user_agent,
-                'status' => $log->status,
                 'created_at' => $log->created_at?->toIso8601String(),
             ])
             ->all();
