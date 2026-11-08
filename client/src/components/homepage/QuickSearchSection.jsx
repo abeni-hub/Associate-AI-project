@@ -13,6 +13,7 @@ export default function QuickSearchSection({
   subCityOptions,
   bureauOptions,
   quickSearchContent,
+  isLoading = false,
 }) {
   const kickerNum = quickSearchContent?.kickerNum || '01'
   const kicker = quickSearchContent?.kicker || 'START HERE'
@@ -36,8 +37,10 @@ export default function QuickSearchSection({
             <select value={subCity} onChange={(event) => onSubCityChange(event.target.value)}>
               {subCityOptions && subCityOptions.length > 0 ? (
                 subCityOptions.map((name) => <option key={name} value={name}>{t(name)}</option>)
-              ) : (
+              ) : isLoading ? (
                 <option value="">{t('Loading sub-cities…')}</option>
+              ) : (
+                <option value="">{t('Select a sub-city')}</option>
               )}
             </select>
             <Icon name="chevron" size={16} />
@@ -50,8 +53,10 @@ export default function QuickSearchSection({
             <select value={bureauId} onChange={(event) => onBureauChange(event.target.value)}>
               {bureauOptions && bureauOptions.length > 0 ? (
                 bureauOptions.map((bureau) => <option key={bureau.id} value={bureau.id}>{t(bureau.label)}</option>)
-              ) : (
+              ) : isLoading ? (
                 <option value="">{t('Loading offices…')}</option>
+              ) : (
+                <option value="">{t('Select an office')}</option>
               )}
             </select>
             <Icon name="chevron" size={16} />
@@ -64,8 +69,10 @@ export default function QuickSearchSection({
             <select value={serviceId} onChange={(event) => onServiceChange(event.target.value)}>
               {activeServiceList && activeServiceList.length > 0 ? (
                 activeServiceList.map((service) => <option key={service.id} value={service.id}>{t(service.label)}</option>)
-              ) : (
+              ) : isLoading ? (
                 <option value="">{t('Loading services…')}</option>
+              ) : (
+                <option value="">{t('Select a service')}</option>
               )}
             </select>
             <Icon name="chevron" size={16} />

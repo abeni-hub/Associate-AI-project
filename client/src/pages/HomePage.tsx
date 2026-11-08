@@ -35,35 +35,51 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
     refetchOnMountOrArgChange: true,
     refetchOnFocus: true,
   })
-  const { data: orgData } = useGetOrganizationsQuery()
-  const { data: servicesData } = useGetServicesQuery()
+  const { data: orgData, isLoading: isOrgsLoading } = useGetOrganizationsQuery({ per_page: 100 })
+  const { data: servicesData, isLoading: isServicesLoading } = useGetServicesQuery({ per_page: 100 })
+  const isDropdownsLoading = isOrgsLoading || isServicesLoading
 
   const liveCms = (apiCmsData && ('data' in (apiCmsData as any) ? (apiCmsData as any).data : apiCmsData)) as LandingPageCmsConfig | null
   const cmsConfig = propCmsConfig || liveCms || null
 
-  // Sub-city options strictly from backend organizations (level 1 / root sub-cities)
+  // Sub-city options strictly from database organizations
   const subCityOptions = useMemo(() => {
     if (orgData?.data && Array.isArray(orgData.data)) {
       const list = orgData.data
-        .filter((o: any) => o.organization_type_id === 1 || o.type?.code === 'sub_city' || o.type?.level === 1 || (!o.parent_organization_id && o.is_root))
+        .filter((o: any) =>
+          o.organization_type_id === 1 ||
+          o.type?.code === 'sub_city' ||
+          o.type?.name?.toLowerCase().includes('sub') ||
+          o.type?.level === 1 ||
+          o.name?.toLowerCase().includes('sub-city') ||
+          o.name?.toLowerCase().includes('sub city') ||
+          o.name?.toLowerCase().includes('subcity') ||
+          (!o.parent_organization_id && o.is_root)
+        )
         .map((o: any) => o.name)
       if (list.length > 0) return list
+      return orgData.data.map((o: any) => o.name)
     }
     return []
   }, [orgData])
 
-  // Bureau options strictly from backend organizations (excluding sub-cities)
+  // Bureau options strictly from database organizations (excluding sub-cities)
   const bureauOptions = useMemo(() => {
-    if (orgData?.data && Array.isArray(orgData.data)) {
-      const list = orgData.data
-        .filter((o: any) => o.organization_type_id !== 1 && o.type?.code !== 'sub_city')
-        .map((o: any) => ({
-          id: String(o.id),
-          label: o.name,
-          shortLabel: o.name.replace(/Bureau|Office|Agency/i, '').trim() || o.name,
-          parent_organization_id: o.parent_organization_id,
-        }))
-      if (list.length > 0) return list
+    if (orgData?.data && Array.isArray(orgData.data) && orgData.data.length > 0) {
+      const nonSubCities = orgData.data.filter((o: any) =>
+        o.organization_type_id !== 1 &&
+        o.type?.code !== 'sub_city' &&
+        !o.name?.toLowerCase().includes('sub-city') &&
+        !o.name?.toLowerCase().includes('sub city') &&
+        !o.name?.toLowerCase().includes('subcity')
+      )
+      const list = nonSubCities.length > 0 ? nonSubCities : orgData.data
+      return list.map((o: any) => ({
+        id: String(o.id),
+        label: o.name,
+        shortLabel: o.name.replace(/Bureau|Office|Agency/i, '').trim() || o.name,
+        parent_organization_id: o.parent_organization_id || o.parent?.id,
+      }))
     }
     return []
   }, [orgData])
@@ -89,14 +105,14 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
   const [serviceId, setServiceId] = useState<string>('')
   const [serviceGuide, setServiceGuide] = useState<ServiceGuideSelection>({ subCity: '', bureauId: '', serviceId: '' })
 
-  // Live service list strictly from backend
+  // Service list strictly from database
   const activeServiceList = useMemo(() => {
     if (servicesData?.data && Array.isArray(servicesData.data)) {
       return servicesData.data.map((s: any) => ({
         id: String(s.id),
         code: s.code || String(s.id),
         label: s.name,
-        organizationId: s.organization_id ? String(s.organization_id) : undefined,
+        organizationId: s.organization_id ? String(s.organization_id) : (s.organization?.id ? String(s.organization.id) : undefined),
         raw: s,
       }))
     }
@@ -171,6 +187,7 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
           : (s.fee_amount ? `Standard fee: ${s.fee_amount} ${s.fee_currency || 'ETB'}.` : ''),
       }
     }
+
     return null
   }, [liveServiceDetail, servicesData, liveServiceSteps, serviceGuide.serviceId])
 
@@ -240,6 +257,7 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
           subCityOptions={subCityOptions}
           bureauOptions={bureauOptions}
           quickSearchContent={cmsConfig?.quickSearch}
+          isLoading={isDropdownsLoading}
         />
       )}
       {cmsConfig?.serviceGuide?.enabled !== false && (

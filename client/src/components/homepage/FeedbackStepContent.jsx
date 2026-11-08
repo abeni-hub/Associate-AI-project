@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import Icon from '../ui/Icon.jsx'
 import { useGetOrganizationsQuery } from '../../services/organizationsApi.js'
 import { useGetServicesQuery } from '../../services/servicesApi.js'
@@ -9,15 +9,57 @@ const feedbackTypes = [
   { value: 'Satisfaction', icon: 'heart', label: 'A rating', copy: 'Share how it went' },
 ]
 
-export default function FeedbackStepContent({ step, feedback, actions, t }) {
-  const { data: orgData } = useGetOrganizationsQuery()
+export default function FeedbackStepContent({
+  step,
+  feedback,
+  actions,
+  orgData: propOrgData,
+  servicesData: propServicesData,
+  isOrgsLoading: propIsOrgsLoading,
+  isServicesLoading: propIsServicesLoading,
+  t,
+}) {
+  const { data: apiOrgData, isLoading: apiOrgsLoading } = useGetOrganizationsQuery({ per_page: 100 })
+  const { data: apiServicesData, isLoading: apiServicesLoading } = useGetServicesQuery({ per_page: 100 })
 
-  // Dynamic live sub-cities from organizations API (level 1 / root sub-cities)
-  const availableSubCities = orgData?.data
-    ? orgData.data
-        .filter((o) => o.organization_type_id === 1 || o.type?.code === 'sub_city' || (!o.parent_organization_id && o.is_root))
-        .map((o) => ({ id: o.id, name: o.name }))
-    : []
+  const orgData = propOrgData || apiOrgData
+  const servicesData = propServicesData || apiServicesData
+  const isOrgsLoading = propIsOrgsLoading !== undefined ? propIsOrgsLoading : apiOrgsLoading
+  const isServicesLoading = propIsServicesLoading !== undefined ? propIsServicesLoading : apiServicesLoading
+
+  // Unpack organizations safely regardless of payload structure
+  const rawOrgs = useMemo(() => {
+    if (!orgData) return []
+    if (Array.isArray(orgData)) return orgData
+    if (Array.isArray(orgData.data)) return orgData.data
+    if (Array.isArray(orgData.data?.data)) return orgData.data.data
+    return []
+  }, [orgData])
+
+  // Live sub-cities strictly from database
+  const availableSubCities = useMemo(() => {
+    if (rawOrgs.length > 0) {
+      // 1. Identify organizations matching sub-city indicators
+      const filtered = rawOrgs.filter((o) =>
+        Number(o.organization_type_id) === 1 ||
+        o.type?.code === 'sub_city' ||
+        o.type?.name?.toLowerCase().includes('sub') ||
+        Number(o.type?.level) === 1 ||
+        o.name?.toLowerCase().includes('sub-city') ||
+        o.name?.toLowerCase().includes('sub city') ||
+        o.name?.toLowerCase().includes('subcity') ||
+        o.code?.toLowerCase().includes('sub-city') ||
+        o.code?.toLowerCase().includes('subcity') ||
+        (!o.parent_organization_id && !o.parent?.id)
+      )
+      if (filtered.length > 0) {
+        return filtered.map((o) => ({ id: o.id, name: o.name }))
+      }
+      // 2. If no organizations match strict sub-city indicators, provide all organizations from database
+      return rawOrgs.map((o) => ({ id: o.id, name: o.name }))
+    }
+    return []
+  }, [rawOrgs])
 
   // Find currently selected sub-city object
   const selectedSubCityObj =
@@ -25,39 +67,63 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
       (c) => String(c.id) === String(feedback.city) || c.name.toLowerCase().includes(String(feedback.city).toLowerCase())
     ) || availableSubCities[0]
 
-  // Bureaus list filtered by sub-city or general bureaus from backend
-  const bureauList = (() => {
-    if (orgData?.data && Array.isArray(orgData.data) && orgData.data.length > 0) {
-      const filtered = orgData.data.filter((o) => {
-        if (o.organization_type_id === 1 || o.type?.code === 'sub_city') return false // exclude sub-cities
-        if (selectedSubCityObj && o.parent_organization_id) {
-          return o.parent_organization_id === selectedSubCityObj.id
+  // Bureaus list strictly from database, contextualized by selected sub-city
+  const bureauList = useMemo(() => {
+    if (rawOrgs.length > 0) {
+      // Find currently selected sub-city ID
+      const selectedSubCityId = selectedSubCityObj?.id
+
+      // 1. Try to find child bureaus whose parent is this sub-city
+      if (selectedSubCityId) {
+        const childBureaus = rawOrgs.filter((o) => {
+          const parentId = o.parent_organization_id || o.parent?.id
+          return parentId && Number(parentId) === Number(selectedSubCityId)
+        })
+        if (childBureaus.length > 0) {
+          return childBureaus.map((o) => ({ id: String(o.id), label: o.name }))
         }
-        return true
-      })
-      if (filtered.length > 0) {
-        return filtered.map((o) => ({ id: String(o.id), label: o.name }))
       }
-      const nonSubCities = orgData.data.filter((o) => o.organization_type_id !== 1 && o.type?.code !== 'sub_city')
+
+      // 2. All organizations that are not sub-cities
+      const nonSubCities = rawOrgs.filter((o) => {
+        const isSub =
+          Number(o.organization_type_id) === 1 ||
+          o.type?.code === 'sub_city' ||
+          Number(o.type?.level) === 1 ||
+          o.name?.toLowerCase().includes('sub-city') ||
+          o.name?.toLowerCase().includes('sub city') ||
+          o.name?.toLowerCase().includes('subcity')
+        return !isSub
+      })
       if (nonSubCities.length > 0) {
         return nonSubCities.map((o) => ({ id: String(o.id), label: o.name }))
       }
-      return orgData.data.map((o) => ({ id: String(o.id), label: o.name }))
+
+      // 3. Fallback to all organizations from database
+      return rawOrgs.map((o) => ({ id: String(o.id), label: o.name }))
     }
     return []
-  })()
+  }, [rawOrgs, selectedSubCityObj])
 
-  const { data: servicesData } = useGetServicesQuery()
+  // Unpack services safely regardless of payload structure
+  const rawServices = useMemo(() => {
+    if (!servicesData) return []
+    if (Array.isArray(servicesData)) return servicesData
+    if (Array.isArray(servicesData.data)) return servicesData.data
+    if (Array.isArray(servicesData.data?.data)) return servicesData.data.data
+    return []
+  }, [servicesData])
 
-  const activeServices = (() => {
-    if (servicesData?.data && Array.isArray(servicesData.data) && servicesData.data.length > 0) {
-      return servicesData.data.map((s) => ({
+  // Services strictly from database
+  const activeServices = useMemo(() => {
+    if (rawServices.length > 0) {
+      return rawServices.map((s) => ({
         id: s.code || String(s.id),
         label: s.name,
       }))
     }
     return []
-  })()
+  }, [rawServices])
 
   // Auto-sync initial selections with live options
   useEffect(() => {
@@ -109,16 +175,22 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
         {t('Select the sub-city')}
         <span className="feedback-select-wrap">
           <Icon name="pin" size={18} />
-          <select value={feedback.city} onChange={(event) => actions.setCity(event.target.value)}>
-            {availableSubCities.length > 0 ? (
-              availableSubCities.map((subCity) => (
-                <option key={subCity.id} value={subCity.name}>
-                  {t(subCity.name)}
-                </option>
-              ))
-            ) : (
-              <option value="">{t('Loading sub-cities…')}</option>
-            )}
+          <select
+            value={feedback.city || ''}
+            onChange={(event) => actions.setCity(event.target.value)}
+          >
+            <option value="">
+              {isOrgsLoading
+                ? t('Loading sub-cities…')
+                : availableSubCities.length > 0
+                ? t('Choose a sub-city…')
+                : t('No sub-cities found')}
+            </option>
+            {availableSubCities.map((subCity) => (
+              <option key={subCity.id} value={subCity.name}>
+                {subCity.name}
+              </option>
+            ))}
           </select>
           <Icon name="chevron" size={16} />
         </span>
@@ -132,16 +204,22 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
         {t('Select the city office / bureau')}
         <span className="feedback-select-wrap">
           <Icon name="building" size={18} />
-          <select value={feedback.bureau} onChange={(event) => actions.changeBureau(event.target.value)}>
-            {bureauList.length > 0 ? (
-              bureauList.map((bureau) => (
-                <option key={bureau.id} value={bureau.id}>
-                  {t(bureau.label)}
-                </option>
-              ))
-            ) : (
-              <option value="">{t('Loading offices…')}</option>
-            )}
+          <select
+            value={feedback.bureau || ''}
+            onChange={(event) => actions.changeBureau(event.target.value)}
+          >
+            <option value="">
+              {isOrgsLoading
+                ? t('Loading offices…')
+                : bureauList.length > 0
+                ? t('Choose an office…')
+                : t('No offices found')}
+            </option>
+            {bureauList.map((bureau) => (
+              <option key={bureau.id} value={bureau.id}>
+                {bureau.label}
+              </option>
+            ))}
           </select>
           <Icon name="chevron" size={16} />
         </span>
@@ -155,16 +233,22 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
         {t('Select the service')}
         <span className="feedback-select-wrap">
           <Icon name="file" size={18} />
-          <select value={feedback.service} onChange={(event) => actions.setService(event.target.value)}>
-            {activeServices.length > 0 ? (
-              activeServices.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {t(service.label)}
-                </option>
-              ))
-            ) : (
-              <option value="">{t('Loading services…')}</option>
-            )}
+          <select
+            value={feedback.service || ''}
+            onChange={(event) => actions.setService(event.target.value)}
+          >
+            <option value="">
+              {isServicesLoading
+                ? t('Loading services…')
+                : activeServices.length > 0
+                ? t('Choose a service…')
+                : t('No services found')}
+            </option>
+            {activeServices.map((service) => (
+              <option key={service.id} value={service.id}>
+                {service.label}
+              </option>
+            ))}
           </select>
           <Icon name="chevron" size={16} />
         </span>

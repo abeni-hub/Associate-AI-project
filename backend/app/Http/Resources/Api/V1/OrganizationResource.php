@@ -25,6 +25,8 @@ class OrganizationResource extends JsonResource
             'phone' => $this->phone,
             'email' => $this->email,
             'status' => $this->status,
+            'organization_type_id' => $this->organization_type_id,
+            'parent_organization_id' => $this->parent_organization_id,
             'is_root' => $this->isRoot(),
             'type' => $this->type ? [
                 'id' => $this->type->id,

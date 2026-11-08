@@ -43,7 +43,10 @@ class OrganizationController extends Controller
         if ($user) {
             $this->scopeService->applyScope($query, $user, 'id', includeDescendants: true);
         } else {
-            $query->where('status', 'active');
+            $query->where(function ($q) {
+                $q->whereNull('status')
+                    ->orWhereNotIn('status', ['inactive', 'suspended']);
+            });
         }
 
         // 2. Filters

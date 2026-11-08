@@ -47,8 +47,8 @@ export default function FeedbackFormCard({ t }) {
 
   // RTK Query hooks
   const [submitFeedbackMutation, { isLoading: isSubmitting }] = useSubmitFeedbackMutation();
-  const { data: orgData } = useGetOrganizationsQuery();
-  const { data: servicesData } = useGetServicesQuery();
+  const { data: orgData, isLoading: isOrgsLoading } = useGetOrganizationsQuery({ per_page: 100 });
+  const { data: servicesData, isLoading: isServicesLoading } = useGetServicesQuery({ per_page: 100 });
 
   const feedback = {
     type: feedbackType,
@@ -167,7 +167,16 @@ export default function FeedbackFormCard({ t }) {
             <h4>{t(stepTitles[feedbackStep - 1])}</h4>
           </div>
           <form onSubmit={handleSubmit}>
-            <FeedbackStepContent step={feedbackStep} feedback={feedback} actions={actions} t={t} />
+            <FeedbackStepContent
+              step={feedbackStep}
+              feedback={feedback}
+              actions={actions}
+              orgData={orgData}
+              servicesData={servicesData}
+              isOrgsLoading={isOrgsLoading}
+              isServicesLoading={isServicesLoading}
+              t={t}
+            />
             <FeedbackFormActions
               step={feedbackStep}
               feedbackType={feedbackType}
