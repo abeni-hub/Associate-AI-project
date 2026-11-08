@@ -95,7 +95,7 @@ class QrCodesAndEventsApiTest extends TestCase
         // List QR codes
         $listResponse = $this->getJson('/api/v1/qr-codes');
         $listResponse->assertStatus(200);
-        $this->assertTrue(collect($listResponse->json('data.data'))->contains('code', 'QR-BOLE-TEST-99'));
+        $this->assertTrue(collect($listResponse->json('data'))->contains('code', 'QR-BOLE-TEST-99'));
     }
 
     public function test_public_citizen_qr_scan_increments_counter(): void

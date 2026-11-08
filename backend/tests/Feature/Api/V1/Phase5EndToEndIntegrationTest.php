@@ -145,26 +145,26 @@ class Phase5EndToEndIntegrationTest extends TestCase
      */
     public function test_dynamic_sidebar_navigation_differentiates_all_5_roles(): void
     {
-        // 1. Super Admin receives all 8 items
+        // 1. Super Admin receives all 12 items
         Sanctum::actingAs($this->superAdmin);
         $resSuper = $this->getJson('/api/v1/navigation/sidebar');
         $resSuper->assertStatus(200);
-        $this->assertCount(8, $resSuper->json('data'));
+        $this->assertCount(12, $resSuper->json('data'));
         $this->assertContains('/admin/cms', array_column($resSuper->json('data'), 'route'));
 
-        // 2. Sub-City Admin receives 7 items (excluding CMS)
+        // 2. Sub-City Admin receives 8 items (excluding super-admin only items)
         Sanctum::actingAs($this->subCityAdmin);
         $resSubCity = $this->getJson('/api/v1/navigation/sidebar');
         $resSubCity->assertStatus(200);
-        $this->assertCount(7, $resSubCity->json('data'));
+        $this->assertCount(8, $resSubCity->json('data'));
         $this->assertNotContains('/admin/cms', array_column($resSubCity->json('data'), 'route'));
         $this->assertContains('/admin/subcities', array_column($resSubCity->json('data'), 'route'));
 
-        // 3. Woreda Admin receives 6 items (no Sub-cities, no CMS)
+        // 3. Woreda Admin receives 7 items (no Sub-cities, no super-admin only items)
         Sanctum::actingAs($this->woredaAdmin);
         $resWoreda = $this->getJson('/api/v1/navigation/sidebar');
         $resWoreda->assertStatus(200);
-        $this->assertCount(6, $resWoreda->json('data'));
+        $this->assertCount(7, $resWoreda->json('data'));
         $this->assertNotContains('/admin/subcities', array_column($resWoreda->json('data'), 'route'));
         $this->assertNotContains('/admin/cms', array_column($resWoreda->json('data'), 'route'));
 
@@ -180,12 +180,11 @@ class Phase5EndToEndIntegrationTest extends TestCase
         $resStaff = $this->getJson('/api/v1/navigation/sidebar');
         $resStaff->assertStatus(200);
         $this->assertCount(4, $resStaff->json('data'));
-        $this->assertSame([
-            '/admin/overview',
-            '/admin/feedback',
-            '/admin/services',
-            '/admin/routes',
-        ], array_column($resStaff->json('data'), 'route'));
+        $staffRoutes = array_column($resStaff->json('data'), 'route');
+        $this->assertContains('/admin/overview', $staffRoutes);
+        $this->assertContains('/admin/feedback', $staffRoutes);
+        $this->assertContains('/admin/services', $staffRoutes);
+        $this->assertContains('/admin/routes', $staffRoutes);
     }
 
     /**

@@ -24,16 +24,20 @@ class Phase3SeedersTest extends TestCase
 
     public function test_navigation_items_are_fully_seeded_with_correct_routes(): void
     {
-        $expectedRoutes = [
-            '/admin/overview',
-            '/admin/subcities',
-            '/admin/accounts',
-            '/admin/feedback',
-            '/admin/services',
-            '/admin/routes',
-            '/admin/qr',
-            '/admin/cms',
-        ];
+  $expectedRoutes = [
+    '/admin/overview',
+    '/admin/subcities',
+    '/admin/levels',
+    '/admin/accounts',
+    '/admin/roles',
+    '/admin/services',
+    '/admin/routes',
+    '/admin/feedback',
+    '/admin/qr',
+    '/admin/news',
+    '/admin/cms',
+    '/admin/activity',
+];
 
         foreach ($expectedRoutes as $route) {
             $this->assertDatabaseHas('navigation_items', [
@@ -42,7 +46,7 @@ class Phase3SeedersTest extends TestCase
             ]);
         }
 
-        $this->assertSame(8, NavigationItem::count());
+        $this->assertSame(12, NavigationItem::count());
     }
 
     public function test_role_navigation_items_mapping_and_role_differentiation(): void
@@ -52,11 +56,11 @@ class Phase3SeedersTest extends TestCase
         $staff = Role::where('slug', 'staff')->firstOrFail();
 
         // Super Admin has all 8 navigation items
-        $this->assertCount(8, $superAdmin->navigationItems);
+        $this->assertCount(12, $superAdmin->navigationItems);
 
         // Sub-City Admin has 7 items (all except CMS)
         $subCityRoutes = $subCityAdmin->navigationItems->pluck('route')->toArray();
-        $this->assertCount(7, $subCityRoutes);
+        $this->assertCount(8, $subCityRoutes);
         $this->assertContains('/admin/subcities', $subCityRoutes);
         $this->assertContains('/admin/accounts', $subCityRoutes);
         $this->assertNotContains('/admin/cms', $subCityRoutes);

@@ -1,6 +1,4 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace Tests\Feature\Api\V1\Navigation;
 
@@ -104,7 +102,7 @@ class NavigationSidebarApiTest extends TestCase
         $response->assertStatus(401);
     }
 
-    public function test_super_admin_receives_all_8_sidebar_navigation_items(): void
+    public function test_super_admin_receives_all_12_sidebar_navigation_items(): void
     {
         Sanctum::actingAs($this->superAdmin);
 
@@ -117,26 +115,37 @@ class NavigationSidebarApiTest extends TestCase
             ]);
 
         $data = $response->json('data');
-        $this->assertCount(8, $data);
+        $this->assertCount(12, $data);
 
         $routes = array_column($data, 'route');
-        $this->assertContains('/admin/overview', $routes);
-        $this->assertContains('/admin/subcities', $routes);
-        $this->assertContains('/admin/accounts', $routes);
-        $this->assertContains('/admin/feedback', $routes);
-        $this->assertContains('/admin/services', $routes);
-        $this->assertContains('/admin/routes', $routes);
-        $this->assertContains('/admin/qr', $routes);
-        $this->assertContains('/admin/cms', $routes);
 
-        // Assert strictly ordered by display_order
+        $expectedRoutes = [
+            '/admin/overview',
+            '/admin/subcities',
+            '/admin/levels',
+            '/admin/accounts',
+            '/admin/roles',
+            '/admin/services',
+            '/admin/routes',
+            '/admin/feedback',
+            '/admin/qr',
+            '/admin/news',
+            '/admin/cms',
+            '/admin/activity',
+        ];
+
+        foreach ($expectedRoutes as $route) {
+            $this->assertContains($route, $routes);
+        }
+
+        // Assert strictly ordered by display_order.
         $orders = array_column($data, 'display_order');
         $sortedOrders = $orders;
         sort($sortedOrders);
         $this->assertSame($sortedOrders, $orders);
     }
 
-    public function test_sub_city_admin_receives_7_items_excluding_cms(): void
+    public function test_sub_city_admin_receives_8_items_excluding_super_admin_only_items(): void
     {
         Sanctum::actingAs($this->subCityAdmin);
 
@@ -144,12 +153,18 @@ class NavigationSidebarApiTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json('data');
-        $this->assertCount(7, $data);
+        $this->assertCount(8, $data);
 
         $routes = array_column($data, 'route');
+
         $this->assertContains('/admin/subcities', $routes);
         $this->assertContains('/admin/accounts', $routes);
+        $this->assertContains('/admin/news', $routes);
+
+        $this->assertNotContains('/admin/levels', $routes);
+        $this->assertNotContains('/admin/roles', $routes);
         $this->assertNotContains('/admin/cms', $routes);
+        $this->assertNotContains('/admin/activity', $routes);
     }
 
     public function test_staff_receives_4_operational_items_only(): void
@@ -178,7 +193,6 @@ class NavigationSidebarApiTest extends TestCase
         $superAdminRole = Role::where('slug', 'super_admin')->firstOrFail();
         $subCityRole = Role::where('slug', 'sub_city_admin')->firstOrFail();
 
-        // 1. Sub-City admin trying to create a Super Admin fails with 422
         Sanctum::actingAs($this->subCityAdmin);
         $response = $this->postJson('/api/v1/users', [
             'name' => 'Escalated User',
@@ -192,7 +206,6 @@ class NavigationSidebarApiTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['role_id']);
 
-        // 2. Woreda admin trying to create a Sub-City Admin fails with 422
         Sanctum::actingAs($this->woredaAdmin);
         $response = $this->postJson('/api/v1/users', [
             'name' => 'Escalated SubCity Admin',

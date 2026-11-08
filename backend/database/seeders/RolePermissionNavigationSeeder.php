@@ -171,7 +171,7 @@ class RolePermissionNavigationSeeder extends Seeder
                 ],
                 'staff' => [
                     'name' => 'Operational Staff',
-                    'scope_level' => 'staff',
+                    'scope_level' => Role::SCOPE_BUREAU,
                     'description' => 'Operational government staff member with service navigation and feedback viewing rights.',
                     'is_system' => true,
                     'is_active' => true,
