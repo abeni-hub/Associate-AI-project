@@ -24,20 +24,21 @@ class Phase3SeedersTest extends TestCase
 
     public function test_navigation_items_are_fully_seeded_with_correct_routes(): void
     {
-  $expectedRoutes = [
-    '/admin/overview',
-    '/admin/subcities',
-    '/admin/levels',
-    '/admin/accounts',
-    '/admin/roles',
-    '/admin/services',
-    '/admin/routes',
-    '/admin/feedback',
-    '/admin/qr',
-    '/admin/news',
-    '/admin/cms',
-    '/admin/activity',
-];
+        $expectedRoutes = [
+            '/admin/overview',
+            '/admin/subcities',
+            '/admin/levels',
+            '/admin/accounts',
+            '/admin/roles',
+            '/admin/services',
+            '/admin/documents',
+            '/admin/routes',
+            '/admin/feedback',
+            '/admin/qr',
+            '/admin/news',
+            '/admin/cms',
+            '/admin/activity',
+        ];
 
         foreach ($expectedRoutes as $route) {
             $this->assertDatabaseHas('navigation_items', [
@@ -46,7 +47,7 @@ class Phase3SeedersTest extends TestCase
             ]);
         }
 
-        $this->assertSame(12, NavigationItem::count());
+        $this->assertSame(13, NavigationItem::count());
     }
 
     public function test_role_navigation_items_mapping_and_role_differentiation(): void
@@ -55,14 +56,15 @@ class Phase3SeedersTest extends TestCase
         $subCityAdmin = Role::where('slug', 'sub_city_admin')->firstOrFail();
         $staff = Role::where('slug', 'staff')->firstOrFail();
 
-        // Super Admin has all 8 navigation items
-        $this->assertCount(12, $superAdmin->navigationItems);
+        // Super Admin has all 13 navigation items
+        $this->assertCount(13, $superAdmin->navigationItems);
 
-        // Sub-City Admin has 7 items (all except CMS)
+        // Sub-City Admin has 9 items
         $subCityRoutes = $subCityAdmin->navigationItems->pluck('route')->toArray();
-        $this->assertCount(8, $subCityRoutes);
+        $this->assertCount(9, $subCityRoutes);
         $this->assertContains('/admin/subcities', $subCityRoutes);
         $this->assertContains('/admin/accounts', $subCityRoutes);
+        $this->assertContains('/admin/documents', $subCityRoutes);
         $this->assertNotContains('/admin/cms', $subCityRoutes);
 
         // Staff has 4 items (Overview, Feedback, Services, Routes)

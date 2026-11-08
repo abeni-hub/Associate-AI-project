@@ -21,6 +21,7 @@ const NAV_ITEM_PERMISSION_MAP: Record<string, string> = {
   feedback: 'feedback.view_own',
   activity: 'audit_logs.view',
   services: 'services.view',
+  documents: 'documents.view',
   routes: 'service_steps.view',
   qr: 'qr_codes.view',
   office: 'services.view',
@@ -107,6 +108,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           text: 'Roles & permissions',
           icon: 'shield',
           required_permission: 'roles.view',
+        });
+      }
+      if (hasPermission('documents.view') && !items.some((i) => i.id === 'documents')) {
+        items.push({
+          id: 'documents',
+          text: 'Required documents',
+          icon: 'file',
+          required_permission: 'documents.view',
         });
       }
       if (hasPermission('news.view') && !items.some((i) => i.id === 'news')) {

@@ -102,7 +102,7 @@ class NavigationSidebarApiTest extends TestCase
         $response->assertStatus(401);
     }
 
-    public function test_super_admin_receives_all_12_sidebar_navigation_items(): void
+    public function test_super_admin_receives_all_13_sidebar_navigation_items(): void
     {
         Sanctum::actingAs($this->superAdmin);
 
@@ -115,7 +115,7 @@ class NavigationSidebarApiTest extends TestCase
             ]);
 
         $data = $response->json('data');
-        $this->assertCount(12, $data);
+        $this->assertCount(13, $data);
 
         $routes = array_column($data, 'route');
 
@@ -126,6 +126,7 @@ class NavigationSidebarApiTest extends TestCase
             '/admin/accounts',
             '/admin/roles',
             '/admin/services',
+            '/admin/documents',
             '/admin/routes',
             '/admin/feedback',
             '/admin/qr',
@@ -145,7 +146,7 @@ class NavigationSidebarApiTest extends TestCase
         $this->assertSame($sortedOrders, $orders);
     }
 
-    public function test_sub_city_admin_receives_8_items_excluding_super_admin_only_items(): void
+    public function test_sub_city_admin_receives_9_items_excluding_super_admin_only_items(): void
     {
         Sanctum::actingAs($this->subCityAdmin);
 
@@ -153,12 +154,13 @@ class NavigationSidebarApiTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json('data');
-        $this->assertCount(8, $data);
+        $this->assertCount(9, $data);
 
         $routes = array_column($data, 'route');
 
         $this->assertContains('/admin/subcities', $routes);
         $this->assertContains('/admin/accounts', $routes);
+        $this->assertContains('/admin/documents', $routes);
         $this->assertContains('/admin/news', $routes);
 
         $this->assertNotContains('/admin/levels', $routes);

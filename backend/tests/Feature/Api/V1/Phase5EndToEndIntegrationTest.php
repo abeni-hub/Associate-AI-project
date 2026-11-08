@@ -145,34 +145,36 @@ class Phase5EndToEndIntegrationTest extends TestCase
      */
     public function test_dynamic_sidebar_navigation_differentiates_all_5_roles(): void
     {
-        // 1. Super Admin receives all 12 items
+        // 1. Super Admin receives all 13 items
         Sanctum::actingAs($this->superAdmin);
         $resSuper = $this->getJson('/api/v1/navigation/sidebar');
         $resSuper->assertStatus(200);
-        $this->assertCount(12, $resSuper->json('data'));
+        $this->assertCount(13, $resSuper->json('data'));
         $this->assertContains('/admin/cms', array_column($resSuper->json('data'), 'route'));
+        $this->assertContains('/admin/documents', array_column($resSuper->json('data'), 'route'));
 
-        // 2. Sub-City Admin receives 8 items (excluding super-admin only items)
+        // 2. Sub-City Admin receives 9 items (excluding super-admin only items)
         Sanctum::actingAs($this->subCityAdmin);
         $resSubCity = $this->getJson('/api/v1/navigation/sidebar');
         $resSubCity->assertStatus(200);
-        $this->assertCount(8, $resSubCity->json('data'));
+        $this->assertCount(9, $resSubCity->json('data'));
         $this->assertNotContains('/admin/cms', array_column($resSubCity->json('data'), 'route'));
         $this->assertContains('/admin/subcities', array_column($resSubCity->json('data'), 'route'));
+        $this->assertContains('/admin/documents', array_column($resSubCity->json('data'), 'route'));
 
-        // 3. Woreda Admin receives 7 items (no Sub-cities, no super-admin only items)
+        // 3. Woreda Admin receives 8 items (no Sub-cities, no super-admin only items)
         Sanctum::actingAs($this->woredaAdmin);
         $resWoreda = $this->getJson('/api/v1/navigation/sidebar');
         $resWoreda->assertStatus(200);
-        $this->assertCount(7, $resWoreda->json('data'));
+        $this->assertCount(8, $resWoreda->json('data'));
         $this->assertNotContains('/admin/subcities', array_column($resWoreda->json('data'), 'route'));
         $this->assertNotContains('/admin/cms', array_column($resWoreda->json('data'), 'route'));
 
-        // 4. Bureau Admin receives 6 items
+        // 4. Bureau Admin receives 7 items
         Sanctum::actingAs($this->bureauAdmin);
         $resBureau = $this->getJson('/api/v1/navigation/sidebar');
         $resBureau->assertStatus(200);
-        $this->assertCount(6, $resBureau->json('data'));
+        $this->assertCount(7, $resBureau->json('data'));
         $this->assertContains('/admin/qr', array_column($resBureau->json('data'), 'route'));
 
         // 5. Staff receives 4 operational items

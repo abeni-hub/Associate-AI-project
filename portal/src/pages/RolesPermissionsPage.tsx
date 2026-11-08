@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
+import { Brand } from '../components/shared/Brand';
 import RoleModal from '../components/roles/RoleModal';
 import { usePermissions } from '../hooks/usePermissions';
 import type { RoleItem } from '../types/portal.types';
@@ -15,8 +16,8 @@ import {
   useUpdateRoleMutation,
   useDeleteRoleMutation,
   type PermissionItem,
-  type NavigationItemData,
 } from '../services/rolesApi';
+
 /**
  * Domain groupings with metadata & icon mappings.
  */
@@ -117,41 +118,39 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   onUpdateRole,
   onDeleteRole,
 }) => {
-  // 1. GET /api/v1/roles (list with permissions_count)
+  // Primary Tab State: 'sidebar' vs 'permissions'
+  const [activeTab, setActiveTab] = useState<'sidebar' | 'permissions'>('sidebar');
+
+  // Backend queries
   const { data: apiRoles, isLoading: loadingRoles, refetch: refetchRoles } = useGetRolesQuery();
+  const { data: apiPermissions } = useGetPermissionsQuery();
+  const { data: apiNavItems, refetch: refetchNavItems } = useGetNavigationItemsQuery();
 
-  // 2. GET /api/v1/permissions (grouped domain catalog)
-  const { data: apiPermissions, isLoading: loadingPermissions } = useGetPermissionsQuery();
-
-  // 3. GET /api/v1/navigation/items (all active navigation items)
-  const { data: apiNavItems, isLoading: loadingNavItems, refetch: refetchNavItems } = useGetNavigationItemsQuery();
-
-  // 4. PUT mutations
+  // PUT mutations
   const [updateRolePermissionsTrigger, { isLoading: isSavingPermissions }] =
     useUpdateRolePermissionsMutation();
   const [updateRoleNavigationItemsTrigger, { isLoading: isSavingNavItems }] =
     useUpdateRoleNavigationItemsMutation();
-  const [createRoleTrigger, { isLoading: isCreatingRole }] = useCreateRoleMutation();
-  const [updateRoleTrigger, { isLoading: isUpdatingRole }] = useUpdateRoleMutation();
-  const [deleteRoleTrigger, { isLoading: isDeletingRole }] = useDeleteRoleMutation();
+  const [createRoleTrigger] = useCreateRoleMutation();
+  const [updateRoleTrigger] = useUpdateRoleMutation();
+  const [deleteRoleTrigger] = useDeleteRoleMutation();
 
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
 
-  // Search and Filter States for Domain Catalog
+  // Search & Filter States for Sidebar Tab
+  const [navSearchQuery, setNavSearchQuery] = useState('');
+  const [navStatusFilter, setNavStatusFilter] = useState<'all' | 'granted' | 'revoked'>('all');
+
+  // Search & Filter States for Permissions Tab
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDomainFilter, setSelectedDomainFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'granted' | 'revoked'>('all');
 
-  // Search and Filter States for Navigation Items (Granted vs Revoked)
-  const [navSearchQuery, setNavSearchQuery] = useState('');
-  const [navTabFilter, setNavTabFilter] = useState<'all' | 'granted' | 'revoked'>('all');
-  const [isNavSectionCollapsed, setIsNavSectionCollapsed] = useState(false);
-
   const { hasPermission } = usePermissions();
   const canManageRoles = hasPermission('roles.manage');
 
-  // Active permissions catalog strictly from backend GET /api/v1/permissions (no mock fallbacks)
+  // Active permissions catalog strictly from backend GET /api/v1/permissions
   const allPermissions = useMemo<PermissionItem[]>(() => {
     if (apiPermissions?.data && Array.isArray(apiPermissions.data)) {
       return apiPermissions.data;
@@ -159,7 +158,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     return [];
   }, [apiPermissions]);
 
-  // Active platform roles strictly from backend GET /api/v1/roles (no mock fallbacks)
+  // Active platform roles strictly from backend GET /api/v1/roles
   const roles = useMemo<RoleItem[]>(() => {
     if (propRoles && propRoles.length > 0) return propRoles;
     if (apiRoles?.data && Array.isArray(apiRoles.data)) {
@@ -233,12 +232,10 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   const effectivePermissionIds = useMemo<number[]>(() => {
     if (!activeRole) return [];
 
-    // Super Admin receives all platform permissions
     if (isSuperAdmin) {
       return allPermissions.map((p) => p.id);
     }
 
-    // 1. From live GET /api/v1/roles/{id} response
     const detailData: any = activeRoleDetail?.data?.data || activeRoleDetail?.data;
     if (detailData?.permissions && Array.isArray(detailData.permissions) && detailData.permissions.length > 0) {
       return detailData.permissions.map((p: any) => (typeof p === 'number' ? p : p.id));
@@ -247,7 +244,6 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
       return detailData.permission_ids;
     }
 
-    // 2. From role's stored permissionIds
     if (activeRole.permissionIds && activeRole.permissionIds.length > 0) {
       return activeRole.permissionIds;
     }
@@ -255,7 +251,6 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     return [];
   }, [activeRole, activeRoleDetail, allPermissions, isSuperAdmin]);
 
-  // Display count of active permissions
   const activePermissionsCount = isSuperAdmin
     ? allPermissions.length
     : (effectivePermissionIds.length || activeRole?.permissionsCount || 0);
@@ -316,40 +311,31 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     return [];
   }, [activeRole, isSuperAdmin, allNavigationItems, activeRoleDetail]);
 
-  // Granted navigation items for active role
+  // Granted navigation items for active role (used for live preview)
   const grantedNavItems = useMemo(() => {
     return allNavigationItems.filter((item) => effectiveNavIds.includes(item.id));
   }, [allNavigationItems, effectiveNavIds]);
 
-  // Revoked navigation items (available to add) for active role
-  const revokedNavItems = useMemo(() => {
-    return allNavigationItems.filter((item) => !effectiveNavIds.includes(item.id));
-  }, [allNavigationItems, effectiveNavIds]);
-
-  // Filtered navigation items based on search query
-  const filteredGrantedNavItems = useMemo(() => {
-    if (!navSearchQuery.trim()) return grantedNavItems;
-    const q = navSearchQuery.toLowerCase().trim();
-    return grantedNavItems.filter(
-      (item) =>
-        item.label.toLowerCase().includes(q) ||
-        item.route.toLowerCase().includes(q) ||
-        item.desc.toLowerCase().includes(q) ||
-        (item.required_permission && item.required_permission.toLowerCase().includes(q))
-    );
-  }, [grantedNavItems, navSearchQuery]);
-
-  const filteredRevokedNavItems = useMemo(() => {
-    if (!navSearchQuery.trim()) return revokedNavItems;
-    const q = navSearchQuery.toLowerCase().trim();
-    return revokedNavItems.filter(
-      (item) =>
-        item.label.toLowerCase().includes(q) ||
-        item.route.toLowerCase().includes(q) ||
-        item.desc.toLowerCase().includes(q) ||
-        (item.required_permission && item.required_permission.toLowerCase().includes(q))
-    );
-  }, [revokedNavItems, navSearchQuery]);
+  // Filtered navigation items for manager console
+  const filteredNavItems = useMemo(() => {
+    let list = allNavigationItems;
+    if (navStatusFilter === 'granted') {
+      list = list.filter((item) => effectiveNavIds.includes(item.id));
+    } else if (navStatusFilter === 'revoked') {
+      list = list.filter((item) => !effectiveNavIds.includes(item.id));
+    }
+    if (navSearchQuery.trim()) {
+      const q = navSearchQuery.toLowerCase().trim();
+      list = list.filter(
+        (item) =>
+          item.label.toLowerCase().includes(q) ||
+          item.route.toLowerCase().includes(q) ||
+          item.desc.toLowerCase().includes(q) ||
+          (item.required_permission && item.required_permission.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [allNavigationItems, effectiveNavIds, navStatusFilter, navSearchQuery]);
 
   /**
    * Synchronizes navigation items to backend for active role.
@@ -394,17 +380,17 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
       }
 
       if (action === 'granted') {
-        setSaveStatus(`Navigation item "${itemName}" granted to role "${activeRole.name}".`);
+        setSaveStatus(`"${itemName}" enabled in sidebar for "${activeRole.name}".`);
       } else if (action === 'revoked') {
-        setSaveStatus(`Navigation item "${itemName}" revoked from role "${activeRole.name}".`);
+        setSaveStatus(`"${itemName}" hidden from sidebar for "${activeRole.name}".`);
       } else if (action === 'all_granted') {
-        setSaveStatus(`All ${newNavIds.length} navigation modules granted to role "${activeRole.name}".`);
+        setSaveStatus(`All ${newNavIds.length} navigation modules enabled for "${activeRole.name}".`);
       } else if (action === 'all_revoked') {
-        setSaveStatus(`All navigation modules revoked from role "${activeRole.name}".`);
+        setSaveStatus(`All sidebar navigation modules hidden for "${activeRole.name}".`);
       } else if (action === 'reset') {
-        setSaveStatus(`Navigation items reset to ${activeRole.scope} defaults (${newNavIds.length} granted).`);
+        setSaveStatus(`Sidebar navigation reset to ${activeRole.scope} defaults (${newNavIds.length} modules).`);
       } else {
-        setSaveStatus(result.message || 'Navigation items updated successfully.');
+        setSaveStatus(result.message || 'Sidebar navigation updated successfully.');
       }
       setTimeout(() => setSaveStatus(null), 3500);
     } catch (err: any) {
@@ -415,9 +401,6 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     }
   };
 
-  /**
-   * Grant a single revoked navigation item to active role.
-   */
   const handleGrantNavItem = async (navItemId: number) => {
     if (!canManageRoles) {
       setErrorStatus('Permission denied: roles.manage is required to modify navigation items.');
@@ -429,9 +412,6 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     await syncNavItemsToBackend(newNavIds, item?.label, 'granted');
   };
 
-  /**
-   * Revoke a single granted navigation item from active role.
-   */
   const handleRevokeNavItem = async (navItemId: number) => {
     if (!canManageRoles) {
       setErrorStatus('Permission denied: roles.manage is required to modify navigation items.');
@@ -443,26 +423,17 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     await syncNavItemsToBackend(newNavIds, item?.label, 'revoked');
   };
 
-  /**
-   * Grant all 12 navigation items to active role.
-   */
   const handleGrantAllNavItems = async () => {
     if (!canManageRoles || isSuperAdmin) return;
     const allIds = allNavigationItems.map((n) => n.id);
     await syncNavItemsToBackend(allIds, undefined, 'all_granted');
   };
 
-  /**
-   * Revoke all navigation items from active role.
-   */
   const handleRevokeAllNavItems = async () => {
     if (!canManageRoles || isSuperAdmin) return;
     await syncNavItemsToBackend([], undefined, 'all_revoked');
   };
 
-  /**
-   * Reset navigation items to scope-level recommended defaults.
-   */
   const handleResetNavScopeDefaults = async () => {
     if (!canManageRoles || isSuperAdmin || !activeRole) return;
     const defaultIds = getScopeDefaultNavIds(activeRole.scope_level);
@@ -506,9 +477,6 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     }
   };
 
-  /**
-   * Toggles individual permission in Domain Catalog.
-   */
   const handleToggleDomainPermission = async (permissionId: number) => {
     if (!canManageRoles) {
       setErrorStatus('Permission denied: roles.manage is required to modify policy permissions.');
@@ -532,9 +500,6 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     await syncPermissionsToBackend(newPermissionIds);
   };
 
-  /**
-   * Bulk toggle all permissions in a specific domain.
-   */
   const handleToggleDomainAll = async (domainId: string, grant: boolean) => {
     if (!canManageRoles || !activeRole || isSuperAdmin) return;
     const domainPermIds = allPermissions.filter((p) => p.group === domainId).map((p) => p.id);
@@ -547,9 +512,6 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     await syncPermissionsToBackend(newPermissionIds);
   };
 
-  /**
-   * Bulk toggle all permissions matching current filter.
-   */
   const handleBulkToggleFiltered = async (grant: boolean) => {
     if (!canManageRoles || !activeRole || isSuperAdmin) return;
     const filteredIds = filteredPermissions.map((p) => p.id);
@@ -566,7 +528,6 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     setErrorStatus(null);
     setSaveStatus(null);
 
-    // Map navigation items or permissions to valid backend IDs
     let resolvedPermissionIds: number[] = [];
     if (Array.isArray(saved.permission_ids) && saved.permission_ids.length > 0) {
       resolvedPermissionIds = saved.permission_ids;
@@ -648,7 +609,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
           } as any);
         }
         setSaveStatus(
-          `Custom role "${res.data?.name || saved.name}" successfully created on backend with ${resolvedPermissionIds.length} permissions.`
+          `Custom role "${res.data?.name || saved.name}" successfully created with ${resolvedPermissionIds.length} permissions.`
         );
         setTimeout(() => setSaveStatus(null), 3500);
       } catch (err: any) {
@@ -694,20 +655,16 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     }
   };
 
-  // Filtered Permissions based on Search Query, Domain Filter, and Status Filter
+  // Filtered Permissions for Matrix
   const filteredPermissions = useMemo(() => {
     return allPermissions.filter((perm) => {
-      // 1. Domain filter
       if (selectedDomainFilter !== 'all' && perm.group !== selectedDomainFilter) {
         return false;
       }
-
-      // 2. Status filter
       const isGranted = effectivePermissionIds.includes(perm.id);
       if (statusFilter === 'granted' && !isGranted) return false;
       if (statusFilter === 'revoked' && isGranted) return false;
 
-      // 3. Search query filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const domain = DOMAIN_GROUPS.find((d) => d.id === perm.group);
@@ -717,7 +674,6 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
         const matchDomain = domain ? domain.label.toLowerCase().includes(q) : false;
         return matchName || matchKey || matchDesc || matchDomain;
       }
-
       return true;
     });
   }, [allPermissions, selectedDomainFilter, statusFilter, searchQuery, effectivePermissionIds]);
@@ -752,7 +708,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     }).filter((g) => g.perms.length > 0);
   }, [filteredPermissions, allPermissions, effectivePermissionIds]);
 
-  const hasActiveFilters =
+  const hasActivePermFilters =
     searchQuery.trim().length > 0 || selectedDomainFilter !== 'all' || statusFilter !== 'all';
 
   return (
@@ -760,7 +716,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
       <PageHeading
         eyebrow="ACCESS CONTROL & GOVERNANCE"
         title="Roles & permissions"
-        subtitle="Configure role-based access control (RBAC), security policies, and domain permissions."
+        subtitle="Configure role-based access control (RBAC), sidebar module visibility, and detailed security policies."
         action={canManageRoles ? "+ New role" : undefined}
         onAction={
           canManageRoles
@@ -772,7 +728,6 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
         }
       />
 
-      {/* Role Management Card & Header */}
       {loadingRoles && !apiRoles ? (
         <section className="panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', gap: '14px', margin: '20px 0' }}>
           <div className="loading-spinner" />
@@ -784,8 +739,10 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
           <p>No roles available.</p>
         </section>
       ) : (
-        <section className="panel permissions-catalog-panel" style={{ marginBottom: '2rem' }}>
-          {/* Top Role Header Banner */}
+        <section className="panel permissions-catalog-panel" style={{ marginBottom: '2rem', padding: 0, overflow: 'hidden' }}>
+          {/* ========================================================================= */}
+          {/* Top Role Selector & Status Banner */}
+          {/* ========================================================================= */}
           <div
             style={{
               padding: '1.25rem 1.75rem',
@@ -805,11 +762,11 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: '32px',
-                    height: '32px',
+                    width: '34px',
+                    height: '34px',
                     borderRadius: '8px',
-                    background: isSuperAdmin ? '#ecfdf5' : '#eff6ff',
-                    color: isSuperAdmin ? '#047857' : '#1d4ed8',
+                    background: isSuperAdmin ? '#ecfdf5' : '#e8f2ed',
+                    color: isSuperAdmin ? '#047857' : '#00485a',
                   }}
                 >
                   <Icon name={isSuperAdmin ? 'shield' : 'users'} size={18} />
@@ -817,58 +774,8 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                 <h2 style={{ fontSize: '18px', margin: 0, color: '#164a54' }}>
                   {activeRole.name}
                 </h2>
-                <code
-                  style={{
-                    fontSize: '11.5px',
-                    background: '#f1f5f9',
-                    color: '#475569',
-                    padding: '2px 7px',
-                    borderRadius: '4px',
-                  }}
-                >
-                  {activeRole.slug || activeRole.id}
-                </code>
-                <span
-                  style={{
-                    background: isSuperAdmin ? '#ecfdf5' : '#e0f2fe',
-                    color: isSuperAdmin ? '#047857' : '#0369a1',
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                  }}
-                >
-                  {activePermissionsCount} / {allPermissions.length} active
-                </span>
-                {activeRole.isSystem ? (
-                  <span
-                    style={{
-                      background: '#f1f5f9',
-                      color: '#475569',
-                      padding: '2px 8px',
-                      borderRadius: '12px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                    }}
-                  >
-                    System role
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      background: '#fef3c7',
-                      color: '#92400e',
-                      padding: '2px 8px',
-                      borderRadius: '12px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                    }}
-                  >
-                    Custom role
-                  </span>
-                )}
               </div>
-              <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
+              <p style={{ margin: '5px 0 0', fontSize: '13px', color: '#64748b' }}>
                 {activeRole.description}
               </p>
             </div>
@@ -876,13 +783,13 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
             {/* Role Selector and Actions */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
-                <span>Role:</span>
+                <span>Selected Role:</span>
                 <select
                   value={String(activeRole.id)}
                   onChange={(event) => setSelectedRoleId(event.target.value)}
                   style={{
-                    minHeight: '34px',
-                    padding: '4px 10px',
+                    minHeight: '36px',
+                    padding: '4px 12px',
                     borderRadius: '6px',
                     border: '1px solid #cbd5e1',
                     background: '#fff',
@@ -898,21 +805,6 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                   ))}
                 </select>
               </label>
-
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '12px',
-                  background: '#f1f5f9',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  color: '#475569',
-                }}
-              >
-                <Icon name="shield" size={13} /> Scope: <b>{activeRole.scope}</b>
-              </span>
 
               {!activeRole.isSystem && canManageRoles && (
                 <div style={{ display: 'inline-flex', gap: '6px' }}>
@@ -956,7 +848,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                 <Icon name="check" size={16} />
               </span>
               <span>
-                <b>Policy Synchronized</b>
+                <b>Update Synchronized</b>
                 <small>{saveStatus}</small>
               </span>
             </div>
@@ -977,196 +869,661 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
             </div>
           )}
 
-          {isSuperAdmin ? (
-            <div className="tip-banner inline-tip" style={{ margin: '0.75rem 1.5rem' }}>
-              <span className="tip-icon">
-                <Icon name="lock" size={16} />
-              </span>
-              <span>
-                <b>Root Platform Authority (Inherently Granted)</b>
-                <small>
-                  Super Admin possesses all 37 platform authorities across all domains.
-                  Permissions are immutable for this role. To configure a specialized policy,
-                  select a municipal tier (e.g. Sub-City, Woreda, Bureau) or create a custom role.
-                </small>
-              </span>
-            </div>
-          ) : (
-            <div
-              className="tip-banner inline-tip"
-              style={{ margin: '0.75rem 1.5rem', background: '#f8fafc', borderColor: '#cbd5e1' }}
+
+          {/* ========================================================================= */}
+          {/* Main 2-Tab Navigation Bar */}
+          {/* ========================================================================= */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              borderBottom: '1px solid #e2e8f0',
+              background: '#ffffff',
+              padding: '0 1.5rem',
+              gap: '12px',
+            }}
+          >
+            {/* Tab 1: Sidebar Navigation */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('sidebar')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '14px 18px',
+                border: 'none',
+                borderBottom: activeTab === 'sidebar' ? '3px solid #00485a' : '3px solid transparent',
+                background: 'transparent',
+                color: activeTab === 'sidebar' ? '#00485a' : '#64748b',
+                fontWeight: activeTab === 'sidebar' ? 700 : 500,
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
             >
-              <span className="tip-icon">
-                <Icon name="shield" size={16} />
+              <Icon name="layers" size={17} />
+              <span>Sidebar Navigation</span>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  background: activeTab === 'sidebar' ? '#e8f2ed' : '#f1f5f9',
+                  color: activeTab === 'sidebar' ? '#00485a' : '#64748b',
+                }}
+              >
+                {grantedNavItems.length} active
               </span>
-              <span>
-                <b>Granular Role Permissions Catalog</b>
-                <small>
-                  Toggle individual permissions below to define what administrative actions
-                  users holding the <strong>{activeRole.name}</strong> role can perform. Changes
-                  synchronize immediately.
-                </small>
+            </button>
+
+            {/* Tab 2: Detailed Permissions */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('permissions')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '14px 18px',
+                border: 'none',
+                borderBottom: activeTab === 'permissions' ? '3px solid #00485a' : '3px solid transparent',
+                background: 'transparent',
+                color: activeTab === 'permissions' ? '#00485a' : '#64748b',
+                fontWeight: activeTab === 'permissions' ? 700 : 500,
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Icon name="shield" size={17} />
+              <span>Detailed Permissions</span>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  background: activeTab === 'permissions' ? '#e8f2ed' : '#f1f5f9',
+                  color: activeTab === 'permissions' ? '#00485a' : '#64748b',
+                }}
+              >
+                {activePermissionsCount} / {allPermissions.length} active
               </span>
+            </button>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* TAB 1: SIDEBAR NAVIGATION & VISUAL PREVIEW */}
+          {/* ========================================================================= */}
+          {activeTab === 'sidebar' && (
+            <div style={{ padding: '1.5rem', background: '#f8fafc' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '24px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                {/* 1. Left Column: Interactive Authentic Portal Sidebar Preview */}
+                <div
+                  style={{
+                    width: '280px',
+                    flexShrink: 0,
+                    borderRadius: '12px',
+                    background: 'linear-gradient(165deg, #003946 0%, #00485a 100%)',
+                    color: '#ffffff',
+                    padding: '20px 16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px',
+                    boxShadow: '0 8px 24px rgba(0, 42, 51, 0.12)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                  }}
+                >
+                  {/* Top Live Badge */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingBottom: '12px',
+                      borderBottom: '1px solid rgba(255,255,255,0.1)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: '#10b981',
+                          boxShadow: '0 0 6px #10b981',
+                        }}
+                      />
+                      <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', color: '#a7f3d0' }}>
+                        LIVE PREVIEW
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '10.5px',
+                        color: 'rgba(255,255,255,0.7)',
+                        background: 'rgba(255,255,255,0.1)',
+                        padding: '2px 7px',
+                        borderRadius: '4px',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Portal Sidebar
+                    </span>
+                  </div>
+
+                  {/* Brand Row */}
+                  <div style={{ padding: '2px 0 6px' }}>
+                    <Brand compact={false} />
+                  </div>
+
+                  {/* Sidebar Items Section Header */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: '10.5px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      color: 'rgba(255,255,255,0.5)',
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span>VISIBLE MODULES</span>
+                    <span style={{ color: '#e2c37c' }}>{grantedNavItems.length} ACTIVE</span>
+                  </div>
+
+                  {/* Scrollable list of simulated portal navigation links */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      minHeight: '260px',
+                      maxHeight: '440px',
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {grantedNavItems.length === 0 ? (
+                      <div
+                        style={{
+                          padding: '30px 14px',
+                          textAlign: 'center',
+                          background: 'rgba(255,255,255,0.04)',
+                          borderRadius: '8px',
+                          border: '1px dashed rgba(255,255,255,0.2)',
+                        }}
+                      >
+                        <div style={{ display: 'inline-flex', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>
+                          <Icon name="layers" size={24} />
+                        </div>
+                        <p style={{ margin: 0, fontSize: '12.5px', fontWeight: 600, color: '#ffffff' }}>
+                          No Modules Active
+                        </p>
+                        <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>
+                          Turn on modules on the right to grant sidebar access to this role.
+                        </p>
+                      </div>
+                    ) : (
+                      grantedNavItems.map((item, idx) => {
+                        const isPrimary = idx === 0;
+                        return (
+                          <div
+                            key={item.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              padding: '8px 12px',
+                              borderRadius: '6px',
+                              background: isPrimary ? 'rgba(255,255,255,0.13)' : 'transparent',
+                              border: isPrimary ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent',
+                              color: isPrimary ? '#ffffff' : 'rgba(255,255,255,0.8)',
+                              fontSize: '13px',
+                              fontWeight: isPrimary ? 600 : 500,
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <span style={{ color: isPrimary ? '#e2c37c' : 'rgba(255,255,255,0.7)', flexShrink: 0 }}>
+                              <Icon name={item.icon || 'layers'} size={16} />
+                            </span>
+                            <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {item.label}
+                            </span>
+                            <span style={{ fontSize: '10px', opacity: 0.5, fontFamily: 'monospace' }}>
+                              {item.route.replace(/^\/admin\//, '')}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Simulated Profile Footer */}
+                  <div
+                    style={{
+                      marginTop: 'auto',
+                      paddingTop: '12px',
+                      borderTop: '1px solid rgba(255,255,255,0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: '#e2c37c',
+                        color: '#003946',
+                        fontWeight: 800,
+                        fontSize: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {activeRole.name.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <b style={{ display: 'block', fontSize: '12px', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {activeRole.name}
+                      </b>
+                      <span style={{ fontSize: '10.5px', color: 'rgba(255,255,255,0.65)' }}>
+                        {activeRole.scope}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Right Column: Sidebar Module Manager & Toggles */}
+                <div
+                  style={{
+                    flex: '1',
+                    minWidth: '320px',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  {/* Console Header */}
+                  <div
+                    style={{
+                      padding: '16px 20px',
+                      background: '#fcfdfc',
+                      borderBottom: '1px solid #e2e8f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                    }}
+                  >
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+                        Sidebar Navigation Modules
+                      </h3>
+                      <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#64748b' }}>
+                        Toggle modules below to configure what users holding <strong>{activeRole.name}</strong> will see in their portal sidebar.
+                      </p>
+                    </div>
+
+                    {/* Bulk Actions */}
+                    {!isSuperAdmin && canManageRoles && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          className="button secondary small-button"
+                          style={{ fontSize: '12px', padding: '5px 11px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                          onClick={handleGrantAllNavItems}
+                          disabled={isSavingNavItems || grantedNavItems.length === allNavigationItems.length}
+                          title="Grant all 12 navigation modules to this role"
+                        >
+                          <Icon name="check" size={13} /> Enable all
+                        </button>
+                        <button
+                          type="button"
+                          className="button secondary small-button"
+                          style={{ fontSize: '12px', padding: '5px 11px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                          onClick={handleRevokeAllNavItems}
+                          disabled={isSavingNavItems || grantedNavItems.length === 0}
+                          title="Hide all navigation modules from this role"
+                        >
+                          <Icon name="close" size={13} /> Disable all
+                        </button>
+                        <button
+                          type="button"
+                          className="button secondary small-button"
+                          style={{ fontSize: '12px', padding: '5px 11px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                          onClick={handleResetNavScopeDefaults}
+                          disabled={isSavingNavItems}
+                          title="Reset navigation items to scope-level recommended defaults"
+                        >
+                          <Icon name="refresh" size={13} /> Reset defaults
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Filter Toolbar */}
+                  <div
+                    style={{
+                      padding: '12px 20px',
+                      background: '#ffffff',
+                      borderBottom: '1px solid #edf1ed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                    }}
+                  >
+                    {/* Search Input */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        background: '#f8fafc',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        padding: '5px 12px',
+                        gap: '8px',
+                        flex: '1',
+                        minWidth: '220px',
+                        maxWidth: '380px',
+                      }}
+                    >
+                      <Icon name="search" size={15} />
+                      <input
+                        type="text"
+                        placeholder="Search modules by name, route, or permission..."
+                        value={navSearchQuery}
+                        onChange={(e) => setNavSearchQuery(e.target.value)}
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          outline: 'none',
+                          fontSize: '13px',
+                          width: '100%',
+                          color: '#1e293b',
+                        }}
+                      />
+                      {navSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setNavSearchQuery('')}
+                          style={{
+                            border: 'none',
+                            background: 'none',
+                            cursor: 'pointer',
+                            padding: 0,
+                            color: '#94a3b8',
+                          }}
+                          title="Clear search"
+                        >
+                          <Icon name="close" size={13} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Status Tabs */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          background: '#f1f5f9',
+                          padding: '3px',
+                          borderRadius: '6px',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setNavStatusFilter('all')}
+                          style={{
+                            border: 'none',
+                            background: navStatusFilter === 'all' ? '#ffffff' : 'transparent',
+                            color: navStatusFilter === 'all' ? '#00485a' : '#64748b',
+                            fontWeight: navStatusFilter === 'all' ? 700 : 500,
+                            fontSize: '12px',
+                            padding: '4px 10px',
+                            borderRadius: '4px',
+                            boxShadow: navStatusFilter === 'all' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          All ({allNavigationItems.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNavStatusFilter('granted')}
+                          style={{
+                            border: 'none',
+                            background: navStatusFilter === 'granted' ? '#ffffff' : 'transparent',
+                            color: navStatusFilter === 'granted' ? '#047857' : '#64748b',
+                            fontWeight: navStatusFilter === 'granted' ? 700 : 500,
+                            fontSize: '12px',
+                            padding: '4px 10px',
+                            borderRadius: '4px',
+                            boxShadow: navStatusFilter === 'granted' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Active ({grantedNavItems.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNavStatusFilter('revoked')}
+                          style={{
+                            border: 'none',
+                            background: navStatusFilter === 'revoked' ? '#ffffff' : 'transparent',
+                            color: navStatusFilter === 'revoked' ? '#b45309' : '#64748b',
+                            fontWeight: navStatusFilter === 'revoked' ? 700 : 500,
+                            fontSize: '12px',
+                            padding: '4px 10px',
+                            borderRadius: '4px',
+                            boxShadow: navStatusFilter === 'revoked' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Hidden ({allNavigationItems.length - grantedNavItems.length})
+                        </button>
+                      </div>
+
+                      {isSavingNavItems && (
+                        <span style={{ fontSize: '12px', color: '#00485a', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <span className="loading-spinner" style={{ width: '13px', height: '13px' }} /> Syncing sidebar...
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Modules List */}
+                  <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {filteredNavItems.length === 0 ? (
+                      <div style={{ padding: '36px 16px', textAlign: 'center', color: '#64748b' }}>
+                        <Icon name="search" size={24} style={{ marginBottom: '8px', opacity: 0.5 }} />
+                        <p style={{ margin: 0, fontSize: '13.5px', fontWeight: 600, color: '#334155' }}>
+                          No navigation modules match current filter
+                        </p>
+                        <small style={{ color: '#94a3b8' }}>Try adjusting your search query or filter options.</small>
+                      </div>
+                    ) : (
+                      filteredNavItems.map((item) => {
+                        const isGranted = effectiveNavIds.includes(item.id);
+
+                        return (
+                          <div
+                            key={item.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '12px 16px',
+                              background: isGranted ? '#fcfdfc' : '#ffffff',
+                              border: `1px solid ${isGranted ? '#bbf7d0' : '#e2e8f0'}`,
+                              borderRadius: '8px',
+                              gap: '16px',
+                              transition: 'all 0.15s ease',
+                              boxShadow: isGranted ? '0 1px 2px rgba(16,185,129,0.04)' : 'none',
+                            }}
+                          >
+                            {/* Left: Icon & Meta */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0, flex: 1 }}>
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '36px',
+                                  height: '36px',
+                                  borderRadius: '8px',
+                                  background: isGranted ? '#e8f2ed' : '#f1f5f9',
+                                  color: isGranted ? '#00485a' : '#64748b',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <Icon name={item.icon || 'layers'} size={18} />
+                              </span>
+
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                  <b style={{ fontSize: '13.5px', color: isGranted ? '#0f172a' : '#475569' }}>
+                                    {item.label}
+                                  </b>
+                                  <code
+                                    style={{
+                                      fontSize: '11px',
+                                      background: '#f1f5f9',
+                                      color: '#475569',
+                                      padding: '1px 6px',
+                                      borderRadius: '4px',
+                                    }}
+                                  >
+                                    {item.route}
+                                  </code>
+                                  {item.required_permission && (
+                                    <span
+                                      style={{
+                                        fontSize: '10.5px',
+                                        background: '#e0f2fe',
+                                        color: '#0369a1',
+                                        padding: '1px 6px',
+                                        borderRadius: '4px',
+                                        fontWeight: 600,
+                                      }}
+                                      title={`Requires permission: ${item.required_permission}`}
+                                    >
+                                      req: {item.required_permission}
+                                    </span>
+                                  )}
+                                </div>
+                                <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b', lineHeight: 1.4 }}>
+                                  {item.desc}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Right: Modern iOS-Style Toggle Switch */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                              <span
+                                style={{
+                                  fontSize: '11.5px',
+                                  fontWeight: 700,
+                                  color: isGranted ? '#15803d' : '#64748b',
+                                  background: isGranted ? '#dcfce7' : '#f1f5f9',
+                                  padding: '2px 8px',
+                                  borderRadius: '10px',
+                                }}
+                              >
+                                {isGranted ? 'Active' : 'Hidden'}
+                              </span>
+
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={isGranted}
+                                onClick={() => isGranted ? handleRevokeNavItem(item.id) : handleGrantNavItem(item.id)}
+                                disabled={isSuperAdmin || !canManageRoles || isSavingNavItems}
+                                style={{
+                                  position: 'relative',
+                                  width: '44px',
+                                  height: '24px',
+                                  borderRadius: '12px',
+                                  border: 'none',
+                                  background: isGranted ? '#00485a' : '#cbd5e1',
+                                  cursor: (isSuperAdmin || !canManageRoles || isSavingNavItems) ? 'not-allowed' : 'pointer',
+                                  transition: 'background-color 0.2s ease',
+                                  padding: '2px',
+                                  flexShrink: 0,
+                                  outline: 'none',
+                                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                                }}
+                                title={
+                                  isSuperAdmin
+                                    ? 'Super Admin navigation is immutable'
+                                    : !canManageRoles
+                                      ? 'Permission roles.manage required'
+                                      : isGranted
+                                        ? `Click to hide "${item.label}" from sidebar`
+                                        : `Click to show "${item.label}" in sidebar`
+                                }
+                              >
+                                <span
+                                  style={{
+                                    display: 'block',
+                                    width: '20px',
+                                    height: '20px',
+                                    borderRadius: '50%',
+                                    background: '#ffffff',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                                    transform: isGranted ? 'translateX(20px)' : 'translateX(0)',
+                                    transition: 'transform 0.2s ease',
+                                  }}
+                                />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {/* ========================================================================= */}
-          {/* Sidebar Navigation Items: Granted vs Revoked Access Card */}
+          {/* TAB 2: DETAILED PERMISSIONS MATRIX */}
           {/* ========================================================================= */}
-          <div
-            style={{
-              margin: '0.75rem 1.5rem 1.5rem',
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '10px',
-              overflow: 'hidden',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-            }}
-          >
-            {/* Navigation Card Header */}
-            <div
-              style={{
-                padding: '12px 18px',
-                background: '#f8fafc',
-                borderBottom: isNavSectionCollapsed ? 'none' : '1px solid #e2e8f0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '8px',
-                    background: '#e8f2ed',
-                    color: '#00485a',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Icon name="layers" size={18} />
-                </span>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
-                      Sidebar Navigation Access
-                    </h3>
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                        background: '#dcfce7',
-                        color: '#15803d',
-                      }}
-                    >
-                      {grantedNavItems.length} Granted
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                        background: revokedNavItems.length > 0 ? '#fef3c7' : '#f1f5f9',
-                        color: revokedNavItems.length > 0 ? '#92400e' : '#64748b',
-                      }}
-                    >
-                      {revokedNavItems.length} Revoked
-                    </span>
-                  </div>
-                  <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b' }}>
-                    Manage navigation items granted to or revoked from{' '}
-                    <strong style={{ color: '#1e293b' }}>{activeRole.name}</strong>. Granted items appear in the portal sidebar.
-                  </p>
-                </div>
-              </div>
-
-              {/* Navigation Card Actions & Collapse Toggle */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                {!isSuperAdmin && canManageRoles && (
-                  <>
-                    <button
-                      type="button"
-                      className="button secondary small-button"
-                      style={{ fontSize: '11.5px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                      onClick={handleGrantAllNavItems}
-                      disabled={isSavingNavItems || revokedNavItems.length === 0}
-                      title="Grant all 12 navigation modules to this role"
-                    >
-                      <Icon name="check" size={13} /> Grant all
-                    </button>
-                    <button
-                      type="button"
-                      className="button secondary small-button"
-                      style={{ fontSize: '11.5px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                      onClick={handleRevokeAllNavItems}
-                      disabled={isSavingNavItems || grantedNavItems.length === 0}
-                      title="Revoke all navigation modules from this role"
-                    >
-                      <Icon name="close" size={13} /> Revoke all
-                    </button>
-                    <button
-                      type="button"
-                      className="button secondary small-button"
-                      style={{ fontSize: '11.5px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                      onClick={handleResetNavScopeDefaults}
-                      disabled={isSavingNavItems}
-                      title="Reset navigation items to scope-level recommended defaults"
-                    >
-                      <Icon name="refresh" size={13} /> Reset defaults
-                    </button>
-                  </>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => setIsNavSectionCollapsed((prev) => !prev)}
-                  style={{
-                    border: '1px solid #cbd5e1',
-                    background: '#ffffff',
-                    borderRadius: '6px',
-                    padding: '5px 9px',
-                    cursor: 'pointer',
-                    color: '#475569',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                  }}
-                  title={isNavSectionCollapsed ? 'Expand navigation items' : 'Collapse navigation items'}
-                >
-                  <span>{isNavSectionCollapsed ? 'Show items' : 'Hide items'}</span>
-                  <span
-                    style={{
-                      transform: isNavSectionCollapsed ? 'rotate(0deg)' : 'rotate(180deg)',
-                      transition: 'transform 0.2s ease',
-                      display: 'inline-flex',
-                    }}
-                  >
-                    <Icon name="chevron" size={14} />
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Navigation Body (when expanded) */}
-            {!isNavSectionCollapsed && (
-              <>
-                {/* Search & Filter Tabs Toolbar */}
+          {activeTab === 'permissions' && (
+            <div>
+              {/* Search & Filter Toolbar */}
+              <div
+                style={{
+                  padding: '1rem 1.5rem',
+                  background: '#ffffff',
+                  borderBottom: '1px solid #edf1ed',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}
+              >
                 <div
                   style={{
-                    padding: '10px 18px',
-                    borderBottom: '1px solid #edf1ed',
-                    background: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -1174,7 +1531,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                     gap: '12px',
                   }}
                 >
-                  {/* Search Input */}
+                  {/* Search Box */}
                   <div
                     style={{
                       display: 'flex',
@@ -1182,32 +1539,32 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                       background: '#f8fafc',
                       border: '1px solid #cbd5e1',
                       borderRadius: '6px',
-                      padding: '4px 10px',
+                      padding: '5px 12px',
                       gap: '8px',
                       flex: '1',
-                      minWidth: '220px',
-                      maxWidth: '380px',
+                      minWidth: '260px',
+                      maxWidth: '440px',
                     }}
                   >
-                    <Icon name="search" size={14} />
+                    <Icon name="search" size={16} />
                     <input
                       type="text"
-                      placeholder="Search navigation items by title, route, or permission..."
-                      value={navSearchQuery}
-                      onChange={(e) => setNavSearchQuery(e.target.value)}
+                      placeholder="Search permissions by name, key (e.g. services.create), or domain..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                       style={{
                         border: 'none',
                         background: 'transparent',
                         outline: 'none',
-                        fontSize: '12.5px',
+                        fontSize: '13px',
                         width: '100%',
                         color: '#1e293b',
                       }}
                     />
-                    {navSearchQuery && (
+                    {searchQuery && (
                       <button
                         type="button"
-                        onClick={() => setNavSearchQuery('')}
+                        onClick={() => setSearchQuery('')}
                         style={{
                           border: 'none',
                           background: 'none',
@@ -1217,13 +1574,36 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                         }}
                         title="Clear search"
                       >
-                        <Icon name="close" size={13} />
+                        <Icon name="close" size={14} />
                       </button>
                     )}
                   </div>
 
-                  {/* Filter View Tabs */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {/* Filters & Bulk Actions */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    {/* Domain Selector */}
+                    <select
+                      value={selectedDomainFilter}
+                      onChange={(e) => setSelectedDomainFilter(e.target.value)}
+                      style={{
+                        minHeight: '34px',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        background: '#fff',
+                        fontSize: '12.5px',
+                        color: '#334155',
+                      }}
+                    >
+                      <option value="all">All Domains ({DOMAIN_GROUPS.length})</option>
+                      {DOMAIN_GROUPS.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Status Filter */}
                     <div
                       style={{
                         display: 'inline-flex',
@@ -1234,1131 +1614,382 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                     >
                       <button
                         type="button"
-                        onClick={() => setNavTabFilter('all')}
+                        onClick={() => setStatusFilter('all')}
                         style={{
                           border: 'none',
-                          background: navTabFilter === 'all' ? '#ffffff' : 'transparent',
-                          color: navTabFilter === 'all' ? '#00485a' : '#64748b',
-                          fontWeight: navTabFilter === 'all' ? 700 : 500,
+                          background: statusFilter === 'all' ? '#fff' : 'transparent',
+                          color: statusFilter === 'all' ? '#00485a' : '#64748b',
+                          fontWeight: statusFilter === 'all' ? 700 : 500,
                           fontSize: '12px',
                           padding: '4px 10px',
                           borderRadius: '4px',
-                          boxShadow: navTabFilter === 'all' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                          boxShadow: statusFilter === 'all' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                           cursor: 'pointer',
                         }}
                       >
-                        All Modules ({allNavigationItems.length})
+                        All ({allPermissions.length})
                       </button>
                       <button
                         type="button"
-                        onClick={() => setNavTabFilter('granted')}
+                        onClick={() => setStatusFilter('granted')}
                         style={{
                           border: 'none',
-                          background: navTabFilter === 'granted' ? '#ffffff' : 'transparent',
-                          color: navTabFilter === 'granted' ? '#047857' : '#64748b',
-                          fontWeight: navTabFilter === 'granted' ? 700 : 500,
+                          background: statusFilter === 'granted' ? '#fff' : 'transparent',
+                          color: statusFilter === 'granted' ? '#047857' : '#64748b',
+                          fontWeight: statusFilter === 'granted' ? 700 : 500,
                           fontSize: '12px',
                           padding: '4px 10px',
                           borderRadius: '4px',
-                          boxShadow: navTabFilter === 'granted' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                          boxShadow: statusFilter === 'granted' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                           cursor: 'pointer',
                         }}
                       >
-                        Granted ({grantedNavItems.length})
+                        Granted ({effectivePermissionIds.length})
                       </button>
                       <button
                         type="button"
-                        onClick={() => setNavTabFilter('revoked')}
+                        onClick={() => setStatusFilter('revoked')}
                         style={{
                           border: 'none',
-                          background: navTabFilter === 'revoked' ? '#ffffff' : 'transparent',
-                          color: navTabFilter === 'revoked' ? '#b45309' : '#64748b',
-                          fontWeight: navTabFilter === 'revoked' ? 700 : 500,
+                          background: statusFilter === 'revoked' ? '#fff' : 'transparent',
+                          color: statusFilter === 'revoked' ? '#dc2626' : '#64748b',
+                          fontWeight: statusFilter === 'revoked' ? 700 : 500,
                           fontSize: '12px',
                           padding: '4px 10px',
                           borderRadius: '4px',
-                          boxShadow: navTabFilter === 'revoked' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                          boxShadow: statusFilter === 'revoked' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                           cursor: 'pointer',
                         }}
                       >
-                        Revoked / Add ({revokedNavItems.length})
+                        Revoked ({allPermissions.length - effectivePermissionIds.length})
                       </button>
                     </div>
 
-                    {isSavingNavItems && (
-                      <span style={{ fontSize: '12px', color: '#00485a', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                        <span className="loading-spinner" style={{ width: '12px', height: '12px' }} /> Syncing sidebar...
-                      </span>
+                    {/* Bulk Actions for Filtered Results */}
+                    {!isSuperAdmin && canManageRoles && filteredPermissions.length > 0 && (
+                      <div style={{ display: 'inline-flex', gap: '6px' }}>
+                        <button
+                          type="button"
+                          className="button secondary small-button"
+                          style={{ padding: '4px 10px', fontSize: '11.5px' }}
+                          onClick={() => handleBulkToggleFiltered(true)}
+                          disabled={isSavingPermissions}
+                          title="Grant all permissions currently displayed"
+                        >
+                          Grant shown
+                        </button>
+                        <button
+                          type="button"
+                          className="button secondary small-button"
+                          style={{ padding: '4px 10px', fontSize: '11.5px' }}
+                          onClick={() => handleBulkToggleFiltered(false)}
+                          disabled={isSavingPermissions}
+                          title="Revoke all permissions currently displayed"
+                        >
+                          Revoke shown
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
 
-                {/* Navigation Items Content */}
-                <div style={{ padding: '16px 18px', background: '#fcfdfc' }}>
-                  {isSuperAdmin ? (
-                    <div
+                {/* Status Bar & Match Counter */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#64748b' }}>
+                  <span>
+                    Showing <b>{filteredPermissions.length}</b> of <b>{allPermissions.length}</b> permissions
+                    {hasActivePermFilters && (
+                      <>
+                        {' '}· Filter active ({searchQuery ? `"${searchQuery}", ` : ''}
+                        {selectedDomainFilter !== 'all' ? `domain: ${selectedDomainFilter}, ` : ''}
+                        {statusFilter !== 'all' ? `status: ${statusFilter}` : ''})
+                      </>
+                    )}
+                  </span>
+                  {hasActivePermFilters && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSelectedDomainFilter('all');
+                        setStatusFilter('all');
+                      }}
                       style={{
-                        padding: '16px',
-                        background: '#ecfdf5',
-                        border: '1px solid #a7f3d0',
-                        borderRadius: '8px',
-                        color: '#065f46',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
+                        background: 'none',
+                        border: 'none',
+                        color: '#00485a',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        padding: 0,
                       }}
                     >
-                      <span style={{ display: 'inline-flex', padding: '6px', borderRadius: '50%', background: '#d1fae5' }}>
-                        <Icon name="shield" size={20} />
-                      </span>
-                      <div>
-                        <b style={{ fontSize: '13.5px', display: 'block' }}>Root Platform Navigation Authority</b>
-                        <span style={{ fontSize: '12px' }}>
-                          Super Admin has inherently granted access to all 12 platform navigation modules. Navigation items are immutable for this role.
-                        </span>
-                      </div>
-                    </div>
-                  ) : navTabFilter === 'all' ? (
-                    /* Two-Column Split: Granted on Left, Revoked on Right */
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-                        gap: '20px',
-                        alignItems: 'start',
-                      }}
-                    >
-                      {/* Left Column: GRANTED ITEMS */}
-                      <div
-                        style={{
-                          background: '#ffffff',
-                          border: '1px solid #bbf7d0',
-                          borderRadius: '8px',
-                          overflow: 'hidden',
-                          display: 'flex',
-                          flexDirection: 'column',
-                        }}
-                      >
-                        <div
-                          style={{
-                            padding: '10px 14px',
-                            background: '#f0fdf4',
-                            borderBottom: '1px solid #dcfce7',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '20px',
-                                height: '20px',
-                                borderRadius: '50%',
-                                background: '#16a34a',
-                                color: '#ffffff',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                              }}
-                            >
-                              ✓
-                            </span>
-                            <b style={{ color: '#166534', fontSize: '13px' }}>
-                              Granted Navigation Items ({filteredGrantedNavItems.length})
-                            </b>
-                          </div>
-                          <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 600 }}>
-                            Active in Sidebar
-                          </span>
-                        </div>
-
-                        <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', minHeight: '120px' }}>
-                          {filteredGrantedNavItems.length === 0 ? (
-                            <div style={{ padding: '24px 16px', textAlign: 'center', color: '#64748b' }}>
-                              <p style={{ margin: 0, fontSize: '13px' }}>No granted navigation items match current search.</p>
-                              <small style={{ color: '#94a3b8' }}>Users holding this role cannot view any sidebar sections.</small>
-                            </div>
-                          ) : (
-                            filteredGrantedNavItems.map((item) => (
-                              <div
-                                key={item.id}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '8px 12px',
-                                  background: '#fafffa',
-                                  border: '1px solid #dcfce7',
-                                  borderRadius: '6px',
-                                  gap: '12px',
-                                }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                                  <span
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      width: '28px',
-                                      height: '28px',
-                                      borderRadius: '6px',
-                                      background: '#dcfce7',
-                                      color: '#166534',
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    <Icon name={item.icon || 'layers'} size={15} />
-                                  </span>
-                                  <div style={{ minWidth: 0 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                      <b style={{ fontSize: '13px', color: '#14532d' }}>{item.label}</b>
-                                      <code
-                                        style={{
-                                          fontSize: '10.5px',
-                                          background: '#f1f5f9',
-                                          color: '#475569',
-                                          padding: '1px 5px',
-                                          borderRadius: '4px',
-                                        }}
-                                      >
-                                        {item.route}
-                                      </code>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
-                                      <span style={{ fontSize: '11px', color: '#64748b' }}>{item.desc}</span>
-                                      {item.required_permission && (
-                                        <span
-                                          style={{
-                                            fontSize: '10px',
-                                            background: '#e0f2fe',
-                                            color: '#0369a1',
-                                            padding: '1px 5px',
-                                            borderRadius: '4px',
-                                            fontWeight: 600,
-                                          }}
-                                          title={`Requires permission: ${item.required_permission}`}
-                                        >
-                                          req: {item.required_permission}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div style={{ flexShrink: 0 }}>
-                                  {canManageRoles ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRevokeNavItem(item.id)}
-                                      disabled={isSavingNavItems}
-                                      style={{
-                                        border: '1px solid #fca5a5',
-                                        background: '#ffffff',
-                                        color: '#b91c1c',
-                                        borderRadius: '5px',
-                                        padding: '4px 9px',
-                                        fontSize: '11.5px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                      }}
-                                      title={`Revoke "${item.label}" from ${activeRole.name}`}
-                                    >
-                                      <Icon name="close" size={12} /> Revoke
-                                    </button>
-                                  ) : (
-                                    <span
-                                      style={{
-                                        fontSize: '11px',
-                                        fontWeight: 700,
-                                        color: '#15803d',
-                                        background: '#dcfce7',
-                                        padding: '2px 8px',
-                                        borderRadius: '10px',
-                                      }}
-                                    >
-                                      Granted
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Right Column: REVOKED ITEMS (Available to Add) */}
-                      <div
-                        style={{
-                          background: '#ffffff',
-                          border: '1px dashed #cbd5e1',
-                          borderRadius: '8px',
-                          overflow: 'hidden',
-                          display: 'flex',
-                          flexDirection: 'column',
-                        }}
-                      >
-                        <div
-                          style={{
-                            padding: '10px 14px',
-                            background: '#f8fafc',
-                            borderBottom: '1px solid #f1f5f9',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '20px',
-                                height: '20px',
-                                borderRadius: '50%',
-                                background: '#f1f5f9',
-                                color: '#64748b',
-                                fontSize: '12px',
-                                fontWeight: 700,
-                              }}
-                            >
-                              +
-                            </span>
-                            <b style={{ color: '#334155', fontSize: '13px' }}>
-                              Revoked Items · Available to Add ({filteredRevokedNavItems.length})
-                            </b>
-                          </div>
-                          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                            Hidden from Sidebar
-                          </span>
-                        </div>
-
-                        <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', minHeight: '120px' }}>
-                          {filteredRevokedNavItems.length === 0 ? (
-                            <div style={{ padding: '24px 16px', textAlign: 'center', color: '#64748b' }}>
-                              <p style={{ margin: 0, fontSize: '13px', color: '#166534', fontWeight: 600 }}>
-                                ✓ All navigation modules are granted to this role!
-                              </p>
-                              <small style={{ color: '#64748b' }}>No revoked items remain to add.</small>
-                            </div>
-                          ) : (
-                            filteredRevokedNavItems.map((item) => (
-                              <div
-                                key={item.id}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '8px 12px',
-                                  background: '#ffffff',
-                                  border: '1px dashed #e2e8f0',
-                                  borderRadius: '6px',
-                                  gap: '12px',
-                                }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                                  <span
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      width: '28px',
-                                      height: '28px',
-                                      borderRadius: '6px',
-                                      background: '#f1f5f9',
-                                      color: '#64748b',
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    <Icon name={item.icon || 'layers'} size={15} />
-                                  </span>
-                                  <div style={{ minWidth: 0 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                      <b style={{ fontSize: '13px', color: '#334155' }}>{item.label}</b>
-                                      <code
-                                        style={{
-                                          fontSize: '10.5px',
-                                          background: '#f8fafc',
-                                          color: '#64748b',
-                                          padding: '1px 5px',
-                                          borderRadius: '4px',
-                                        }}
-                                      >
-                                        {item.route}
-                                      </code>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
-                                      <span style={{ fontSize: '11px', color: '#64748b' }}>{item.desc}</span>
-                                      {item.required_permission && (
-                                        <span
-                                          style={{
-                                            fontSize: '10px',
-                                            background: '#f1f5f9',
-                                            color: '#64748b',
-                                            padding: '1px 5px',
-                                            borderRadius: '4px',
-                                            fontWeight: 600,
-                                          }}
-                                          title={`Requires permission: ${item.required_permission}`}
-                                        >
-                                          req: {item.required_permission}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div style={{ flexShrink: 0 }}>
-                                  {canManageRoles ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleGrantNavItem(item.id)}
-                                      disabled={isSavingNavItems}
-                                      style={{
-                                        border: 'none',
-                                        background: '#00485a',
-                                        color: '#ffffff',
-                                        borderRadius: '5px',
-                                        padding: '4px 11px',
-                                        fontSize: '11.5px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        boxShadow: '0 1px 2px rgba(0,72,90,0.15)',
-                                      }}
-                                      title={`Grant "${item.label}" to ${activeRole.name}`}
-                                    >
-                                      <Icon name="plus" size={12} /> Add to role
-                                    </button>
-                                  ) : (
-                                    <span
-                                      style={{
-                                        fontSize: '11px',
-                                        fontWeight: 600,
-                                        color: '#64748b',
-                                        background: '#f1f5f9',
-                                        padding: '2px 8px',
-                                        borderRadius: '10px',
-                                      }}
-                                    >
-                                      Revoked
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ) : navTabFilter === 'granted' ? (
-                    /* Only Granted Items Grid */
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                        gap: '12px',
-                      }}
-                    >
-                      {filteredGrantedNavItems.length === 0 ? (
-                        <div style={{ padding: '30px', textAlign: 'center', gridColumn: '1 / -1', color: '#64748b' }}>
-                          <p style={{ margin: 0, fontSize: '14px' }}>No granted navigation items match filter.</p>
-                        </div>
-                      ) : (
-                        filteredGrantedNavItems.map((item) => (
-                          <div
-                            key={item.id}
-                            style={{
-                              background: '#ffffff',
-                              border: '1px solid #bbf7d0',
-                              borderRadius: '8px',
-                              padding: '12px 14px',
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              justifyContent: 'space-between',
-                              gap: '10px',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                              <span
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  width: '32px',
-                                  height: '32px',
-                                  borderRadius: '6px',
-                                  background: '#dcfce7',
-                                  color: '#166534',
-                                  flexShrink: 0,
-                                }}
-                              >
-                                <Icon name={item.icon || 'layers'} size={16} />
-                              </span>
-                              <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                  <b style={{ fontSize: '13.5px', color: '#14532d' }}>{item.label}</b>
-                                  <code
-                                    style={{
-                                      fontSize: '11px',
-                                      background: '#f1f5f9',
-                                      color: '#475569',
-                                      padding: '1px 5px',
-                                      borderRadius: '4px',
-                                    }}
-                                  >
-                                    {item.route}
-                                  </code>
-                                </div>
-                                <p style={{ margin: '3px 0 0', fontSize: '11.5px', color: '#64748b' }}>
-                                  {item.desc}
-                                </p>
-                                {item.required_permission && (
-                                  <span
-                                    style={{
-                                      display: 'inline-block',
-                                      marginTop: '4px',
-                                      fontSize: '10.5px',
-                                      background: '#e0f2fe',
-                                      color: '#0369a1',
-                                      padding: '1px 6px',
-                                      borderRadius: '4px',
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    req: {item.required_permission}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            {canManageRoles && (
-                              <button
-                                type="button"
-                                onClick={() => handleRevokeNavItem(item.id)}
-                                disabled={isSavingNavItems}
-                                style={{
-                                  border: '1px solid #fca5a5',
-                                  background: '#ffffff',
-                                  color: '#b91c1c',
-                                  borderRadius: '5px',
-                                  padding: '4px 10px',
-                                  fontSize: '11.5px',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  flexShrink: 0,
-                                }}
-                                title={`Revoke "${item.label}" from ${activeRole.name}`}
-                              >
-                                <Icon name="close" size={12} /> Revoke
-                              </button>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  ) : (
-                    /* Only Revoked Items Grid */
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                        gap: '12px',
-                      }}
-                    >
-                      {filteredRevokedNavItems.length === 0 ? (
-                        <div style={{ padding: '30px', textAlign: 'center', gridColumn: '1 / -1', color: '#166534' }}>
-                          <p style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>✓ All navigation items are granted to this role!</p>
-                          <small style={{ color: '#64748b' }}>None are currently revoked.</small>
-                        </div>
-                      ) : (
-                        filteredRevokedNavItems.map((item) => (
-                          <div
-                            key={item.id}
-                            style={{
-                              background: '#ffffff',
-                              border: '1px dashed #cbd5e1',
-                              borderRadius: '8px',
-                              padding: '12px 14px',
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              justifyContent: 'space-between',
-                              gap: '10px',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                              <span
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  width: '32px',
-                                  height: '32px',
-                                  borderRadius: '6px',
-                                  background: '#f1f5f9',
-                                  color: '#64748b',
-                                  flexShrink: 0,
-                                }}
-                              >
-                                <Icon name={item.icon || 'layers'} size={16} />
-                              </span>
-                              <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                  <b style={{ fontSize: '13.5px', color: '#334155' }}>{item.label}</b>
-                                  <code
-                                    style={{
-                                      fontSize: '11px',
-                                      background: '#f8fafc',
-                                      color: '#64748b',
-                                      padding: '1px 5px',
-                                      borderRadius: '4px',
-                                    }}
-                                  >
-                                    {item.route}
-                                  </code>
-                                </div>
-                                <p style={{ margin: '3px 0 0', fontSize: '11.5px', color: '#64748b' }}>
-                                  {item.desc}
-                                </p>
-                                {item.required_permission && (
-                                  <span
-                                    style={{
-                                      display: 'inline-block',
-                                      marginTop: '4px',
-                                      fontSize: '10.5px',
-                                      background: '#f1f5f9',
-                                      color: '#64748b',
-                                      padding: '1px 6px',
-                                      borderRadius: '4px',
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    req: {item.required_permission}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            {canManageRoles && (
-                              <button
-                                type="button"
-                                onClick={() => handleGrantNavItem(item.id)}
-                                disabled={isSavingNavItems}
-                                style={{
-                                  border: 'none',
-                                  background: '#00485a',
-                                  color: '#ffffff',
-                                  borderRadius: '5px',
-                                  padding: '5px 12px',
-                                  fontSize: '11.5px',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  boxShadow: '0 1px 2px rgba(0,72,90,0.15)',
-                                  flexShrink: 0,
-                                }}
-                                title={`Grant "${item.label}" to ${activeRole.name}`}
-                              >
-                                <Icon name="plus" size={12} /> Add to role
-                              </button>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
+                      Reset filters
+                    </button>
                   )}
                 </div>
-              </>
-            )}
-          </div>
-
-          {/* Search & Filter Toolbar */}
-          <div
-            style={{
-              padding: '1rem 1.5rem',
-              background: '#ffffff',
-              borderBottom: '1px solid #edf1ed',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px',
-              }}
-            >
-              {/* Search Box */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  background: '#f8fafc',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '6px',
-                  padding: '4px 10px',
-                  gap: '8px',
-                  flex: '1',
-                  minWidth: '260px',
-                  maxWidth: '440px',
-                }}
-              >
-                <Icon name="search" size={16} />
-                <input
-                  type="text"
-                  placeholder="Search permissions by name, key (e.g. services.create), or domain..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    border: 'none',
-                    background: 'transparent',
-                    outline: 'none',
-                    fontSize: '13px',
-                    width: '100%',
-                    color: '#1e293b',
-                  }}
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    style={{
-                      border: 'none',
-                      background: 'none',
-                      cursor: 'pointer',
-                      padding: 0,
-                      color: '#94a3b8',
-                    }}
-                    title="Clear search"
-                  >
-                    <Icon name="close" size={14} />
-                  </button>
-                )}
               </div>
 
-              {/* Filters */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                {/* Domain Selector */}
-                <select
-                  value={selectedDomainFilter}
-                  onChange={(e) => setSelectedDomainFilter(e.target.value)}
-                  style={{
-                    minHeight: '34px',
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    background: '#fff',
-                    fontSize: '12.5px',
-                    color: '#334155',
-                  }}
-                >
-                  <option value="all">All Domains ({DOMAIN_GROUPS.length})</option>
-                  {DOMAIN_GROUPS.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.label}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Status Filter */}
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    background: '#f1f5f9',
-                    padding: '2px',
-                    borderRadius: '6px',
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setStatusFilter('all')}
+              {/* Domain Permissions Grid */}
+              <div style={{ padding: '1.5rem', background: '#f8fafc' }}>
+                {isLoadingRoleDetail ? (
+                  <div
                     style={{
-                      border: 'none',
-                      background: statusFilter === 'all' ? '#fff' : 'transparent',
-                      color: statusFilter === 'all' ? '#00485a' : '#64748b',
-                      fontWeight: statusFilter === 'all' ? 700 : 500,
-                      fontSize: '12px',
-                      padding: '4px 10px',
-                      borderRadius: '4px',
-                      boxShadow: statusFilter === 'all' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                      cursor: 'pointer',
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '3rem 1.5rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '12px',
                     }}
                   >
-                    All ({allPermissions.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStatusFilter('granted')}
+                    <div className="loading-spinner" />
+                    <p style={{ margin: 0, color: '#00485a', fontWeight: 600, fontSize: '14px' }}>Loading role permissions...</p>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>Connecting to RBAC schema</p>
+                  </div>
+                ) : visibleDomainGroups.length === 0 ? (
+                  <div
                     style={{
-                      border: 'none',
-                      background: statusFilter === 'granted' ? '#fff' : 'transparent',
-                      color: statusFilter === 'granted' ? '#047857' : '#64748b',
-                      fontWeight: statusFilter === 'granted' ? 700 : 500,
-                      fontSize: '12px',
-                      padding: '4px 10px',
-                      borderRadius: '4px',
-                      boxShadow: statusFilter === 'granted' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                      cursor: 'pointer',
+                      background: '#ffffff',
+                      border: '1px dashed #cbd5e1',
+                      borderRadius: '8px',
+                      padding: '3rem 1.5rem',
+                      textAlign: 'center',
                     }}
                   >
-                    Granted ({effectivePermissionIds.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStatusFilter('revoked')}
-                    style={{
-                      border: 'none',
-                      background: statusFilter === 'revoked' ? '#fff' : 'transparent',
-                      color: statusFilter === 'revoked' ? '#dc2626' : '#64748b',
-                      fontWeight: statusFilter === 'revoked' ? 700 : 500,
-                      fontSize: '12px',
-                      padding: '4px 10px',
-                      borderRadius: '4px',
-                      boxShadow: statusFilter === 'revoked' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Revoked ({allPermissions.length - effectivePermissionIds.length})
-                  </button>
-                </div>
-
-                {/* Bulk Actions for Filtered Results */}
-                {!isSuperAdmin && canManageRoles && filteredPermissions.length > 0 && (
-                  <div style={{ display: 'inline-flex', gap: '6px' }}>
+                    <div style={{ display: 'inline-flex', padding: '12px', borderRadius: '50%', background: '#f1f5f9', color: '#64748b', marginBottom: '12px' }}>
+                      <Icon name="search" size={24} />
+                    </div>
+                    <h3 style={{ margin: '0 0 6px', fontSize: '15px', color: '#1e293b' }}>
+                      No permissions match current filters
+                    </h3>
+                    <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
+                      No permissions match query &quot;{searchQuery}&quot; under the active filter selection.
+                    </p>
                     <button
                       type="button"
                       className="button secondary small-button"
-                      style={{ padding: '4px 10px', fontSize: '11.5px' }}
-                      onClick={() => handleBulkToggleFiltered(true)}
-                      title="Grant all permissions currently displayed"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSelectedDomainFilter('all');
+                        setStatusFilter('all');
+                      }}
                     >
-                      Grant shown
+                      Clear all filters
                     </button>
-                    <button
-                      type="button"
-                      className="button secondary small-button"
-                      style={{ padding: '4px 10px', fontSize: '11.5px' }}
-                      onClick={() => handleBulkToggleFiltered(false)}
-                      title="Revoke all permissions currently displayed"
-                    >
-                      Revoke shown
-                    </button>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
+                      gap: '1.25rem',
+                    }}
+                  >
+                    {visibleDomainGroups.map((domain) => {
+                      const isAllDomainGranted = domain.grantedInDomain === domain.totalInDomain;
+                      const isNoneDomainGranted = domain.grantedInDomain === 0;
+
+                      return (
+                        <div
+                          key={domain.id}
+                          style={{
+                            background: '#ffffff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '10px',
+                            overflow: 'hidden',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                          }}
+                        >
+                          {/* Domain Header */}
+                          <div
+                            style={{
+                              padding: '12px 16px',
+                              borderBottom: '1px solid #f1f5f9',
+                              background: '#fcfdfc',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '12px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '28px',
+                                  height: '28px',
+                                  borderRadius: '6px',
+                                  background: '#e8f2ed',
+                                  color: '#00485a',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <Icon name={domain.icon || 'shield'} size={16} />
+                              </span>
+                              <div>
+                                <b style={{ color: '#0f172a', fontSize: '13.5px', display: 'block' }}>
+                                  {domain.label}
+                                </b>
+                                <span style={{ fontSize: '11px', color: '#64748b' }}>
+                                  {domain.desc}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Badge & Quick Grant/Revoke All in Domain */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  padding: '2px 8px',
+                                  borderRadius: '12px',
+                                  background: isAllDomainGranted
+                                    ? '#dcfce7'
+                                    : isNoneDomainGranted
+                                      ? '#f1f5f9'
+                                      : '#e0f2fe',
+                                  color: isAllDomainGranted
+                                    ? '#15803d'
+                                    : isNoneDomainGranted
+                                      ? '#64748b'
+                                      : '#0369a1',
+                                }}
+                              >
+                                {isAllDomainGranted
+                                  ? `✓ All ${domain.totalInDomain}`
+                                  : `${domain.grantedInDomain}/${domain.totalInDomain}`}
+                              </span>
+
+                              {!isSuperAdmin && canManageRoles && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleDomainAll(domain.id, !isAllDomainGranted)}
+                                  disabled={isSavingPermissions}
+                                  style={{
+                                    border: 'none',
+                                    background: 'transparent',
+                                    color: '#00485a',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    padding: '2px 4px',
+                                  }}
+                                  title={
+                                    isAllDomainGranted
+                                      ? `Revoke all in ${domain.label}`
+                                      : `Grant all in ${domain.label}`
+                                  }
+                                >
+                                  {isAllDomainGranted ? 'Revoke all' : 'Grant all'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Permissions List */}
+                          <div
+                            style={{
+                              padding: '10px 14px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '6px',
+                              flex: 1,
+                            }}
+                          >
+                            {domain.perms.map((perm) => {
+                              const isGranted = effectivePermissionIds.includes(perm.id);
+
+                              return (
+                                <div
+                                  key={perm.id}
+                                  onClick={() => !isSuperAdmin && canManageRoles && handleToggleDomainPermission(perm.id)}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'flex-start',
+                                    gap: '10px',
+                                    padding: '8px 10px',
+                                    borderRadius: '6px',
+                                    background: isGranted ? '#f0fdf4' : '#ffffff',
+                                    border: `1px solid ${isGranted ? '#bbf7d0' : '#f1f5f9'}`,
+                                    cursor: (isSuperAdmin || !canManageRoles) ? 'default' : 'pointer',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                >
+                                  <div style={{ paddingTop: '2px' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={isGranted}
+                                      disabled={isSuperAdmin || !canManageRoles}
+                                      onChange={() => handleToggleDomainPermission(perm.id)}
+                                      onClick={(e) => e.stopPropagation()}
+                                      style={{
+                                        cursor: (isSuperAdmin || !canManageRoles) ? 'default' : 'pointer',
+                                        accentColor: '#00485a',
+                                        width: '15px',
+                                        height: '15px',
+                                      }}
+                                    />
+                                  </div>
+
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                      <span
+                                        style={{
+                                          fontSize: '12.5px',
+                                          fontWeight: 600,
+                                          color: isGranted ? '#14532d' : '#1e293b',
+                                        }}
+                                      >
+                                        {perm.name}
+                                      </span>
+                                      <code
+                                        style={{
+                                          fontSize: '10.5px',
+                                          background: isGranted ? '#dcfce7' : '#f1f5f9',
+                                          color: isGranted ? '#166534' : '#64748b',
+                                          padding: '1px 5px',
+                                          borderRadius: '4px',
+                                        }}
+                                      >
+                                        {perm.key}
+                                      </code>
+                                    </div>
+                                    <p
+                                      style={{
+                                        margin: '2px 0 0',
+                                        fontSize: '11px',
+                                        color: '#64748b',
+                                        lineHeight: 1.4,
+                                      }}
+                                    >
+                                      {perm.description}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
             </div>
-
-            {/* Status bar & match counter */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#64748b' }}>
-              <span>
-                Showing <b>{filteredPermissions.length}</b> of <b>{allPermissions.length}</b> permissions
-                {hasActiveFilters && (
-                  <>
-                    {' '}· Filter active ({searchQuery ? `"${searchQuery}", ` : ''}
-                    {selectedDomainFilter !== 'all' ? `domain: ${selectedDomainFilter}, ` : ''}
-                    {statusFilter !== 'all' ? `status: ${statusFilter}` : ''})
-                  </>
-                )}
-              </span>
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedDomainFilter('all');
-                    setStatusFilter('all');
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#00485a',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    padding: 0,
-                  }}
-                >
-                  Reset filters
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Enhanced Domain Permissions Catalog Grid */}
-          <div style={{ padding: '1.25rem 1.5rem', background: '#f8fafc' }}>
-            {isLoadingRoleDetail ? (
-              <div
-                style={{
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  padding: '3rem 1.5rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '12px',
-                }}
-              >
-                <div className="loading-spinner" />
-                <p style={{ margin: 0, color: '#00485a', fontWeight: 600, fontSize: '14px' }}>Loading role permissions...</p>
-                <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>Connecting to RBAC schema</p>
-              </div>
-            ) : visibleDomainGroups.length === 0 ? (
-              <div
-                style={{
-                  background: '#ffffff',
-                  border: '1px dashed #cbd5e1',
-                  borderRadius: '8px',
-                  padding: '3rem 1.5rem',
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{ display: 'inline-flex', padding: '12px', borderRadius: '50%', background: '#f1f5f9', color: '#64748b', marginBottom: '12px' }}>
-                  <Icon name="search" size={24} />
-                </div>
-                <h3 style={{ margin: '0 0 6px', fontSize: '15px', color: '#1e293b' }}>
-                  No permissions found
-                </h3>
-                <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
-                  No system permissions match the search query &quot;{searchQuery}&quot; and current filters.
-                </p>
-                <button
-                  type="button"
-                  className="button secondary small-button"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedDomainFilter('all');
-                    setStatusFilter('all');
-                  }}
-                >
-                  Clear all filters
-                </button>
-              </div>
-            ) : (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
-                  gap: '1.25rem',
-                }}
-              >
-                {visibleDomainGroups.map((domain) => {
-                  const isAllDomainGranted = domain.grantedInDomain === domain.totalInDomain;
-                  const isNoneDomainGranted = domain.grantedInDomain === 0;
-
-                  return (
-                    <div
-                      key={domain.id}
-                      style={{
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '10px',
-                        overflow: 'hidden',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                      }}
-                    >
-                      {/* Domain Card Header */}
-                      <div
-                        style={{
-                          padding: '12px 16px',
-                          borderBottom: '1px solid #f1f5f9',
-                          background: '#fcfdfc',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '12px',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              width: '28px',
-                              height: '28px',
-                              borderRadius: '6px',
-                              background: '#e8f2ed',
-                              color: '#00485a',
-                              flexShrink: 0,
-                            }}
-                          >
-                            <Icon name={domain.icon || 'shield'} size={16} />
-                          </span>
-                          <div>
-                            <b style={{ color: '#0f172a', fontSize: '13.5px', display: 'block' }}>
-                              {domain.label}
-                            </b>
-                            <span style={{ fontSize: '11px', color: '#64748b' }}>
-                              {domain.desc}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Grant badge & Quick Select All Toggle */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                          <span
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              padding: '2px 8px',
-                              borderRadius: '12px',
-                              background: isAllDomainGranted
-                                ? '#dcfce7'
-                                : isNoneDomainGranted
-                                  ? '#f1f5f9'
-                                  : '#e0f2fe',
-                              color: isAllDomainGranted
-                                ? '#15803d'
-                                : isNoneDomainGranted
-                                  ? '#64748b'
-                                  : '#0369a1',
-                            }}
-                          >
-                            {isAllDomainGranted
-                              ? `✓ All ${domain.totalInDomain}`
-                              : `${domain.grantedInDomain}/${domain.totalInDomain}`}
-                          </span>
-
-                          {!isSuperAdmin && canManageRoles && (
-                            <button
-                              type="button"
-                              onClick={() => handleToggleDomainAll(domain.id, !isAllDomainGranted)}
-                              style={{
-                                border: 'none',
-                                background: 'transparent',
-                                color: '#00485a',
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                padding: '2px 4px',
-                              }}
-                              title={
-                                isAllDomainGranted
-                                  ? `Revoke all in ${domain.label}`
-                                  : `Grant all in ${domain.label}`
-                              }
-                            >
-                              {isAllDomainGranted ? 'Revoke all' : 'Grant all'}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Permissions List for this Domain */}
-                      <div
-                        style={{
-                          padding: '10px 14px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '6px',
-                          flex: 1,
-                        }}
-                      >
-                        {domain.perms.map((perm) => {
-                          const isGranted = effectivePermissionIds.includes(perm.id);
-
-                          return (
-                            <div
-                              key={perm.id}
-                              onClick={() => !isSuperAdmin && canManageRoles && handleToggleDomainPermission(perm.id)}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'flex-start',
-                                gap: '10px',
-                                padding: '8px 10px',
-                                borderRadius: '6px',
-                                background: isGranted ? '#f0fdf4' : '#ffffff',
-                                border: `1px solid ${isGranted ? '#bbf7d0' : '#f1f5f9'}`,
-                                cursor: (isSuperAdmin || !canManageRoles) ? 'default' : 'pointer',
-                                transition: 'all 0.15s ease',
-                              }}
-                            >
-                              <div style={{ paddingTop: '2px' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={isGranted}
-                                  disabled={isSuperAdmin || !canManageRoles}
-                                  onChange={() => handleToggleDomainPermission(perm.id)}
-                                  onClick={(e) => e.stopPropagation()}
-                                  style={{
-                                    cursor: (isSuperAdmin || !canManageRoles) ? 'default' : 'pointer',
-                                    accentColor: '#00485a',
-                                    width: '15px',
-                                    height: '15px',
-                                  }}
-                                />
-                              </div>
-
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                  <span
-                                    style={{
-                                      fontSize: '12.5px',
-                                      fontWeight: 600,
-                                      color: isGranted ? '#14532d' : '#1e293b',
-                                    }}
-                                  >
-                                    {perm.name}
-                                  </span>
-                                  <code
-                                    style={{
-                                      fontSize: '10.5px',
-                                      background: isGranted ? '#dcfce7' : '#f1f5f9',
-                                      color: isGranted ? '#166534' : '#64748b',
-                                      padding: '1px 5px',
-                                      borderRadius: '4px',
-                                    }}
-                                  >
-                                    {perm.key}
-                                  </code>
-                                </div>
-                                <p
-                                  style={{
-                                    margin: '2px 0 0',
-                                    fontSize: '11px',
-                                    color: '#64748b',
-                                    lineHeight: 1.4,
-                                  }}
-                                >
-                                  {perm.description}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Footer Policy Info */}
           <div
             style={{
-              padding: '10px 1.5rem',
+              padding: '12px 1.5rem',
               background: '#fcfdfc',
               borderTop: '1px solid #edf1ed',
               fontSize: '12px',
@@ -2366,16 +1997,18 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '8px',
             }}
           >
             <span>
-              Policy Target: <b>{activeRole.name}</b> · Governed by Least Privilege Access Standard
+              Policy Target: <b>{activeRole.name}</b> ({activeRole.scope}) · Governed by Least Privilege Access Standard
             </span>
             <span>
-              {isSavingPermissions ? (
+              {isSavingPermissions || isSavingNavItems ? (
                 <span style={{ color: '#00485a', fontWeight: 600 }}>Syncing changes to server...</span>
               ) : (
-                <span>All changes persist live to backend RBAC schema.</span>
+                <span>All modifications synchronize live to backend RBAC schema.</span>
               )}
             </span>
           </div>

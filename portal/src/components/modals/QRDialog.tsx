@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { usePortal } from '../../context';
 import { Icon } from '../shared/Icon';
-import { StatusPill } from '../shared/StatusPill';
 import { QRPattern } from '../shared/QRPattern';
 import type { QRModalConfig } from '../../types/portal.types';
 import { useCreateQrCodeMutation } from '../../services/qrCodesApi';
@@ -110,16 +109,32 @@ export const QRDialog: React.FC<QRDialogProps> = ({
     }
   };
 
-  // Preview Mode for an existing QR poster
+  // Preview Mode for an existing QR poster (Clean QR Code Only)
   if (existingQr) {
     return (
       <div>
-        <div className="modal-header">
-          <div>
-            <span className="panel-eyebrow">OFFICE POSTER PREVIEW</span>
-            <h2>{existingQr.label}</h2>
-            <p>{existingQr.organization?.name || 'Public Service Bureau'}</p>
-          </div>
+        <style>{`
+          @media print {
+            body * {
+              visibility: hidden;
+            }
+            .qr-printable-area, .qr-printable-area * {
+              visibility: visible;
+            }
+            .qr-printable-area {
+              position: fixed;
+              left: 50%;
+              top: 50%;
+              transform: translate(-50%, -50%);
+              width: 320px !important;
+              height: 320px !important;
+              border: none !important;
+              box-shadow: none !important;
+              padding: 0 !important;
+            }
+          }
+        `}</style>
+        <div className="modal-header" style={{ justifyContent: 'flex-end', borderBottom: 'none', padding: '12px 16px 0' }}>
           <button
             type="button"
             className="modal-close"
@@ -129,46 +144,52 @@ export const QRDialog: React.FC<QRDialogProps> = ({
             <Icon name="close" />
           </button>
         </div>
-        <div className="qr-dialog-body" style={{ display: 'flex', gap: '24px', alignItems: 'center', padding: '24px 0' }}>
-          <div style={{ width: '140px', height: '140px', background: '#fff', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+        <div
+          className="qr-dialog-body"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px 24px 32px',
+          }}
+        >
+          <div
+            className="qr-printable-area"
+            style={{
+              width: '240px',
+              height: '240px',
+              background: '#ffffff',
+              padding: '14px',
+              borderRadius: '12px',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             <QRPattern data={existingQr.target_url} />
           </div>
-          <div>
-            <b style={{ fontSize: '18px', color: '#00485a' }}>{existingQr.code}</b>
-            <p style={{ margin: '4px 0 12px', fontSize: '13px', color: '#64748b' }}>
-              Target: {existingQr.target_url}
-            </p>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <StatusPill>{existingQr.status}</StatusPill>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>
-                {existingQr.scan_count ?? 0} scans recorded
-              </span>
-            </div>
-          </div>
         </div>
-        <div className="modal-footer">
-          <span>
-            <Icon name="globe" size={14} /> Scannable from any mobile camera without app installation.
-          </span>
-          <div>
-            <button
-              type="button"
-              className="button secondary"
-              onClick={onClose}
-            >
-              Close
-            </button>
-            <button
-              type="button"
-              className="button primary"
-              onClick={() => {
-                window.print();
-                onClose();
-              }}
-            >
-              <Icon name="download" size={15} /> Print poster
-            </button>
-          </div>
+        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button
+            type="button"
+            className="button secondary"
+            onClick={onClose}
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            className="button primary"
+            onClick={() => {
+              window.print();
+              onClose();
+            }}
+          >
+            <Icon name="download" size={15} /> Print poster
+          </button>
         </div>
       </div>
     );

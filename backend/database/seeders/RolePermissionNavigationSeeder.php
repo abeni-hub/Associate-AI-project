@@ -267,6 +267,14 @@ class RolePermissionNavigationSeeder extends Seeder
                     'roles' => ['super_admin', 'sub_city_admin', 'woreda_admin', 'bureau_admin', 'staff'],
                 ],
                 [
+                    'label' => 'Required Documents',
+                    'route' => '/admin/documents',
+                    'icon' => 'FileText',
+                    'display_order' => 7,
+                    'required_permission' => 'documents.view',
+                    'roles' => ['super_admin', 'sub_city_admin', 'woreda_admin', 'bureau_admin'],
+                ],
+                [
                     'label' => 'Room Routes',
                     'route' => '/admin/routes',
                     'icon' => 'MapPin',

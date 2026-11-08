@@ -118,10 +118,48 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
   const [toastMessage, setToastMessage] = useState('');
   const [modalItem, setModalItem] = useState<any>(null);
 
-  // Hero image editor states
+  // Hero editor states
+  const [heroSubTab, setHeroSubTab] = useState<'copy' | 'slides'>('copy');
+  const [copyLang, setCopyLang] = useState<'en' | 'am'>('en');
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
-  const [imageInputMode, setImageInputMode] = useState<'url' | 'upload' | 'preset'>('url');
+  const [imageInputMode, setImageInputMode] = useState<'preset' | 'upload' | 'url'>('preset');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const handleAddSlide = () => {
+    const nextIdx = cms.hero?.slides?.length || 0;
+    const preset = CURATED_IMAGE_PRESETS[nextIdx % CURATED_IMAGE_PRESETS.length];
+    const newSlide = {
+      id: Date.now(),
+      title: 'New Service Spotlight',
+      bureau: 'MUNICIPAL SERVICES',
+      category: 'Public Services',
+      image: preset.image,
+      alt: preset.alt,
+      credit: preset.credit,
+      source: preset.source,
+      tint: preset.tint,
+    };
+    setCms((prev: any) => ({
+      ...prev,
+      hero: {
+        ...prev.hero,
+        slides: [...(prev.hero?.slides || []), newSlide],
+      },
+    }));
+    setActiveSlideIndex(nextIdx);
+  };
+
+  const handleDeleteSlide = (idx: number) => {
+    if ((cms.hero?.slides?.length || 0) <= 1) return;
+    setCms((prev: any) => ({
+      ...prev,
+      hero: {
+        ...prev.hero,
+        slides: prev.hero.slides.filter((_: any, i: number) => i !== idx),
+      },
+    }));
+    setActiveSlideIndex((curr) => (curr >= idx ? Math.max(0, curr - 1) : curr));
+  };
 
   const updateSection = (section: string, key: string, value: any) => {
     setCms((prev: any) => ({
@@ -462,363 +500,530 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
               </div>
             )}
 
-            {/* TAB 2: Hero & Slides (with Images Input Section) */}
+            {/* TAB 2: Hero Section (Streamlined 2-SubTab UX) */}
             {activeTab === 'hero' && (
               <div className="cms-tab-pane">
-                <div className="form-section-header">
+                <div className="form-section-header" style={{ marginBottom: '14px' }}>
                   <div>
-                    <h3>Hero copy, visual photos & spotlight slides</h3>
-                    <p>The primary headline, visual photography, and sliding bureau spotlights on the homepage.</p>
+                    <h3 style={{ margin: 0, fontSize: '16px', color: '#164a54' }}>Hero Section & Visual Spotlight</h3>
+                    <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#64748b' }}>
+                      Configure primary homepage messaging, action buttons, and rotating bureau spotlight photography.
+                    </p>
                   </div>
                 </div>
 
-                <div className="cms-fields-grid">
-                  <label className="modal-field">
-                    <span>Hero badge / eyebrow</span>
-                    <input
-                      value={cms.hero?.badge || ''}
-                      placeholder="e.g. OFFICIAL CITIZEN PORTAL"
-                      onChange={(e) => updateSection('hero', 'badge', e.target.value)}
-                    />
-                  </label>
-
-                  <label className="modal-field full">
-                    <span>Main headline (English)</span>
-                    <input
-                      value={cms.hero?.titleEn || ''}
-                      onChange={(e) => updateSection('hero', 'titleEn', e.target.value)}
-                    />
-                  </label>
-
-                  <label className="modal-field full">
-                    <span>Main headline (Amharic · አማርኛ)</span>
-                    <input
-                      value={cms.hero?.titleAm || ''}
-                      placeholder="አገልግሎት የት እንደሚሰጥ ይወቁ። ተዘጋጅተው ይድረሱ።"
-                      onChange={(e) => updateSection('hero', 'titleAm', e.target.value)}
-                    />
-                  </label>
-
-                  <label className="modal-field full">
-                    <span>Subheading (English)</span>
-                    <textarea
-                      rows={2}
-                      value={cms.hero?.subtitleEn || ''}
-                      onChange={(e) => updateSection('hero', 'subtitleEn', e.target.value)}
-                    />
-                  </label>
-
-                  <label className="modal-field full">
-                    <span>Subheading (Amharic · አማርኛ)</span>
-                    <textarea
-                      rows={2}
-                      value={cms.hero?.subtitleAm || ''}
-                      onChange={(e) => updateSection('hero', 'subtitleAm', e.target.value)}
-                    />
-                  </label>
-
-                  <label className="modal-field">
-                    <span>Primary button text</span>
-                    <input
-                      value={cms.hero?.primaryCtaText || 'Find a service'}
-                      onChange={(e) => updateSection('hero', 'primaryCtaText', e.target.value)}
-                    />
-                  </label>
-
-                  <label className="modal-field">
-                    <span>Secondary button text</span>
-                    <input
-                      value={cms.hero?.secondaryCtaText || 'I’ve already visited'}
-                      onChange={(e) => updateSection('hero', 'secondaryCtaText', e.target.value)}
-                    />
-                  </label>
-                </div>
-
-                {/* Hero Images Input Section */}
-                <div className="cms-subheading">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div>
-                      <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Icon name="image" size={16} /> Hero slide images & photo gallery
-                      </h4>
-                      <p>Choose or upload photography displayed behind each bureau spotlight slide.</p>
-                    </div>
-                    <span className="cms-section-badge">
-                      Slide {activeSlideIndex + 1} of {cms.hero?.slides?.length || 1}
-                    </span>
-                  </div>
-
-                  {/* Slide Selector Buttons */}
-                  <div style={{ display: 'flex', gap: '6px', margin: '12px 0 8px', overflowX: 'auto', paddingBottom: '4px' }}>
-                    {cms.hero?.slides?.map((slide: any, idx: number) => (
-                      <button
-                        key={slide.id || idx}
-                        type="button"
-                        onClick={() => setActiveSlideIndex(idx)}
-                        className={`cms-image-source-btn${activeSlideIndex === idx ? ' active' : ''}`}
-                      >
-                        <span className="slide-num" style={{ fontSize: '10px', padding: '2px 5px' }}>0{idx + 1}</span>
-                        <span>{slide.bureau || `Slide ${idx + 1}`}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Image Picker Box for Active Slide */}
-                  <div className="cms-image-picker-card">
-                    {/* Live Thumbnail Preview */}
-                    <div className="cms-image-preview-shell" style={{ '--slide-tint': currentSlide.tint || '#164d58' } as React.CSSProperties}>
-                      {currentSlide.image ? (
-                        <img
-                          src={currentSlide.image}
-                          alt={currentSlide.alt || 'Hero preview'}
-                          className="cms-image-preview-img"
-                        />
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8' }}>
-                          <Icon name="image" size={32} /> No image selected
-                        </div>
-                      )}
-                      <div className="cms-image-preview-scrim" />
-                      <div className="cms-image-preview-meta">
-                        <div>
-                          <span className="bureau-badge">{currentSlide.bureau || 'Spotlight photo'}</span>
-                          <div style={{ fontWeight: 600, fontSize: '12px', marginTop: '2px' }}>
-                            {currentSlide.title}
-                          </div>
-                        </div>
-                        {currentSlide.credit && <small>{currentSlide.credit}</small>}
-                      </div>
-                    </div>
-
-                    {/* Mode Selector */}
-                    <div className="cms-image-source-nav">
-                      <button
-                        type="button"
-                        className={`cms-image-source-btn${imageInputMode === 'url' ? ' active' : ''}`}
-                        onClick={() => setImageInputMode('url')}
-                      >
-                        <Icon name="globe" size={13} /> Web image URL
-                      </button>
-                      <button
-                        type="button"
-                        className={`cms-image-source-btn${imageInputMode === 'upload' ? ' active' : ''}`}
-                        onClick={() => setImageInputMode('upload')}
-                      >
-                        <Icon name="upload" size={13} /> Upload local photo
-                      </button>
-                      <button
-                        type="button"
-                        className={`cms-image-source-btn${imageInputMode === 'preset' ? ' active' : ''}`}
-                        onClick={() => setImageInputMode('preset')}
-                      >
-                        <Icon name="building" size={13} /> Civic photo presets
-                      </button>
-                    </div>
-
-                    {/* Mode 1: URL Input */}
-                    {imageInputMode === 'url' && (
-                      <div className="cms-fields-grid">
-                        <label className="modal-field full">
-                          <span>Image web URL</span>
-                          <input
-                            value={currentSlide.image || ''}
-                            placeholder="https://example.gov.et/photo.jpg"
-                            onChange={(e) => updateSlide(activeSlideIndex, 'image', e.target.value)}
-                          />
-                        </label>
-                      </div>
-                    )}
-
-                    {/* Mode 2: Local File Upload */}
-                    {imageInputMode === 'upload' && (
-                      <div>
-                        <label
-                          className={`cms-upload-dropzone${isUploadingImage ? ' is-uploading' : ''}`}
-                          style={{ cursor: isUploadingImage ? 'wait' : 'pointer', opacity: isUploadingImage ? 0.75 : 1 }}
-                        >
-                          <Icon name="upload" size={28} />
-                          {isUploadingImage ? (
-                            <p style={{ color: '#00485a', fontWeight: 600 }}>Uploading & optimizing photo...</p>
-                          ) : (
-                            <>
-                              <p>Click to choose a photo from your computer</p>
-                              <small>Supports JPG, PNG, WEBP. Loads immediately into live preview.</small>
-                            </>
-                          )}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            style={{ display: 'none' }}
-                            disabled={isUploadingImage}
-                            onChange={(e) => handleFileUpload(e, activeSlideIndex)}
-                          />
-                        </label>
-                      </div>
-                    )}
-
-                    {/* Mode 3: Presets Gallery */}
-                    {imageInputMode === 'preset' && (
-                      <div>
-                        <span style={{ fontSize: '11px', color: '#567067', fontWeight: 600, display: 'block', marginBottom: '8px' }}>
-                          Select an official Ethiopian government building or agency photograph:
-                        </span>
-                        <div className="cms-image-presets-grid">
-                          {CURATED_IMAGE_PRESETS.map((preset) => (
-                            <button
-                              key={preset.title}
-                              type="button"
-                              className={`cms-image-preset-item${currentSlide.image === preset.image ? ' active' : ''}`}
-                              onClick={() => applyPresetToSlide(activeSlideIndex, preset)}
-                            >
-                              <img src={preset.image} alt={preset.alt} className="cms-image-preset-thumb" />
-                              <div className="cms-image-preset-info">
-                                <span className="cms-image-preset-title">{preset.title}</span>
-                                <span className="cms-image-preset-bureau">{preset.bureau}</span>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Image Metadata & Tint Settings */}
-                    <div className="cms-fields-grid" style={{ paddingTop: '8px', borderTop: '1px solid #dce8e1' }}>
-                      <label className="modal-field">
-                        <span>Photo alt text (accessibility)</span>
-                        <input
-                          value={currentSlide.alt || ''}
-                          placeholder="Describe image for screen readers"
-                          onChange={(e) => updateSlide(activeSlideIndex, 'alt', e.target.value)}
-                        />
-                      </label>
-                      <label className="modal-field">
-                        <span>Photo credit / attribution</span>
-                        <input
-                          value={currentSlide.credit || ''}
-                          placeholder="e.g. Yeka Subcity Office · CC BY 4.0"
-                          onChange={(e) => updateSlide(activeSlideIndex, 'credit', e.target.value)}
-                        />
-                      </label>
-
-                      <div className="modal-field full">
-                        <span style={{ marginBottom: '6px', display: 'block', fontSize: '12px', fontWeight: 600, color: '#335048' }}>
-                          Atmospheric photo tint overlay
-                        </span>
-                        <div className="cms-tint-swatches">
-                          {TINT_SWATCHES.map((swatch) => (
-                            <button
-                              key={swatch.color}
-                              type="button"
-                              title={swatch.label}
-                              aria-label={swatch.label}
-                              style={{ backgroundColor: swatch.color }}
-                              className={`cms-tint-swatch${currentSlide.tint === swatch.color ? ' active' : ''}`}
-                              onClick={() => updateSlide(activeSlideIndex, 'tint', swatch.color)}
-                            />
-                          ))}
-                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginLeft: '8px', fontSize: '11px' }}>
-                            <span>Custom:</span>
-                            <input
-                              type="color"
-                              value={currentSlide.tint || '#164d58'}
-                              onChange={(e) => updateSlide(activeSlideIndex, 'tint', e.target.value)}
-                              style={{ width: '28px', height: '28px', padding: 0, border: 'none', cursor: 'pointer' }}
-                            />
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Spotlight Slide Cards List */}
+                {/* Sub-Tabs: Copy vs Spotlight Slides */}
                 <div
-                  className="cms-subheading"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    borderBottom: '1px solid #e2e8f0',
+                    paddingBottom: '12px',
+                    marginBottom: '18px',
+                  }}
                 >
-                  <div>
-                    <h4>Spotlight service cards ({cms.hero?.slides?.length || 0})</h4>
-                    <p>Citizens can swipe through these service previews from the home hero.</p>
-                  </div>
                   <button
                     type="button"
-                    className="button secondary small-button"
-                    onClick={() =>
-                      setModalItem({
-                        type: 'slide',
-                        index: null,
-                        title: '',
-                        bureau: '',
-                        category: '',
-                        image: CURATED_IMAGE_PRESETS[0].image,
-                        credit: CURATED_IMAGE_PRESETS[0].credit,
-                      })
-                    }
+                    onClick={() => setHeroSubTab('copy')}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      border: heroSubTab === 'copy' ? '1.5px solid #00485a' : '1px solid #e2e8f0',
+                      background: heroSubTab === 'copy' ? '#e8f2ed' : '#ffffff',
+                      color: heroSubTab === 'copy' ? '#00485a' : '#64748b',
+                      fontWeight: heroSubTab === 'copy' ? 700 : 500,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                    }}
                   >
-                    <Icon name="plus" size={14} /> Add card
+                    <Icon name="spark" size={15} />
+                    <span>Headlines & Call-to-Action</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setHeroSubTab('slides')}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      border: heroSubTab === 'slides' ? '1.5px solid #00485a' : '1px solid #e2e8f0',
+                      background: heroSubTab === 'slides' ? '#e8f2ed' : '#ffffff',
+                      color: heroSubTab === 'slides' ? '#00485a' : '#64748b',
+                      fontWeight: heroSubTab === 'slides' ? 700 : 500,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <Icon name="image" size={15} />
+                    <span>Spotlight Slides & Photos</span>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '1px 7px',
+                        borderRadius: '10px',
+                        background: heroSubTab === 'slides' ? '#00485a' : '#f1f5f9',
+                        color: heroSubTab === 'slides' ? '#ffffff' : '#64748b',
+                      }}
+                    >
+                      {cms.hero?.slides?.length || 0}
+                    </span>
                   </button>
                 </div>
 
-                <div className="cms-slides-editor">
-                  {cms.hero?.slides?.map((slide: any, idx: number) => (
-                    <div key={slide.id || idx} className="cms-slide-item">
-                      <span className="slide-num">0{idx + 1}</span>
-                      {slide.image && (
-                        <img src={slide.image} alt={slide.title} className="cms-slide-thumb" />
-                      )}
-                      <div className="slide-fields" style={{ flex: 1 }}>
-                        <b style={{ color: '#164a54', fontSize: '12px' }}>
-                          {slide.title || 'Untitled service'}
-                        </b>
-                        <small style={{ color: '#778a83', fontSize: '11px' }}>
-                          {slide.bureau} · {slide.category}
-                        </small>
+                {/* Sub-Tab 1: Headlines & Call-to-Action */}
+                {heroSubTab === 'copy' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <label className="modal-field">
+                      <span>Hero badge / eyebrow</span>
+                      <input
+                        value={cms.hero?.badge || ''}
+                        placeholder="e.g. OFFICIAL CITIZEN PORTAL"
+                        onChange={(e) => updateSection('hero', 'badge', e.target.value)}
+                      />
+                    </label>
+
+                    {/* Bilingual Messaging Card with Language Switcher */}
+                    <div
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
+                          Primary Headline & Subheading
+                        </span>
+
+                        <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '6px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setCopyLang('en')}
+                            style={{
+                              padding: '4px 12px',
+                              borderRadius: '4px',
+                              border: 'none',
+                              background: copyLang === 'en' ? '#ffffff' : 'transparent',
+                              color: copyLang === 'en' ? '#00485a' : '#64748b',
+                              fontWeight: copyLang === 'en' ? 700 : 500,
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              boxShadow: copyLang === 'en' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                            }}
+                          >
+                            English (EN)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCopyLang('am')}
+                            style={{
+                              padding: '4px 12px',
+                              borderRadius: '4px',
+                              border: 'none',
+                              background: copyLang === 'am' ? '#ffffff' : 'transparent',
+                              color: copyLang === 'am' ? '#00485a' : '#64748b',
+                              fontWeight: copyLang === 'am' ? 700 : 500,
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              boxShadow: copyLang === 'am' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                            }}
+                          >
+                            አማርኛ (Amharic)
+                          </button>
+                        </div>
                       </div>
+
+                      {copyLang === 'en' ? (
+                        <>
+                          <label className="modal-field full">
+                            <span>Main Headline (English)</span>
+                            <input
+                              value={cms.hero?.titleEn || ''}
+                              placeholder="e.g. Know where to go. Arrive prepared."
+                              onChange={(e) => updateSection('hero', 'titleEn', e.target.value)}
+                            />
+                          </label>
+                          <label className="modal-field full">
+                            <span>Subheading (English)</span>
+                            <textarea
+                              rows={3}
+                              value={cms.hero?.subtitleEn || ''}
+                              placeholder="e.g. Find the right government bureau, required documents, and step-by-step room navigation before you visit."
+                              onChange={(e) => updateSection('hero', 'subtitleEn', e.target.value)}
+                            />
+                          </label>
+                        </>
+                      ) : (
+                        <>
+                          <label className="modal-field full">
+                            <span>Main Headline (Amharic · አማርኛ)</span>
+                            <input
+                              value={cms.hero?.titleAm || ''}
+                              placeholder="አገልግሎት የት እንደሚሰጥ ይወቁ። ተዘጋጅተው ይድረሱ።"
+                              onChange={(e) => updateSection('hero', 'titleAm', e.target.value)}
+                            />
+                          </label>
+                          <label className="modal-field full">
+                            <span>Subheading (Amharic · አማርኛ)</span>
+                            <textarea
+                              rows={3}
+                              value={cms.hero?.subtitleAm || ''}
+                              placeholder="ከመሄድዎ በፊት ትክክለኛውን የመንግስት ቢሮ፣ የሚያስፈልጉ ሰነዶችን እና የክፍል ቅደም ተከተል አቅጣጫዎችን ያግኙ።"
+                              onChange={(e) => updateSection('hero', 'subtitleAm', e.target.value)}
+                            />
+                          </label>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Citizen Action Buttons */}
+                    <div
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px',
+                      }}
+                    >
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
+                        Citizen Action Buttons
+                      </span>
+                      <div className="cms-fields-grid">
+                        <label className="modal-field">
+                          <span>Primary button text</span>
+                          <input
+                            value={cms.hero?.primaryCtaText || 'Find a service'}
+                            onChange={(e) => updateSection('hero', 'primaryCtaText', e.target.value)}
+                          />
+                        </label>
+
+                        <label className="modal-field">
+                          <span>Secondary button text</span>
+                          <input
+                            value={cms.hero?.secondaryCtaText || 'I’ve already visited'}
+                            onChange={(e) => updateSection('hero', 'secondaryCtaText', e.target.value)}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Sub-Tab 2: Spotlight Slides & Photos (Unified Master-Detail Flow) */}
+                {heroSubTab === 'slides' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* Slide Selector Carousel Bar */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px', flex: 1, minWidth: '240px' }}>
+                        {cms.hero?.slides?.map((slide: any, idx: number) => {
+                          const isSelected = activeSlideIndex === idx;
+                          return (
+                            <button
+                              key={slide.id || idx}
+                              type="button"
+                              onClick={() => setActiveSlideIndex(idx)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '6px 12px',
+                                borderRadius: '6px',
+                                border: isSelected ? '1.5px solid #00485a' : '1px solid #cbd5e1',
+                                background: isSelected ? '#00485a' : '#ffffff',
+                                color: isSelected ? '#ffffff' : '#475569',
+                                fontWeight: isSelected ? 700 : 500,
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              <span style={{ opacity: isSelected ? 0.9 : 0.6, fontSize: '10.5px', fontFamily: 'monospace' }}>
+                                0{idx + 1}
+                              </span>
+                              <span>{slide.bureau || `Slide ${idx + 1}`}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
                       <div style={{ display: 'flex', gap: '6px' }}>
                         <button
                           type="button"
                           className="button secondary small-button"
-                          onClick={() => {
-                            setActiveSlideIndex(idx);
-                            setModalItem({
-                              type: 'slide',
-                              index: idx,
-                              title: slide.title,
-                              bureau: slide.bureau,
-                              category: slide.category,
-                              image: slide.image,
-                              alt: slide.alt,
-                              credit: slide.credit,
-                              source: slide.source,
-                              tint: slide.tint,
-                            });
-                          }}
+                          style={{ fontSize: '12px', padding: '5px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          onClick={handleAddSlide}
+                          title="Add a new spotlight slide"
                         >
-                          Edit
+                          <Icon name="plus" size={13} /> Add slide
                         </button>
+
                         {(cms.hero?.slides?.length || 0) > 1 && (
                           <button
                             type="button"
-                            className="row-more"
-                            aria-label="Delete card"
-                            onClick={() => {
-                              setCms((prev: any) => ({
-                                ...prev,
-                                hero: {
-                                  ...prev.hero,
-                                  slides: prev.hero.slides.filter((_: any, i: number) => i !== idx),
-                                },
-                              }));
-                              setActiveSlideIndex((curr) => Math.max(0, curr - 1));
-                            }}
+                            className="button secondary small-button"
+                            style={{ fontSize: '12px', padding: '5px 10px', color: '#b91c1c', borderColor: '#fca5a5' }}
+                            onClick={() => handleDeleteSlide(activeSlideIndex)}
+                            title="Remove current slide"
                           >
-                            <Icon name="close" size={13} />
+                            <Icon name="close" size={13} /> Delete slide
                           </button>
                         )}
                       </div>
                     </div>
-                  ))}
-                </div>
+
+                    {/* Unified Active Slide Editor Card */}
+                    <div
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        padding: '18px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '16px',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                      }}
+                    >
+                      {/* Slide Meta Fields */}
+                      <div className="cms-fields-grid">
+                        <label className="modal-field full">
+                          <span>Service Spotlight Title <i>*</i></span>
+                          <input
+                            value={currentSlide.title || ''}
+                            placeholder="e.g. Business tax registration & clearance"
+                            onChange={(e) => updateSlide(activeSlideIndex, 'title', e.target.value)}
+                          />
+                        </label>
+
+                        <label className="modal-field">
+                          <span>Bureau Jurisdiction <i>*</i></span>
+                          <input
+                            value={currentSlide.bureau || ''}
+                            placeholder="e.g. REVENUE BUREAU"
+                            onChange={(e) => updateSlide(activeSlideIndex, 'bureau', e.target.value)}
+                          />
+                        </label>
+
+                        <label className="modal-field">
+                          <span>Service Category Tag</span>
+                          <input
+                            value={currentSlide.category || ''}
+                            placeholder="e.g. Tax & Compliance"
+                            onChange={(e) => updateSlide(activeSlideIndex, 'category', e.target.value)}
+                          />
+                        </label>
+                      </div>
+
+                      {/* Photo Visual Studio */}
+                      <div
+                        style={{
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          padding: '14px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '14px',
+                        }}
+                      >
+                        {/* Live Photo Shell Preview */}
+                        <div
+                          className="cms-image-preview-shell"
+                          style={{ '--slide-tint': currentSlide.tint || '#164d58', height: '160px' } as React.CSSProperties}
+                        >
+                          {currentSlide.image ? (
+                            <img
+                              src={currentSlide.image}
+                              alt={currentSlide.alt || 'Hero preview'}
+                              className="cms-image-preview-img"
+                            />
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8' }}>
+                              <Icon name="image" size={32} /> No image selected
+                            </div>
+                          )}
+                          <div className="cms-image-preview-scrim" />
+                          <div className="cms-image-preview-meta">
+                            <div>
+                              <span className="bureau-badge">{currentSlide.bureau || 'Spotlight photo'}</span>
+                              <div style={{ fontWeight: 600, fontSize: '13px', marginTop: '2px' }}>
+                                {currentSlide.title || 'Untitled service'}
+                              </div>
+                            </div>
+                            {currentSlide.credit && <small>{currentSlide.credit}</small>}
+                          </div>
+                        </div>
+
+                        {/* Image Source Mode Buttons */}
+                        <div className="cms-image-source-nav">
+                          <button
+                            type="button"
+                            className={`cms-image-source-btn${imageInputMode === 'preset' ? ' active' : ''}`}
+                            onClick={() => setImageInputMode('preset')}
+                          >
+                            <Icon name="building" size={13} /> Official presets ({CURATED_IMAGE_PRESETS.length})
+                          </button>
+                          <button
+                            type="button"
+                            className={`cms-image-source-btn${imageInputMode === 'upload' ? ' active' : ''}`}
+                            onClick={() => setImageInputMode('upload')}
+                          >
+                            <Icon name="upload" size={13} /> Upload photo
+                          </button>
+                          <button
+                            type="button"
+                            className={`cms-image-source-btn${imageInputMode === 'url' ? ' active' : ''}`}
+                            onClick={() => setImageInputMode('url')}
+                          >
+                            <Icon name="globe" size={13} /> Web image URL
+                          </button>
+                        </div>
+
+                        {/* Mode 1: Presets Gallery */}
+                        {imageInputMode === 'preset' && (
+                          <div>
+                            <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '8px' }}>
+                              Click an Ethiopian government building photo to apply:
+                            </span>
+                            <div className="cms-image-presets-grid">
+                              {CURATED_IMAGE_PRESETS.map((preset) => (
+                                <button
+                                  key={preset.title}
+                                  type="button"
+                                  className={`cms-image-preset-item${currentSlide.image === preset.image ? ' active' : ''}`}
+                                  onClick={() => applyPresetToSlide(activeSlideIndex, preset)}
+                                >
+                                  <img src={preset.image} alt={preset.alt} className="cms-image-preset-thumb" />
+                                  <div className="cms-image-preset-info">
+                                    <span className="cms-image-preset-title">{preset.title}</span>
+                                    <span className="cms-image-preset-bureau">{preset.bureau}</span>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Mode 2: Local File Upload */}
+                        {imageInputMode === 'upload' && (
+                          <div>
+                            <label
+                              className={`cms-upload-dropzone${isUploadingImage ? ' is-uploading' : ''}`}
+                              style={{ cursor: isUploadingImage ? 'wait' : 'pointer', opacity: isUploadingImage ? 0.75 : 1 }}
+                            >
+                              <Icon name="upload" size={28} />
+                              {isUploadingImage ? (
+                                <p style={{ color: '#00485a', fontWeight: 600 }}>Uploading & optimizing photo...</p>
+                              ) : (
+                                <>
+                                  <p>Click to choose a photo from your computer</p>
+                                  <small>Supports JPG, PNG, WEBP. Loads immediately into live preview.</small>
+                                </>
+                              )}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                style={{ display: 'none' }}
+                                disabled={isUploadingImage}
+                                onChange={(e) => handleFileUpload(e, activeSlideIndex)}
+                              />
+                            </label>
+                          </div>
+                        )}
+
+                        {/* Mode 3: Direct Web URL */}
+                        {imageInputMode === 'url' && (
+                          <div className="cms-fields-grid">
+                            <label className="modal-field full">
+                              <span>Image web URL</span>
+                              <input
+                                value={currentSlide.image || ''}
+                                placeholder="https://example.gov.et/photo.jpg"
+                                onChange={(e) => updateSlide(activeSlideIndex, 'image', e.target.value)}
+                              />
+                            </label>
+                          </div>
+                        )}
+
+                        {/* Alt text & Credit */}
+                        <div className="cms-fields-grid" style={{ paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
+                          <label className="modal-field">
+                            <span>Photo alt text (accessibility)</span>
+                            <input
+                              value={currentSlide.alt || ''}
+                              placeholder="Describe image for screen readers"
+                              onChange={(e) => updateSlide(activeSlideIndex, 'alt', e.target.value)}
+                            />
+                          </label>
+
+                          <label className="modal-field">
+                            <span>Photo credit / attribution</span>
+                            <input
+                              value={currentSlide.credit || ''}
+                              placeholder="e.g. Yeka Subcity Office · CC BY 4.0"
+                              onChange={(e) => updateSlide(activeSlideIndex, 'credit', e.target.value)}
+                            />
+                          </label>
+
+                          {/* Atmospheric Color Tint Swatches */}
+                          <div className="modal-field full">
+                            <span style={{ marginBottom: '6px', display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+                              Atmospheric photo tint overlay
+                            </span>
+                            <div className="cms-tint-swatches">
+                              {TINT_SWATCHES.map((swatch) => (
+                                <button
+                                  key={swatch.color}
+                                  type="button"
+                                  title={swatch.label}
+                                  aria-label={swatch.label}
+                                  style={{ backgroundColor: swatch.color }}
+                                  className={`cms-tint-swatch${currentSlide.tint === swatch.color ? ' active' : ''}`}
+                                  onClick={() => updateSlide(activeSlideIndex, 'tint', swatch.color)}
+                                />
+                              ))}
+                              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginLeft: '8px', fontSize: '11px', color: '#64748b' }}>
+                                <span>Custom:</span>
+                                <input
+                                  type="color"
+                                  value={currentSlide.tint || '#164d58'}
+                                  onChange={(e) => updateSlide(activeSlideIndex, 'tint', e.target.value)}
+                                  style={{ width: '28px', height: '28px', padding: 0, border: 'none', cursor: 'pointer' }}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

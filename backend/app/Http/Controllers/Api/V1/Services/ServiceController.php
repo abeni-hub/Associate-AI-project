@@ -30,7 +30,7 @@ class ServiceController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Service::with(['organization', 'parent', 'steps.organization'])
+        $query = Service::with(['organization', 'parent', 'steps.organization', 'requiredDocuments'])
             ->withCount(['subservices', 'requiredDocuments', 'offeringOrganizations', 'steps']);
 
         // Public citizens only see active services unless caller has management rights
@@ -140,12 +140,33 @@ class ServiceController extends Controller
     public function store(CreateServiceRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $documents = $data['documents'] ?? null;
+        unset($data['documents']);
+
         $data['is_active'] = $data['is_active'] ?? true;
         $data['fee_amount'] = $data['fee_amount'] ?? 0.00;
         $data['fee_currency'] = $data['fee_currency'] ?? 'ETB';
 
         $service = Service::create($data);
-        $service->load(['parent', 'organization']);
+
+        if (is_array($documents) && count($documents) > 0) {
+            $syncData = [];
+            foreach ($documents as $doc) {
+                $docId = is_array($doc) ? ($doc['document_id'] ?? null) : (int) $doc;
+                if ($docId) {
+                    $syncData[$docId] = [
+                        'is_mandatory' => is_array($doc) ? ($doc['is_mandatory'] ?? true) : true,
+                        'order_column' => is_array($doc) ? ($doc['order_column'] ?? 1) : 1,
+                        'notes' => is_array($doc) ? ($doc['notes'] ?? null) : null,
+                    ];
+                }
+            }
+            if (!empty($syncData)) {
+                $service->requiredDocuments()->sync($syncData);
+            }
+        }
+
+        $service->load(['parent', 'organization', 'requiredDocuments']);
 
         $this->auditLogAction->execute(
             action: 'created',
@@ -168,8 +189,29 @@ class ServiceController extends Controller
     public function update(UpdateServiceRequest $request, Service $service): JsonResponse
     {
         $oldValues = $service->toArray();
-        $service->update($request->validated());
-        $service->load(['parent', 'organization']);
+        $data = $request->validated();
+
+        if (array_key_exists('documents', $data)) {
+            $documents = $data['documents'];
+            unset($data['documents']);
+            if (is_array($documents)) {
+                $syncData = [];
+                foreach ($documents as $doc) {
+                    $docId = is_array($doc) ? ($doc['document_id'] ?? null) : (int) $doc;
+                    if ($docId) {
+                        $syncData[$docId] = [
+                            'is_mandatory' => is_array($doc) ? ($doc['is_mandatory'] ?? true) : true,
+                            'order_column' => is_array($doc) ? ($doc['order_column'] ?? 1) : 1,
+                            'notes' => is_array($doc) ? ($doc['notes'] ?? null) : null,
+                        ];
+                    }
+                }
+                $service->requiredDocuments()->sync($syncData);
+            }
+        }
+
+        $service->update($data);
+        $service->load(['parent', 'organization', 'requiredDocuments']);
 
         $this->auditLogAction->execute(
             action: 'updated',
