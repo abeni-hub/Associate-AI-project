@@ -62,7 +62,7 @@ export const qrCodesApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'QrCode', id: 'LIST' }],
+      invalidatesTags: [{ type: 'QrCode', id: 'LIST' }, 'QrCode'],
     }),
 
     deleteQrCode: builder.mutation<ApiResponse<null>, number>({
@@ -70,7 +70,7 @@ export const qrCodesApi = baseApi.injectEndpoints({
         url: `/qr-codes/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'QrCode', id: 'LIST' }],
+      invalidatesTags: [{ type: 'QrCode', id: 'LIST' }, 'QrCode'],
     }),
   }),
   overrideExisting: false,

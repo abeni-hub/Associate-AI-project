@@ -5,7 +5,7 @@ import {
   Search,
   X,
 } from 'lucide-react'
-import { categories, subCities } from './newsEventsOptions.js'
+import { categories, subCities as defaultSubCities } from './newsEventsOptions.js'
 
 export default function NewsEventsFilterToolbar({
   language,
@@ -18,6 +18,7 @@ export default function NewsEventsFilterToolbar({
   selectedCategory,
   setSelectedCategory,
   onReset,
+  subCities = defaultSubCities,
 }) {
   const isAm = language === 'am'
 

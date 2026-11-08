@@ -1,6 +1,6 @@
 {
   "announcement": {
-    "enabled": false,
+    "enabled": true,
     "tag": "",
     "message": "One clear place to plan your next public service",
     "linkText": "Explore the guide",
@@ -64,7 +64,7 @@
     ]
   },
   "quickSearch": {
-    "enabled": false,
+    "enabled": true,
     "kicker": "START HEREeee",
     "kickerNum": "01",
     "title": "What do you need help with?",

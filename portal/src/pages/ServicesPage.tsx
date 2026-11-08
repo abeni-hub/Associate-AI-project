@@ -40,7 +40,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;
 
-  const { data: apiServices, isLoading } = useGetServicesQuery();
+  const { data: apiServices, isLoading, refetch } = useGetServicesQuery(undefined, { refetchOnMountOrArgChange: true });
   const [createServiceTrigger, { isLoading: isCreating }] = useCreateServiceMutation();
   const [updateServiceTrigger, { isLoading: isUpdating }] = useUpdateServiceMutation();
   const [deleteServiceTrigger] = useDeleteServiceMutation();
@@ -113,6 +113,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
       }
       setIsModalOpen(false);
       setSelectedService(null);
+      await refetch();
     } catch (err: any) {
       window.alert(err?.data?.message || err?.message || 'Failed to save service standard.');
     }
@@ -132,6 +133,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
             id,
             is_active: nextState,
           }).unwrap();
+          await refetch();
         } catch (err: any) {
           window.alert(err?.data?.message || 'Failed to update service active status.');
         } finally {
@@ -144,6 +146,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
     if (window.confirm(`Are you sure you want to delete service "${service.name}"?`)) {
       try {
         await deleteServiceTrigger(service.id).unwrap();
+        await refetch();
       } catch (err: any) {
         window.alert(err?.data?.message || 'Failed to delete service.');
       }

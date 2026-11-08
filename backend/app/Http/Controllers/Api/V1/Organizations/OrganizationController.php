@@ -27,12 +27,24 @@ class OrganizationController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = $request->user() ?? auth('sanctum')->user();
+
+        if ($user && ! $user->hasPermission('organizations.view')) {
+            return ApiResponse::error(
+                message: 'You do not have permission to view organizations.',
+                statusCode: 403
+            );
+        }
+
         $query = Organization::with(['type', 'parent.type'])
             ->withCount(['children', 'users']);
 
-        // 1. Apply organization hierarchy data scoping (Super Admin = all; others = own + descendants)
-        $this->scopeService->applyScope($query, $user, 'id', includeDescendants: true);
+        // 1. Apply organization hierarchy data scoping (Super Admin = all; others = own + descendants; public = active)
+        if ($user) {
+            $this->scopeService->applyScope($query, $user, 'id', includeDescendants: true);
+        } else {
+            $query->where('status', 'active');
+        }
 
         // 2. Filters
         if ($request->filled('search')) {
@@ -81,16 +93,16 @@ class OrganizationController extends Controller
      */
     public function tree(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = $request->user() ?? auth('sanctum')->user();
 
-        if ($user->isSuperAdmin()) {
-            // Root organizations with nested descendants
-            $roots = Organization::whereNull('parent_organization_id')
-                ->with(['type', 'children.type', 'children.children.type'])
-                ->withCount(['children', 'users'])
-                ->orderBy('name')
-                ->get();
-        } else {
+        if ($user && ! $user->hasPermission('organizations.view')) {
+            return ApiResponse::error(
+                message: 'You do not have permission to view organizations.',
+                statusCode: 403
+            );
+        }
+
+        if ($user && ! $user->isSuperAdmin()) {
             // Start from the user's root in their scope
             $userOrg = $user->organization ?? Organization::find($user->organization_id);
 
@@ -102,6 +114,17 @@ class OrganizationController extends Controller
                     ->withCount(['children', 'users'])
                     ->get();
             }
+        } else {
+            // Super Admin or public citizen discovery: Root organizations with nested descendants
+            $query = Organization::whereNull('parent_organization_id');
+            if (! $user) {
+                $query->where('status', 'active');
+            }
+            $roots = $query
+                ->with(['type', 'children.type', 'children.children.type'])
+                ->withCount(['children', 'users'])
+                ->orderBy('name')
+                ->get();
         }
 
         return ApiResponse::success(

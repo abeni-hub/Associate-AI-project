@@ -19,7 +19,7 @@ export const LevelsPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [rootFilter, setRootFilter] = useState<'all' | 'root' | 'child'>('all');
 
-  const { data: response, isLoading } = useGetOrganizationTypesQuery();
+  const { data: response, isLoading, refetch } = useGetOrganizationTypesQuery(undefined, { refetchOnMountOrArgChange: true });
   const [createType, { isLoading: isCreating }] = useCreateOrganizationTypeMutation();
   const [updateType, { isLoading: isUpdating }] = useUpdateOrganizationTypeMutation();
   const [deleteType, { isLoading: isDeleting }] = useDeleteOrganizationTypeMutation();
@@ -78,13 +78,18 @@ export const LevelsPage: React.FC = () => {
     can_be_root: boolean;
     is_active: boolean;
   }) => {
-    if (payload.id) {
-      await updateType(payload as any).unwrap();
-    } else {
-      await createType(payload).unwrap();
+    try {
+      if (payload.id) {
+        await updateType(payload as any).unwrap();
+      } else {
+        await createType(payload).unwrap();
+      }
+      setIsModalOpen(false);
+      setSelectedLevel(null);
+      await refetch();
+    } catch (err: any) {
+      window.alert(err?.data?.message || 'Failed to save organization level.');
     }
-    setIsModalOpen(false);
-    setSelectedLevel(null);
   };
 
   const handleDelete = async (lvl: OrganizationTypeItem) => {
@@ -95,6 +100,7 @@ export const LevelsPage: React.FC = () => {
     ) {
       try {
         await deleteType(lvl.id).unwrap();
+        await refetch();
       } catch (err: any) {
         window.alert(err?.data?.message || 'Failed to delete organization level.');
       }

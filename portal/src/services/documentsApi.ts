@@ -69,7 +69,7 @@ export const documentsApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'Document', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Document', id: 'LIST' }, 'Document', 'Service'],
     }),
 
     updateDocument: builder.mutation<ApiResponse<DocumentItem>, UpdateDocumentPayload>({
@@ -81,6 +81,8 @@ export const documentsApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Document', id },
         { type: 'Document', id: 'LIST' },
+        'Document',
+        'Service',
       ],
     }),
 
@@ -89,7 +91,7 @@ export const documentsApi = baseApi.injectEndpoints({
         url: `/documents/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'Document', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Document', id: 'LIST' }, 'Document', 'Service'],
     }),
   }),
   overrideExisting: false,

@@ -5,3 +5,4 @@ export * from './servicesApi.js';
 export * from './organizationsApi.js';
 export * from './cmsApi.js';
 export * from './eventsApi.js';
+export * from './documentsApi.js';

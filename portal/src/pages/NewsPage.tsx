@@ -62,8 +62,8 @@ export const NewsPage: React.FC<NewsPageProps> = ({
   const [publicationFilter, setPublicationFilter] = useState('all');
 
   // Backend API queries
-  const { data: newsApiResponse, isLoading: isNewsLoading } = useGetNewsListQuery();
-  const { data: eventsApiResponse, isLoading: isEventsLoading } = useGetEventsQuery();
+  const { data: newsApiResponse, isLoading: isNewsLoading, refetch: refetchNews } = useGetNewsListQuery(undefined, { refetchOnMountOrArgChange: true });
+  const { data: eventsApiResponse, isLoading: isEventsLoading, refetch: refetchEvents } = useGetEventsQuery(undefined, { refetchOnMountOrArgChange: true });
   const [createNews, { isLoading: isCreatingNews }] = useCreateNewsMutation();
   const [updateNews, { isLoading: isUpdatingNews }] = useUpdateNewsMutation();
   const [deleteNews] = useDeleteNewsMutation();
@@ -76,16 +76,23 @@ export const NewsPage: React.FC<NewsPageProps> = ({
 
     const list: PostItem[] = [];
 
-    // Map news items
-    if (newsApiResponse?.data && newsApiResponse.data.length > 0) {
-      newsApiResponse.data.forEach((art) => {
+    // Safely extract news articles (handle both flat array and paginated response)
+    const rawNews = newsApiResponse?.data;
+    const newsList: any[] = Array.isArray(rawNews)
+      ? rawNews
+      : rawNews && typeof rawNews === 'object' && Array.isArray((rawNews as any).data)
+      ? (rawNews as any).data
+      : [];
+
+    if (newsList.length > 0) {
+      newsList.forEach((art) => {
         const imageBlocks =
           art.contents?.filter(
-            (c) => c.content_type === 'image_url' || c.content_type === 'image'
+            (c: any) => c.content_type === 'image_url' || c.content_type === 'image'
           ) || [];
         const textBlocks =
           art.contents?.filter(
-            (c) => c.content_type !== 'image_url' && c.content_type !== 'image'
+            (c: any) => c.content_type !== 'image_url' && c.content_type !== 'image'
           ) || [];
 
         const summaryText =
@@ -97,7 +104,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({
                 : textBlocks[0].content)
             : 'Official Municipal Announcement';
 
-        const fullContent = textBlocks.map((c) => c.content).join('\n\n');
+        const fullContent = textBlocks.map((c: any) => c.content).join('\n\n');
 
         list.push({
           id: art.id,
@@ -110,7 +117,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({
           subCity: art.organization?.name || 'Addis Ababa City Administration',
           category: 'Public notice',
           coverImage: imageBlocks[0]?.content,
-          images: imageBlocks.map((b) => b.content),
+          images: imageBlocks.map((b: any) => b.content),
           summary: summaryText,
           excerpt: summaryText,
           content: fullContent,
@@ -122,9 +129,16 @@ export const NewsPage: React.FC<NewsPageProps> = ({
       });
     }
 
-    // Map public events
-    if (eventsApiResponse?.data && eventsApiResponse.data.length > 0) {
-      eventsApiResponse.data.forEach((evt) => {
+    // Safely extract public events (handle both flat array and paginated response)
+    const rawEvents = eventsApiResponse?.data;
+    const eventsList: any[] = Array.isArray(rawEvents)
+      ? rawEvents
+      : rawEvents && typeof rawEvents === 'object' && Array.isArray((rawEvents as any).data)
+      ? (rawEvents as any).data
+      : [];
+
+    if (eventsList.length > 0) {
+      eventsList.forEach((evt) => {
         list.push({
           id: evt.id,
           title: evt.title,
@@ -138,7 +152,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({
           subCity: evt.organization?.name || 'Addis Ababa City Administration',
           category: 'Public event',
           coverImage: evt.images?.[0]?.image_url,
-          images: evt.images?.map((img) => img.image_url) || [],
+          images: evt.images?.map((img: any) => img.image_url) || [],
           summary:
             evt.description && evt.description.length > 160
               ? evt.description.slice(0, 160) + '...'
@@ -160,8 +174,12 @@ export const NewsPage: React.FC<NewsPageProps> = ({
       });
     }
 
+    if (list.length === 0 && portal.posts && portal.posts.length > 0) {
+      return portal.posts;
+    }
+
     return list;
-  }, [propItems, newsApiResponse, eventsApiResponse]);
+  }, [propItems, newsApiResponse, eventsApiResponse, portal.posts]);
 
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;
@@ -224,6 +242,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({
       }
       setIsNewsModalOpen(false);
       setSelectedNewsForEdit(null);
+      await Promise.all([refetchNews(), refetchEvents()]);
     } catch (err: any) {
       window.alert(err?.data?.message || err?.message || 'Failed to save item.');
     }
@@ -238,6 +257,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({
         } else {
           await deleteNews(targetItem.id).unwrap();
         }
+        await Promise.all([refetchNews(), refetchEvents()]);
       } catch (err: any) {
         window.alert(err?.data?.message || err?.message || `Failed to delete ${isEvt ? 'event' : 'news article'}.`);
       }
@@ -315,15 +335,15 @@ export const NewsPage: React.FC<NewsPageProps> = ({
         <dl className="feed-overview-stats">
           <div>
             <dt>Total updates</dt>
-            <dd>{isNewsLoading || isEventsLoading ? '...' : items.length}</dd>
+            <dd>{items.length}</dd>
           </div>
           <div>
             <dt>Published</dt>
-            <dd>{isNewsLoading || isEventsLoading ? '...' : publishedCount}</dd>
+            <dd>{publishedCount}</dd>
           </div>
           <div>
             <dt>Published events</dt>
-            <dd>{isNewsLoading || isEventsLoading ? '...' : eventCount}</dd>
+            <dd>{eventCount}</dd>
           </div>
         </dl>
       </section>
@@ -359,7 +379,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({
           </div>
         </div>
 
-        {(isNewsLoading || isEventsLoading) && items.length === 0 ? (
+        {(isNewsLoading && isEventsLoading && items.length === 0) ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', gap: '12px' }}>
             <div className="loading-spinner" />
             <p style={{ margin: 0, color: '#00485a', fontWeight: 600, fontSize: '14px' }}>Loading public updates and events...</p>

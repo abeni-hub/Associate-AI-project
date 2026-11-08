@@ -172,7 +172,7 @@ export const servicesApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'Service', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Service', id: 'LIST' }, 'Service'],
     }),
 
     updateService: builder.mutation<ApiResponse<ServiceDetail>, UpdateServicePayload>({
@@ -184,6 +184,7 @@ export const servicesApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Service', id },
         { type: 'Service', id: 'LIST' },
+        'Service',
       ],
       async onQueryStarted({ id, ...patch }, { dispatch, queryFulfilled }) {
         const patchResult = dispatch(
@@ -213,7 +214,7 @@ export const servicesApi = baseApi.injectEndpoints({
         url: `/services/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'Service', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Service', id: 'LIST' }, 'Service'],
     }),
 
     getServiceSteps: builder.query<ApiResponse<ServiceStep[]>, string | number>({
@@ -321,6 +322,8 @@ export const servicesApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { serviceId }) => [
         { type: 'Service', id: serviceId },
         { type: 'Service', id: 'LIST' },
+        'Service',
+        'Document',
       ],
     }),
   }),

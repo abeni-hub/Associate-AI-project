@@ -17,15 +17,16 @@ export const AppLayout: React.FC = () => {
   // Validate live session with backend /auth/me when token is present
   const { data: meResponse, error: meError } = useGetMeQuery(undefined, {
     skip: !hasToken,
+    refetchOnMountOrArgChange: true,
   });
 
-  const syncedUserIdRef = useRef<number | null>(null);
+  const syncedDataRef = useRef<string>('');
 
   useEffect(() => {
     if (meResponse?.success && meResponse.data) {
-      // Only invoke signInLive if this user ID hasn't been synced yet
-      if (syncedUserIdRef.current !== meResponse.data.id) {
-        syncedUserIdRef.current = meResponse.data.id;
+      const dataStr = JSON.stringify(meResponse.data);
+      if (syncedDataRef.current !== dataStr) {
+        syncedDataRef.current = dataStr;
         signInLive(meResponse.data);
       }
     }

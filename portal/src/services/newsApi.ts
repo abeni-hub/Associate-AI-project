@@ -52,13 +52,18 @@ export const newsApi = baseApi.injectEndpoints({
         url: '/news',
         method: 'GET',
       }),
-      providesTags: (result) =>
-        result?.data
-          ? [
-              ...result.data.map(({ id }) => ({ type: 'News' as const, id })),
-              { type: 'News', id: 'LIST' },
-            ]
-          : [{ type: 'News', id: 'LIST' }],
+      providesTags: (result) => {
+        const raw = result?.data;
+        const list = Array.isArray(raw)
+          ? raw
+          : raw && typeof raw === 'object' && Array.isArray((raw as any).data)
+          ? (raw as any).data
+          : [];
+        return [
+          ...list.map(({ id }: { id: number }) => ({ type: 'News' as const, id })),
+          { type: 'News', id: 'LIST' },
+        ];
+      },
     }),
 
     getNewsById: builder.query<ApiResponse<NewsArticle>, string | number>({
@@ -75,7 +80,7 @@ export const newsApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'News', id: 'LIST' }],
+      invalidatesTags: [{ type: 'News', id: 'LIST' }, 'News'],
     }),
 
     updateNews: builder.mutation<ApiResponse<NewsArticle>, { id: string | number; body: UpdateNewsRequest }>({
@@ -87,6 +92,7 @@ export const newsApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'News', id },
         { type: 'News', id: 'LIST' },
+        'News',
       ],
     }),
 
@@ -98,6 +104,7 @@ export const newsApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, id) => [
         { type: 'News', id },
         { type: 'News', id: 'LIST' },
+        'News',
       ],
     }),
   }),

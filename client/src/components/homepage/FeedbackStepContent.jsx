@@ -1,5 +1,5 @@
+import { useEffect } from 'react'
 import Icon from '../ui/Icon.jsx'
-import { bureauOptions, serviceCatalog, subCityOptions } from '../../data/homePageData.js'
 import { useGetOrganizationsQuery } from '../../services/organizationsApi.js'
 import { useGetServicesQuery } from '../../services/servicesApi.js'
 
@@ -12,26 +12,24 @@ const feedbackTypes = [
 export default function FeedbackStepContent({ step, feedback, actions, t }) {
   const { data: orgData } = useGetOrganizationsQuery()
 
-  // Dynamic live sub-cities from organizations API (organization_type_id === 1)
-  const apiSubCities = orgData?.data
-    ? orgData.data.filter((o) => o.organization_type_id === 1).map((o) => ({ id: o.id, name: o.name }))
+  // Dynamic live sub-cities from organizations API (level 1 / root sub-cities)
+  const availableSubCities = orgData?.data
+    ? orgData.data
+        .filter((o) => o.organization_type_id === 1 || o.type?.code === 'sub_city' || (!o.parent_organization_id && o.is_root))
+        .map((o) => ({ id: o.id, name: o.name }))
     : []
 
-  const availableSubCities =
-    apiSubCities.length > 0
-      ? apiSubCities
-      : subCityOptions.map((name, idx) => ({ id: idx + 1, name }))
+  // Find currently selected sub-city object
+  const selectedSubCityObj =
+    availableSubCities.find(
+      (c) => String(c.id) === String(feedback.city) || c.name.toLowerCase().includes(String(feedback.city).toLowerCase())
+    ) || availableSubCities[0]
 
-  // Find currently selected sub-city ID
-  const selectedSubCityObj = availableSubCities.find(
-    (c) => String(c.id) === String(feedback.city) || c.name.toLowerCase().includes(String(feedback.city).toLowerCase())
-  )
-
-  // Bureaus list filtered by sub-city or general bureaus
+  // Bureaus list filtered by sub-city or general bureaus from backend
   const bureauList = (() => {
     if (orgData?.data && Array.isArray(orgData.data) && orgData.data.length > 0) {
       const filtered = orgData.data.filter((o) => {
-        if (o.organization_type_id === 1) return false // exclude sub-cities
+        if (o.organization_type_id === 1 || o.type?.code === 'sub_city') return false // exclude sub-cities
         if (selectedSubCityObj && o.parent_organization_id) {
           return o.parent_organization_id === selectedSubCityObj.id
         }
@@ -40,15 +38,19 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
       if (filtered.length > 0) {
         return filtered.map((o) => ({ id: String(o.id), label: o.name }))
       }
-      return orgData.data.filter((o) => o.organization_type_id !== 1).map((o) => ({ id: String(o.id), label: o.name }))
+      const nonSubCities = orgData.data.filter((o) => o.organization_type_id !== 1 && o.type?.code !== 'sub_city')
+      if (nonSubCities.length > 0) {
+        return nonSubCities.map((o) => ({ id: String(o.id), label: o.name }))
+      }
+      return orgData.data.map((o) => ({ id: String(o.id), label: o.name }))
     }
-    return bureauOptions
+    return []
   })()
 
   const { data: servicesData } = useGetServicesQuery()
 
   const activeServices = (() => {
-    if (servicesData?.data && Array.isArray(servicesData.data)) {
+    if (servicesData?.data && Array.isArray(servicesData.data) && servicesData.data.length > 0) {
       return servicesData.data.map((s) => ({
         id: s.code || String(s.id),
         label: s.name,
@@ -56,6 +58,31 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
     }
     return []
   })()
+
+  // Auto-sync initial selections with live options
+  useEffect(() => {
+    if (availableSubCities.length > 0 && !feedback.city) {
+      actions.setCity(availableSubCities[0].name)
+    }
+  }, [availableSubCities, feedback.city])
+
+  useEffect(() => {
+    if (bureauList.length > 0) {
+      const hasMatch = bureauList.some((b) => String(b.id) === String(feedback.bureau))
+      if (!hasMatch && bureauList[0]) {
+        actions.changeBureau(bureauList[0].id)
+      }
+    }
+  }, [bureauList, feedback.bureau])
+
+  useEffect(() => {
+    if (activeServices.length > 0) {
+      const hasMatch = activeServices.some((s) => String(s.id) === String(feedback.service))
+      if (!hasMatch && activeServices[0]) {
+        actions.setService(activeServices[0].id)
+      }
+    }
+  }, [activeServices, feedback.service])
 
   if (step === 1) {
     return (
@@ -83,11 +110,15 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
         <span className="feedback-select-wrap">
           <Icon name="pin" size={18} />
           <select value={feedback.city} onChange={(event) => actions.setCity(event.target.value)}>
-            {availableSubCities.map((subCity) => (
-              <option key={subCity.id} value={subCity.name}>
-                {t(subCity.name)}
-              </option>
-            ))}
+            {availableSubCities.length > 0 ? (
+              availableSubCities.map((subCity) => (
+                <option key={subCity.id} value={subCity.name}>
+                  {t(subCity.name)}
+                </option>
+              ))
+            ) : (
+              <option value="">{t('Loading sub-cities…')}</option>
+            )}
           </select>
           <Icon name="chevron" size={16} />
         </span>
@@ -102,11 +133,15 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
         <span className="feedback-select-wrap">
           <Icon name="building" size={18} />
           <select value={feedback.bureau} onChange={(event) => actions.changeBureau(event.target.value)}>
-            {bureauList.map((bureau) => (
-              <option key={bureau.id} value={bureau.id}>
-                {t(bureau.label)}
-              </option>
-            ))}
+            {bureauList.length > 0 ? (
+              bureauList.map((bureau) => (
+                <option key={bureau.id} value={bureau.id}>
+                  {t(bureau.label)}
+                </option>
+              ))
+            ) : (
+              <option value="">{t('Loading offices…')}</option>
+            )}
           </select>
           <Icon name="chevron" size={16} />
         </span>
@@ -121,11 +156,15 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
         <span className="feedback-select-wrap">
           <Icon name="file" size={18} />
           <select value={feedback.service} onChange={(event) => actions.setService(event.target.value)}>
-            {activeServices.map((service) => (
-              <option key={service.id} value={service.id}>
-                {t(service.label)}
-              </option>
-            ))}
+            {activeServices.length > 0 ? (
+              activeServices.map((service) => (
+                <option key={service.id} value={service.id}>
+                  {t(service.label)}
+                </option>
+              ))
+            ) : (
+              <option value="">{t('Loading services…')}</option>
+            )}
           </select>
           <Icon name="chevron" size={16} />
         </span>

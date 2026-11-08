@@ -80,7 +80,7 @@ export const feedbackApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'Feedback', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Feedback', id: 'LIST' }, 'Feedback'],
     }),
 
     updateFeedback: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; [key: string]: any }>({
@@ -92,6 +92,7 @@ export const feedbackApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Feedback', id },
         { type: 'Feedback', id: 'LIST' },
+        'Feedback',
       ],
     }),
 
@@ -104,6 +105,7 @@ export const feedbackApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Feedback', id },
         { type: 'Feedback', id: 'LIST' },
+        'Feedback',
       ],
     }),
 
@@ -112,7 +114,7 @@ export const feedbackApi = baseApi.injectEndpoints({
         url: `/feedbacks/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'Feedback', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Feedback', id: 'LIST' }, 'Feedback'],
     }),
 
     updateFeedbackStatus: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; status?: string; response?: string }>({
@@ -133,6 +135,7 @@ export const feedbackApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Feedback', id },
         { type: 'Feedback', id: 'LIST' },
+        'Feedback',
       ],
     }),
   }),

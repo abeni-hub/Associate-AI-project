@@ -6,7 +6,6 @@ import { SearchBox } from '../components/shared/SearchBox';
 import { MetricCard } from '../components/shared/MetricCard';
 import { StatusPill } from '../components/shared/StatusPill';
 import { AccountModal } from '../components/accounts/AccountModal';
-import { EditUserRoleModal } from '../components/modals/EditUserRoleModal';
 import type { AccountItem } from '../types/portal.types';
 import {
   useGetUsersQuery,
@@ -36,7 +35,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;
 
-  const { data: usersResponse, isLoading } = useGetUsersQuery();
+  const { data: usersResponse, isLoading, refetch } = useGetUsersQuery(undefined, { refetchOnMountOrArgChange: true });
   const [createUserTrigger, { isLoading: isCreatingUser }] = useCreateUserMutation();
   const [updateUserTrigger, { isLoading: isUpdatingUser }] = useUpdateUserMutation();
   const [deleteUserTrigger] = useDeleteUserMutation();
@@ -69,8 +68,6 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
 
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [selectedAccountForEdit, setSelectedAccountForEdit] = useState<AccountItem | null>(null);
-  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
-  const [selectedAccountForRole, setSelectedAccountForRole] = useState<AccountItem | null>(null);
 
   const handleOpenAdd = () => {
     if (propOnAdd) {
@@ -99,6 +96,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
       }
       setIsAccountModalOpen(false);
       setSelectedAccountForEdit(null);
+      await refetch();
     } catch (err: any) {
       window.alert(err?.data?.message || 'Failed to save account.');
     }
@@ -108,6 +106,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
     if (window.confirm(`Are you sure you want to delete administrator account "${user.name}" (@${user.username})?`)) {
       try {
         await deleteUserTrigger(user.id).unwrap();
+        await refetch();
       } catch (err: any) {
         window.alert(err?.data?.message || 'Failed to delete account.');
       }
@@ -128,7 +127,6 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
   const { hasPermission, canManageScope, isSuperAdmin } = usePermissions();
   const canCreate = hasPermission('users.create');
   const canUpdate = hasPermission('users.update');
-  const canManageRoles = hasPermission('roles.manage');
   const canDelete = hasPermission('users.delete');
 
   return (
@@ -254,18 +252,6 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
                               Edit
                             </button>
                           )}
-                          {canManageRoles && canManageThisAccount && (
-                            <button
-                              className="button secondary small-button"
-                              onClick={() => {
-                                setSelectedAccountForRole(item);
-                                setIsRoleModalOpen(true);
-                              }}
-                              title="Manage roles and custom permissions"
-                            >
-                              Role
-                            </button>
-                          )}
                           {canDelete && canManageThisAccount && (
                             <button
                               className="button secondary small-button"
@@ -303,15 +289,6 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
         }}
         onSave={handleSaveAccount}
         isLoading={isSavingUser}
-      />
-
-      <EditUserRoleModal
-        isOpen={isRoleModalOpen}
-        user={selectedAccountForRole}
-        onClose={() => {
-          setIsRoleModalOpen(false);
-          setSelectedAccountForRole(null);
-        }}
       />
     </>
   );

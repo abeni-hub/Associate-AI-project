@@ -134,6 +134,7 @@ export const organizationsApi = baseApi.injectEndpoints({
       invalidatesTags: [
         { type: 'Organization', id: 'LIST' },
         { type: 'Organization', id: 'TREE' },
+        'Organization',
       ],
     }),
 
@@ -147,6 +148,7 @@ export const organizationsApi = baseApi.injectEndpoints({
         { type: 'Organization', id },
         { type: 'Organization', id: 'LIST' },
         { type: 'Organization', id: 'TREE' },
+        'Organization',
       ],
     }),
 
@@ -158,6 +160,7 @@ export const organizationsApi = baseApi.injectEndpoints({
       invalidatesTags: [
         { type: 'Organization', id: 'LIST' },
         { type: 'Organization', id: 'TREE' },
+        'Organization',
       ],
     }),
 
@@ -167,7 +170,11 @@ export const organizationsApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['Organization'],
+      invalidatesTags: [
+        { type: 'Organization', id: 'LIST' },
+        { type: 'Organization', id: 'TREE' },
+        'Organization',
+      ],
     }),
 
     updateOrganizationType: builder.mutation<ApiResponse<OrganizationTypeItem>, UpdateOrganizationTypePayload>({
@@ -176,7 +183,11 @@ export const organizationsApi = baseApi.injectEndpoints({
         method: 'PUT',
         body,
       }),
-      invalidatesTags: ['Organization'],
+      invalidatesTags: [
+        { type: 'Organization', id: 'LIST' },
+        { type: 'Organization', id: 'TREE' },
+        'Organization',
+      ],
     }),
 
     deleteOrganizationType: builder.mutation<ApiResponse<null>, number>({
@@ -184,7 +195,11 @@ export const organizationsApi = baseApi.injectEndpoints({
         url: `/organization-types/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['Organization'],
+      invalidatesTags: [
+        { type: 'Organization', id: 'LIST' },
+        { type: 'Organization', id: 'TREE' },
+        'Organization',
+      ],
     }),
   }),
   overrideExisting: false,

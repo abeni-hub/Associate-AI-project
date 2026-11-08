@@ -122,7 +122,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   const [activeTab, setActiveTab] = useState<'sidebar' | 'permissions'>('sidebar');
 
   // Backend queries
-  const { data: apiRoles, isLoading: loadingRoles, refetch: refetchRoles } = useGetRolesQuery();
+  const { data: apiRoles, isLoading: loadingRoles, refetch: refetchRoles } = useGetRolesQuery(undefined, { refetchOnMountOrArgChange: true });
   const { data: apiPermissions } = useGetPermissionsQuery();
   const { data: apiNavItems, refetch: refetchNavItems } = useGetNavigationItemsQuery();
 

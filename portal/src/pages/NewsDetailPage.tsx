@@ -99,8 +99,13 @@ export const NewsDetailPage: React.FC = () => {
       };
     }
 
+    if (portal.posts && portal.posts.length > 0) {
+      const fallback = portal.posts.find((p) => String(p.id) === String(id));
+      if (fallback) return fallback;
+    }
+
     return undefined;
-  }, [apiArticle, apiEvent]);
+  }, [apiArticle, apiEvent, portal.posts, id]);
 
   if (isLoading) {
     return (

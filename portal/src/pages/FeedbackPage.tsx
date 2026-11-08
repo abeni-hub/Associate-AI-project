@@ -36,7 +36,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
   const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
 
-  const { data: apiFeedback, isLoading } = useGetFeedbackListQuery();
+  const { data: apiFeedback, isLoading, refetch } = useGetFeedbackListQuery(undefined, { refetchOnMountOrArgChange: true });
 
   const items: FeedbackItem[] = useMemo(() => {
     let baseList: FeedbackItem[] = [];
@@ -121,6 +121,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
           } else {
             await updateFeedbackStatusTrigger({ id: targetId, status: backendStatus }).unwrap();
           }
+          await refetch();
         } catch (err) {
           console.warn('Backend feedback status update fallback to local state:', err);
         }

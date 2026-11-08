@@ -6,7 +6,7 @@ import HomeNewsSection from '../components/homepage/HomeNewsSection.jsx'
 import JourneySection from '../components/homepage/JourneySection.jsx'
 import QuickSearchSection from '../components/homepage/QuickSearchSection.jsx'
 import ServiceGuideSection from '../components/homepage/ServiceGuideSection.jsx'
-import { bureauOptions as fallbackBureaus, heroSlides, serviceCatalog, serviceFor, subCityOptions as fallbackSubCities } from '../data/homePageData.js'
+import { heroSlides } from '../data/homePageData.js'
 import type { FeedType, LandingPageCmsConfig, Language, NewsEventItem } from '../types/newsEvents'
 import { useGetLandingPageCmsQuery } from '../services/cmsApi.js'
 import { useGetOrganizationsQuery } from '../services/organizationsApi.js'
@@ -20,17 +20,17 @@ interface HomePageProps {
   cmsConfig?: LandingPageCmsConfig | null;
   documentRef?: Document;
 }
-type BureauId = keyof typeof serviceCatalog;
+
 interface ServiceGuideSelection {
   subCity: string;
-  bureauId: BureauId;
+  bureauId: string;
   serviceId: string;
 }
 
 export default function HomePage({ language, t, onNavigateToHub, onSelectItem, cmsConfig: propCmsConfig, documentRef }: HomePageProps) {
   const pageDocument = documentRef || document
 
-  // Live queries
+  // Live queries from backend
   const { data: apiCmsData } = useGetLandingPageCmsQuery(undefined, {
     refetchOnMountOrArgChange: true,
     refetchOnFocus: true,
@@ -41,28 +41,31 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
   const liveCms = (apiCmsData && ('data' in (apiCmsData as any) ? (apiCmsData as any).data : apiCmsData)) as LandingPageCmsConfig | null
   const cmsConfig = propCmsConfig || liveCms || null
 
+  // Sub-city options strictly from backend organizations (level 1 / root sub-cities)
   const subCityOptions = useMemo(() => {
-    if (orgData?.data) {
+    if (orgData?.data && Array.isArray(orgData.data)) {
       const list = orgData.data
-        .filter((o: any) => o.organization_type_id === 1 || o.type?.code === 'sub_city')
+        .filter((o: any) => o.organization_type_id === 1 || o.type?.code === 'sub_city' || o.type?.level === 1 || (!o.parent_organization_id && o.is_root))
         .map((o: any) => o.name)
       if (list.length > 0) return list
     }
-    return fallbackSubCities
+    return []
   }, [orgData])
 
+  // Bureau options strictly from backend organizations (excluding sub-cities)
   const bureauOptions = useMemo(() => {
-    if (orgData?.data) {
+    if (orgData?.data && Array.isArray(orgData.data)) {
       const list = orgData.data
-        .filter((o: any) => o.organization_type_id === 3 || o.type?.code === 'bureau')
+        .filter((o: any) => o.organization_type_id !== 1 && o.type?.code !== 'sub_city')
         .map((o: any) => ({
           id: String(o.id),
           label: o.name,
-          shortLabel: o.name.replace(/Bureau|Office|Agency/i, '').trim(),
+          shortLabel: o.name.replace(/Bureau|Office|Agency/i, '').trim() || o.name,
+          parent_organization_id: o.parent_organization_id,
         }))
       if (list.length > 0) return list
     }
-    return fallbackBureaus
+    return []
   }, [orgData])
 
   const configuredSlides = cmsConfig?.hero?.slides
@@ -81,10 +84,49 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
 
   const [heroSlideIndex, setHeroSlideIndex] = useState(0)
   const [heroCarouselPlaying, setHeroCarouselPlaying] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-  const [subCity, setSubCity] = useState('Bole')
-  const [bureauId, setBureauId] = useState<string>('civil')
-  const [serviceId, setServiceId] = useState('birth-copy')
-  const [serviceGuide, setServiceGuide] = useState<ServiceGuideSelection>({ subCity: 'Bole', bureauId: 'civil' as BureauId, serviceId: 'birth-copy' })
+  const [subCity, setSubCity] = useState<string>('')
+  const [bureauId, setBureauId] = useState<string>('')
+  const [serviceId, setServiceId] = useState<string>('')
+  const [serviceGuide, setServiceGuide] = useState<ServiceGuideSelection>({ subCity: '', bureauId: '', serviceId: '' })
+
+  // Live service list strictly from backend
+  const activeServiceList = useMemo(() => {
+    if (servicesData?.data && Array.isArray(servicesData.data)) {
+      return servicesData.data.map((s: any) => ({
+        id: String(s.id),
+        code: s.code || String(s.id),
+        label: s.name,
+        organizationId: s.organization_id ? String(s.organization_id) : undefined,
+        raw: s,
+      }))
+    }
+    return []
+  }, [servicesData])
+
+  // Automatically sync initial selections with live backend options
+  useEffect(() => {
+    if (subCityOptions.length > 0 && (!subCity || !subCityOptions.includes(subCity))) {
+      setSubCity(subCityOptions[0])
+    }
+  }, [subCityOptions, subCity])
+
+  useEffect(() => {
+    if (bureauOptions.length > 0 && (!bureauId || !bureauOptions.some((b: any) => b.id === bureauId))) {
+      setBureauId(bureauOptions[0].id)
+    }
+  }, [bureauOptions, bureauId])
+
+  useEffect(() => {
+    if (activeServiceList.length > 0 && (!serviceId || !activeServiceList.some((s: any) => s.id === serviceId))) {
+      setServiceId(activeServiceList[0].id)
+    }
+  }, [activeServiceList, serviceId])
+
+  useEffect(() => {
+    if (subCity && bureauId && serviceId && (!serviceGuide.serviceId || !serviceGuide.bureauId)) {
+      setServiceGuide({ subCity, bureauId, serviceId })
+    }
+  }, [subCity, bureauId, serviceId, serviceGuide])
 
   // Query service details and steps for selected guide service
   const { data: liveServiceDetail } = useGetServiceByIdQuery(serviceGuide.serviceId, {
@@ -94,49 +136,46 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
     skip: !serviceGuide.serviceId,
   })
 
-  const activeServiceList = useMemo(() => {
-    if (servicesData?.data) {
-      return servicesData.data.map((s: any) => ({
-        id: s.code || String(s.id),
-        label: s.name,
-      }))
-    }
-    return []
-  }, [servicesData])
-
   const guideService = useMemo(() => {
-    if (liveServiceDetail?.data) {
-      const s = liveServiceDetail.data as any
+    const s = (liveServiceDetail?.data || servicesData?.data?.find((item: any) => String(item.id) === String(serviceGuide.serviceId) || item.code === serviceGuide.serviceId)) as any
+
+    if (s) {
       const steps = liveServiceSteps?.data && Array.isArray(liveServiceSteps.data) && liveServiceSteps.data.length > 0
         ? (liveServiceSteps.data as any[]).map((st) => ({
             room: st.room_number || `Room ${st.step_number}`,
             title: st.title,
             detail: st.instruction,
           }))
-        : [
-            { room: '01', title: 'Intake Desk', detail: 'Verify identity and submitted documents.' },
-            { room: '02', title: 'Processing Counter', detail: 'Officer reviews application and confirms fee payment.' },
-            { room: '03', title: 'Issuance Counter', detail: 'Receive certified service delivery and receipt.' },
-          ]
+        : (s.steps && Array.isArray(s.steps) && s.steps.length > 0
+            ? s.steps.map((st: any) => ({
+                room: st.room_number || `Room ${st.step_number}`,
+                title: st.title,
+                detail: st.instruction,
+              }))
+            : [])
+
+      const rawDocs = s.required_documents || s.requiredDocuments || []
+      const documents = Array.isArray(rawDocs)
+        ? rawDocs.map((d: any) => (typeof d === 'string' ? d : d.name)).filter(Boolean)
+        : []
 
       return {
-        id: s.code || String(s.id),
+        id: String(s.id),
+        code: s.code || String(s.id),
         label: s.name,
-        summary: s.description || 'Official Government Citizen Service.',
-        documents: s.required_documents?.length
-          ? s.required_documents.map((d: any) => d.name)
-          : ['Valid Kebele Resident ID or Fayda Digital ID', 'Application reference form or proof of residency'],
+        summary: s.description || '',
+        documents,
         steps,
         visitNote: s.estimated_duration_minutes
           ? `Estimated processing time: ${s.estimated_duration_minutes} minutes. Standard fee: ${s.fee_amount || 'Free'} ${s.fee_currency || 'ETB'}.`
-          : 'Service requirements and hours may be subject to administrative updates.',
+          : (s.fee_amount ? `Standard fee: ${s.fee_amount} ${s.fee_currency || 'ETB'}.` : ''),
       }
     }
-    return serviceFor(serviceGuide.bureauId, serviceGuide.serviceId)
-  }, [liveServiceDetail, liveServiceSteps, serviceGuide])
+    return null
+  }, [liveServiceDetail, servicesData, liveServiceSteps, serviceGuide.serviceId])
 
   const guideBureau = useMemo(() => {
-    return bureauOptions.find((b: any) => b.id === serviceGuide.bureauId) || fallbackBureaus[0]
+    return bureauOptions.find((b: any) => b.id === serviceGuide.bureauId) || bureauOptions[0] || null
   }, [bureauOptions, serviceGuide.bureauId])
 
   const activeHeroSlide = slides[heroSlideIndex] || slides[0]
@@ -155,17 +194,17 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
 
   function handleFindService(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setServiceGuide({ subCity, bureauId: bureauId as any, serviceId })
+    setServiceGuide({ subCity, bureauId, serviceId })
     window.setTimeout(() => pageDocument.getElementById('service-guide')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30)
   }
 
-  function changeBureau(nextBureau: any) {
+  function changeBureau(nextBureau: string) {
     setBureauId(nextBureau)
-    const nextList = (serviceCatalog as any)[nextBureau]
-    if (activeServiceList && activeServiceList.length > 0) {
+    const matchingService = activeServiceList.find((s) => s.organizationId === nextBureau)
+    if (matchingService) {
+      setServiceId(matchingService.id)
+    } else if (activeServiceList[0]) {
       setServiceId(activeServiceList[0].id)
-    } else if (nextList?.[0]?.id) {
-      setServiceId(nextList[0].id)
     }
   }
 

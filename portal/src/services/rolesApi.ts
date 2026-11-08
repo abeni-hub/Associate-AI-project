@@ -128,7 +128,9 @@ export const rolesApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { roleId }) => [
         { type: 'Role', id: roleId },
         { type: 'Role', id: 'LIST' },
+        'Role',
         'Navigation',
+        'Auth',
       ],
     }),
 
@@ -146,7 +148,7 @@ export const rolesApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'Role', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Role', id: 'LIST' }, 'Role'],
     }),
 
     updateRole: builder.mutation<ApiResponse<RoleDetailItem>, {
@@ -166,6 +168,9 @@ export const rolesApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Role', id },
         { type: 'Role', id: 'LIST' },
+        'Role',
+        'Navigation',
+        'Auth',
       ],
     }),
 
@@ -174,7 +179,7 @@ export const rolesApi = baseApi.injectEndpoints({
         url: `/roles/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'Role', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Role', id: 'LIST' }, 'Role'],
     }),
 
     getNavigationItems: builder.query<ApiResponse<any[]>, void>({
@@ -211,7 +216,9 @@ export const rolesApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { roleId }) => [
         { type: 'Role', id: roleId },
         { type: 'Role', id: 'LIST' },
+        'Role',
         'Navigation',
+        'Auth',
       ],
     }),
   }),

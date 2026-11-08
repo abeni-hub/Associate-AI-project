@@ -44,7 +44,7 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
   const [isOfficeModalOpen, setIsOfficeModalOpen] = useState(false);
   const [selectedOfficeForEdit, setSelectedOfficeForEdit] = useState<OfficeItem | null>(null);
 
-  const { data: apiOrgs, isLoading: orgsLoading } = useGetOrganizationsQuery();
+  const { data: apiOrgs, isLoading: orgsLoading, refetch: refetchOrgs } = useGetOrganizationsQuery(undefined, { refetchOnMountOrArgChange: true });
   const { data: apiOrgTypes } = useGetOrganizationTypesQuery();
   const [createOrgTrigger, { isLoading: isCreatingOrg }] = useCreateOrganizationMutation();
   const [updateOrgTrigger, { isLoading: isUpdatingOrg }] = useUpdateOrganizationMutation();
@@ -150,19 +150,25 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
   };
 
   const handleSaveOffice = async (payload: any) => {
-    if (payload.id) {
-      await updateOrgTrigger(payload).unwrap();
-    } else {
-      await createOrgTrigger(payload).unwrap();
+    try {
+      if (payload.id) {
+        await updateOrgTrigger(payload).unwrap();
+      } else {
+        await createOrgTrigger(payload).unwrap();
+      }
+      setIsOfficeModalOpen(false);
+      setSelectedOfficeForEdit(null);
+      await refetchOrgs();
+    } catch (err: any) {
+      window.alert(err?.data?.message || 'Failed to save office.');
     }
-    setIsOfficeModalOpen(false);
-    setSelectedOfficeForEdit(null);
   };
 
   const handleDeleteOffice = async (office: OfficeItem) => {
     if (window.confirm(`Are you sure you want to delete office "${office.name}"?`)) {
       try {
         await deleteOrgTrigger(office.id).unwrap();
+        await refetchOrgs();
       } catch (err: any) {
         window.alert(err?.data?.message || 'Failed to delete office.');
       }

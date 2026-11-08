@@ -23,7 +23,7 @@ export const BureausPage: React.FC<BureausPageProps> = ({
 }) => {
   const portal = usePortal();
 
-  const { data: apiOrgs, isLoading } = useGetOrganizationsQuery();
+  const { data: apiOrgs, isLoading, refetch } = useGetOrganizationsQuery(undefined, { refetchOnMountOrArgChange: true });
   const [createOrgTrigger] = useCreateOrganizationMutation();
 
   const items: BureauItem[] = useMemo(() => {
@@ -74,6 +74,7 @@ export const BureausPage: React.FC<BureausPageProps> = ({
               phone: v.phone,
               status: 'active',
             }).unwrap();
+            await refetch();
           } catch {
             portal.createForPage('bureaus');
           }

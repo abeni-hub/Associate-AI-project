@@ -20,6 +20,7 @@ import {
 } from '../store/slices/newsFilterSlice.js';
 import { useGetNewsQuery } from '../services/newsApi.js';
 import { useGetEventsQuery } from '../services/eventsApi.js';
+import { useGetOrganizationsQuery } from '../services/organizationsApi.js';
 
 interface NewsEventsPageProps {
   language?: Language;
@@ -37,6 +38,16 @@ export default function NewsEventsPage({
   // RTK Query: fetch live news & events from backend and keep cache warm
   const { data: apiNews, refetch: refetchNews } = useGetNewsQuery();
   const { data: apiEvents, refetch: refetchEvents } = useGetEventsQuery();
+  const { data: orgData } = useGetOrganizationsQuery();
+
+  const subCityList = (orgData?.data && Array.isArray(orgData.data))
+    ? [
+        'All Addis Ababa',
+        ...orgData.data
+          .filter((o: any) => o.organization_type_id === 1 || o.type?.code === 'sub_city' || o.type?.level === 1 || (!o.parent_organization_id && o.is_root))
+          .map((o: any) => o.name),
+      ]
+    : ['All Addis Ababa'];
 
   // Redux Filter state
   const { activeType, selectedCategory, selectedSubCity, searchQuery } = useAppSelector(
@@ -219,6 +230,7 @@ export default function NewsEventsPage({
           selectedCategory={selectedCategory}
           setSelectedCategory={(cat: string) => dispatch(setSelectedCategory(cat))}
           onReset={() => dispatch(resetFilters())}
+          subCities={subCityList}
         />
 
         <NewsEventsFeed

@@ -56,6 +56,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('/services/{service}/steps/{step}', [ServiceStepController::class, 'show'])->name('services.steps.show');
     Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
     Route::get('/documents/{document}', [DocumentController::class, 'show'])->name('documents.show');
+    Route::get('/organizations', [OrganizationController::class, 'index'])->name('organizations.index');
+    Route::get('/organizations/tree', [OrganizationController::class, 'tree'])->name('organizations.tree');
 
     // Authentication Endpoints
     Route::prefix('auth')->name('auth.')->group(function () {
