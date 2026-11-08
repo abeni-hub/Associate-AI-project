@@ -1,0 +1,20 @@
+{
+  "name": "civic-link-integration-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test:e2e:support": "jest --config jest.config.cjs --runInBand tests/support",
+    "test:e2e:api": "jest --config jest.config.cjs --runInBand tests/api",
+    "test:e2e:browser": "playwright test --config=playwright.config.cjs",
+    "test:e2e": "npm run test:e2e:support && npm run test:e2e:api && npm run test:e2e:browser"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "dotenv": "^18.0.9",
+    "jest": "^30.5.2"
+  }
+}

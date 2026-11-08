@@ -73,12 +73,12 @@ class ServiceStepController extends Controller
         $serviceModel = $this->resolveService($service);
 
         if ($step->service_id !== $serviceModel->id) {
-            throw new NotFoundHttpException("Step not found for this service.");
+            throw new NotFoundHttpException('Step not found for this service.');
         }
 
         $user = $request->user();
         if (! $step->is_active && (! $user || ! $user->hasPermission('service_steps.manage'))) {
-            throw new NotFoundHttpException("Step not found or inactive.");
+            throw new NotFoundHttpException('Step not found or inactive.');
         }
 
         $step->loadMissing('organization');
@@ -124,7 +124,7 @@ class ServiceStepController extends Controller
         $serviceModel = $this->resolveService($service);
 
         if ($step->service_id !== $serviceModel->id) {
-            throw new NotFoundHttpException("Step not found for this service.");
+            throw new NotFoundHttpException('Step not found for this service.');
         }
 
         $step->update($request->validated());
@@ -148,7 +148,7 @@ class ServiceStepController extends Controller
         $serviceModel = $this->resolveService($service);
 
         if ($step->service_id !== $serviceModel->id) {
-            throw new NotFoundHttpException("Step not found for this service.");
+            throw new NotFoundHttpException('Step not found for this service.');
         }
 
         if ($step->organization_id !== null && ! $scopeService->canManageOrganization($request->user(), $step->organization_id)) {
@@ -187,6 +187,54 @@ class ServiceStepController extends Controller
         return ApiResponse::success(
             data: ServiceStepResource::collection($steps),
             message: 'Service steps reordered successfully.'
+        );
+    }
+
+    /**
+     * Synchronize full sequence of room instruction steps for a service.
+     */
+    public function sync(Request $request, string $service): JsonResponse
+    {
+        $serviceModel = $this->resolveService($service);
+
+        $validated = $request->validate([
+            'steps' => ['present', 'array'],
+            'steps.*.step_number' => ['nullable', 'integer'],
+            'steps.*.title' => ['required', 'string', 'max:255'],
+            'steps.*.instruction' => ['nullable', 'string'],
+            'steps.*.room_number' => ['nullable', 'string', 'max:100'],
+            'steps.*.floor' => ['nullable', 'string', 'max:100'],
+            'steps.*.building' => ['nullable', 'string', 'max:150'],
+            'steps.*.department_name' => ['nullable', 'string', 'max:255'],
+            'steps.*.responsible_title' => ['nullable', 'string', 'max:150'],
+            'steps.*.estimated_duration_minutes' => ['nullable', 'integer'],
+            'steps.*.is_active' => ['nullable', 'boolean'],
+        ]);
+
+        DB::transaction(function () use ($serviceModel, $validated) {
+            $serviceModel->steps()->delete();
+
+            foreach ($validated['steps'] as $idx => $stepData) {
+                $serviceModel->steps()->create([
+                    'step_number' => $stepData['step_number'] ?? ($idx + 1),
+                    'title' => $stepData['title'],
+                    'instruction' => $stepData['instruction'] ?? '',
+                    'room_number' => $stepData['room_number'] ?? null,
+                    'floor' => $stepData['floor'] ?? null,
+                    'building' => $stepData['building'] ?? null,
+                    'department_name' => $stepData['department_name'] ?? null,
+                    'responsible_title' => $stepData['responsible_title'] ?? null,
+                    'estimated_duration_minutes' => $stepData['estimated_duration_minutes'] ?? 15,
+                    'is_active' => $stepData['is_active'] ?? true,
+                ]);
+            }
+        });
+
+        $steps = $serviceModel->steps()->with('organization')->ordered()->get();
+
+        return ApiResponse::success(
+            data: ServiceStepResource::collection($steps),
+            message: 'Service steps synchronized successfully.'
         );
     }
 }

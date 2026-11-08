@@ -16,8 +16,19 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        $superAdminRole = Role::where('slug', 'super_admin')->firstOrFail();
-        $subCityAdminRole = Role::where('slug', 'sub_city_admin')->first() ?? $superAdminRole;
+        $superAdminRole = Role::firstOrCreate(
+            ['slug' => 'super_admin'],
+            [
+                'name' => 'Super Administrator',
+                'description' => 'Global system administrator with unrestricted platform access.',
+                'is_system' => true,
+                'is_active' => true,
+                'scope_level' => 'global',
+            ]
+        );
+
+        $initialAdminPassword = 'Admin123!Secure';
+        $requireChange = false;
 
         // 1. Super Admin Account
         User::updateOrCreate(
@@ -25,25 +36,11 @@ class UserSeeder extends Seeder
             [
                 'name' => 'System Administrator',
                 'email' => 'admin@government.et',
-                'password' => Hash::make('Admin123!Secure'),
+                'password' => Hash::make($initialAdminPassword),
                 'role_id' => $superAdminRole->id,
                 'status' => 'active',
                 'phone' => '+251911000000',
-                'must_change_password' => false,
-            ]
-        );
-
-        // 2. Documented API Test User (matches docs/api.md)
-        User::updateOrCreate(
-            ['username' => 'abebe.k'],
-            [
-                'name' => 'Abebe Kebede',
-                'email' => 'abebe@bole.gov.et',
-                'password' => Hash::make('CorrectPassword123!'),
-                'role_id' => $subCityAdminRole->id,
-                'status' => 'active',
-                'phone' => '+251911234567',
-                'must_change_password' => false,
+                'must_change_password' => $requireChange,
             ]
         );
     }

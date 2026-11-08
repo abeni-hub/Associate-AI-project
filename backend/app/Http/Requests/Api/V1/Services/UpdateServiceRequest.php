@@ -6,6 +6,7 @@ namespace App\Http\Requests\Api\V1\Services;
 
 use App\Domains\Organizations\Services\OrganizationScopeService;
 use App\Domains\Services\Models\Service;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -23,7 +24,7 @@ class UpdateServiceRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -50,6 +51,11 @@ class UpdateServiceRequest extends FormRequest
             'fee_currency' => ['nullable', 'string', 'max:3'],
             'fee_notes' => ['nullable', 'string', 'max:500'],
             'is_active' => ['nullable', 'boolean'],
+            'documents' => ['nullable', 'array'],
+            'documents.*.document_id' => ['required_with:documents', 'integer', 'exists:documents,id'],
+            'documents.*.is_mandatory' => ['nullable', 'boolean'],
+            'documents.*.order_column' => ['nullable', 'integer', 'min:1'],
+            'documents.*.notes' => ['nullable', 'string', 'max:500'],
         ];
     }
 

@@ -6,15 +6,21 @@ use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\PasswordResetController;
 use App\Http\Controllers\Api\V1\Authorization\PermissionController;
 use App\Http\Controllers\Api\V1\Authorization\RoleController;
+use App\Http\Controllers\Api\V1\Cms\CmsController;
+use App\Http\Controllers\Api\V1\Dashboard\DashboardController;
 use App\Http\Controllers\Api\V1\Documents\DocumentController;
+use App\Http\Controllers\Api\V1\Events\EventController;
+use App\Http\Controllers\Api\V1\Feedback\FeedbackController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\Navigation\NavigationController;
+use App\Http\Controllers\Api\V1\News\NewsController;
 use App\Http\Controllers\Api\V1\Organizations\OrganizationController;
 use App\Http\Controllers\Api\V1\Organizations\OrganizationTypeController;
+use App\Http\Controllers\Api\V1\QrCodes\QrCodeController;
 use App\Http\Controllers\Api\V1\Services\ServiceController;
 use App\Http\Controllers\Api\V1\Services\ServiceStepController;
 use App\Http\Controllers\Api\V1\Users\UserController;
 use App\Support\ApiResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,20 +33,21 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
+    // API Root
+    Route::get('/', function () {
+        return ApiResponse::success([
+            'service' => 'CivicLink Government Citizen Engagement Platform API',
+            'version' => 'v1',
+            'health' => url('/api/v1/health'),
+            'cms' => url('/api/v1/cms/landing-page'),
+        ], 'CivicLink API v1 is active.');
+    })->name('root');
+
     // Health & Status
     Route::get('/health', HealthController::class)->name('health');
 
-    // Validation verification endpoint for testing Phase 1 error handling
-    Route::post('/test-validation', function (Request $request) {
-        $validated = $request->validate([
-            'test_field' => ['required', 'string', 'min:3'],
-        ]);
-
-        return ApiResponse::success(
-            data: $validated,
-            message: 'Validation passed successfully.'
-        );
-    })->name('test.validation');
+    // Public Landing Page CMS (no authentication required)
+    Route::get('/cms/landing-page', [CmsController::class, 'show'])->name('cms.landing-page.show');
 
     // Public Citizen Service Discovery Endpoints
     Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
@@ -78,17 +85,35 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
     // Authenticated Administration Endpoints
     Route::middleware(['auth:sanctum', 'account.active'])->group(function () {
+        // Dynamic Navigation Items
+        Route::get('/navigation/items', [NavigationController::class, 'index'])
+            ->name('navigation.items');
+        Route::get('/navigation/sidebar', [NavigationController::class, 'sidebar'])
+            ->name('navigation.sidebar');
+
         // Authorization & Role Management
         Route::prefix('roles')->name('roles.')->group(function () {
             Route::get('/', [RoleController::class, 'index'])
                 ->middleware('permission:roles.view')
                 ->name('index');
+            Route::post('/', [RoleController::class, 'store'])
+                ->middleware('permission:roles.manage')
+                ->name('store');
             Route::get('/{role}', [RoleController::class, 'show'])
                 ->middleware('permission:roles.view')
                 ->name('show');
+            Route::put('/{role}', [RoleController::class, 'update'])
+                ->middleware('permission:roles.manage')
+                ->name('update');
+            Route::delete('/{role}', [RoleController::class, 'destroy'])
+                ->middleware('permission:roles.manage')
+                ->name('destroy');
             Route::put('/{role}/permissions', [RoleController::class, 'updatePermissions'])
                 ->middleware('permission:roles.manage')
                 ->name('update-permissions');
+            Route::put('/{role}/navigation-items', [RoleController::class, 'updateNavigationItems'])
+                ->middleware('permission:roles.manage')
+                ->name('update-navigation-items');
         });
 
         Route::get('/permissions', [PermissionController::class, 'index'])
@@ -99,8 +124,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('/organization-types', [OrganizationTypeController::class, 'index'])
             ->middleware('permission:organizations.view')
             ->name('organization-types.index');
+        Route::post('/organization-types', [OrganizationTypeController::class, 'store'])
+            ->middleware('permission:organizations.create')
+            ->name('organization-types.store');
+        Route::put('/organization-types/{organizationType}', [OrganizationTypeController::class, 'update'])
+            ->middleware('permission:organizations.update')
+            ->name('organization-types.update');
+        Route::delete('/organization-types/{organizationType}', [OrganizationTypeController::class, 'destroy'])
+            ->middleware('permission:organizations.delete')
+            ->name('organization-types.destroy');
 
-        // Support both singular /organization and plural /organizations
         Route::get('/organization', [OrganizationController::class, 'index'])
             ->middleware('permission:organizations.view');
 
@@ -184,6 +217,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/', [ServiceStepController::class, 'store'])
                 ->middleware('permission:service_steps.manage')
                 ->name('store');
+            Route::post('/sync', [ServiceStepController::class, 'sync'])
+                ->middleware('permission:service_steps.manage')
+                ->name('sync');
             Route::post('/reorder', [ServiceStepController::class, 'reorder'])
                 ->middleware('permission:service_steps.manage')
                 ->name('reorder');
@@ -194,5 +230,110 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
                 ->middleware('permission:service_steps.manage')
                 ->name('destroy');
         });
+
+        // Feedback Management
+        Route::prefix('feedbacks')->name('feedbacks.')->group(function () {
+            Route::get('/', [FeedbackController::class, 'index'])
+                ->middleware('permission:feedback.view_own,feedback.view_descendants')
+                ->name('index');
+            Route::get('/{feedback}', [FeedbackController::class, 'show'])
+                ->middleware('permission:feedback.view_own,feedback.view_descendants')
+                ->name('show');
+            Route::put('/{feedback}', [FeedbackController::class, 'update'])
+                ->middleware('permission:feedback.update_status')
+                ->name('update');
+            Route::post('/{feedback}/respond', [FeedbackController::class, 'respond'])
+                ->middleware('permission:feedback.update_status')
+                ->name('respond');
+            Route::delete('/{feedback}', [FeedbackController::class, 'destroy'])
+                ->middleware('permission:feedback.update_status')
+                ->name('destroy');
+        });
+
+        // News Management
+        Route::post('/news', [NewsController::class, 'store'])
+            ->middleware('permission:news.create')
+            ->name('news.store');
+        Route::put('/news/{news}', [NewsController::class, 'update'])
+            ->middleware('permission:news.update')
+            ->name('news.update');
+        Route::delete('/news/{news}', [NewsController::class, 'destroy'])
+            ->middleware('permission:news.delete')
+            ->name('news.destroy');
+
+        // Dashboards & Reporting
+        Route::prefix('dashboard')->name('dashboard.')->group(function () {
+            Route::get('/overview', [DashboardController::class, 'overview'])
+                ->middleware('permission:dashboard.view')
+                ->name('overview');
+            Route::get('/stats', [DashboardController::class, 'overview'])
+                ->middleware('permission:dashboard.view')
+                ->name('stats');
+            Route::get('/reports/feedback', [DashboardController::class, 'feedbackReport'])
+                ->middleware('permission:dashboard.view')
+                ->name('reports.feedback');
+            Route::get('/reports/services', [DashboardController::class, 'servicesReport'])
+                ->middleware('permission:dashboard.view')
+                ->name('reports.services');
+            Route::get('/reports/organizations', [DashboardController::class, 'organizationsReport'])
+                ->middleware('permission:dashboard.view')
+                ->name('reports.organizations');
+            Route::get('/recent-activity', [DashboardController::class, 'recentActivity'])
+                ->middleware('permission:dashboard.view')
+                ->name('recent-activity');
+        });
+
+        // Super Admin CMS Landing Page Management
+        Route::prefix('cms')->name('cms.')->group(function () {
+            Route::put('/landing-page', [CmsController::class, 'update'])
+                ->middleware('permission:cms.manage')
+                ->name('landing-page.update');
+
+            Route::post('/upload-image', [CmsController::class, 'uploadImage'])
+                ->middleware('permission:cms.manage')
+                ->name('upload-image');
+        });
+
+        // QR Codes Management
+        Route::prefix('qr-codes')->name('qr-codes.')->group(function () {
+            Route::get('/', [QrCodeController::class, 'index'])
+                ->middleware('permission:qr_codes.view')
+                ->name('index');
+            Route::get('/{qrCode}', [QrCodeController::class, 'show'])
+                ->middleware('permission:qr_codes.view')
+                ->name('show');
+            Route::post('/', [QrCodeController::class, 'store'])
+                ->middleware('permission:qr_codes.manage')
+                ->name('store');
+            Route::delete('/{qrCode}', [QrCodeController::class, 'destroy'])
+                ->middleware('permission:qr_codes.manage')
+                ->name('destroy');
+        });
+
+        // Event Management
+        Route::post('/events', [EventController::class, 'store'])
+            ->middleware('permission:events.create')
+            ->name('events.store');
+        Route::delete('/events/{event}', [EventController::class, 'destroy'])
+            ->middleware('permission:events.delete')
+            ->name('events.destroy');
     });
+
+    // Public Events Discovery (no authentication required)
+    Route::get('/events', [EventController::class, 'index'])->name('events.index');
+    Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show');
+
+    // Public QR Poster Scanning & Redirection
+    Route::post('/qr-codes/{code}/scan', [QrCodeController::class, 'scan'])->name('qr-codes.scan');
+
+    // Public News (no authentication required)
+    Route::get('/news', [NewsController::class, 'index'])
+        ->name('news.index');
+    Route::get('/news/{news}', [NewsController::class, 'show'])
+        ->name('news.show');
+
+    // Public Feedback Submission (no authentication required)
+    Route::post('/feedbacks', [FeedbackController::class, 'store'])
+        ->middleware('throttle:feedback-submit')
+        ->name('feedbacks.store');
 });

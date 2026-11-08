@@ -41,10 +41,11 @@ class UserController extends Controller
         // 2. Filters
         if ($request->filled('search')) {
             $search = (string) $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                    ->orWhere('username', 'ilike', "%{$search}%")
-                    ->orWhere('email', 'ilike', "%{$search}%");
+            $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->where(function ($q) use ($search, $like) {
+                $q->where('name', $like, "%{$search}%")
+                    ->orWhere('username', $like, "%{$search}%")
+                    ->orWhere('email', $like, "%{$search}%");
             });
         }
 
@@ -173,7 +174,11 @@ class UserController extends Controller
             }
 
             $superAdminCount = User::whereHas('role', fn ($q) => $q->where('slug', 'super_admin'))->count();
-            if ($superAdminCount <= 1) {
+            $activeSuperAdminCount = User::whereHas('role', fn ($q) => $q->where('slug', 'super_admin'))
+                ->where('status', 'active')
+                ->count();
+
+            if ($superAdminCount <= 1 || ($user->isActive() && $activeSuperAdminCount <= 1)) {
                 return ApiResponse::error(
                     message: 'Cannot delete the last remaining Super Admin in the system.',
                     statusCode: 422

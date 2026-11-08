@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureHasPermission;
 use App\Support\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -30,7 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
         $middleware->alias([
             'account.active' => EnsureAccountIsActive::class,
-            'permission' => \App\Http\Middleware\EnsureHasPermission::class,
+            'permission' => EnsureHasPermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

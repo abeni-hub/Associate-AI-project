@@ -103,7 +103,7 @@ class Service extends Model
             'service_id',
             'organization_id'
         )
-            ->withPivot(['is_available', 'specific_instructions'])
+            ->withPivot(['is_available'])
             ->withTimestamps();
     }
 

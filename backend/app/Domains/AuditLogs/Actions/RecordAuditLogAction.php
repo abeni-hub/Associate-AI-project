@@ -16,6 +16,8 @@ class RecordAuditLogAction
      *
      * @param  array<string, mixed>|null  $oldValues
      * @param  array<string, mixed>|null  $newValues
+     * @param  array<string, mixed>|null  $requestPayload
+     * @param  array<string, mixed>|null  $responsePayload
      */
     public function execute(
         string $action,
@@ -23,7 +25,12 @@ class RecordAuditLogAction
         ?User $actor = null,
         ?array $oldValues = null,
         ?array $newValues = null,
-        ?Request $request = null
+        ?Request $request = null,
+        string $status = 'success',
+        ?int $statusCode = null,
+        ?string $errorMessage = null,
+        ?array $requestPayload = null,
+        ?array $responsePayload = null
     ): AuditLog {
         $actor = $actor ?? $request?->user();
 
@@ -31,22 +38,28 @@ class RecordAuditLogAction
         $sanitizedOld = $oldValues ? $this->sanitizePayload($oldValues) : null;
         $sanitizedNew = $newValues ? $this->sanitizePayload($newValues) : null;
 
-        // Context organization: target's organization if available, else actor's organization
-        $orgId = null;
-        if (isset($entity->organization_id)) {
-            $orgId = (int) $entity->organization_id;
-        } elseif ($entity instanceof \App\Domains\Organizations\Models\Organization) {
-            $orgId = (int) $entity->id;
-        } elseif ($actor && isset($actor->organization_id)) {
-            $orgId = (int) $actor->organization_id;
+        // Auto-capture request payload if request object provided and not explicitly given
+        if ($requestPayload === null && $request !== null) {
+            $rawInput = $request->except(['password', 'password_confirmation', 'token', 'access_token']);
+            $requestPayload = ! empty($rawInput) ? $this->sanitizePayload($rawInput) : null;
+        } elseif ($requestPayload !== null) {
+            $requestPayload = $this->sanitizePayload($requestPayload);
+        }
+
+        if ($responsePayload !== null) {
+            $responsePayload = $this->sanitizePayload($responsePayload);
         }
 
         return AuditLog::create([
             'user_id' => $actor?->id,
-            'organization_id' => $orgId,
             'action' => $action,
             'entity_type' => class_basename($entity),
             'entity_id' => (string) $entity->getKey(),
+            'status' => $status,
+            'status_code' => $statusCode,
+            'error_message' => $errorMessage,
+            'request_payload' => $requestPayload,
+            'response_payload' => $responsePayload,
             'old_values' => $sanitizedOld,
             'new_values' => $sanitizedNew,
             'ip_address' => $request?->ip(),
@@ -56,21 +69,26 @@ class RecordAuditLogAction
     }
 
     /**
-     * Filter out secret attributes like passwords and tokens.
+     * Sanitize sensitive key-value pairs from logged payloads.
      *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function sanitizePayload(array $payload): array
+    protected function sanitizePayload(array $payload): array
     {
-        $sensitiveKeys = ['password', 'remember_token', 'token', 'secret'];
+        $sensitiveKeys = ['password', 'password_confirmation', 'secret', 'token', 'access_token', 'api_key'];
 
-        foreach ($sensitiveKeys as $key) {
-            if (array_key_exists($key, $payload)) {
-                $payload[$key] = '[REDACTED]';
+        $sanitized = [];
+        foreach ($payload as $key => $value) {
+            if (in_array(strtolower((string) $key), $sensitiveKeys, true)) {
+                $sanitized[$key] = '********';
+            } elseif (is_array($value)) {
+                $sanitized[$key] = $this->sanitizePayload($value);
+            } else {
+                $sanitized[$key] = $value;
             }
         }
 
-        return $payload;
+        return $sanitized;
     }
 }

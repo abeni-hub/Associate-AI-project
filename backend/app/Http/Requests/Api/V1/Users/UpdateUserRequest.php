@@ -7,6 +7,7 @@ namespace App\Http\Requests\Api\V1\Users;
 use App\Domains\Authorization\Models\Role;
 use App\Domains\Organizations\Services\OrganizationScopeService;
 use App\Domains\Users\Models\User;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -24,7 +25,7 @@ class UpdateUserRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -93,12 +94,32 @@ class UpdateUserRequest extends FormRequest
                     $validator->errors()->add('role_id', 'Only Super Admins can assign the Super Admin role.');
                 }
 
+                if ($actor && $newRole && ! $actor->isSuperAdmin()) {
+                    $actorRole = $actor->role;
+                    if ($actorRole && ! $actorRole->canManageScope($newRole->scope_level ?? Role::SCOPE_BUREAU)) {
+                        $validator->errors()->add(
+                            'role_id',
+                            'You cannot assign a role with an administrative scope level higher than your own.'
+                        );
+                    }
+                }
+
                 // Prevent removing last super admin
                 if ($targetUser->isSuperAdmin() && $newRole?->slug !== 'super_admin') {
                     $superAdminCount = User::whereHas('role', fn ($q) => $q->where('slug', 'super_admin'))->count();
                     if ($superAdminCount <= 1) {
                         $validator->errors()->add('role_id', 'Cannot demote the last remaining Super Admin in the system.');
                     }
+                }
+            }
+
+            // Prevent deactivating last active super admin
+            if ($this->has('status') && $this->input('status') !== 'active' && $targetUser->isSuperAdmin()) {
+                $activeSuperAdminCount = User::whereHas('role', fn ($q) => $q->where('slug', 'super_admin'))
+                    ->where('status', 'active')
+                    ->count();
+                if ($activeSuperAdminCount <= 1) {
+                    $validator->errors()->add('status', 'Cannot deactivate the last remaining active Super Admin in the system.');
                 }
             }
 

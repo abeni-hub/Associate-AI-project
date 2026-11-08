@@ -16,6 +16,7 @@ use App\Http\Resources\Api\V1\ServiceResource;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ServiceController extends Controller
 {
@@ -29,11 +30,11 @@ class ServiceController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Service::with(['organization', 'parent'])
-            ->withCount(['subservices', 'requiredDocuments', 'offeringOrganizations']);
+        $query = Service::with(['organization', 'parent', 'steps.organization', 'requiredDocuments'])
+            ->withCount(['subservices', 'requiredDocuments', 'offeringOrganizations', 'steps']);
 
         // Public citizens only see active services unless caller has management rights
-        $user = $request->user();
+        $user = $request->user() ?? auth('sanctum')->user();
         if (! $user || ! $user->hasPermission('services.update')) {
             $query->where('is_active', true);
         } elseif ($request->has('is_active')) {
@@ -43,10 +44,11 @@ class ServiceController extends Controller
         // Search
         if ($request->filled('search')) {
             $search = (string) $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                    ->orWhere('code', 'ilike', "%{$search}%")
-                    ->orWhere('description', 'ilike', "%{$search}%");
+            $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->where(function ($q) use ($search, $like) {
+                $q->where('name', $like, "%{$search}%")
+                    ->orWhere('code', $like, "%{$search}%")
+                    ->orWhere('description', $like, "%{$search}%");
             });
         }
 
@@ -94,7 +96,7 @@ class ServiceController extends Controller
     /**
      * Show detailed service profile (lookup by ID or unique code slug).
      */
-    public function show(string $identifier): JsonResponse
+    public function show(Request $request, string $identifier): JsonResponse
     {
         $query = Service::with([
             'parent',
@@ -116,6 +118,16 @@ class ServiceController extends Controller
             );
         }
 
+        if (! $service->is_active) {
+            $user = $request->user() ?? auth('sanctum')->user();
+            if (! $user || ! $user->hasPermission('services.update')) {
+                return ApiResponse::error(
+                    message: 'Service not found.',
+                    statusCode: 404
+                );
+            }
+        }
+
         return ApiResponse::success(
             data: new ServiceResource($service),
             message: 'Service retrieved successfully.'
@@ -128,12 +140,33 @@ class ServiceController extends Controller
     public function store(CreateServiceRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $documents = $data['documents'] ?? null;
+        unset($data['documents']);
+
         $data['is_active'] = $data['is_active'] ?? true;
         $data['fee_amount'] = $data['fee_amount'] ?? 0.00;
         $data['fee_currency'] = $data['fee_currency'] ?? 'ETB';
 
         $service = Service::create($data);
-        $service->load(['parent', 'organization']);
+
+        if (is_array($documents) && count($documents) > 0) {
+            $syncData = [];
+            foreach ($documents as $doc) {
+                $docId = is_array($doc) ? ($doc['document_id'] ?? null) : (int) $doc;
+                if ($docId) {
+                    $syncData[$docId] = [
+                        'is_mandatory' => is_array($doc) ? ($doc['is_mandatory'] ?? true) : true,
+                        'order_column' => is_array($doc) ? ($doc['order_column'] ?? 1) : 1,
+                        'notes' => is_array($doc) ? ($doc['notes'] ?? null) : null,
+                    ];
+                }
+            }
+            if (!empty($syncData)) {
+                $service->requiredDocuments()->sync($syncData);
+            }
+        }
+
+        $service->load(['parent', 'organization', 'requiredDocuments']);
 
         $this->auditLogAction->execute(
             action: 'created',
@@ -156,8 +189,29 @@ class ServiceController extends Controller
     public function update(UpdateServiceRequest $request, Service $service): JsonResponse
     {
         $oldValues = $service->toArray();
-        $service->update($request->validated());
-        $service->load(['parent', 'organization']);
+        $data = $request->validated();
+
+        if (array_key_exists('documents', $data)) {
+            $documents = $data['documents'];
+            unset($data['documents']);
+            if (is_array($documents)) {
+                $syncData = [];
+                foreach ($documents as $doc) {
+                    $docId = is_array($doc) ? ($doc['document_id'] ?? null) : (int) $doc;
+                    if ($docId) {
+                        $syncData[$docId] = [
+                            'is_mandatory' => is_array($doc) ? ($doc['is_mandatory'] ?? true) : true,
+                            'order_column' => is_array($doc) ? ($doc['order_column'] ?? 1) : 1,
+                            'notes' => is_array($doc) ? ($doc['notes'] ?? null) : null,
+                        ];
+                    }
+                }
+                $service->requiredDocuments()->sync($syncData);
+            }
+        }
+
+        $service->update($data);
+        $service->load(['parent', 'organization', 'requiredDocuments']);
 
         $this->auditLogAction->execute(
             action: 'updated',
@@ -218,16 +272,18 @@ class ServiceController extends Controller
             ];
         }
 
-        $service->requiredDocuments()->sync($syncData);
-        $service->load('requiredDocuments');
+        DB::transaction(function () use ($service, $syncData, $request) {
+            $service->requiredDocuments()->sync($syncData);
+            $service->load('requiredDocuments');
 
-        $this->auditLogAction->execute(
-            action: 'synced_documents',
-            entity: $service,
-            actor: $request->user(),
-            newValues: $syncData,
-            request: $request
-        );
+            $this->auditLogAction->execute(
+                action: 'synced_documents',
+                entity: $service,
+                actor: $request->user(),
+                newValues: $syncData,
+                request: $request
+            );
+        });
 
         return ApiResponse::success(
             data: new ServiceResource($service),
@@ -244,20 +300,21 @@ class ServiceController extends Controller
         foreach ($request->validated('organizations') as $org) {
             $syncData[$org['organization_id']] = [
                 'is_available' => $org['is_available'] ?? true,
-                'specific_instructions' => $org['specific_instructions'] ?? null,
             ];
         }
 
-        $service->offeringOrganizations()->sync($syncData);
-        $service->load('offeringOrganizations');
+        DB::transaction(function () use ($service, $syncData, $request) {
+            $service->offeringOrganizations()->sync($syncData);
+            $service->load('offeringOrganizations');
 
-        $this->auditLogAction->execute(
-            action: 'synced_organizations',
-            entity: $service,
-            actor: $request->user(),
-            newValues: $syncData,
-            request: $request
-        );
+            $this->auditLogAction->execute(
+                action: 'synced_organizations',
+                entity: $service,
+                actor: $request->user(),
+                newValues: $syncData,
+                request: $request
+            );
+        });
 
         return ApiResponse::success(
             data: new ServiceResource($service),
