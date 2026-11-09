@@ -8,27 +8,19 @@ export interface ServiceListItem {
   description: string;
   fee_amount: number;
   fee_currency: string;
+  fee_notes?: string;
+  eligibility_criteria?: string;
   estimated_duration_minutes: number;
   is_active: boolean;
   is_master: boolean;
   parent_id?: number | null;
+  parent?: { id: number; name: string; code: string } | null;
   subservices_count?: number;
   required_documents_count?: number;
   offering_organizations_count?: number;
   steps_count?: number;
   steps?: ServiceStep[];
-  organization?: {
-    id: number;
-    name: string;
-    code: string;
-  } | null;
-  created_at?: string;
-}
-
-export interface ServiceDetail extends ServiceListItem {
-  eligibility_criteria?: string;
-  fee_notes?: string;
-  parent?: { id: number; name: string; code: string } | null;
+  subservices?: ServiceListItem[];
   required_documents?: Array<{
     id: number;
     name: string;
@@ -42,7 +34,15 @@ export interface ServiceDetail extends ServiceListItem {
     name: string;
     code: string;
   }>;
+  organization?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  created_at?: string;
 }
+
+export interface ServiceDetail extends ServiceListItem {}
 
 export interface ServiceStep {
   id: number;
@@ -64,6 +64,8 @@ export interface ServiceFilterParams extends PaginationQueryParams {
   organization_id?: number;
   fee?: 'free' | 'paid';
   is_active?: boolean;
+  tree?: boolean;
+  view?: string;
 }
 
 export interface CreateServicePayload {
@@ -147,7 +149,10 @@ export const servicesApi = baseApi.injectEndpoints({
       query: (params) => ({
         url: '/services',
         method: 'GET',
-        params: params || undefined,
+        params: {
+          per_page: 100,
+          ...(params || {}),
+        },
       }),
       providesTags: (result) =>
         result?.data

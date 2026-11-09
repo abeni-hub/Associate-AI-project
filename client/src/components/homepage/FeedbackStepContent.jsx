@@ -39,23 +39,29 @@ export default function FeedbackStepContent({
   // Live sub-cities strictly from database
   const availableSubCities = useMemo(() => {
     if (rawOrgs.length > 0) {
-      // 1. Identify organizations matching sub-city indicators
-      const filtered = rawOrgs.filter((o) =>
-        Number(o.organization_type_id) === 1 ||
-        o.type?.code === 'sub_city' ||
-        o.type?.name?.toLowerCase().includes('sub') ||
-        Number(o.type?.level) === 1 ||
-        o.name?.toLowerCase().includes('sub-city') ||
-        o.name?.toLowerCase().includes('sub city') ||
-        o.name?.toLowerCase().includes('subcity') ||
-        o.code?.toLowerCase().includes('sub-city') ||
-        o.code?.toLowerCase().includes('subcity') ||
-        (!o.parent_organization_id && !o.parent?.id)
-      )
+      const filtered = rawOrgs.filter((o) => {
+        const typeCode = (o.type?.code || '').toLowerCase()
+        const name = (o.name || '').toLowerCase()
+        const isSubcity =
+          Number(o.organization_type_id) === 1 ||
+          typeCode === 'sub_city' ||
+          name.includes('sub-city') ||
+          name.includes('subcity') ||
+          name.includes('sub city')
+        const isBureau =
+          Number(o.organization_type_id) === 3 ||
+          typeCode === 'bureau' ||
+          name.includes('bureau') ||
+          name.includes('agency')
+        const isWoreda =
+          Number(o.organization_type_id) === 2 ||
+          typeCode === 'woreda' ||
+          name.includes('woreda')
+        return isSubcity && !isBureau && !isWoreda
+      })
       if (filtered.length > 0) {
         return filtered.map((o) => ({ id: o.id, name: o.name }))
       }
-      // 2. If no organizations match strict sub-city indicators, provide all organizations from database
       return rawOrgs.map((o) => ({ id: o.id, name: o.name }))
     }
     return []
