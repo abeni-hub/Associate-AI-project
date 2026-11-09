@@ -37,6 +37,7 @@ export default function FeedbackStepContent({
   const isSubCitiesLoading = propIsSubCitiesLoading !== undefined ? propIsSubCitiesLoading : apiSubCitiesLoading;
   const isBureausLoading = propIsBureausLoading !== undefined ? propIsBureausLoading : apiBureausLoading;
   const isServicesLoading = Boolean(propIsServicesLoading);
+  const isOrgsLoading = isSubCitiesLoading || isBureausLoading;
 
   // Live sub-cities strictly from backend database
   const availableSubCities = useMemo(() => {
@@ -172,7 +173,7 @@ export default function FeedbackStepContent({
           icon="pin"
           placeholder="Choose a sub-city…"
           searchPlaceholder="Search sub-cities (e.g. Bole, Kirkos, Arada)…"
-          isLoading={isOrgsLoading}
+          isLoading={isSubCitiesLoading}
           ariaLabel={t('Select the sub-city')}
           t={t}
         />
@@ -194,7 +195,7 @@ export default function FeedbackStepContent({
           icon="building"
           placeholder="Choose an office…"
           searchPlaceholder="Search offices (e.g. Revenues, Trade, Land)…"
-          isLoading={isOrgsLoading}
+          isLoading={isBureausLoading}
           ariaLabel={t('Select the city office / bureau')}
           t={t}
         />
