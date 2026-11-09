@@ -76,7 +76,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="offices"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity']} requiredPermission="organizations.view" pageKey="offices">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="organizations.view" pageKey="offices">
               <OfficesPage />
             </RoleGuard>
           }
@@ -84,7 +84,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="subcities"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity']} requiredPermission="organizations.view" pageKey="subcities">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="organizations.view" pageKey="subcities">
               <OfficesPage />
             </RoleGuard>
           }
@@ -92,7 +92,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="bureaus"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity']} requiredPermission="organizations.view" pageKey="bureaus">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="organizations.view" pageKey="bureaus">
               <OfficesPage />
             </RoleGuard>
           }
@@ -102,7 +102,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="accounts"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity']} requiredPermission="users.view" pageKey="accounts">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="users.view" pageKey="accounts">
               <AccountsPage />
             </RoleGuard>
           }
@@ -144,7 +144,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="news/:id"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity']} requiredPermission="news.view" pageKey="news">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="news.view" pageKey="news">
               <NewsDetailPage />
             </RoleGuard>
           }
@@ -152,7 +152,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="news"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity']} requiredPermission="news.view" pageKey="news">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="news.view" pageKey="news">
               <NewsPage />
             </RoleGuard>
           }
@@ -162,7 +162,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="services"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity']} requiredPermission="services.view" pageKey="services">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="services.view" pageKey="services">
               <ServicesPage />
             </RoleGuard>
           }
@@ -180,7 +180,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="routes"
           element={
-            <RoleGuard allowedRoles={['super', 'bureau']} requiredPermission="service_steps.view" pageKey="routes">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="service_steps.view" pageKey="routes">
               <RoutesPage />
             </RoleGuard>
           }
@@ -188,7 +188,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="qr"
           element={
-            <RoleGuard allowedRoles={['super', 'bureau', 'subcity']} requiredPermission="qr_codes.view" pageKey="qr">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="qr_codes.view" pageKey="qr">
               <QRPage />
             </RoleGuard>
           }
@@ -196,7 +196,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="office"
           element={
-            <RoleGuard allowedRoles={['super', 'bureau']} requiredPermission="services.view" pageKey="office">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="services.view" pageKey="office">
               <OfficePage />
             </RoleGuard>
           }
