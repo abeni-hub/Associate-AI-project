@@ -204,12 +204,12 @@ function App() {
 
   return (
     <div className={`site-shell ${currentView === 'news-events' ? 'site-shell-hub' : currentView === 'detail' ? 'site-shell-detail' : ''}`} lang={language}>
-      <AnnouncementBar
+      {/* <AnnouncementBar
         t={t}
         language={language}
         onNavigateToHomeSection={navigateToHomeSection}
         announcement={cmsConfig?.announcement}
-      />
+      /> */}
       <SiteHeader
         currentView={currentView}
         language={language}
