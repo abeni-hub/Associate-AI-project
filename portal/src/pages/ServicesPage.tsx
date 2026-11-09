@@ -336,7 +336,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
         targetId = res?.data?.id;
       }
 
-      if (targetId) {
+      if (targetId && !payload.is_master) {
         if (payload.documents && Array.isArray(payload.documents)) {
           await syncDocsTrigger({
             serviceId: targetId,
@@ -358,7 +358,15 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
       setSelectedService(null);
       await refetch();
     } catch (err: any) {
-      window.alert(err?.data?.message || err?.message || 'Failed to save service standard.');
+      const errDetails = err?.data?.errors
+        ? Object.entries(err.data.errors)
+            .map(([field, msgs]: [string, any]) => `${field}: ${Array.isArray(msgs) ? msgs.join(' ') : msgs}`)
+            .join('\n')
+        : '';
+      const fullMsg = errDetails
+        ? `${err?.data?.message || 'Validation failed'}:\n${errDetails}`
+        : (err?.data?.message || err?.message || 'Failed to save service standard.');
+      window.alert(fullMsg);
     }
   };
 
@@ -427,17 +435,29 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
       },
       onSave: async (steps: RouteStep[], organizationId?: number | null) => {
         try {
+          const cleanOrgId =
+            organizationId && organizationId !== 0 && String(organizationId) !== 'all'
+              ? Number(organizationId)
+              : null;
+
+          const nonBlankSteps = steps.filter(
+            (s) =>
+              (s.room && s.room.trim()) ||
+              (s.title && s.title.trim()) ||
+              (s.detail && s.detail.trim())
+          );
+
           await syncStepsTrigger({
             serviceId: service.id,
-            organization_id: organizationId ?? null,
-            steps: steps.map((s, idx) => ({
+            organization_id: cleanOrgId,
+            steps: nonBlankSteps.map((s, idx) => ({
               step_number: idx + 1,
-              title: s.title,
-              instruction: s.detail || '',
-              room_number: s.room || '',
-              floor: s.floor || 'Ground Floor',
-              building: s.building || '',
-              department_name: s.department || '',
+              title: s.title?.trim() || s.room?.trim() || `Step ${idx + 1}`,
+              instruction: s.detail?.trim() || '',
+              room_number: s.room?.trim() || `Room ${idx + 1}`,
+              floor: s.floor?.trim() || 'Ground Floor',
+              building: s.building?.trim() || '',
+              department_name: s.department?.trim() || '',
               responsible_title: '',
               estimated_duration_minutes: 10,
               is_active: true,
@@ -446,7 +466,16 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
           portal.setModal(null);
           await refetch();
         } catch (err: any) {
-          window.alert(err?.data?.message || 'Failed to update service room steps.');
+          const errDetails = err?.data?.errors
+            ? Object.entries(err.data.errors)
+                .map(([field, msgs]: [string, any]) => `${field}: ${Array.isArray(msgs) ? msgs.join(' ') : msgs}`)
+                .join('\n')
+            : '';
+          const fullMsg = errDetails
+            ? `${err?.data?.message || 'Validation failed'}:\n${errDetails}`
+            : (err?.data?.message || err?.message || 'Failed to update service room steps.');
+          window.alert(fullMsg);
+          throw err;
         }
       },
     });

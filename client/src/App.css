@@ -387,6 +387,116 @@ a { color: var(--link); }
   font-weight: 700;
 }
 
+/* Live Search Filter Results Grid & Cards */
+.search-filter-results-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed #e2e8df;
+}
+.search-filter-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.search-filter-results-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #496356;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.search-filter-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 11px;
+}
+.search-filter-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 13px 15px;
+  border: 1px solid #dfe5dc;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+  position: relative;
+}
+.search-filter-card:hover {
+  border-color: #71906e;
+  box-shadow: 0 4px 14px rgba(0, 52, 64, 0.08);
+  transform: translateY(-1px);
+}
+.search-filter-card.is-active {
+  border-color: var(--ink);
+  background: #f5f9f7;
+  box-shadow: 0 0 0 2px rgba(0, 72, 90, 0.2);
+}
+.search-filter-card-category {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6a8274;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.search-filter-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #123e4a;
+  line-height: 1.35;
+  margin: 0;
+}
+.search-filter-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.search-filter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #f0f4ee;
+  color: #435b4f;
+  border: 1px solid #e0e8df;
+}
+.search-filter-badge.route {
+  background: #edf6f9;
+  color: #00485a;
+  border-color: #c9e4ec;
+  font-weight: 700;
+}
+.search-filter-badge.fee {
+  background: #fdf8ee;
+  color: #8c6014;
+  border-color: #fbe6bd;
+}
+.search-filter-active-pill {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #00485a;
+  background: #cce9f2;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
 .section-wrap { width: min(100% - 64px, 1120px); margin-inline: auto; }
 .service-guide-section { padding-top: 112px; padding-bottom: 106px; }
 .section-intro { display: flex; justify-content: space-between; align-items: end; gap: 40px; }

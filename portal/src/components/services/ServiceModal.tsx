@@ -257,7 +257,16 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
         documents: documentsPayload,
       });
     } catch (err: any) {
-      setErrorMsg(err?.data?.message || err?.message || 'Failed to save service standard. Please verify fields.');
+      const errDetails = err?.data?.errors
+        ? Object.entries(err.data.errors)
+            .map(([field, msgs]: [string, any]) => `${field}: ${Array.isArray(msgs) ? msgs.join(' ') : msgs}`)
+            .join(' | ')
+        : '';
+      setErrorMsg(
+        errDetails
+          ? `${err?.data?.message || 'Validation failed'}: ${errDetails}`
+          : err?.data?.message || err?.message || 'Failed to save service standard. Please verify fields.'
+      );
     }
   };
 

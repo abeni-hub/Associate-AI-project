@@ -329,7 +329,8 @@ class ServiceController extends Controller
     public function syncDocuments(SyncServiceDocumentsRequest $request, Service $service): JsonResponse
     {
         $syncData = [];
-        foreach ($request->validated('documents') as $doc) {
+        $docs = $request->validated('documents') ?? [];
+        foreach ($docs as $doc) {
             $syncData[$doc['document_id']] = [
                 'is_mandatory' => $doc['is_mandatory'] ?? true,
                 'order_column' => $doc['order_column'] ?? 1,
@@ -362,7 +363,8 @@ class ServiceController extends Controller
     public function syncOrganizations(SyncOfferingOrganizationsRequest $request, Service $service): JsonResponse
     {
         $syncData = [];
-        foreach ($request->validated('organizations') as $org) {
+        $orgs = $request->validated('organizations') ?? [];
+        foreach ($orgs as $org) {
             $syncData[$org['organization_id']] = [
                 'is_available' => $org['is_available'] ?? true,
             ];

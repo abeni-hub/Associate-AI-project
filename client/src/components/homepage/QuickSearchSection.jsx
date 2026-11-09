@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import Icon from '../ui/Icon.jsx'
 
 export default function QuickSearchSection({
@@ -23,9 +23,11 @@ export default function QuickSearchSection({
   const kickerNum = quickSearchContent?.kickerNum || '01'
   const kicker = quickSearchContent?.kicker || 'START HERE'
   const title = quickSearchContent?.title || 'What do you need help with?'
-  const subtitle = quickSearchContent?.subtitle || 'Choose a location and service to see your visit guide.'
-  const buttonText = quickSearchContent?.buttonText || 'Show my guide'
-  const footnoteText = quickSearchContent?.footnoteText || 'Takes less than a minute · No account needed'
+  const subtitle = quickSearchContent?.subtitle || 'Search and filter services to view your step-by-step room visit guide.'
+  const buttonText = quickSearchContent?.buttonText || 'View Visit Guide'
+  const footnoteText = quickSearchContent?.footnoteText || 'Takes less than a minute · No citizen account needed'
+
+  const [showAllResults, setShowAllResults] = useState(false)
 
   const categories = [
     { id: 'all', label: 'All Services' },
@@ -57,7 +59,36 @@ export default function QuickSearchSection({
   function handleResetFilters() {
     if (onSearchKeywordChange) onSearchKeywordChange('')
     if (onSelectCategory) onSelectCategory('all')
+    if (onSubCityChange) onSubCityChange('all')
+    if (onBureauChange) onBureauChange('all')
+    setShowAllResults(false)
   }
+
+  function handleSelectCard(selectedId) {
+    if (onServiceChange) onServiceChange(selectedId)
+    setTimeout(() => {
+      const el = document.getElementById('service-guide')
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }, 40)
+  }
+
+  // Display limited cards unless expanded or searching
+  const displayedCards = useMemo(() => {
+    if (!activeServiceList) return []
+    if (showAllResults || searchKeyword.trim().length > 0 || activeServiceList.length <= 6) {
+      return activeServiceList
+    }
+    return activeServiceList.slice(0, 6)
+  }, [activeServiceList, showAllResults, searchKeyword])
+
+  const hasActiveFilters = Boolean(
+    searchKeyword.trim() ||
+    selectedCategory !== 'all' ||
+    (subCity && subCity !== 'all') ||
+    (bureauId && bureauId !== 'all')
+  )
 
   return (
     <section className="quick-search scroll-reveal" id="find-service">
@@ -68,6 +99,7 @@ export default function QuickSearchSection({
       </div>
 
       <div className="quick-search-body">
+        {/* Live Search & Filter Bar */}
         <div className="quick-search-toolbar">
           <div className="quick-search-input-wrap">
             <Icon name="search" size={17} />
@@ -75,7 +107,7 @@ export default function QuickSearchSection({
               type="text"
               value={searchKeyword}
               onChange={(e) => onSearchKeywordChange && onSearchKeywordChange(e.target.value)}
-              placeholder={t('Search services by keyword (e.g. birth, license, tax, land)...')}
+              placeholder={t('Search services by name or keyword (e.g. birth, license, tax, land lease)...')}
               aria-label={t('Search services')}
             />
             {searchKeyword && (
@@ -90,6 +122,7 @@ export default function QuickSearchSection({
             )}
           </div>
 
+          {/* Category Filter Pills */}
           <div className="category-pills-row" role="tablist" aria-label={t('Filter by category')}>
             {categories.map((cat) => (
               <button
@@ -106,13 +139,14 @@ export default function QuickSearchSection({
           </div>
         </div>
 
+        {/* Location & Authority Filter Form */}
         <form className="search-form scroll-reveal-group" onSubmit={onSubmit}>
           <label className="select-field">
-            <span>{t('Sub-city')}</span>
+            <span>{t('Sub-city Location')}</span>
             <span className="select-wrap">
               <Icon name="pin" size={18} />
               <select value={subCity} onChange={(event) => onSubCityChange(event.target.value)}>
-                <option value="all">{t('All Sub-cities')}</option>
+                <option value="all">{t('All Sub-cities (Platform-wide)')}</option>
                 {subCityOptions && subCityOptions.length > 0 ? (
                   subCityOptions.map((name) => <option key={name} value={name}>{t(name)}</option>)
                 ) : isLoading ? (
@@ -126,11 +160,11 @@ export default function QuickSearchSection({
           </label>
 
           <label className="select-field">
-            <span>{t('City office / bureau')}</span>
+            <span>{t('City Office / Bureau')}</span>
             <span className="select-wrap">
               <Icon name="building" size={18} />
               <select value={bureauId} onChange={(event) => onBureauChange(event.target.value)}>
-                <option value="all">{t('All Bureaus / Offices')}</option>
+                <option value="all">{t('All Bureaus & Authorities')}</option>
                 {bureauOptions && bureauOptions.length > 0 ? (
                   bureauOptions.map((bureau) => <option key={bureau.id} value={bureau.id}>{t(bureau.label)}</option>)
                 ) : isLoading ? (
@@ -145,7 +179,7 @@ export default function QuickSearchSection({
 
           <label className="select-field">
             <span>
-              {t('Service')}
+              {t('Selected Service')}
               {activeServiceList && (
                 <small className="service-count-badge"> ({activeServiceList.length})</small>
               )}
@@ -184,34 +218,138 @@ export default function QuickSearchSection({
           </button>
         </form>
 
+        {/* Live Filter Results Showcase */}
+        {activeServiceList && activeServiceList.length > 0 ? (
+          <div className="search-filter-results-container">
+            <div className="search-filter-results-header">
+              <span className="search-filter-results-title">
+                <Icon name="file" size={15} />
+                {t('Matching Citizen Services')} ({activeServiceList.length})
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {hasActiveFilters && (
+                  <button type="button" onClick={handleResetFilters} className="filter-reset-link" style={{ fontSize: '11px' }}>
+                    {t('Reset all filters')}
+                  </button>
+                )}
+                {activeServiceList.length > 6 && !searchKeyword.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllResults((prev) => !prev)}
+                    className="service-chip-btn"
+                    style={{ fontSize: '11px', fontWeight: 600 }}
+                  >
+                    {showAllResults ? t('Show fewer') : t(`Show all (${activeServiceList.length})`)}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="search-filter-results-grid">
+              {displayedCards.map((service) => {
+                const isSelected = String(service.id) === String(serviceId)
+                const raw = service.raw || {}
+                const stepCount = raw.steps?.length || raw.steps_count || 0
+                const feeText = raw.fee_amount && Number(raw.fee_amount) > 0
+                  ? `${raw.fee_amount} ${raw.fee_currency || 'ETB'}`
+                  : 'Free'
+                const durationText = raw.estimated_duration_minutes
+                  ? `${raw.estimated_duration_minutes} min`
+                  : null
+
+                return (
+                  <button
+                    key={service.id}
+                    type="button"
+                    className={`search-filter-card ${isSelected ? 'is-active' : ''}`}
+                    onClick={() => handleSelectCard(service.id)}
+                  >
+                    <div className="search-filter-card-category">
+                      <span>{service.parentName || service.organizationName || 'Citizen Service'}</span>
+                      {isSelected && (
+                        <span className="search-filter-active-pill">
+                          ✓ {t('Selected')}
+                        </span>
+                      )}
+                    </div>
+
+                    <h4 className="search-filter-card-title">{service.label}</h4>
+
+                    <div className="search-filter-card-meta">
+                      {durationText && (
+                        <span className="search-filter-badge">
+                          <Icon name="clock" size={11} /> {durationText}
+                        </span>
+                      )}
+                      <span className="search-filter-badge fee">
+                        {feeText}
+                      </span>
+                      {stepCount > 0 ? (
+                        <span className="search-filter-badge route">
+                          <Icon name="route" size={11} /> {stepCount} {stepCount === 1 ? 'room step' : 'room steps'}
+                        </span>
+                      ) : (
+                        <span className="search-filter-badge">
+                          <Icon name="pin" size={11} /> {service.organizationName || 'City Office'}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              padding: '24px 16px',
+              textAlign: 'center',
+              background: '#f8faf7',
+              borderRadius: '6px',
+              border: '1px dashed #d5ded6',
+              marginTop: '12px',
+            }}
+          >
+            <Icon name="search" size={24} />
+            <h4 style={{ margin: '8px 0 4px', fontSize: '13px', color: '#274438' }}>
+              {t('No services found matching your search filter')}
+            </h4>
+            <p style={{ margin: '0 0 12px', fontSize: '11.5px', color: '#7a8e83' }}>
+              {t('Try adjusting your search keywords, switching categories, or clearing location filters.')}
+            </p>
+            <button
+              type="button"
+              className="button button-secondary"
+              onClick={handleResetFilters}
+              style={{ fontSize: '11px', padding: '4px 12px', height: '32px' }}
+            >
+              {t('Reset all filters')}
+            </button>
+          </div>
+        )}
+
+        {/* Footer info & popular quick picks */}
         <div className="quick-search-footer">
           <div className="search-footnote">
             <Icon name="sparkle" size={14} />
             <span>{t(footnoteText)}</span>
           </div>
 
-          {(searchKeyword || selectedCategory !== 'all') ? (
-            <div className="search-filter-status">
-              <span>{activeServiceList?.length ?? 0} {t('services found')}</span>
-              <button type="button" onClick={handleResetFilters} className="filter-reset-link">
-                {t('Reset filters')}
-              </button>
-            </div>
-          ) : quickPicks.length > 0 ? (
+          {!hasActiveFilters && quickPicks.length > 0 && (
             <div className="quick-service-chips">
-              <span className="chips-label">{t('Popular:')}</span>
+              <span className="chips-label">{t('Quick Picks:')}</span>
               {quickPicks.map((srv) => (
                 <button
                   key={srv.id}
                   type="button"
                   className={`service-chip-btn ${srv.id === serviceId ? 'is-selected' : ''}`}
-                  onClick={() => onServiceChange(srv.id)}
+                  onClick={() => handleSelectCard(srv.id)}
                 >
                   {t(srv.label)}
                 </button>
               ))}
             </div>
-          ) : null}
+          )}
         </div>
       </div>
     </section>

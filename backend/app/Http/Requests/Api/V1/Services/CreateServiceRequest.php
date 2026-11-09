@@ -21,6 +21,30 @@ class CreateServiceRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        $code = $this->input('code');
+        if ($code !== null) {
+            $cleaned = strtolower(trim((string) $code));
+            $cleaned = preg_replace('/[^a-z0-9\-]+/', '-', $cleaned);
+            $cleaned = trim($cleaned, '-');
+            $this->merge(['code' => $cleaned]);
+        }
+
+        $parentId = $this->input('parent_id');
+        if ($parentId === '' || $parentId === 0 || $parentId === '0' || $parentId === 'null') {
+            $this->merge(['parent_id' => null]);
+        }
+
+        $orgId = $this->input('organization_id');
+        if ($orgId === '' || $orgId === 0 || $orgId === '0' || $orgId === 'null') {
+            $this->merge(['organization_id' => null]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
