@@ -6,7 +6,7 @@ import { useGetServicesQuery } from '../../services/servicesApi.js'
 
 const feedbackTypes = [
   { value: 'Complaint', icon: 'news', label: 'A complaint', copy: 'Something needs attention' },
-  { value: 'Suggestion', icon: 'sparkle', label: 'A suggestion', copy: 'An idea for improvement' },
+  { value: 'Suggestion', icon: 'file', label: 'A suggestion', copy: 'An idea for improvement' },
   { value: 'Satisfaction', icon: 'heart', label: 'A rating', copy: 'Share how it went' },
 ]
 
@@ -123,24 +123,6 @@ export default function FeedbackStepContent({
       }
     }
   }, [activeServices, feedback.service]);
-
-  useEffect(() => {
-    if (bureauList.length > 0) {
-      const hasMatch = bureauList.some((b) => String(b.id) === String(feedback.bureau))
-      if (!hasMatch && bureauList[0]) {
-        actions.changeBureau(bureauList[0].id)
-      }
-    }
-  }, [bureauList, feedback.bureau])
-
-  useEffect(() => {
-    if (activeServices.length > 0) {
-      const hasMatch = activeServices.some((s) => String(s.id) === String(feedback.service))
-      if (!hasMatch && activeServices[0]) {
-        actions.setService(activeServices[0].id)
-      }
-    }
-  }, [activeServices, feedback.service])
 
   if (step === 1) {
     return (

@@ -184,10 +184,38 @@ export const Icon: React.FC<IconProps> = ({ name, size = 18, strokeWidth = 1.8 }
         <path d="m9 12 2 2 4-4" />
       </>
     ),
-    spark: (
+    chart: (
       <>
-        <path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z" />
-        <path d="m19 14 1.1 2.9L23 18l-2.9 1.1L19 22l-1.1-2.9L15 18l2.9-1.1L19 14Z" />
+        <path d="M3 3v18h18M7 16v-4m5 4V8m5 8v-6" />
+      </>
+    ),
+    key: (
+      <>
+        <circle cx="7.5" cy="15.5" r="5.5" />
+        <path d="m21 2-9.6 9.6M15.5 7.5l3 3" />
+      </>
+    ),
+    alertTriangle: (
+      <>
+        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3ZM12 9v4m0 4h.01" />
+      </>
+    ),
+    checkCircle: (
+      <>
+        <circle cx="12" cy="12" r="10" />
+        <path d="m9 12 2 2 4-4" />
+      </>
+    ),
+    desktop: (
+      <>
+        <rect x="2" y="3" width="20" height="14" rx="2" />
+        <path d="M8 21h8m-4-4v4" />
+      </>
+    ),
+    mobile: (
+      <>
+        <rect x="5" y="2" width="14" height="20" rx="2" />
+        <path d="M12 18h.01" />
       </>
     ),
     filter: (
@@ -256,9 +284,11 @@ export const Icon: React.FC<IconProps> = ({ name, size = 18, strokeWidth = 1.8 }
     ),
   };
 
+  if (!paths[name]) return null;
+
   return (
     <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" {...common}>
-      {paths[name] || paths.spark}
+      {paths[name]}
     </svg>
   );
 };

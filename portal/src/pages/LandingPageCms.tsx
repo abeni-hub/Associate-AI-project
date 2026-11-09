@@ -26,7 +26,7 @@ const TINT_SWATCHES = [
 
 export const CMS_SECTIONS = [
   { id: 'announcement', num: '01', label: 'Announcement', icon: 'bell', desc: 'Top alert banner' },
-  { id: 'hero', num: '02', label: 'Hero & Spotlight', icon: 'spark', desc: 'Headlines, CTA buttons & photo slides' },
+  { id: 'hero', num: '02', label: 'Hero & Spotlight', icon: 'desktop', desc: 'Headlines, CTA buttons & photo slides' },
   { id: 'quickSearch', num: '03', label: 'Quick Search', icon: 'search', desc: 'Find service widget' },
   { id: 'serviceGuide', num: '04', label: 'Service Guide', icon: 'layers', desc: 'Step-by-step visitor checklist' },
   { id: 'journey', num: '05', label: 'Citizen Journey', icon: 'route', desc: '3-stage experience walkthrough' },
@@ -557,7 +557,7 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                       transition: 'all 0.15s ease',
                     }}
                   >
-                    <Icon name="spark" size={15} />
+                    <Icon name="edit" size={15} />
                     <span>Headlines & Call-to-Action</span>
                   </button>
 

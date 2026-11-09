@@ -347,7 +347,7 @@ export const ActivityPage: React.FC = () => {
   const actionIconMap: Record<string, string> = {
     UPDATE: 'edit',
     CREATE: 'plus',
-    PUBLISH: 'spark',
+    PUBLISH: 'checkCircle',
     SECURITY: 'shield',
     STATUS: 'arrow',
     DELETE: 'close',
@@ -534,7 +534,7 @@ export const ActivityPage: React.FC = () => {
               ) : (
                 filteredActivities.map((event) => {
                   const tone = actionToneMap[event.actionType] || 'teal';
-                  const icon = actionIconMap[event.actionType] || 'spark';
+                  const icon = actionIconMap[event.actionType] || 'activity';
 
                   return (
                     <tr

@@ -290,7 +290,7 @@ export default function SearchableSelect({
                           {opt.subtext && <small>{t(opt.subtext)}</small>}
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                        <div className="searchable-select-badges">
                           {stepCount > 0 && (
                             <span className="search-filter-badge route" style={{ fontSize: '9px', padding: '1px 5px' }}>
                               {stepCount} {stepCount === 1 ? 'step' : 'steps'}
@@ -328,7 +328,7 @@ export default function SearchableSelect({
                       {opt.subtext && <small>{t(opt.subtext)}</small>}
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <div className="searchable-select-badges">
                       {stepCount > 0 && (
                         <span className="search-filter-badge route" style={{ fontSize: '9px', padding: '1px 5px' }}>
                           {stepCount} {stepCount === 1 ? 'step' : 'steps'}

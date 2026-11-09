@@ -236,6 +236,7 @@ a { color: var(--link); }
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+  width: 100%;
 }
 .quick-search-toolbar {
   display: flex;
@@ -557,6 +558,14 @@ a { color: var(--link); }
   border: 1px solid #e0e8df;
   white-space: nowrap;
   flex-shrink: 0;
+}
+.searchable-select-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .search-filter-badge.route {
   background: #edf6f9;
@@ -1218,13 +1227,20 @@ a { color: var(--link); }
 
 @media (max-width: 1080px) {
   .site-header { width: min(calc(100% - 48px), 1296px); }
+  .hero-carousel-caption { max-width: 280px; bottom: 84px; }
+  .hero-copy { width: min(100%, 520px); }
   .quick-search { width: min(100% - 48px, 1296px); }
   .quick-search { grid-template-columns: 220px 1fr; column-gap: 20px; padding-inline: 25px; }
   .search-form { grid-template-columns: 1fr 1fr; }
+  .search-form .search-button { width: 100%; }
   .search-footnote { grid-column: 2; }
   .section-wrap { width: min(100% - 48px, 1120px); }
   .feedback-layout { gap: 5%; }
   .footer-main { grid-template-columns: .9fr 1fr 1.25fr; }
+}
+
+@media (max-width: 900px) {
+  .hero-carousel-caption { display: none; }
 }
 
 @media (max-width: 760px) {
@@ -1240,11 +1256,13 @@ a { color: var(--link); }
   .main-nav { display: none; position: absolute; top: 62px; left: 0; right: 0; padding: 14px; background: #f8f9f4; border: 1px solid #e3e9e0; box-shadow: var(--shadow-soft); flex-direction: column; align-items: stretch; gap: 0; }
   .main-nav.is-open { display: flex; }
   .main-nav > a { padding: 12px 8px; border-bottom: 1px solid #edf0eb; color: var(--ink); font-size: 12px; }
+  .main-nav .language-selector { display: flex; width: 100%; margin-top: 12px; padding: 3px; background: #edf2ef; border-color: #cbd8d3; }
+  .main-nav .language-selector .lang-btn { flex: 1; text-align: center; padding: 8px 6px; font-size: 12px; }
   .nav-feedback { justify-content: space-between; margin-top: 10px; border-color: #ced8ce; background: transparent; color: var(--ink); }
   .language-toggle { justify-content: flex-start; width: 100%; min-height: 42px; margin-top: 10px; padding-inline: 15px; border-color: #ced8ce; background: transparent; }
   .hero-section { width: 100%; min-height: calc(100vh - 36px); min-height: calc(100svh - 36px); padding: 126px 22px 103px; align-items: center; }
   .hero-copy { width: min(100%, 570px); padding: 0; }
-  .hero-copy h1 { margin-top: 16px; font-size: clamp(46px, 10vw, 68px); }
+  .hero-copy h1 { margin-top: 16px; font-size: clamp(44px, 9.5vw, 64px); }
   .hero-lede { max-width: 490px; margin-top: 17px; font-size: 13px; }
   .hero-actions { margin-top: 23px; gap: 8px; }
   .button { min-height: 44px; padding-inline: 13px; gap: 8px; font-size: 10px; }
@@ -1263,15 +1281,17 @@ a { color: var(--link); }
   .search-form .search-button { font-size: 11px; }
   .search-footnote { margin-top: 15px; font-size: 8px; }
   .section-wrap { width: calc(100% - 36px); }
-  .service-guide-section { padding-top: 74px; padding-bottom: 70px; }
+  .service-guide-section { padding-top: 64px; padding-bottom: 60px; }
   .section-intro { display: block; }
-  .section-intro h2, .news-header h2 { font-size: 39px; }
+  .section-intro h2, .news-header h2 { font-size: 36px; }
   .section-intro > p { margin: 16px 0 0; font-size: 10px; }
   .guide-card { margin-top: 24px; padding: 20px 17px 0; }
-  .guide-card-top { padding-bottom: 18px; }
+  .guide-card-top { padding-bottom: 18px; flex-direction: column; align-items: flex-start; gap: 12px; }
   .guide-card-top h3 { font-size: 19px; }
   .guide-location { font-size: 8px; flex-wrap: wrap; }
-  .sample-badge { font-size: 6px; padding: 6px; }
+  .sample-badge { font-size: 6px; padding: 6px; align-self: flex-start; }
+  .guide-actions-bar { width: 100%; flex-direction: column; align-items: stretch; gap: 8px; }
+  .guide-action-btn { width: 100%; justify-content: center; padding: 10px 14px; }
   .guide-content-grid { grid-template-columns: 1fr; }
   .documents-panel { padding: 19px 0 20px; }
   .route-panel { padding: 19px 0 21px; border-left: 0; border-top: 1px solid #edf0eb; }
@@ -1281,16 +1301,16 @@ a { color: var(--link); }
   .route-description small { font-size: 7px; }
   .guide-card-bottom { align-items: flex-start; flex-direction: column; gap: 9px; font-size: 7px; }
   .sample-disclaimer { font-size: 7px; line-height: 1.6; }
-  .journey-section { padding: 69px 0 70px; }
+  .journey-section { padding: 60px 0 60px; }
   .journey-cards { grid-template-columns: 1fr; gap: 10px; margin-top: 23px; }
-  .journey-card { height: 245px; padding: 18px; }
+  .journey-card { height: auto; min-height: 230px; padding: 18px 18px 50px; }
   .journey-card h3 { font-size: 19px; }
-  .journey-card p { font-size: 9px; max-width: 270px; }
+  .journey-card p { font-size: 9.5px; max-width: 100%; }
   .journey-card > a, .journey-card > button { bottom: 17px; left: 18px; }
   .qr-note { align-items: flex-start; flex-wrap: wrap; padding: 14px; gap: 11px; }
   .qr-note p { min-width: calc(100% - 52px); line-height: 1.6; }
   .qr-note button { width: 100%; justify-content: flex-start; border-left: 0; border-top: 1px solid #e4e9e0; padding: 10px 0 0; }
-  .news-section { padding-top: 73px; padding-bottom: 73px; }
+  .news-section { padding-top: 64px; padding-bottom: 64px; }
   .news-header { align-items: flex-start; flex-direction: column; gap: 13px; }
   .news-header h2 { margin-bottom: 0; }
   .news-grid { grid-template-columns: 1fr; gap: 11px; margin-top: 24px; }
@@ -1300,9 +1320,9 @@ a { color: var(--link); }
   .news-small-card { min-height: 230px; }
   .news-small-card h3 { font-size: 17px; }
   .news-disclaimer { text-align: left; }
-  .feedback-section { padding: 70px 0 68px; }
+  .feedback-section { padding: 60px 0 60px; }
   .feedback-layout { display: flex; flex-direction: column; align-items: stretch; gap: 27px; }
-  .feedback-copy h2 { font-size: 39px; }
+  .feedback-copy h2 { font-size: 36px; }
   .feedback-copy > p { margin-top: 14px; font-size: 10px; }
   .feedback-points { gap: 12px; margin-top: 17px; }
   .feedback-quote { display: none; }
@@ -1312,6 +1332,19 @@ a { color: var(--link); }
   .feedback-form-card .feedback-success .button { font-size: 11px; }
   .feedback-form-footer { margin-inline: -17px; padding-inline: 17px; }
   .feedback-success { min-height: 322px; }
+  .complaint-tracker { padding: 22px 18px; }
+  .tracker-heading { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+  .tracker-search-bar { flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .tracker-search-bar .track-btn { width: 100%; justify-content: center; }
+  .tracker-result-card { padding: 18px 14px; }
+  .result-header { flex-direction: column; align-items: flex-start; gap: 10px; padding-bottom: 14px; }
+  .tracker-timeline { flex-direction: column; align-items: flex-start; gap: 0; margin: 18px 0; padding-left: 6px; }
+  .timeline-step { flex-direction: row; align-items: center; text-align: left; gap: 12px; width: 100%; }
+  .timeline-node { flex-shrink: 0; }
+  .timeline-connector { width: 2px; height: 22px; flex: none; margin: 2px 0 2px 15px; }
+  .tracker-meta-grid { grid-template-columns: 1fr; gap: 12px; padding: 12px 14px; }
+  .tracker-actions { flex-direction: column; width: 100%; }
+  .tracker-actions button, .tracker-actions a { width: 100%; justify-content: center; }
   .admin-strip { flex-wrap: wrap; gap: 11px; padding-block: 24px; }
   .admin-strip-icon { width: 39px; height: 39px; }
   .admin-strip > div:nth-child(2) { flex: 1 1 calc(100% - 55px); }
@@ -1324,19 +1357,74 @@ a { color: var(--link); }
   .footer-bottom { min-height: 55px; gap: 7px; flex-direction: column; align-items: flex-start; justify-content: center; font-size: 7px; }
 }
 
+@media (max-width: 480px) {
+  .site-header { width: calc(100% - 24px); height: 64px; top: 24px; }
+  .section-wrap { width: calc(100% - 24px); }
+  .announcement-bar { flex-wrap: wrap; padding: 6px 12px; gap: 4px 8px; font-size: 8.5px; }
+  .announcement-bar a { margin-left: 0; }
+  .hero-section { padding: 104px 16px 80px; }
+  .hero-copy h1 { font-size: clamp(34px, 8.5vw, 44px); margin-top: 12px; }
+  .hero-lede { font-size: 12.5px; line-height: 1.6; margin-top: 14px; }
+  .hero-actions { flex-direction: column; gap: 8px; margin-top: 18px; }
+  .hero-actions .button { width: 100%; justify-content: center; min-height: 42px; }
+  .quick-search { width: calc(100% - 24px); margin-top: 16px; padding: 16px 14px 14px; border-radius: 8px; }
+  .quick-search-heading h2 { font-size: 16px; margin: 8px 0 4px; }
+  .quick-search-heading p { font-size: 11px; line-height: 1.45; }
+  .search-form { gap: 10px; margin-top: 14px; }
+  .select-wrap, .searchable-select-trigger { height: 44px; font-size: 12.5px; }
+  .search-button { height: 44px; min-height: 44px; font-size: 11px; }
+  .quick-search-match-bar { padding: 8px 10px; gap: 8px; }
+  .quick-service-chips-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .service-chip-btn { font-size: 10.5px; padding: 4px 8px; max-width: 100%; white-space: normal; text-align: left; }
+  .quick-search-empty-state { flex-direction: column; align-items: flex-start; text-align: left; gap: 10px; padding: 12px; }
+  .service-guide-section { padding-top: 48px; padding-bottom: 48px; }
+  .section-intro h2, .news-header h2, .feedback-copy h2 { font-size: clamp(25px, 7.5vw, 32px); line-height: 1.2; }
+  .guide-card { margin-top: 16px; padding: 16px 12px 0; border-radius: 8px; }
+  .guide-card-top { padding-bottom: 12px; }
+  .guide-card-top h3 { font-size: 17px; }
+  .guide-badges-row { gap: 5px; margin: 8px 0; }
+  .guide-badge { font-size: 10px; padding: 3px 7px; }
+  .room-route li { grid-template-columns: 16px 8px 1fr; grid-template-areas: "num track pill" "num track desc"; row-gap: 4px; column-gap: 8px; align-items: start; padding: 4px 0; }
+  .route-number { grid-area: num; align-self: start; padding-top: 3px; }
+  .route-track { grid-area: track; }
+  .room-pill { grid-area: pill; justify-self: start; }
+  .route-description { grid-area: desc; }
+  .journey-section { padding: 44px 0 46px; }
+  .journey-card { min-height: 210px; height: auto; padding: 16px 14px 48px; }
+  .journey-card h3 { font-size: 17px; }
+  .journey-card p { font-size: 10.5px; line-height: 1.6; max-width: 100%; }
+  .qr-note { padding: 12px; gap: 10px; }
+  .news-section { padding-top: 48px; padding-bottom: 48px; }
+  .feedback-section { padding: 44px 0 46px; }
+  .feedback-tabs-nav { gap: 4px; padding: 3px; }
+  .feedback-tab-btn { padding: 8px 6px; font-size: 11px; gap: 4px; }
+  .feedback-tab-btn svg { width: 14px; height: 14px; }
+  .feedback-form-card { padding: 18px 12px 0; border-radius: 8px; }
+  .feedback-form-footer { margin-inline: -12px; padding: 10px 12px; flex-direction: column; gap: 6px; align-items: center; text-align: center; }
+  .feedback-form-actions { min-height: 52px; }
+  .complaint-tracker { padding: 16px 12px; border-radius: 8px; }
+  .tracker-header-info h3 { font-size: 17px; }
+  .reference-number-row h4 { font-size: 16px; }
+  .searchable-select-badges { max-width: 45%; gap: 4px; }
+  .search-filter-badge { font-size: 8.5px; padding: 1px 4px; }
+  .admin-strip { padding-block: 18px; }
+  .admin-strip-roles { margin-left: 0; width: 100%; flex-wrap: wrap; gap: 6px; }
+  .footer-main { padding-block: 20px; }
+  .footer-bottom { font-size: 8px; }
+}
+
 @media (max-width: 390px) {
   .announcement-bar { font-size: 8px; gap: 6px; }
   .announcement-bar a { font-size: 8px; }
-  .hero-copy h1 { font-size: 43px; }
+  .hero-copy h1 { font-size: 38px; }
   .hero-actions { align-items: stretch; flex-direction: column; }
   .hero-actions .button { width: 100%; }
-  .section-intro h2, .news-header h2, .feedback-copy h2 { font-size: 35px; }
-  .guide-card { padding-inline: 13px; }
+  .section-intro h2, .news-header h2, .feedback-copy h2 { font-size: 28px; }
+  .guide-card { padding-inline: 11px; }
   .guide-card-top { gap: 9px; }
-  .guide-card-top h3 { font-size: 17px; }
+  .guide-card-top h3 { font-size: 16px; }
   .sample-badge { font-size: 5px; }
-  .room-route li { grid-template-columns: 15px 9px auto 1fr; gap: 5px; }
-  .room-pill { padding: 5px 6px; font-size: 7px; }
+  .room-pill { padding: 4px 6px; font-size: 7px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1592,9 +1680,9 @@ a { color: var(--link); }
 @media (max-width: 390px) {
   :where(.site-shell[lang="am"]) .announcement-bar { font-size: calc((8px) * 0.9); }
   :where(.site-shell[lang="am"]) .announcement-bar a { font-size: calc((8px) * 0.9); }
-  :where(.site-shell[lang="am"]) .hero-copy h1 { font-size: calc((43px) * 0.9); }
-  :where(.site-shell[lang="am"]) .section-intro h2, :where(.site-shell[lang="am"]) .news-header h2, :where(.site-shell[lang="am"]) .feedback-copy h2 { font-size: calc((35px) * 0.9); }
-  :where(.site-shell[lang="am"]) .guide-card-top h3 { font-size: calc((17px) * 0.9); }
+  :where(.site-shell[lang="am"]) .hero-copy h1 { font-size: calc((38px) * 0.9); }
+  :where(.site-shell[lang="am"]) .section-intro h2, :where(.site-shell[lang="am"]) .news-header h2, :where(.site-shell[lang="am"]) .feedback-copy h2 { font-size: calc((28px) * 0.9); }
+  :where(.site-shell[lang="am"]) .guide-card-top h3 { font-size: calc((16px) * 0.9); }
   :where(.site-shell[lang="am"]) .sample-badge { font-size: calc((5px) * 0.9); }
   :where(.site-shell[lang="am"]) .room-pill { font-size: calc((7px) * 0.9); }
 }
@@ -1942,6 +2030,7 @@ a { color: var(--link); }
   align-items: center;
   gap: 12px;
   margin-top: 2px;
+  flex-wrap: wrap;
 }
 .reference-number-row h4 {
   margin: 0;
@@ -1949,6 +2038,7 @@ a { color: var(--link); }
   color: var(--ink-deep);
   font-family: monospace;
   letter-spacing: 1px;
+  word-break: break-all;
 }
 .copy-btn {
   display: inline-flex;

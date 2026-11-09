@@ -64,7 +64,6 @@ export default function ServiceGuideSection({ t, serviceGuide, guideService, gui
                   </span>
                 </span>
                 <span className="guide-badge badge-fee">
-                  <Icon name="sparkle" size={13} />
                   <span>
                     {guideService.feeAmount
                       ? `${guideService.feeAmount} ${guideService.feeCurrency || 'ETB'}`

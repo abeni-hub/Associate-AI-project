@@ -274,7 +274,6 @@ export default function QuickSearchSection({
         {/* Footer info footnote */}
         <div className="quick-search-footer">
           <div className="search-footnote">
-            <Icon name="sparkle" size={14} />
             <span>{t(footnoteText)}</span>
           </div>
         </div>
