@@ -1,18 +1,18 @@
 import Icon from '../ui/Icon.jsx'
 
-export default function ServiceGuideSection({ t, serviceGuide, guideService, guideBureau, serviceGuideContent }) {
+export default function ServiceGuideSection({ t, serviceGuide, guideService, guideBureau, serviceGuideContent, language }) {
   if (serviceGuideContent?.enabled === false) return null
 
   const kickerNum = serviceGuideContent?.kickerNum || '02'
-  const kicker = serviceGuideContent?.kicker || 'YOUR VISIT GUIDE'
-  const titleLead = serviceGuideContent?.titleLead || 'A clearer path,'
-  const titleEmphasis = serviceGuideContent?.titleEmphasis || 'step by step.'
-  const description = serviceGuideContent?.description || 'Know what to bring and which room to visit, before you set off.'
-  const sampleBadgeText = serviceGuideContent?.sampleBadgeText || (guideService ? 'OFFICIAL GUIDE' : 'SERVICE GUIDE')
-  const whatToBringTitle = serviceGuideContent?.whatToBringTitle || 'What to bring'
-  const expectationsNote = serviceGuideContent?.expectationsNote || 'Bring original documents where available. Ask the bureau if requirements have changed.'
-  const defaultRouteHeading = serviceGuideContent?.routeHeading || 'Your room-by-room route'
-  const disclaimerText = serviceGuideContent?.disclaimerText || 'Official public service delivery guide published and maintained by the Addis Ababa City Administration.'
+  const kicker = (language === 'am' && serviceGuideContent?.kickerAm) || serviceGuideContent?.kicker || 'YOUR VISIT GUIDE'
+  const titleLead = (language === 'am' && serviceGuideContent?.titleLeadAm) || serviceGuideContent?.titleLead || 'A clearer path,'
+  const titleEmphasis = (language === 'am' && serviceGuideContent?.titleEmphasisAm) || serviceGuideContent?.titleEmphasis || 'step by step.'
+  const description = (language === 'am' && serviceGuideContent?.descriptionAm) || serviceGuideContent?.description || 'Know what to bring and which room to visit, before you set off.'
+  const sampleBadgeText = (language === 'am' && serviceGuideContent?.sampleBadgeTextAm) || serviceGuideContent?.sampleBadgeText || (guideService ? 'OFFICIAL GUIDE' : 'SERVICE GUIDE')
+  const whatToBringTitle = (language === 'am' && serviceGuideContent?.whatToBringTitleAm) || serviceGuideContent?.whatToBringTitle || 'What to bring'
+  const expectationsNote = (language === 'am' && serviceGuideContent?.expectationsNoteAm) || serviceGuideContent?.expectationsNote || 'Bring original documents where available. Ask the bureau if requirements have changed.'
+  const defaultRouteHeading = (language === 'am' && serviceGuideContent?.routeHeadingAm) || serviceGuideContent?.routeHeading || 'Your room-by-room route'
+  const disclaimerText = (language === 'am' && serviceGuideContent?.disclaimerTextAm) || serviceGuideContent?.disclaimerText || 'Official public service delivery guide published and maintained by the Addis Ababa City Administration.'
 
   return (
     <section className="service-guide-section section-wrap" id="service-guide">
@@ -26,7 +26,7 @@ export default function ServiceGuideSection({ t, serviceGuide, guideService, gui
       <article className="guide-card scroll-reveal">
         <div className="guide-card-top">
           <div>
-            <div className="guide-location"><Icon name="pin" size={15} /> {serviceGuide?.subCity ? t(serviceGuide.subCity) : t('Addis Ababa')} {serviceGuide?.subCity ? t('Sub-city') : ''} <span>·</span> {guideBureau ? t(guideBureau.shortLabel || guideBureau.label) : t('Public Desk')}</div>
+            <div className="guide-location"><Icon name="pin" size={15} /> {serviceGuide?.subCity ? t(serviceGuide.subCity) : t('Addis Ababa')} {serviceGuide?.subCity ? t('Sub-city') : ''} <span>·</span> {guideBureau ? t(guideBureau.label || guideBureau.shortLabel) : t('Public Desk')}</div>
             <h3>{guideService ? t(guideService.label) : t('Select a service to view guide')}</h3>
             <p>{guideService ? t(guideService.summary) : t('Use the search above to pick an office and service.')}</p>
           </div>

@@ -2,7 +2,7 @@ import Icon from '../ui/Icon.jsx'
 import BrandMark from '../ui/BrandMark.jsx'
 import ClientLandingPageFrame from './ClientLandingPageFrame.jsx'
 
-function LiveLandingPreview({ config, previewDevice = 'desktop', onToggleDevice }) {
+function LiveLandingPreview({ config, previewDevice = 'desktop', onToggleDevice, previewLang = 'en' }) {
   const isMobile = previewDevice === 'mobile'
 
   return (
@@ -66,7 +66,7 @@ function LiveLandingPreview({ config, previewDevice = 'desktop', onToggleDevice 
           )}
 
           <div className="preview-viewport">
-            <ClientLandingPageFrame cmsConfig={config} isMobile={isMobile} />
+            <ClientLandingPageFrame cmsConfig={config} isMobile={isMobile} previewLanguage={previewLang} />
           </div>
         </div>
       </div>

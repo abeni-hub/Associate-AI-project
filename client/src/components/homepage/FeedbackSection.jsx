@@ -5,16 +5,35 @@ export default function FeedbackSection({ language, t, feedbackContent }) {
   if (feedbackContent?.enabled === false) return null
 
   const kickerNum = feedbackContent?.kickerNum || '05'
-  const kicker = feedbackContent?.kicker || 'YOUR VOICE HELPS'
-  const rawTitle = feedbackContent?.title || 'Every experience can make things better.'
-  const description = feedbackContent?.description || 'Tell us how your visit went. Your feedback reaches the right bureau and helps improve services for everyone.'
-  const pointOne = feedbackContent?.pointOne || 'No account needed'
-  const pointTwo = feedbackContent?.pointTwo || 'Scan a bureau QR code'
-  const quote = feedbackContent?.quote || 'Clear guidance before your visit. A simple way to be heard afterward.'
+  const kicker = (language === 'am' && feedbackContent?.kickerAm) || feedbackContent?.kicker || 'YOUR VOICE HELPS'
+  const rawTitle = (language === 'am' && feedbackContent?.titleAm) || feedbackContent?.title || 'Every experience can make things better.'
+  const description = (language === 'am' && feedbackContent?.descriptionAm) || feedbackContent?.description || 'Tell us how your visit went. Your feedback reaches the right bureau and helps improve services for everyone.'
+  const pointOne = (language === 'am' && feedbackContent?.pointOneAm) || feedbackContent?.pointOne || 'No account needed'
+  const pointTwo = (language === 'am' && feedbackContent?.pointTwoAm) || feedbackContent?.pointTwo || 'Scan a bureau QR code'
+  const quote = (language === 'am' && feedbackContent?.quoteAm) || feedbackContent?.quote || 'Clear guidance before your visit. A simple way to be heard afterward.'
 
-  const words = rawTitle.trim().split(' ')
-  const lastWord = words.length > 1 ? words.pop() : ''
-  const mainTitle = words.join(' ')
+  let mainTitle = rawTitle
+  let lastWord = ''
+
+  if (language === 'am') {
+    if (feedbackContent?.titleAm) {
+      const words = feedbackContent.titleAm.trim().split(/\s+/)
+      if (words.length > 2) {
+        lastWord = words.pop()
+        mainTitle = words.join(' ')
+      } else {
+        mainTitle = feedbackContent.titleAm
+        lastWord = ''
+      }
+    } else {
+      mainTitle = 'እያንዳንዱ ልምድ ለውጥ'
+      lastWord = 'ያመጣል።'
+    }
+  } else {
+    const words = rawTitle.trim().split(' ')
+    lastWord = words.length > 1 ? words.pop() : ''
+    mainTitle = words.join(' ')
+  }
 
   return (
     <section className="feedback-section" id="feedback">

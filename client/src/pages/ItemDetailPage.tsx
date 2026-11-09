@@ -152,45 +152,50 @@ export default function ItemDetailPage({
       />
 
       <div className="nep-detail-container detail-page-main">
-        <DetailHeroMedia item={item} title={title} language={language} />
+        {/* Unified Modern Collected Editorial Card */}
+        <div className="nep-detail-editorial-card">
+          <DetailHeroMedia item={item} title={title} language={language} />
 
-        <DetailHeader
-          isAm={isAm}
-          item={item}
-          title={title}
-          summary={summary}
-          category={category}
-          bureau={bureau}
-          subCity={subCity}
-          language={language}
-          copied={copied}
-          onCopyLink={handleShare}
-        />
-
-        <div className="nep-detail-body-grid">
-          <main className="nep-detail-main">
-            <DetailArticleContent
+          <div className="nep-detail-card-inner">
+            <DetailHeader
               isAm={isAm}
               item={item}
-              content={content}
+              title={title}
+              summary={summary}
+              category={category}
               bureau={bureau}
+              subCity={subCity}
+              language={language}
+              copied={copied}
+              onCopyLink={handleShare}
             />
-          </main>
 
-          {item.type === 'event' && (
-            <aside className="nep-detail-sidebar">
-              <EventSpecsCard
-                item={item}
-                language={language}
-                rsvpName={rsvpName}
-                rsvpPhone={rsvpPhone}
-                rsvpStatus={rsvpStatus}
-                onRsvpNameChange={(e: ChangeEvent<HTMLInputElement>) => setRsvpName(e.target.value)}
-                onRsvpPhoneChange={(e: ChangeEvent<HTMLInputElement>) => setRsvpPhone(e.target.value)}
-                onSubmitRsvp={handleRsvpSubmit}
-              />
-            </aside>
-          )}
+            <div className="nep-detail-body-grid">
+              <main className="nep-detail-main">
+                <DetailArticleContent
+                  isAm={isAm}
+                  item={item}
+                  content={content}
+                  bureau={bureau}
+                />
+              </main>
+
+              {item.type === 'event' && (
+                <aside className="nep-detail-sidebar">
+                  <EventSpecsCard
+                    item={item}
+                    language={language}
+                    rsvpName={rsvpName}
+                    rsvpPhone={rsvpPhone}
+                    rsvpStatus={rsvpStatus}
+                    onRsvpNameChange={(e: ChangeEvent<HTMLInputElement>) => setRsvpName(e.target.value)}
+                    onRsvpPhoneChange={(e: ChangeEvent<HTMLInputElement>) => setRsvpPhone(e.target.value)}
+                    onSubmitRsvp={handleRsvpSubmit}
+                  />
+                </aside>
+              )}
+            </div>
+          </div>
         </div>
 
         {related.length > 0 && (

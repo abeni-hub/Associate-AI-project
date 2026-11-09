@@ -1,8 +1,12 @@
 import Icon from '../ui/Icon.jsx'
 import { heroSlides } from '../../data/homePageData.js'
 
-export default function HeroBureauCarousel({ activeIndex, onSlideChange, isPlaying, onPlayingChange, t, slides = heroSlides }) {
+export default function HeroBureauCarousel({ activeIndex, onSlideChange, isPlaying, onPlayingChange, t, slides = heroSlides, language }) {
   const slide = slides[activeIndex] || slides[0]
+  const isAm = language === 'am'
+  const bureauText = (isAm && slide.bureauAm) || slide.bureau
+  const titleText = (isAm && slide.titleAm) || slide.title
+  const descText = (isAm && slide.descriptionAm) || slide.description || slide.category
 
   return (
     <section className="hero-carousel" aria-label={t('Featured government bureaus')} aria-roledescription="carousel" style={{ '--slide-tint': slide.tint }}>
@@ -12,7 +16,7 @@ export default function HeroBureauCarousel({ activeIndex, onSlideChange, isPlayi
             key={item.id ?? `${item.bureau}-${index}`}
             className={`hero-photo ${index === activeIndex ? 'is-active' : ''}`}
             src={item.image}
-            alt={index === activeIndex ? t(item.alt) : ''}
+            alt={index === activeIndex ? t((isAm && item.altAm) || item.alt) : ''}
             aria-hidden={index !== activeIndex}
             loading={index === 0 ? 'eager' : 'lazy'}
             onError={(event) => { event.currentTarget.style.display = 'none' }}
@@ -22,9 +26,9 @@ export default function HeroBureauCarousel({ activeIndex, onSlideChange, isPlayi
       <div className="hero-photo-scrim" />
       <div key={slide.bureau} className="hero-carousel-caption" aria-live={isPlaying ? 'off' : 'polite'} aria-atomic="true">
         <span className="hero-slide-count">0{activeIndex + 1} <i>/ 0{slides.length}</i></span>
-        <span className="hero-bureau-tag">{t(slide.bureau)}</span>
-        <h2>{t(slide.title)}</h2>
-        <p>{t(slide.description)}</p>
+        <span className="hero-bureau-tag">{t(bureauText)}</span>
+        <h2>{t(titleText)}</h2>
+        <p>{t(descText)}</p>
       </div>
       <div className="hero-carousel-bottom">
         <div className="hero-carousel-dots" role="group" aria-label={t('Choose a bureau spotlight')}>

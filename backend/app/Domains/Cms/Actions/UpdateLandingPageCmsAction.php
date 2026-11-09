@@ -6,6 +6,7 @@ namespace App\Domains\Cms\Actions;
 
 use App\Domains\AuditLogs\Actions\RecordAuditLogAction;
 use App\Domains\Cms\Models\LandingPageConfig;
+use App\Domains\Cms\Support\DefaultLandingPageContent;
 use App\Domains\Users\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -32,10 +33,23 @@ class UpdateLandingPageCmsAction
 
             $oldValues = $config->exists ? $config->toArray() : null;
 
+            // Merge incoming payload with existing content and default schema so sections are never wiped
+            $existing = is_array($config->content) && ! empty($config->content)
+                ? $config->content
+                : DefaultLandingPageContent::payload();
+
+            $merged = array_replace_recursive($existing, $payload);
+            if (isset($payload['hero']['slides']) && is_array($payload['hero']['slides'])) {
+                $merged['hero']['slides'] = $payload['hero']['slides'];
+            }
+            if (isset($payload['journey']['steps']) && is_array($payload['journey']['steps'])) {
+                $merged['journey']['steps'] = $payload['journey']['steps'];
+            }
+
             $config->fill([
                 'version' => 'v1',
                 'is_published' => true,
-                'content' => $payload,
+                'content' => $merged,
                 'updated_by' => $actor?->id,
             ]);
 

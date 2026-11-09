@@ -1,16 +1,15 @@
 import Icon from '../ui/Icon.jsx'
 
-export default function AnnouncementBar({ t, onNavigateToHomeSection, announcement }) {
+export default function AnnouncementBar({ t, onNavigateToHomeSection, announcement, language }) {
   if (announcement?.enabled === false) return null
 
-  const message = announcement?.message || 'One clear place to plan your next public service visit'
-  const linkText = announcement?.linkText || 'Explore the guide'
+  const message = (language === 'am' && announcement?.messageAm) || announcement?.message || 'One clear place to plan your next public service visit'
+  const linkText = (language === 'am' && announcement?.linkTextAm) || announcement?.linkText || 'Explore the guide'
   const linkUrl = announcement?.linkUrl || '#find-service'
 
   return (
     <div className="announcement-bar">
       <span className="announcement-dot" />
-      {announcement?.tag && <span className="announcement-tag">{announcement.tag}</span>}
       <span className="announcement-copy">{t(message)}</span>
       <a
         href={linkUrl}

@@ -4,7 +4,6 @@ import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { usePermissions } from '../hooks/usePermissions';
 import LiveLandingPreview from '../components/cms/LiveLandingPreview.jsx';
-import { INITIAL_CMS_CONFIG } from '../data/portalData.js';
 import {
   useGetLandingPageCmsQuery,
   useUpdateLandingPageCmsMutation,
@@ -16,63 +15,6 @@ export interface LandingPageCmsProps {
   onSaveCms?: (cms: any) => void;
 }
 
-const CURATED_IMAGE_PRESETS = [
-  {
-    title: 'Yeka Subcity Office',
-    bureau: 'REVENUE BUREAU',
-    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Local_government_building%2C_Yeka_Subcity%2C_Addis_Ababa.jpg/1280px-Local_government_building%2C_Yeka_Subcity%2C_Addis_Ababa.jpg',
-    alt: 'Local government office building in Yeka Subcity, Addis Ababa.',
-    credit: 'Yeka Subcity Office · Mjr74 (CC BY 4.0)',
-    source: 'https://commons.wikimedia.org/wiki/File:Local_government_building,_Yeka_Subcity,_Addis_Ababa.jpg',
-    tint: '#164d58',
-  },
-  {
-    title: 'Ministry of Planning',
-    bureau: 'PLANNING & DEVELOPMENT',
-    image: 'https://mopd.gov.et/media/492570380_994507082831520_8549139107595449985_n.jpg',
-    alt: 'Officials meet at Ethiopia’s Ministry of Planning and Development.',
-    credit: 'Ministry of Planning & Development',
-    source: 'https://mopd.gov.et/',
-    tint: '#365b63',
-  },
-  {
-    title: 'CRRSA Main Lobby',
-    bureau: 'CIVIL REGISTRATION',
-    image: 'https://aacrrsa.gov.et/uploads/Blog/662a29f023bf6.438697344_821273923352047_6926469178446352208_n.jpg',
-    alt: 'The Addis Ababa Civil Registration and Residency Service Agency lobby.',
-    credit: 'Civil Registration & Residency Service Agency',
-    source: 'https://aacrrsa.gov.et/',
-    tint: '#3b625e',
-  },
-  {
-    title: 'Lemi Kura Woreda 08',
-    bureau: 'LAND ADMINISTRATION',
-    image: 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Lemikurasubcityworeda08.jpg',
-    alt: 'Lemi Kura Woreda 08 local government office in Addis Ababa.',
-    credit: 'Lemi Kura Woreda 08 · Khajitdadddy (CC BY-SA 4.0)',
-    source: 'https://commons.wikimedia.org/wiki/File:Lemikurasubcityworeda08.jpg',
-    tint: '#536458',
-  },
-  {
-    title: 'Addis Ababa City Hall',
-    bureau: 'MUNICIPAL SERVICES',
-    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Addis_Ababa_City_Hall.jpg/1280px-Addis_Ababa_City_Hall.jpg',
-    alt: 'Addis Ababa City Hall municipal building facade and clock tower.',
-    credit: 'Addis Ababa City Government',
-    source: 'https://commons.wikimedia.org/wiki/File:Addis_Ababa_City_Hall.jpg',
-    tint: '#0f2a36',
-  },
-  {
-    title: 'Bole Administration',
-    bureau: 'COMMUNITY & TRADE',
-    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Bole_sub_city_administration_office.jpg/1280px-Bole_sub_city_administration_office.jpg',
-    alt: 'Bole sub-city administration center and civic service counters.',
-    credit: 'Bole Sub-City Administration',
-    source: 'https://commons.wikimedia.org/wiki/File:Bole_sub_city_administration_office.jpg',
-    tint: '#2d4536',
-  },
-];
-
 const TINT_SWATCHES = [
   { label: 'Dark Teal', color: '#164d58' },
   { label: 'Deep Slate', color: '#365b63' },
@@ -82,8 +24,30 @@ const TINT_SWATCHES = [
   { label: 'Olive Bronze', color: '#2d4536' },
 ];
 
+export const CMS_SECTIONS = [
+  { id: 'announcement', num: '01', label: 'Announcement', icon: 'bell', desc: 'Top alert banner' },
+  { id: 'hero', num: '02', label: 'Hero & Spotlight', icon: 'spark', desc: 'Headlines, CTA buttons & photo slides' },
+  { id: 'quickSearch', num: '03', label: 'Quick Search', icon: 'search', desc: 'Find service widget' },
+  { id: 'serviceGuide', num: '04', label: 'Service Guide', icon: 'layers', desc: 'Step-by-step visitor checklist' },
+  { id: 'journey', num: '05', label: 'Citizen Journey', icon: 'route', desc: '3-stage experience walkthrough' },
+  { id: 'newsEvents', num: '06', label: 'News & Events', icon: 'news', desc: 'Community updates feed' },
+  { id: 'feedback', num: '07', label: 'Feedback CTA', icon: 'message', desc: 'Citizen voice prompt' },
+  { id: 'footer', num: '08', label: 'Footer & Teams', icon: 'building', desc: 'Admin strip & bottom note' },
+] as const;
+
+const EMPTY_CMS_CONFIG: any = {
+  announcement: { enabled: true, tag: '', message: '', linkText: '', linkUrl: '' },
+  hero: { badge: '', titleEn: '', titleAm: '', subtitleEn: '', subtitleAm: '', primaryCtaText: '', primaryCtaUrl: '', secondaryCtaText: '', secondaryCtaUrl: '', slides: [] },
+  quickSearch: { enabled: true, kicker: '', kickerNum: '01', title: '', subtitle: '', buttonText: '', footnoteText: '' },
+  serviceGuide: { enabled: true, kicker: '', kickerNum: '02', titleLead: '', titleEmphasis: '', description: '', sampleBadgeText: '', whatToBringTitle: '', expectationsNote: '', routeHeading: '', disclaimerText: '' },
+  journey: { enabled: true, kicker: '', kickerNum: '03', title: '', steps: [] },
+  newsEvents: { enabled: true, kicker: '', kickerNum: '04', title: '', sourceLabel: '', showEvents: true, showNews: true, viewAllText: '', emptyMessage: '' },
+  feedback: { enabled: true, kicker: '', kickerNum: '05', title: '', description: '', pointOne: '', pointTwo: '', quote: '' },
+  footer: { enabled: true, brandTagline: '', description: '', adminStripKicker: '', adminStripTitle: '', adminStripDescription: '', copyright: '', bottomNote: '', helplinePhone: '' },
+};
+
 export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
-  cmsConfig = INITIAL_CMS_CONFIG,
+  cmsConfig,
   onSaveCms,
 }) => {
   const { data: apiCmsResponse, refetch: refetchCms } = useGetLandingPageCmsQuery(undefined, { refetchOnMountOrArgChange: true });
@@ -91,25 +55,12 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
   const [uploadImageTrigger] = useUploadCmsImageMutation();
 
   const [cms, setCms] = useState(() => {
-    try {
-      const cached = localStorage.getItem('CIVIC_LANDING_CMS_CACHE');
-      if (cached) {
-        return JSON.parse(cached);
-      }
-    } catch {
-      // ignore
-    }
-    return JSON.parse(JSON.stringify(cmsConfig || INITIAL_CMS_CONFIG));
+    return cmsConfig || apiCmsResponse?.data || EMPTY_CMS_CONFIG;
   });
 
   useEffect(() => {
     if (apiCmsResponse?.data) {
       setCms(apiCmsResponse.data);
-      try {
-        localStorage.setItem('CIVIC_LANDING_CMS_CACHE', JSON.stringify(apiCmsResponse.data));
-      } catch {
-        // ignore
-      }
     }
   }, [apiCmsResponse]);
 
@@ -122,22 +73,47 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
   const [heroSubTab, setHeroSubTab] = useState<'copy' | 'slides'>('copy');
   const [copyLang, setCopyLang] = useState<'en' | 'am'>('en');
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
-  const [imageInputMode, setImageInputMode] = useState<'preset' | 'upload' | 'url'>('preset');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const getFieldVal = (section: string, field: string) => {
+    if (section === 'hero' && field === 'title') {
+      return copyLang === 'am' ? (cms.hero?.titleAm || '') : (cms.hero?.titleEn || '');
+    }
+    if (section === 'hero' && field === 'subtitle') {
+      return copyLang === 'am' ? (cms.hero?.subtitleAm || '') : (cms.hero?.subtitleEn || '');
+    }
+    const key = copyLang === 'am' ? `${field}Am` : field;
+    return cms[section]?.[key] ?? '';
+  };
+
+  const setFieldVal = (section: string, field: string, value: any) => {
+    if (section === 'hero' && field === 'title') {
+      updateSection('hero', copyLang === 'am' ? 'titleAm' : 'titleEn', value);
+      return;
+    }
+    if (section === 'hero' && field === 'subtitle') {
+      updateSection('hero', copyLang === 'am' ? 'subtitleAm' : 'subtitleEn', value);
+      return;
+    }
+    const key = copyLang === 'am' ? `${field}Am` : field;
+    updateSection(section, key, value);
+  };
 
   const handleAddSlide = () => {
     const nextIdx = cms.hero?.slides?.length || 0;
-    const preset = CURATED_IMAGE_PRESETS[nextIdx % CURATED_IMAGE_PRESETS.length];
     const newSlide = {
       id: Date.now(),
       title: 'New Service Spotlight',
+      titleAm: '',
       bureau: 'MUNICIPAL SERVICES',
+      bureauAm: '',
       category: 'Public Services',
-      image: preset.image,
-      alt: preset.alt,
-      credit: preset.credit,
-      source: preset.source,
-      tint: preset.tint,
+      categoryAm: '',
+      image: '',
+      alt: '',
+      credit: '',
+      source: '',
+      tint: '#164d58',
     };
     setCms((prev: any) => ({
       ...prev,
@@ -179,19 +155,54 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
     });
   };
 
-  const applyPresetToSlide = (index: number, preset: typeof CURATED_IMAGE_PRESETS[0]) => {
-    setCms((prev: any) => {
-      const slides = [...(prev.hero?.slides || [])];
-      slides[index] = {
-        ...(slides[index] || {}),
-        image: preset.image,
-        alt: preset.alt,
-        credit: preset.credit,
-        source: preset.source,
-        tint: preset.tint,
-      };
-      return { ...prev, hero: { ...prev.hero, slides } };
-    });
+  const renderFlowFooter = (currentTabId: string) => {
+    const currentIndex = CMS_SECTIONS.findIndex((s) => s.id === currentTabId);
+    const prevSection = currentIndex > 0 ? CMS_SECTIONS[currentIndex - 1] : null;
+    const nextSection = currentIndex < CMS_SECTIONS.length - 1 ? CMS_SECTIONS[currentIndex + 1] : null;
+
+    return (
+      <div className="cms-tab-flow-footer">
+        {prevSection ? (
+          <button
+            type="button"
+            className="button secondary small-button"
+            onClick={() => setActiveTab(prevSection.id)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Icon name="arrow" size={13} className="flip-horizontal" />
+            <span>Back: {prevSection.label}</span>
+          </button>
+        ) : <div />}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
+            Section {currentIndex + 1} of {CMS_SECTIONS.length}
+          </span>
+          {nextSection ? (
+            <button
+              type="button"
+              className="button secondary small-button"
+              onClick={() => setActiveTab(nextSection.id)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+            >
+              <span>Next: {nextSection.label}</span>
+              <Icon name="arrow" size={13} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="button primary small-button"
+              onClick={handlePublish}
+              disabled={isPublishing}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Icon name="check" size={13} />
+              <span>{isPublishing ? 'Publishing...' : 'Save & publish all'}</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, slideIndex: number) => {
@@ -251,6 +262,7 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
         if (payload.announcement.enabled && (!payload.announcement.message || !payload.announcement.message.trim())) {
           payload.announcement.message = 'Public service notice';
         }
+        delete payload.announcement.tag;
       }
 
       // 2. Hero slides: check if any slide still has a local data URL and attempt server upload
@@ -281,9 +293,14 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
           return {
             id: s.id || idx + 1,
             title: s.title || `Slide ${idx + 1}`,
+            titleAm: s.titleAm || '',
             bureau: s.bureau || 'MUNICIPAL SERVICES',
-            category: s.category || '',
-            image: s.image || CURATED_IMAGE_PRESETS[idx % CURATED_IMAGE_PRESETS.length].image,
+            bureauAm: s.bureauAm || '',
+            category: s.category || s.description || '',
+            categoryAm: s.categoryAm || s.descriptionAm || '',
+            description: s.description || s.category || '',
+            descriptionAm: s.descriptionAm || s.categoryAm || '',
+            image: s.image || '',
             alt: s.alt || s.title || 'Civic office',
             credit: s.credit || 'CivicLink',
             source: s.source || '',
@@ -304,7 +321,7 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
 
       await updateCmsTrigger(payload).unwrap();
       await refetchCms();
-      setToastMessage('Landing page content successfully published to citizen platform!');
+      setToastMessage('Landing page content successfully published to backend database!');
     } catch (err: any) {
       console.error('Failed to update CMS on backend:', err);
       // Ensure local state and storage preserve the changes even on backend failure
@@ -317,18 +334,9 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
       }
       onSaveCms?.(cms);
 
-      const isNotFound =
-        err?.status === 404 ||
-        err?.data?.message?.includes('could not be found') ||
-        err?.data?.message?.includes('not found');
-
-      if (isNotFound) {
-        setToastMessage('Changes saved to local preview & cache! (Backend endpoint /api/v1/cms/landing-page is not deployed on this server yet)');
-      } else {
-        const errors = err?.data?.errors;
-        const errorDetail = errors ? Object.values(errors).flat().join(', ') : err?.data?.message;
-        setToastMessage(errorDetail ? `Publish notice: ${errorDetail}` : 'Changes saved locally.');
-      }
+      const errors = err?.data?.errors;
+      const errorDetail = errors ? Object.values(errors).flat().join(', ') : err?.data?.message || err?.message || 'Publish failed.';
+      setToastMessage(`Publish notice: ${errorDetail}`);
     }
     setTimeout(() => setToastMessage(''), 4500);
   };
@@ -345,10 +353,13 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
         subtitle="Edit public notice banners, hero visuals & copy, and all citizen landing page sections."
         action={canManageCms ? (isPublishing ? 'Publishing...' : 'Publish changes') : undefined}
         onAction={canManageCms ? handlePublish : undefined}
-        secondary={canManageCms ? 'Reset to default' : undefined}
+        secondary={canManageCms ? 'Reload from database' : undefined}
         onSecondary={() => {
-          if (window.confirm('Reset all CMS fields to default seed values?')) {
-            setCms(JSON.parse(JSON.stringify(cmsConfig || INITIAL_CMS_CONFIG)));
+          if (window.confirm('Discard unsaved edits and reload CMS from backend database?')) {
+            refetchCms();
+            if (apiCmsResponse?.data) {
+              setCms(apiCmsResponse.data);
+            }
           }
         }}
       />
@@ -368,78 +379,90 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
         <div className="cms-editor-card panel">
           {/* Navigation Tabs Bar for all 8 landing page sections */}
           <div className="cms-tabs-bar" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'announcement'}
-              className={`cms-tab-btn${activeTab === 'announcement' ? ' active' : ''}`}
-              onClick={() => setActiveTab('announcement')}
-            >
-              <Icon name="bell" size={15} /> Announcement
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'hero'}
-              className={`cms-tab-btn${activeTab === 'hero' ? ' active' : ''}`}
-              onClick={() => setActiveTab('hero')}
-            >
-              <Icon name="spark" size={15} /> Hero & slides
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'quickSearch'}
-              className={`cms-tab-btn${activeTab === 'quickSearch' ? ' active' : ''}`}
-              onClick={() => setActiveTab('quickSearch')}
-            >
-              <Icon name="search" size={15} /> Quick search
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'serviceGuide'}
-              className={`cms-tab-btn${activeTab === 'serviceGuide' ? ' active' : ''}`}
-              onClick={() => setActiveTab('serviceGuide')}
-            >
-              <Icon name="layers" size={15} /> Service guide
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'journey'}
-              className={`cms-tab-btn${activeTab === 'journey' ? ' active' : ''}`}
-              onClick={() => setActiveTab('journey')}
-            >
-              <Icon name="route" size={15} /> Citizen journey
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'newsEvents'}
-              className={`cms-tab-btn${activeTab === 'newsEvents' ? ' active' : ''}`}
-              onClick={() => setActiveTab('newsEvents')}
-            >
-              <Icon name="news" size={15} /> News & events
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'feedback'}
-              className={`cms-tab-btn${activeTab === 'feedback' ? ' active' : ''}`}
-              onClick={() => setActiveTab('feedback')}
-            >
-              <Icon name="message" size={15} /> Feedback & voice
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'footer'}
-              className={`cms-tab-btn${activeTab === 'footer' ? ' active' : ''}`}
-              onClick={() => setActiveTab('footer')}
-            >
-              <Icon name="building" size={15} /> Footer & teams
-            </button>
+            {CMS_SECTIONS.map((sec) => (
+              <button
+                key={sec.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === sec.id}
+                className={`cms-tab-btn${activeTab === sec.id ? ' active' : ''}`}
+                onClick={() => setActiveTab(sec.id)}
+              >
+                <span className="cms-tab-num">{sec.num}</span>
+                <Icon name={sec.icon} size={15} />
+                <span>{sec.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Active Editing Language Selector Bar */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 16px',
+              background: '#f8fafc',
+              borderBottom: '1px solid #e2e8f0',
+              flexWrap: 'wrap',
+              gap: '8px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Icon name="globe" size={16} />
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#0f2a36' }}>
+                Content Editing Language:
+              </span>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  background: copyLang === 'am' ? '#fef3c7' : '#e0f2fe',
+                  color: copyLang === 'am' ? '#92400e' : '#0369a1',
+                }}
+              >
+                {copyLang === 'am' ? 'Editing Amharic Version (አማርኛ)' : 'Editing English Version (English)'}
+              </span>
+            </div>
+
+            <div style={{ display: 'inline-flex', background: '#e2e8f0', padding: '2px', borderRadius: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setCopyLang('en')}
+                style={{
+                  padding: '5px 14px',
+                  borderRadius: '5px',
+                  border: 'none',
+                  background: copyLang === 'en' ? '#ffffff' : 'transparent',
+                  color: copyLang === 'en' ? '#00485a' : '#64748b',
+                  fontWeight: copyLang === 'en' ? 700 : 500,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  boxShadow: copyLang === 'en' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                }}
+              >
+                English (EN)
+              </button>
+              <button
+                type="button"
+                onClick={() => setCopyLang('am')}
+                style={{
+                  padding: '5px 14px',
+                  borderRadius: '5px',
+                  border: 'none',
+                  background: copyLang === 'am' ? '#ffffff' : 'transparent',
+                  color: copyLang === 'am' ? '#00485a' : '#64748b',
+                  fontWeight: copyLang === 'am' ? 700 : 500,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  boxShadow: copyLang === 'am' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                }}
+              >
+                አማርኛ (Amharic)
+              </button>
+            </div>
           </div>
 
           <div className="cms-form-body">
@@ -462,30 +485,21 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                 </div>
 
                 <div className="cms-fields-grid">
-                  <label className="modal-field">
-                    <span>Banner tag / badge</span>
-                    <input
-                      value={cms.announcement?.tag || ''}
-                      placeholder="e.g. PUBLIC ADVISORY"
-                      onChange={(e) => updateSection('announcement', 'tag', e.target.value)}
-                    />
-                  </label>
-
                   <label className="modal-field full">
-                    <span>Notice message</span>
+                    <span>Notice message {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.announcement?.message || ''}
-                      placeholder="Enter announcement text shown to citizens"
-                      onChange={(e) => updateSection('announcement', 'message', e.target.value)}
+                      value={getFieldVal('announcement', 'message')}
+                      placeholder={copyLang === 'am' ? 'የማስታወቂያውን መልእክት ያስገቡ' : 'Enter announcement text shown to citizens'}
+                      onChange={(e) => setFieldVal('announcement', 'message', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field">
-                    <span>Link button text</span>
+                    <span>Link button text {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.announcement?.linkText || ''}
-                      placeholder="e.g. Explore the guide"
-                      onChange={(e) => updateSection('announcement', 'linkText', e.target.value)}
+                      value={getFieldVal('announcement', 'linkText')}
+                      placeholder={copyLang === 'am' ? 'ለምሳሌ፡ መመሪያውን ይመልከቱ' : 'e.g. Explore the guide'}
+                      onChange={(e) => setFieldVal('announcement', 'linkText', e.target.value)}
                     />
                   </label>
 
@@ -498,6 +512,7 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                     />
                   </label>
                 </div>
+                {renderFlowFooter('announcement')}
               </div>
             )}
 
@@ -585,11 +600,11 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                 {heroSubTab === 'copy' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <label className="modal-field">
-                      <span>Hero badge / eyebrow</span>
+                      <span>Hero badge / eyebrow {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                       <input
-                        value={cms.hero?.badge || ''}
-                        placeholder="e.g. OFFICIAL CITIZEN PORTAL"
-                        onChange={(e) => updateSection('hero', 'badge', e.target.value)}
+                        value={getFieldVal('hero', 'badge')}
+                        placeholder={copyLang === 'am' ? 'ለምሳሌ፡ ይፋዊ የዜጎች መግቢያ' : 'e.g. OFFICIAL CITIZEN PORTAL'}
+                        onChange={(e) => setFieldVal('hero', 'badge', e.target.value)}
                       />
                     </label>
 
@@ -708,18 +723,20 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                       </span>
                       <div className="cms-fields-grid">
                         <label className="modal-field">
-                          <span>Primary button text</span>
+                          <span>Primary button text {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                           <input
-                            value={cms.hero?.primaryCtaText || 'Find a service'}
-                            onChange={(e) => updateSection('hero', 'primaryCtaText', e.target.value)}
+                            value={getFieldVal('hero', 'primaryCtaText')}
+                            placeholder={copyLang === 'am' ? 'አገልግሎት ይፈልጉ' : 'Find a service'}
+                            onChange={(e) => setFieldVal('hero', 'primaryCtaText', e.target.value)}
                           />
                         </label>
 
                         <label className="modal-field">
-                          <span>Secondary button text</span>
+                          <span>Secondary button text {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                           <input
-                            value={cms.hero?.secondaryCtaText || 'I’ve already visited'}
-                            onChange={(e) => updateSection('hero', 'secondaryCtaText', e.target.value)}
+                            value={getFieldVal('hero', 'secondaryCtaText')}
+                            placeholder={copyLang === 'am' ? 'ቢሮውን ጎብኝቻለሁ' : 'I’ve already visited'}
+                            onChange={(e) => setFieldVal('hero', 'secondaryCtaText', e.target.value)}
                           />
                         </label>
                       </div>
@@ -727,74 +744,80 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                   </div>
                 )}
 
-                {/* Sub-Tab 2: Spotlight Slides & Photos (Unified Master-Detail Flow) */}
+                {/* Sub-Tab 2: Spotlight Slides & Photos (Streamlined Visual Flow) */}
                 {heroSubTab === 'slides' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {/* Slide Selector Carousel Bar */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '8px',
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px', flex: 1, minWidth: '240px' }}>
+                    {/* Visual Slide Cards Strip */}
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                        <div>
+                          <strong style={{ fontSize: '13px', color: '#0f2a36' }}>
+                            Featured Bureau Slides ({cms.hero?.slides?.length || 0})
+                          </strong>
+                          <p style={{ margin: '2px 0 0', fontSize: '11.5px', color: '#64748b' }}>
+                            Select a slide card below to edit its bureau name, headline, and background photo.
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            type="button"
+                            className="button secondary small-button"
+                            style={{ fontSize: '12px', padding: '5px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            onClick={handleAddSlide}
+                            title="Add a new spotlight slide"
+                          >
+                            <Icon name="plus" size={13} /> Add slide
+                          </button>
+
+                          {(cms.hero?.slides?.length || 0) > 1 && (
+                            <button
+                              type="button"
+                              className="button secondary small-button"
+                              style={{ fontSize: '12px', padding: '5px 10px', color: '#b91c1c', borderColor: '#fca5a5' }}
+                              onClick={() => handleDeleteSlide(activeSlideIndex)}
+                              title="Remove current slide"
+                            >
+                              <Icon name="close" size={13} /> Delete slide
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="cms-slide-strip" role="tablist" aria-label="Hero Spotlight Slides">
                         {cms.hero?.slides?.map((slide: any, idx: number) => {
                           const isSelected = activeSlideIndex === idx;
+                          const bureauDisplay = (copyLang === 'am' ? slide.bureauAm : slide.bureau) || slide.bureau || `Slide ${idx + 1}`;
+                          const titleDisplay = (copyLang === 'am' ? slide.titleAm : slide.title) || slide.title || 'Untitled service';
                           return (
                             <button
                               key={slide.id || idx}
                               type="button"
+                              role="tab"
+                              aria-selected={isSelected}
                               onClick={() => setActiveSlideIndex(idx)}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                padding: '6px 12px',
-                                borderRadius: '6px',
-                                border: isSelected ? '1.5px solid #00485a' : '1px solid #cbd5e1',
-                                background: isSelected ? '#00485a' : '#ffffff',
-                                color: isSelected ? '#ffffff' : '#475569',
-                                fontWeight: isSelected ? 700 : 500,
-                                fontSize: '12px',
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap',
-                                transition: 'all 0.15s ease',
-                              }}
+                              className={`cms-slide-card-item${isSelected ? ' active' : ''}`}
                             >
-                              <span style={{ opacity: isSelected ? 0.9 : 0.6, fontSize: '10.5px', fontFamily: 'monospace' }}>
-                                0{idx + 1}
-                              </span>
-                              <span>{slide.bureau || `Slide ${idx + 1}`}</span>
+                              {slide.image ? (
+                                <img
+                                  src={slide.image}
+                                  alt={bureauDisplay}
+                                  className="cms-slide-card-thumb"
+                                />
+                              ) : (
+                                <div className="cms-slide-card-thumb" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e2e8f0', color: '#94a3b8' }}>
+                                  <Icon name="image" size={16} />
+                                </div>
+                              )}
+                              <div className="cms-slide-card-info">
+                                <span className="cms-slide-card-num">0{idx + 1}</span>
+                                <span className="cms-slide-card-title">{bureauDisplay}</span>
+                                <small style={{ fontSize: '10px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {titleDisplay}
+                                </small>
+                              </div>
                             </button>
                           );
                         })}
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <button
-                          type="button"
-                          className="button secondary small-button"
-                          style={{ fontSize: '12px', padding: '5px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                          onClick={handleAddSlide}
-                          title="Add a new spotlight slide"
-                        >
-                          <Icon name="plus" size={13} /> Add slide
-                        </button>
-
-                        {(cms.hero?.slides?.length || 0) > 1 && (
-                          <button
-                            type="button"
-                            className="button secondary small-button"
-                            style={{ fontSize: '12px', padding: '5px 10px', color: '#b91c1c', borderColor: '#fca5a5' }}
-                            onClick={() => handleDeleteSlide(activeSlideIndex)}
-                            title="Remove current slide"
-                          >
-                            <Icon name="close" size={13} /> Delete slide
-                          </button>
-                        )}
                       </div>
                     </div>
 
@@ -802,187 +825,127 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                     <div
                       style={{
                         background: '#ffffff',
-                        border: '1px solid #e2e8f0',
+                        border: '1px solid #d8e5df',
                         borderRadius: '10px',
                         padding: '18px',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '16px',
+                        gap: '18px',
                         boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                       }}
                     >
-                      {/* Slide Meta Fields */}
-                      <div className="cms-fields-grid">
-                        <label className="modal-field full">
-                          <span>Service Spotlight Title <i>*</i></span>
-                          <input
-                            value={currentSlide.title || ''}
-                            placeholder="e.g. Business tax registration & clearance"
-                            onChange={(e) => updateSlide(activeSlideIndex, 'title', e.target.value)}
-                          />
-                        </label>
+                      {/* Section A: Slide Text & Jurisdiction */}
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px', background: '#00485a', color: '#fff' }}>
+                            SLIDE 0{activeSlideIndex + 1}
+                          </span>
+                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f2a36' }}>
+                            Bureau Text & Messaging {copyLang === 'am' ? '(አማርኛ)' : '(English)'}
+                          </span>
+                        </div>
 
-                        <label className="modal-field">
-                          <span>Bureau Jurisdiction <i>*</i></span>
-                          <input
-                            value={currentSlide.bureau || ''}
-                            placeholder="e.g. REVENUE BUREAU"
-                            onChange={(e) => updateSlide(activeSlideIndex, 'bureau', e.target.value)}
-                          />
-                        </label>
+                        <div className="cms-fields-grid">
+                          <label className="modal-field">
+                            <span>Bureau jurisdiction {copyLang === 'am' ? '(አማርኛ)' : '(English)'} <i>*</i></span>
+                            <input
+                              value={copyLang === 'am' ? (currentSlide.bureauAm ?? '') : (currentSlide.bureau ?? '')}
+                              placeholder={copyLang === 'am' ? 'ለምሳሌ፡ የገቢዎች ቢሮ' : 'e.g. REVENUE BUREAU'}
+                              onChange={(e) => updateSlide(activeSlideIndex, copyLang === 'am' ? 'bureauAm' : 'bureau', e.target.value)}
+                            />
+                          </label>
 
-                        <label className="modal-field">
-                          <span>Service Category Tag</span>
-                          <input
-                            value={currentSlide.category || ''}
-                            placeholder="e.g. Tax & Compliance"
-                            onChange={(e) => updateSlide(activeSlideIndex, 'category', e.target.value)}
-                          />
-                        </label>
+                          <label className="modal-field">
+                            <span>Service headline {copyLang === 'am' ? '(አማርኛ)' : '(English)'} <i>*</i></span>
+                            <input
+                              value={copyLang === 'am' ? (currentSlide.titleAm ?? '') : (currentSlide.title ?? '')}
+                              placeholder={copyLang === 'am' ? 'ለምሳሌ፡ የገቢ አገልግሎቶችን በቀላሉ ይረዱ።' : 'e.g. Revenue services, made clearer.'}
+                              onChange={(e) => updateSlide(activeSlideIndex, copyLang === 'am' ? 'titleAm' : 'title', e.target.value)}
+                            />
+                          </label>
+
+                          <label className="modal-field full">
+                            <span>Caption / Preparation guide {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
+                            <input
+                              value={copyLang === 'am' ? (currentSlide.descriptionAm ?? currentSlide.categoryAm ?? '') : (currentSlide.description ?? currentSlide.category ?? '')}
+                              placeholder={copyLang === 'am' ? 'የአካባቢዎን የገቢዎች ቢሮ ከመጎብኘትዎ በፊት ማዘጋጀት ያለብዎትን ይወቁ።' : 'Know what to prepare before you visit your local revenue office.'}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                updateSlide(activeSlideIndex, copyLang === 'am' ? 'descriptionAm' : 'description', val);
+                                updateSlide(activeSlideIndex, copyLang === 'am' ? 'categoryAm' : 'category', val);
+                              }}
+                            />
+                          </label>
+                        </div>
                       </div>
 
-                      {/* Photo Visual Studio */}
+                      {/* Section B: Slide Photo & Visual Studio */}
                       <div
                         style={{
                           background: '#f8fafc',
                           border: '1px solid #e2e8f0',
                           borderRadius: '8px',
-                          padding: '14px',
+                          padding: '16px',
                           display: 'flex',
                           flexDirection: 'column',
                           gap: '14px',
                         }}
                       >
-                        {/* Live Photo Shell Preview */}
-                        <div
-                          className="cms-image-preview-shell"
-                          style={{ '--slide-tint': currentSlide.tint || '#164d58', height: '160px' } as React.CSSProperties}
-                        >
-                          {currentSlide.image ? (
-                            <img
-                              src={currentSlide.image}
-                              alt={currentSlide.alt || 'Hero preview'}
-                              className="cms-image-preview-img"
-                            />
-                          ) : (
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8' }}>
-                              <Icon name="image" size={32} /> No image selected
+                        {/* Current Photo Row */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                            <div style={{ position: 'relative', width: '88px', height: '58px', borderRadius: '6px', overflow: 'hidden', background: '#e2e8f0', flexShrink: 0 }}>
+                              {currentSlide.image ? (
+                                <img
+                                  src={currentSlide.image}
+                                  alt={currentSlide.alt || 'Slide photo'}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8' }}>
+                                  <Icon name="image" size={20} />
+                                </div>
+                              )}
+                              <div style={{ position: 'absolute', inset: 0, background: currentSlide.tint || '#164d58', opacity: 0.35, pointerEvents: 'none' }} />
                             </div>
-                          )}
-                          <div className="cms-image-preview-scrim" />
-                          <div className="cms-image-preview-meta">
-                            <div>
-                              <span className="bureau-badge">{currentSlide.bureau || 'Spotlight photo'}</span>
-                              <div style={{ fontWeight: 600, fontSize: '13px', marginTop: '2px' }}>
-                                {currentSlide.title || 'Untitled service'}
+                            <div style={{ minWidth: 0 }}>
+                              <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '3px', background: '#e2e8f0', color: '#0f2a36', textTransform: 'uppercase' }}>
+                                Current Photo
+                              </span>
+                              <div style={{ fontWeight: 600, fontSize: '12.5px', color: '#0f2a36', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {currentSlide.credit || currentSlide.bureau || 'Civic Office Photo'}
                               </div>
                             </div>
-                            {currentSlide.credit && <small>{currentSlide.credit}</small>}
                           </div>
                         </div>
 
-                        {/* Image Source Mode Buttons */}
-                        <div className="cms-image-source-nav">
-                          <button
-                            type="button"
-                            className={`cms-image-source-btn${imageInputMode === 'preset' ? ' active' : ''}`}
-                            onClick={() => setImageInputMode('preset')}
+                        {/* Local File Upload Dropzone */}
+                        <div>
+                          <label
+                            className={`cms-upload-dropzone${isUploadingImage ? ' is-uploading' : ''}`}
+                            style={{ cursor: isUploadingImage ? 'wait' : 'pointer', opacity: isUploadingImage ? 0.75 : 1 }}
                           >
-                            <Icon name="building" size={13} /> Official presets ({CURATED_IMAGE_PRESETS.length})
-                          </button>
-                          <button
-                            type="button"
-                            className={`cms-image-source-btn${imageInputMode === 'upload' ? ' active' : ''}`}
-                            onClick={() => setImageInputMode('upload')}
-                          >
-                            <Icon name="upload" size={13} /> Upload photo
-                          </button>
-                          <button
-                            type="button"
-                            className={`cms-image-source-btn${imageInputMode === 'url' ? ' active' : ''}`}
-                            onClick={() => setImageInputMode('url')}
-                          >
-                            <Icon name="globe" size={13} /> Web image URL
-                          </button>
-                        </div>
-
-                        {/* Mode 1: Presets Gallery */}
-                        {imageInputMode === 'preset' && (
-                          <div>
-                            <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '8px' }}>
-                              Click an Ethiopian government building photo to apply:
-                            </span>
-                            <div className="cms-image-presets-grid">
-                              {CURATED_IMAGE_PRESETS.map((preset) => (
-                                <button
-                                  key={preset.title}
-                                  type="button"
-                                  className={`cms-image-preset-item${currentSlide.image === preset.image ? ' active' : ''}`}
-                                  onClick={() => applyPresetToSlide(activeSlideIndex, preset)}
-                                >
-                                  <img src={preset.image} alt={preset.alt} className="cms-image-preset-thumb" />
-                                  <div className="cms-image-preset-info">
-                                    <span className="cms-image-preset-title">{preset.title}</span>
-                                    <span className="cms-image-preset-bureau">{preset.bureau}</span>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Mode 2: Local File Upload */}
-                        {imageInputMode === 'upload' && (
-                          <div>
-                            <label
-                              className={`cms-upload-dropzone${isUploadingImage ? ' is-uploading' : ''}`}
-                              style={{ cursor: isUploadingImage ? 'wait' : 'pointer', opacity: isUploadingImage ? 0.75 : 1 }}
-                            >
-                              <Icon name="upload" size={28} />
-                              {isUploadingImage ? (
-                                <p style={{ color: '#00485a', fontWeight: 600 }}>Uploading & optimizing photo...</p>
-                              ) : (
-                                <>
-                                  <p>Click to choose a photo from your computer</p>
-                                  <small>Supports JPG, PNG, WEBP. Loads immediately into live preview.</small>
-                                </>
-                              )}
-                              <input
-                                type="file"
-                                accept="image/*"
-                                style={{ display: 'none' }}
-                                disabled={isUploadingImage}
-                                onChange={(e) => handleFileUpload(e, activeSlideIndex)}
-                              />
-                            </label>
-                          </div>
-                        )}
-
-                        {/* Mode 3: Direct Web URL */}
-                        {imageInputMode === 'url' && (
-                          <div className="cms-fields-grid">
-                            <label className="modal-field full">
-                              <span>Image web URL</span>
-                              <input
-                                value={currentSlide.image || ''}
-                                placeholder="https://example.gov.et/photo.jpg"
-                                onChange={(e) => updateSlide(activeSlideIndex, 'image', e.target.value)}
-                              />
-                            </label>
-                          </div>
-                        )}
-
-                        {/* Alt text & Credit */}
-                        <div className="cms-fields-grid" style={{ paddingTop: '8px', borderTop: '1px solid #e2e8f0' }}>
-                          <label className="modal-field">
-                            <span>Photo alt text (accessibility)</span>
+                            <Icon name="upload" size={28} />
+                            {isUploadingImage ? (
+                              <p style={{ color: '#00485a', fontWeight: 600 }}>Uploading & optimizing photo...</p>
+                            ) : (
+                              <>
+                                <p>Click to choose a photo from your computer</p>
+                                <small>Supports JPG, PNG, WEBP. Loads immediately into live preview.</small>
+                              </>
+                            )}
                             <input
-                              value={currentSlide.alt || ''}
-                              placeholder="Describe image for screen readers"
-                              onChange={(e) => updateSlide(activeSlideIndex, 'alt', e.target.value)}
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              disabled={isUploadingImage}
+                              onChange={(e) => handleFileUpload(e, activeSlideIndex)}
                             />
                           </label>
+                        </div>
 
+                        {/* Alt text, Credit & Atmospheric Color Tint */}
+                        <div className="cms-fields-grid" style={{ paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
                           <label className="modal-field">
                             <span>Photo credit / attribution</span>
                             <input
@@ -992,11 +955,25 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                             />
                           </label>
 
+                          <label className="modal-field">
+                            <span>Photo alt text (accessibility)</span>
+                            <input
+                              value={currentSlide.alt || ''}
+                              placeholder="Describe image for screen readers"
+                              onChange={(e) => updateSlide(activeSlideIndex, 'alt', e.target.value)}
+                            />
+                          </label>
+
                           {/* Atmospheric Color Tint Swatches */}
                           <div className="modal-field full">
-                            <span style={{ marginBottom: '6px', display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155' }}>
-                              Atmospheric photo tint overlay
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+                                Atmospheric photo tint overlay
+                              </span>
+                              <small style={{ color: '#64748b', fontSize: '11px' }}>
+                                Darkens the hero photo so white typography remains easily readable
+                              </small>
+                            </div>
                             <div className="cms-tint-swatches">
                               {TINT_SWATCHES.map((swatch) => (
                                 <button
@@ -1025,6 +1002,8 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                     </div>
                   </div>
                 )}
+
+                {renderFlowFooter('hero')}
               </div>
             )}
 
@@ -1056,45 +1035,51 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                   </label>
 
                   <label className="modal-field">
-                    <span>Section kicker / overline</span>
+                    <span>Section kicker / overline {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.quickSearch?.kicker || 'START HERE'}
-                      onChange={(e) => updateSection('quickSearch', 'kicker', e.target.value)}
+                      value={getFieldVal('quickSearch', 'kicker')}
+                      placeholder={copyLang === 'am' ? 'ከዚህ ይጀምሩ' : 'START HERE'}
+                      onChange={(e) => setFieldVal('quickSearch', 'kicker', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field full">
-                    <span>Section headline</span>
+                    <span>Section headline {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.quickSearch?.title || 'What do you need help with?'}
-                      onChange={(e) => updateSection('quickSearch', 'title', e.target.value)}
+                      value={getFieldVal('quickSearch', 'title')}
+                      placeholder={copyLang === 'am' ? 'በምን ጉዳይ እንርዳዎ?' : 'What do you need help with?'}
+                      onChange={(e) => setFieldVal('quickSearch', 'title', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field full">
-                    <span>Instructions / sub-lead</span>
+                    <span>Instructions / sub-lead {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.quickSearch?.subtitle || 'Choose a location and service to see your visit guide.'}
-                      onChange={(e) => updateSection('quickSearch', 'subtitle', e.target.value)}
+                      value={getFieldVal('quickSearch', 'subtitle')}
+                      placeholder={copyLang === 'am' ? 'የጉብኝት መመሪያውን ለማየት አካባቢና አገልግሎት ይምረጡ።' : 'Choose a location and service to see your visit guide.'}
+                      onChange={(e) => setFieldVal('quickSearch', 'subtitle', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field">
-                    <span>Search submit button text</span>
+                    <span>Search submit button text {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.quickSearch?.buttonText || 'Show my guide'}
-                      onChange={(e) => updateSection('quickSearch', 'buttonText', e.target.value)}
+                      value={getFieldVal('quickSearch', 'buttonText')}
+                      placeholder={copyLang === 'am' ? 'መመሪያዬን አሳይ' : 'Show my guide'}
+                      onChange={(e) => setFieldVal('quickSearch', 'buttonText', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field">
-                    <span>Footnote perks & reassurance</span>
+                    <span>Footnote perks & reassurance {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.quickSearch?.footnoteText || 'Takes less than a minute · No account needed'}
-                      onChange={(e) => updateSection('quickSearch', 'footnoteText', e.target.value)}
+                      value={getFieldVal('quickSearch', 'footnoteText')}
+                      placeholder={copyLang === 'am' ? 'ከአንድ ደቂቃ በታች ይወስዳል · መለያ መክፈት አያስፈልግም' : 'Takes less than a minute · No account needed'}
+                      onChange={(e) => setFieldVal('quickSearch', 'footnoteText', e.target.value)}
                     />
                   </label>
                 </div>
+                {renderFlowFooter('quickSearch')}
               </div>
             )}
 
@@ -1126,78 +1111,88 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                   </label>
 
                   <label className="modal-field">
-                    <span>Section kicker badge</span>
+                    <span>Section kicker badge {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.serviceGuide?.kicker || 'YOUR VISIT GUIDE'}
-                      onChange={(e) => updateSection('serviceGuide', 'kicker', e.target.value)}
+                      value={getFieldVal('serviceGuide', 'kicker')}
+                      placeholder={copyLang === 'am' ? 'የጉብኝት መመሪያዎ' : 'YOUR VISIT GUIDE'}
+                      onChange={(e) => setFieldVal('serviceGuide', 'kicker', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field">
-                    <span>Title lead</span>
+                    <span>Title lead {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.serviceGuide?.titleLead || 'A clearer path,'}
-                      onChange={(e) => updateSection('serviceGuide', 'titleLead', e.target.value)}
+                      value={getFieldVal('serviceGuide', 'titleLead')}
+                      placeholder={copyLang === 'am' ? 'ግልጽ መንገድ፣' : 'A clearer path,'}
+                      onChange={(e) => setFieldVal('serviceGuide', 'titleLead', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field">
-                    <span>Title emphasis</span>
+                    <span>Title emphasis {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.serviceGuide?.titleEmphasis || 'step by step.'}
-                      onChange={(e) => updateSection('serviceGuide', 'titleEmphasis', e.target.value)}
+                      value={getFieldVal('serviceGuide', 'titleEmphasis')}
+                      placeholder={copyLang === 'am' ? 'ደረጃ በደረጃ።' : 'step by step.'}
+                      onChange={(e) => setFieldVal('serviceGuide', 'titleEmphasis', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field full">
-                    <span>Section introduction description</span>
+                    <span>Section introduction description {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <textarea
                       rows={2}
-                      value={cms.serviceGuide?.description || 'Know what to bring and which room to visit, before you set off. The sample guide below shows how service details will appear.'}
-                      onChange={(e) => updateSection('serviceGuide', 'description', e.target.value)}
+                      value={getFieldVal('serviceGuide', 'description')}
+                      placeholder={copyLang === 'am' ? 'ከመነሳትዎ በፊት ምን እንደሚያመጡና ወደ የትኛው ክፍል እንደሚሄዱ ይወቁ።' : 'Know what to bring and which room to visit, before you set off.'}
+                      onChange={(e) => setFieldVal('serviceGuide', 'description', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field">
-                    <span>Sample guide badge label</span>
+                    <span>Sample guide badge label {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.serviceGuide?.sampleBadgeText || 'SAMPLE GUIDE'}
-                      onChange={(e) => updateSection('serviceGuide', 'sampleBadgeText', e.target.value)}
+                      value={getFieldVal('serviceGuide', 'sampleBadgeText')}
+                      placeholder={copyLang === 'am' ? 'የመመሪያ ምሳሌ' : 'SAMPLE GUIDE'}
+                      onChange={(e) => setFieldVal('serviceGuide', 'sampleBadgeText', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field">
-                    <span>Requirements checklist heading</span>
+                    <span>Requirements checklist heading {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.serviceGuide?.whatToBringTitle || 'What to bring'}
-                      onChange={(e) => updateSection('serviceGuide', 'whatToBringTitle', e.target.value)}
+                      value={getFieldVal('serviceGuide', 'whatToBringTitle')}
+                      placeholder={copyLang === 'am' ? 'ማምጣት ያለብዎት' : 'What to bring'}
+                      onChange={(e) => setFieldVal('serviceGuide', 'whatToBringTitle', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field full">
-                    <span>Document expectations note</span>
+                    <span>Document expectations note {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.serviceGuide?.expectationsNote || 'Bring original documents where available. Ask the bureau if requirements have changed.'}
-                      onChange={(e) => updateSection('serviceGuide', 'expectationsNote', e.target.value)}
+                      value={getFieldVal('serviceGuide', 'expectationsNote')}
+                      placeholder={copyLang === 'am' ? 'የዋና ሰነዶችን ካሉ ይዘው ይምጡ። መስፈርቶቹ መቀየራቸውን ከቢሮው ያረጋግጡ።' : 'Bring original documents where available. Ask the bureau if requirements have changed.'}
+                      onChange={(e) => setFieldVal('serviceGuide', 'expectationsNote', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field full">
-                    <span>Route panel heading</span>
+                    <span>Route panel heading {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.serviceGuide?.routeHeading || 'Your room-by-room route'}
-                      onChange={(e) => updateSection('serviceGuide', 'routeHeading', e.target.value)}
+                      value={getFieldVal('serviceGuide', 'routeHeading')}
+                      placeholder={copyLang === 'am' ? 'በቢሮው ውስጥ የሚከተሉት የአገልግሎት ሂደት' : 'Your room-by-room route'}
+                      onChange={(e) => setFieldVal('serviceGuide', 'routeHeading', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field full">
-                    <span>Illustrative disclaimer</span>
+                    <span>Illustrative disclaimer {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.serviceGuide?.disclaimerText || 'Illustrative example only. Bureaus will publish and maintain official requirements and room numbers in the live system.'}
-                      onChange={(e) => updateSection('serviceGuide', 'disclaimerText', e.target.value)}
+                      value={getFieldVal('serviceGuide', 'disclaimerText')}
+                      placeholder={copyLang === 'am' ? 'የአገልግሎት መረጃ ሊቀየር ይችላል። እርግጠኛ ካልሆኑ ከቢሮው ያረጋግጡ።' : 'Illustrative example only. Bureaus will publish and maintain official requirements and room numbers in the live system.'}
+                      onChange={(e) => setFieldVal('serviceGuide', 'disclaimerText', e.target.value)}
                     />
                   </label>
                 </div>
+                {renderFlowFooter('serviceGuide')}
               </div>
             )}
 
@@ -1229,19 +1224,21 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                   </label>
 
                   <label className="modal-field">
-                    <span>Section kicker</span>
+                    <span>Section kicker {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.journey?.kicker || 'HOW IT WORKS'}
-                      onChange={(e) => updateSection('journey', 'kicker', e.target.value)}
+                      value={getFieldVal('journey', 'kicker')}
+                      placeholder={copyLang === 'am' ? 'አጠቃቀሙ እንዴት ነው?' : 'HOW IT WORKS'}
+                      onChange={(e) => setFieldVal('journey', 'kicker', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field full">
-                    <span>Journey introduction</span>
+                    <span>Journey introduction {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <textarea
                       rows={2}
-                      value={cms.journey?.title || ''}
-                      onChange={(e) => updateSection('journey', 'title', e.target.value)}
+                      value={getFieldVal('journey', 'title')}
+                      placeholder={copyLang === 'am' ? 'ከመነሳትዎ በፊት ምን እንደሚያስፈልግ ይወቁ' : 'Three moments. One smoother journey.'}
+                      onChange={(e) => setFieldVal('journey', 'title', e.target.value)}
                     />
                   </label>
                 </div>
@@ -1262,7 +1259,9 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                               type: 'journey',
                               index: idx,
                               title: step.title,
+                              titleAm: step.titleAm,
                               detail: step.detail,
+                              detailAm: step.detailAm,
                             })
                           }
                         >
@@ -1277,7 +1276,7 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                           marginTop: '6px',
                         }}
                       >
-                        {step.title}
+                        {(copyLang === 'am' && step.titleAm) || step.title}
                       </b>
                       <p
                         style={{
@@ -1287,11 +1286,12 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                           lineHeight: 1.5,
                         }}
                       >
-                        {step.detail}
+                        {(copyLang === 'am' && step.detailAm) || step.detail}
                       </p>
                     </div>
                   ))}
                 </div>
+                {renderFlowFooter('journey')}
               </div>
             )}
 
@@ -1323,45 +1323,51 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                   </label>
 
                   <label className="modal-field">
-                    <span>Section kicker</span>
+                    <span>Section kicker {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.newsEvents?.kicker || 'FROM YOUR COMMUNITY'}
-                      onChange={(e) => updateSection('newsEvents', 'kicker', e.target.value)}
+                      value={getFieldVal('newsEvents', 'kicker')}
+                      placeholder={copyLang === 'am' ? 'ከማህበረሰብዎ' : 'FROM YOUR COMMUNITY'}
+                      onChange={(e) => setFieldVal('newsEvents', 'kicker', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field full">
-                    <span>Section headline</span>
+                    <span>Section headline {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.newsEvents?.title || 'What’s happening near you.'}
-                      onChange={(e) => updateSection('newsEvents', 'title', e.target.value)}
+                      value={getFieldVal('newsEvents', 'title')}
+                      placeholder={copyLang === 'am' ? 'በአካባቢዎ ምን እየተከናወነ እንዳለ ይመልከቱ።' : 'What’s happening near you.'}
+                      onChange={(e) => setFieldVal('newsEvents', 'title', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field">
-                    <span>Attribution source tag</span>
+                    <span>Attribution source tag {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.newsEvents?.sourceLabel || 'Published by sub-city admins'}
-                      onChange={(e) => updateSection('newsEvents', 'sourceLabel', e.target.value)}
+                      value={getFieldVal('newsEvents', 'sourceLabel')}
+                      placeholder={copyLang === 'am' ? 'በክፍለ ከተማ አስተዳዳሪዎች የታተመ' : 'Published by sub-city admins'}
+                      onChange={(e) => setFieldVal('newsEvents', 'sourceLabel', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field">
-                    <span>Hub link text</span>
+                    <span>Hub link text {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.newsEvents?.viewAllText || 'Explore news & events hub'}
-                      onChange={(e) => updateSection('newsEvents', 'viewAllText', e.target.value)}
+                      value={getFieldVal('newsEvents', 'viewAllText')}
+                      placeholder={copyLang === 'am' ? 'የዜና እና ሁነቶች ማዕከልን ይጎብኙ' : 'Explore news & events hub'}
+                      onChange={(e) => setFieldVal('newsEvents', 'viewAllText', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field full">
-                    <span>Empty feed fallback message</span>
+                    <span>Empty feed fallback message {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.newsEvents?.emptyMessage || 'No community updates published yet for this sub-city.'}
-                      onChange={(e) => updateSection('newsEvents', 'emptyMessage', e.target.value)}
+                      value={getFieldVal('newsEvents', 'emptyMessage')}
+                      placeholder={copyLang === 'am' ? 'ለዚህ ክፍለ ከተማ እስካሁን ምንም የተለጠፈ መረጃ የለም።' : 'No community updates published yet for this sub-city.'}
+                      onChange={(e) => setFieldVal('newsEvents', 'emptyMessage', e.target.value)}
                     />
                   </label>
                 </div>
+                {renderFlowFooter('newsEvents')}
               </div>
             )}
 
@@ -1393,55 +1399,62 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                   </label>
 
                   <label className="modal-field">
-                    <span>Section kicker</span>
+                    <span>Section kicker {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.feedback?.kicker || 'YOUR VOICE HELPS'}
-                      onChange={(e) => updateSection('feedback', 'kicker', e.target.value)}
+                      value={getFieldVal('feedback', 'kicker')}
+                      placeholder={copyLang === 'am' ? 'የዜጎች ድምፅ' : 'YOUR VOICE HELPS'}
+                      onChange={(e) => setFieldVal('feedback', 'kicker', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field full">
-                    <span>Section headline</span>
+                    <span>Section headline {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.feedback?.title || 'Every experience can make things better.'}
-                      onChange={(e) => updateSection('feedback', 'title', e.target.value)}
+                      value={getFieldVal('feedback', 'title')}
+                      placeholder={copyLang === 'am' ? 'እያንዳንዱ አስተያየት አገልግሎቱን የተሻለ ያደርገዋል።' : 'Every experience can make things better.'}
+                      onChange={(e) => setFieldVal('feedback', 'title', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field full">
-                    <span>Description paragraph</span>
+                    <span>Description paragraph {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <textarea
                       rows={2}
-                      value={cms.feedback?.description || 'Tell us how your visit went. Your feedback reaches the right bureau and helps improve services for everyone.'}
-                      onChange={(e) => updateSection('feedback', 'description', e.target.value)}
+                      value={getFieldVal('feedback', 'description')}
+                      placeholder={copyLang === 'am' ? 'ጉብኝትዎ እንዴት እንደነበር ያሳውቁን። አስተያየትዎ ለሚመለከተው ቢሮ ይደርሳል።' : 'Tell us how your visit went. Your feedback reaches the right bureau and helps improve services for everyone.'}
+                      onChange={(e) => setFieldVal('feedback', 'description', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field">
-                    <span>Perk point 1</span>
+                    <span>Perk point 1 {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.feedback?.pointOne || 'No account needed'}
-                      onChange={(e) => updateSection('feedback', 'pointOne', e.target.value)}
+                      value={getFieldVal('feedback', 'pointOne')}
+                      placeholder={copyLang === 'am' ? 'መለያ መክፈት አያስፈልግም' : 'No account needed'}
+                      onChange={(e) => setFieldVal('feedback', 'pointOne', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field">
-                    <span>Perk point 2</span>
+                    <span>Perk point 2 {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.feedback?.pointTwo || 'Scan a bureau QR code'}
-                      onChange={(e) => updateSection('feedback', 'pointTwo', e.target.value)}
+                      value={getFieldVal('feedback', 'pointTwo')}
+                      placeholder={copyLang === 'am' ? 'የቢሮውን QR ኮድ ይቃኙ' : 'Scan a bureau QR code'}
+                      onChange={(e) => setFieldVal('feedback', 'pointTwo', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field full">
-                    <span>Callout quote</span>
+                    <span>Callout quote {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <textarea
                       rows={2}
-                      value={cms.feedback?.quote || 'Clear guidance before your visit. A simple way to be heard afterward.'}
-                      onChange={(e) => updateSection('feedback', 'quote', e.target.value)}
+                      value={getFieldVal('feedback', 'quote')}
+                      placeholder={copyLang === 'am' ? 'ከጉብኝትዎ በፊት ግልጽ መመሪያ። በኋላም በቀላሉ ድምፅዎን የሚያሰሙበት መንገድ።' : 'Clear guidance before your visit. A simple way to be heard afterward.'}
+                      onChange={(e) => setFieldVal('feedback', 'quote', e.target.value)}
                     />
                   </label>
                 </div>
+                {renderFlowFooter('feedback')}
               </div>
             )}
 
@@ -1471,35 +1484,39 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                     </div>
                     <div className="cms-fields-grid">
                       <label className="modal-field full">
-                        <span>Admin strip kicker</span>
+                        <span>Admin strip kicker {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                         <input
-                          value={cms.footer?.adminStripKicker || 'FOR PUBLIC SERVICE TEAMS'}
-                          onChange={(e) => updateSection('footer', 'adminStripKicker', e.target.value)}
+                          value={getFieldVal('footer', 'adminStripKicker')}
+                          placeholder={copyLang === 'am' ? 'ለመንግሥት አገልግሎት ሰጪ ክፍሎች' : 'FOR PUBLIC SERVICE TEAMS'}
+                          onChange={(e) => setFieldVal('footer', 'adminStripKicker', e.target.value)}
                         />
                       </label>
                       <label className="modal-field full">
-                        <span>Admin strip title</span>
+                        <span>Admin strip title {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                         <input
-                          value={cms.footer?.adminStripTitle || 'Manage information where it belongs.'}
-                          onChange={(e) => updateSection('footer', 'adminStripTitle', e.target.value)}
+                          value={getFieldVal('footer', 'adminStripTitle')}
+                          placeholder={copyLang === 'am' ? 'መረጃን በሚመለከተው ክፍል ያስተዳድሩ።' : 'Manage information where it belongs.'}
+                          onChange={(e) => setFieldVal('footer', 'adminStripTitle', e.target.value)}
                         />
                       </label>
                       <label className="modal-field full">
-                        <span>Admin strip description</span>
+                        <span>Admin strip description {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                         <textarea
                           rows={2}
-                          value={cms.footer?.adminStripDescription || 'Sub-city and bureau admins keep service guides, room routes, news, and feedback up to date.'}
-                          onChange={(e) => updateSection('footer', 'adminStripDescription', e.target.value)}
+                          value={getFieldVal('footer', 'adminStripDescription')}
+                          placeholder={copyLang === 'am' ? 'የክፍለ ከተማ እና የቢሮ አስተዳዳሪዎች የአገልግሎት መመሪያዎችን፣ የክፍል አቅጣጫዎችንና ዜናዎችን ያዘምናሉ።' : 'Sub-city and bureau admins keep service guides, room routes, news, and feedback up to date.'}
+                          onChange={(e) => setFieldVal('footer', 'adminStripDescription', e.target.value)}
                         />
                       </label>
                     </div>
                   </div>
 
                   <label className="modal-field">
-                    <span>Footer brand tagline</span>
+                    <span>Footer brand tagline {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.footer?.brandTagline || 'ETHIOPIA · CITIZEN SERVICES'}
-                      onChange={(e) => updateSection('footer', 'brandTagline', e.target.value)}
+                      value={getFieldVal('footer', 'brandTagline')}
+                      placeholder={copyLang === 'am' ? 'ኢትዮጵያ · የዜጎች አገልግሎት' : 'ETHIOPIA · CITIZEN SERVICES'}
+                      onChange={(e) => setFieldVal('footer', 'brandTagline', e.target.value)}
                     />
                   </label>
 
@@ -1513,29 +1530,33 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                   </label>
 
                   <label className="modal-field full">
-                    <span>Footer description</span>
+                    <span>Footer description {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.footer?.description || 'Clearer information for every visit. A more responsive public service.'}
-                      onChange={(e) => updateSection('footer', 'description', e.target.value)}
+                      value={getFieldVal('footer', 'description')}
+                      placeholder={copyLang === 'am' ? 'ለእያንዳንዱ ጉብኝት ግልጽ መረጃ። የበለጠ ቀልጣፋ የህዝብ አገልግሎት።' : 'Clearer information for every visit. A more responsive public service.'}
+                      onChange={(e) => setFieldVal('footer', 'description', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field full">
-                    <span>Copyright notice</span>
+                    <span>Copyright notice {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.footer?.copyright || '© 2026 CivicLink Ethiopia · Public service information platform'}
-                      onChange={(e) => updateSection('footer', 'copyright', e.target.value)}
+                      value={getFieldVal('footer', 'copyright')}
+                      placeholder={copyLang === 'am' ? '© 2026 ሲቪክሊንክ ኢትዮጵያ · የህዝብ አገልግሎት መረጃ መድረክ' : '© 2026 CivicLink Ethiopia · Public service information platform'}
+                      onChange={(e) => setFieldVal('footer', 'copyright', e.target.value)}
                     />
                   </label>
 
                   <label className="modal-field full">
-                    <span>Bottom note</span>
+                    <span>Bottom note {copyLang === 'am' ? '(አማርኛ)' : '(English)'}</span>
                     <input
-                      value={cms.footer?.bottomNote || 'Built for citizens, maintained by bureaus.'}
-                      onChange={(e) => updateSection('footer', 'bottomNote', e.target.value)}
+                      value={getFieldVal('footer', 'bottomNote')}
+                      placeholder={copyLang === 'am' ? 'ለዜጎች የተዘጋጀ፣ በቢሮዎች የሚተዳደር።' : 'Built for citizens, maintained by bureaus.'}
+                      onChange={(e) => setFieldVal('footer', 'bottomNote', e.target.value)}
                     />
                   </label>
                 </div>
+                {renderFlowFooter('footer')}
               </div>
             )}
           </div>
@@ -1547,6 +1568,7 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
             config={cms}
             previewDevice={previewDevice}
             onToggleDevice={setPreviewDevice}
+            previewLang={copyLang}
           />
         </div>
       </div>
@@ -1578,7 +1600,7 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                           title: modalItem.title || '',
                           bureau: modalItem.bureau || '',
                           category: modalItem.category || '',
-                          image: modalItem.image || (slides[modalItem.index]?.image || CURATED_IMAGE_PRESETS[0].image),
+                          image: modalItem.image || (slides[modalItem.index]?.image || ''),
                           alt: modalItem.alt || modalItem.title || '',
                           credit: modalItem.credit || '',
                           tint: modalItem.tint || '#164d58',
@@ -1597,7 +1619,7 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                               title: modalItem.title || 'Spotlight Service',
                               bureau: modalItem.bureau || 'MUNICIPAL SERVICES',
                               category: modalItem.category || '',
-                              image: modalItem.image || CURATED_IMAGE_PRESETS[0].image,
+                              image: modalItem.image || '',
                               alt: modalItem.alt || modalItem.title || '',
                               credit: modalItem.credit || 'Civic Photo',
                               tint: modalItem.tint || '#164d58',
@@ -1607,8 +1629,13 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                       }));
                     }
                   } else if (modalItem.type === 'journey') {
-                    updateJourneyStep(modalItem.index, 'title', modalItem.title);
-                    updateJourneyStep(modalItem.index, 'detail', modalItem.detail);
+                    if (copyLang === 'am') {
+                      updateJourneyStep(modalItem.index, 'titleAm', modalItem.titleAm);
+                      updateJourneyStep(modalItem.index, 'detailAm', modalItem.detailAm);
+                    } else {
+                      updateJourneyStep(modalItem.index, 'title', modalItem.title);
+                      updateJourneyStep(modalItem.index, 'detail', modalItem.detail);
+                    }
                   }
                   setModalItem(null);
                 }}
@@ -1674,16 +1701,8 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                         />
                       </label>
                       <label className="modal-field full">
-                        <span>Hero slide image URL or local photo upload</span>
+                        <span>Hero slide photo upload</span>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <input
-                            value={modalItem.image || ''}
-                            onChange={(e) =>
-                              setModalItem((m: any) => ({ ...m, image: e.target.value }))
-                            }
-                            placeholder="https://... or upload below"
-                            style={{ flex: 1 }}
-                          />
                           <label
                             className="button secondary small-button"
                             style={{ cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px', margin: 0 }}
@@ -1762,27 +1781,35 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                     <>
                       <label className="modal-field full">
                         <span>
-                          Step title <i>*</i>
+                          Step title {copyLang === 'am' ? '(አማርኛ)' : '(English)'} <i>*</i>
                         </span>
                         <input
                           required
-                          value={modalItem.title || ''}
-                          onChange={(e) => setModalItem((m: any) => ({ ...m, title: e.target.value }))}
-                          placeholder="e.g. Check requirements"
+                          value={(copyLang === 'am' ? modalItem.titleAm : modalItem.title) || ''}
+                          onChange={(e) =>
+                            setModalItem((m: any) => ({
+                              ...m,
+                              [copyLang === 'am' ? 'titleAm' : 'title']: e.target.value,
+                            }))
+                          }
+                          placeholder={copyLang === 'am' ? 'ለምሳሌ፡ ሰነዶችን ማዘጋጀት' : 'e.g. Check requirements'}
                         />
                       </label>
                       <label className="modal-field full">
                         <span>
-                          Step instructions <i>*</i>
+                          Step instructions {copyLang === 'am' ? '(አማርኛ)' : '(English)'} <i>*</i>
                         </span>
                         <textarea
                           required
                           rows={3}
-                          value={modalItem.detail || ''}
+                          value={(copyLang === 'am' ? modalItem.detailAm : modalItem.detail) || ''}
                           onChange={(e) =>
-                            setModalItem((m: any) => ({ ...m, detail: e.target.value }))
+                            setModalItem((m: any) => ({
+                              ...m,
+                              [copyLang === 'am' ? 'detailAm' : 'detail']: e.target.value,
+                            }))
                           }
-                          placeholder="Explain what the citizen needs to do..."
+                          placeholder={copyLang === 'am' ? 'ዜጎች ምን ማድረግ እንዳለባቸው ያስረዱ...' : 'Explain what the citizen needs to do...'}
                         />
                       </label>
                     </>

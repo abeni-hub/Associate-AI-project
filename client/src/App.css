@@ -942,6 +942,9 @@ a { color: var(--link); }
 :where(.site-shell[lang="am"]) .language-toggle { font-size: calc((12px) * 0.9); }
 :where(.site-shell[lang="am"]) .eyebrow, :where(.site-shell[lang="am"]) .section-kicker { font-size: calc((9px) * 0.9); }
 :where(.site-shell[lang="am"]) .hero-copy h1 { font-size: calc((clamp(58px, 6.5vw, 88px)) * 0.9); }
+.site-shell[lang="am"] .hero-section .hero-copy h1 em,
+.site-shell[lang="am"] .hero-copy h1 em,
+:where(.site-shell[lang="am"]) .hero-copy h1 em { font-style: normal; font-family: inherit; color: #e3c47c; }
 :where(.site-shell[lang="am"]) .hero-lede { font-size: calc((15px) * 0.9); }
 :where(.site-shell[lang="am"]) .button { font-size: calc((12px) * 0.9); }
 :where(.site-shell[lang="am"]) .feedback-play { font-size: calc((12px) * 0.9); }

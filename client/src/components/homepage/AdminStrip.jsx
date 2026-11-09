@@ -1,11 +1,11 @@
 import Icon from '../ui/Icon.jsx'
 
-export default function AdminStrip({ t, adminStripContent }) {
+export default function AdminStrip({ t, adminStripContent, language }) {
   if (adminStripContent?.enabled === false) return null
 
-  const kicker = adminStripContent?.adminStripKicker || 'FOR PUBLIC SERVICE TEAMS'
-  const title = adminStripContent?.adminStripTitle || 'Manage information where it belongs.'
-  const description = adminStripContent?.adminStripDescription || 'Sub-city and bureau admins keep service guides, room routes, news, and feedback up to date.'
+  const kicker = (language === 'am' && adminStripContent?.adminStripKickerAm) || adminStripContent?.adminStripKicker || 'FOR PUBLIC SERVICE TEAMS'
+  const title = (language === 'am' && adminStripContent?.adminStripTitleAm) || adminStripContent?.adminStripTitle || 'Manage information where it belongs.'
+  const description = (language === 'am' && adminStripContent?.adminStripDescriptionAm) || adminStripContent?.adminStripDescription || 'Sub-city and bureau admins keep service guides, room routes, news, and feedback up to date.'
 
   return (
     <section className="admin-strip section-wrap scroll-reveal">

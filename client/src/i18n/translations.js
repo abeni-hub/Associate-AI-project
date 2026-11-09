@@ -226,6 +226,83 @@ export const amharicCopy = {
   'All Feeds': 'ሁሉም መረጃዎች',
   'News & Notices': 'ዜና እና ማስታወቂያ',
   'Events & Town Halls': 'ዝግጅቶችና መድረኮች',
+
+  // Hero & Announcement
+  'OFFICIAL CITIZEN PORTAL': 'ይፋዊ የዜጎች መድረክ',
+  'Public services operate under standard working hours. Please prepare required documents before visiting bureaus.': 'የመንግሥት አገልግሎቶች በመደበኛ የሥራ ሰዓት ይሰጣሉ። እባክዎ ቢሮዎችን ከመጎብኘትዎ በፊት አስፈላጊ ሰነዶችን ያዘጋጁ።',
+  'Explore visit guides': 'የጉብኝት መመሪያዎችን ይመልከቱ',
+  'Revenue & Tax': 'ገቢ እና ታክስ',
+  'Planning': 'ዕቅድ',
+  'Civil Registration': 'የሲቪል ምዝገባ',
+  'Land & Property': 'መሬት እና ንብረት',
+  'MUNICIPAL SERVICES': 'የማዘጋጃ ቤት አገልግሎቶች',
+  'COMMUNITY & TRADE': 'የማህበረሰብ እና ንግድ',
+
+  // Quick Search Dropdowns & Loading
+  'Takes less than a minute · No account needed': 'ከአንድ ደቂቃ በታች ይወስዳል · መለያ መክፈት አያስፈልግም',
+  'Loading sub-cities…': 'ክፍለ ከተሞችን በመጫን ላይ…',
+  'Select a sub-city': 'ክፍለ ከተማ ይምረጡ',
+  'Choose a sub-city…': 'ክፍለ ከተማ ይምረጡ…',
+  'No sub-cities found': 'ምንም ክፍለ ከተማ አልተገኘም',
+  'Loading offices…': 'ቢሮዎችን በመጫን ላይ…',
+  'Select an office': 'ቢሮ ይምረጡ',
+  'Choose an office…': 'ቢሮ ይምረጡ…',
+  'No offices found': 'ምንም ቢሮ አልተገኘም',
+  'Loading services…': 'አገልግሎቶችን በመጫን ላይ…',
+  'Select a service': 'አገልግሎት ይምረጡ',
+  'Choose a service…': 'አገልግሎት ይምረጡ…',
+  'No services found': 'ምንም አገልግሎት አልተገኘም',
+
+  // Service Guide
+  'OFFICIAL GUIDE': 'ይፋዊ መመሪያ',
+  'SERVICE GUIDE': 'የአገልግሎት መመሪያ',
+  'Addis Ababa': 'አዲስ አበባ',
+  'Public Desk': 'የህዝብ አገልግሎት መስጫ',
+  'Select a service to view guide': 'መመሪያውን ለማየት አገልግሎት ይምረጡ',
+  'Use the search above to pick an office and service.': 'ቢሮ እና አገልግሎት ለመምረጥ ከላይ ያለውን መፈለጊያ ይጠቀሙ።',
+  'No prerequisite documents registered for this service.': 'ለዚህ አገልግሎት የተመዘገቡ ቅድመ-ሁኔታ ሰነዶች የሉም።',
+  'Room navigation steps are being updated by the bureau desk.': 'የክፍል አቅጣጫ ደረጃዎች በቢሮው እየተዘመኑ ነው።',
+  'Official public service delivery guide published and maintained by the Addis Ababa City Administration.': 'በአዲስ አበባ ከተማ አስተዳደር የተዘጋጀና የሚዘመን ይፋዊ የህዝብ አገልግሎት አሰጣጥ መመሪያ።',
+  'Know what to bring and which room to visit, before you set off.': 'ከመነሳትዎ በፊት ምን እንደሚያመጡና ወደ የትኛው ክፍል እንደሚሄዱ ይወቁ።',
+
+  // Journey
+  'Prepare with confidence': 'በእርግጠኝነት ይዘጋጁ',
+  'Prepare with confidence.': 'በእርግጠኝነት ይዘጋጁ።',
+  'Go straight to the right room': 'ወደ ትክክለኛው ክፍል በቀጥታ ይሂዱ',
+  'Go straight to the right room.': 'ወደ ትክክለኛው ክፍል በቀጥታ ይሂዱ።',
+  'Share what you experienced': 'ያጋጠምዎትን ያጋሩ',
+  'Share what you experienced.': 'ያጋጠምዎትን ያጋሩ።',
+  'Three moments. One smoother journey.': 'ሶስት ደረጃዎች። ይበልጥ ቀላል ጉዞ።',
+
+  // News & Community Updates
+  "What's happening near you.": 'በአካባቢዎ ምን እየተካሄደ ነው?',
+  'What’s happening near you.': 'በአካባቢዎ ምን እየተካሄደ ነው?',
+  "What's happening near": 'በአካባቢዎ ምን እየተካሄደ',
+  'What’s happening near': 'በአካባቢዎ ምን እየተካሄደ',
+  'you.': 'ነው?',
+  'View all community updates': 'ሁሉንም የማህበረሰብ ዜናዎች ይመልከቱ',
+  'No active announcements at this time.': 'በአሁኑ ጊዜ ምንም ንቁ ማስታወቂያዎች የሉም።',
+
+  // Feedback form & success
+  'Every experience can make things better.': 'እያንዳንዱ ልምድ ለውጥ ሊያመጣ ይችላል።',
+  'Every experience can make things': 'እያንዳንዱ ልምድ ለውጥ',
+  'Submitting…': 'በመላክ ላይ…',
+  'Your name': 'ስምዎ',
+  'optional': 'አማራጭ',
+  'e.g. Abebe Bekele': 'ለምሳሌ፡ አበበ በቀለ',
+  'Phone number': 'ስልክ ቁጥር',
+  'for SMS updates': 'ለኤስኤምኤስ ዝመናዎች',
+  '+251 91 100 0000': '+251 91 100 0000',
+  'Your contact information is only used for official case follow-up and SMS notifications.': 'የእርስዎ የእውቂያ መረጃ ለመንግሥት ክትትልና ለኤስኤምኤስ ማሳወቂያዎች ብቻ ይውላል።',
+  'Connected to CivicLink Citizen Feedback RTK Query API · Official Government Tracking': 'ከሲቪክሊንክ የዜጎች አስተያየት መድረክ ጋር የተገናኘ · ይፋዊ የመንግሥት ክትትል',
+  'YOUR OFFICIAL TRACKING NUMBER': 'ይፋዊ የክትትል ቁጥርዎ',
+  'Your feedback has been officially registered with the city administration under tracking reference. You can use this reference to check on your submission.': 'አስተያየትዎ በከተማ አስተዳደሩ ይፋዊ የክትትል ቁጥር ተመዝግቧል። ይህንን ቁጥር በመጠቀም ስለ አስተያየትዎ ሁኔታ መከታተል ይችላሉ።',
+  'Save this official tracking number to follow up on your feedback status with the bureau.': 'ስለ አስተያየትዎ ሂደት ከቢሮው ጋር ለመከታተል ይህንን ይፋዊ የክትትል ቁጥር ያስቀምጡ።',
+
+  // Footer & Admin strip
+  'Built for citizens, maintained by bureaus across Ethiopia\'s sub-cities and woredas.': 'በኢትዮጵያ ክፍለ ከተሞች እና ወረዳዎች ውስጥ ለዜጎች የተዘጋጀ፣ በቢሮዎች የሚዘመን።',
+  'Clearer information for every visit. A more responsive public service.': 'ለእያንዳንዱ ጉብኝት ግልጽ መረጃ። ፈጣን ምላሽ የሚሰጥ የህዝብ አገልግሎት።',
+  'Official citizen engagement & service delivery portal.': 'ይፋዊ የዜጎች ተሳትፎ እና የአገልግሎት አሰጣጥ መድረክ።',
 }
 
 export function translate(text, language) {

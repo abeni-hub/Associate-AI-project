@@ -5,13 +5,32 @@ export default function HomeNewsSection({ language, t, onNavigateToHub, onSelect
   if (newsEventsContent?.enabled === false) return null
 
   const kickerNum = newsEventsContent?.kickerNum || '04'
-  const kicker = newsEventsContent?.kicker || 'FROM YOUR COMMUNITY'
-  const rawTitle = newsEventsContent?.title || "What’s happening near you."
-  const sourceLabel = newsEventsContent?.sourceLabel || 'Published by sub-city admins'
+  const kicker = (language === 'am' && newsEventsContent?.kickerAm) || newsEventsContent?.kicker || 'FROM YOUR COMMUNITY'
+  const rawTitle = (language === 'am' && newsEventsContent?.titleAm) || newsEventsContent?.title || "What’s happening near you."
+  const sourceLabel = (language === 'am' && newsEventsContent?.sourceLabelAm) || newsEventsContent?.sourceLabel || 'Published by sub-city admins'
 
-  const words = rawTitle.trim().split(' ')
-  const lastWord = words.length > 1 ? words.pop() : ''
-  const mainTitle = words.join(' ')
+  let mainTitle = rawTitle
+  let lastWord = ''
+
+  if (language === 'am') {
+    if (newsEventsContent?.titleAm) {
+      const words = newsEventsContent.titleAm.trim().split(/\s+/)
+      if (words.length > 2) {
+        lastWord = words.pop()
+        mainTitle = words.join(' ')
+      } else {
+        mainTitle = newsEventsContent.titleAm
+        lastWord = ''
+      }
+    } else {
+      mainTitle = 'በአካባቢዎ ምን እየተካሄደ'
+      lastWord = 'ነው?'
+    }
+  } else {
+    const words = rawTitle.trim().split(' ')
+    lastWord = words.length > 1 ? words.pop() : ''
+    mainTitle = words.join(' ')
+  }
 
   return (
     <section className="news-section section-wrap" id="news">

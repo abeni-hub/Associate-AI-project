@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionNavigationSeeder::class,
             UserSeeder::class,
+            LandingPageCmsSeeder::class,
         ]);
     }
 }

@@ -2,6 +2,7 @@ import Icon from '../ui/Icon.jsx'
 
 export default function QuickSearchSection({
   t,
+  language,
   subCity,
   onSubCityChange,
   bureauId,
@@ -16,11 +17,11 @@ export default function QuickSearchSection({
   isLoading = false,
 }) {
   const kickerNum = quickSearchContent?.kickerNum || '01'
-  const kicker = quickSearchContent?.kicker || 'START HERE'
-  const title = quickSearchContent?.title || 'What do you need help with?'
-  const subtitle = quickSearchContent?.subtitle || 'Choose a location and service to see your visit guide.'
-  const buttonText = quickSearchContent?.buttonText || 'Show my guide'
-  const footnoteText = quickSearchContent?.footnoteText || 'Takes less than a minute · No account needed'
+  const kicker = (language === 'am' && quickSearchContent?.kickerAm) || quickSearchContent?.kicker || 'START HERE'
+  const title = (language === 'am' && quickSearchContent?.titleAm) || quickSearchContent?.title || 'What do you need help with?'
+  const subtitle = (language === 'am' && quickSearchContent?.subtitleAm) || quickSearchContent?.subtitle || 'Choose a location and service to see your visit guide.'
+  const buttonText = (language === 'am' && quickSearchContent?.buttonTextAm) || quickSearchContent?.buttonText || 'Show my guide'
+  const footnoteText = (language === 'am' && quickSearchContent?.footnoteTextAm) || quickSearchContent?.footnoteText || 'Takes less than a minute · No account needed'
 
   return (
     <section className="quick-search scroll-reveal" id="find-service">

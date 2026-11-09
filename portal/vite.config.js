@@ -2,7 +2,6 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { cmsDevMiddleware } from '../shared/cmsDevMiddleware.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -13,7 +12,7 @@ export default defineConfig(({ mode }) => {
   const target = rawTarget.replace(/\/api\/?$/, '');
 
   return {
-    plugins: [react(), cmsDevMiddleware()],
+    plugins: [react()],
     resolve: {
       dedupe: ['react', 'react-dom'],
       alias: {

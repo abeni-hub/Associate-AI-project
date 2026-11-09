@@ -183,8 +183,12 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
         documents,
         steps,
         visitNote: s.estimated_duration_minutes
-          ? `Estimated processing time: ${s.estimated_duration_minutes} minutes. Standard fee: ${s.fee_amount || 'Free'} ${s.fee_currency || 'ETB'}.`
-          : (s.fee_amount ? `Standard fee: ${s.fee_amount} ${s.fee_currency || 'ETB'}.` : ''),
+          ? (language === 'am'
+              ? `የሚፈጀው ግምታዊ ጊዜ፦ ${s.estimated_duration_minutes} ደቂቃ። መደበኛ ክፍያ፦ ${s.fee_amount ? `${s.fee_amount} ${s.fee_currency || 'ብር'}` : 'ነፃ'}።`
+              : `Estimated processing time: ${s.estimated_duration_minutes} minutes. Standard fee: ${s.fee_amount || 'Free'} ${s.fee_currency || 'ETB'}.`)
+          : (s.fee_amount
+              ? (language === 'am' ? `መደበኛ ክፍያ፦ ${s.fee_amount} ${s.fee_currency || 'ብር'}።` : `Standard fee: ${s.fee_amount} ${s.fee_currency || 'ETB'}.`)
+              : ''),
       }
     }
 
@@ -246,6 +250,7 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
       {cmsConfig?.quickSearch?.enabled !== false && (
         <QuickSearchSection
           t={t}
+          language={language}
           subCity={subCity}
           onSubCityChange={setSubCity}
           bureauId={bureauId}
@@ -263,13 +268,14 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
       {cmsConfig?.serviceGuide?.enabled !== false && (
         <ServiceGuideSection
           t={t}
+          language={language}
           serviceGuide={serviceGuide}
           guideService={guideService}
           guideBureau={guideBureau}
           serviceGuideContent={cmsConfig?.serviceGuide}
         />
       )}
-      <JourneySection t={t} onGoToFeedback={goToFeedback} journey={cmsConfig?.journey} />
+      <JourneySection t={t} language={language} onGoToFeedback={goToFeedback} journey={cmsConfig?.journey} />
       {cmsConfig?.newsEvents?.enabled !== false && (
         <HomeNewsSection
           language={language}
@@ -287,7 +293,7 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
         />
       )}
       {cmsConfig?.footer?.enabled !== false && (
-        <AdminStrip t={t} adminStripContent={cmsConfig?.footer} />
+        <AdminStrip t={t} language={language} adminStripContent={cmsConfig?.footer} />
       )}
     </main>
   )
