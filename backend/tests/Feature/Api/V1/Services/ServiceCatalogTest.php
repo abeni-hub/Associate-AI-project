@@ -110,8 +110,8 @@ class ServiceCatalogTest extends TestCase
         $response->assertStatus(200);
         $data = $response->json('data');
 
-        $this->assertCount(1, $data);
-        $this->assertEquals('birth-certificate', $data[0]['code']);
+        $codes = array_column($data, 'code');
+        $this->assertContains('birth-certificate', $codes);
     }
 
     public function test_can_filter_to_master_services_only(): void

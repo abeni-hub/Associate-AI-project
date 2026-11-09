@@ -67,11 +67,12 @@ class Phase3SeedersTest extends TestCase
         $this->assertContains('/admin/documents', $subCityRoutes);
         $this->assertNotContains('/admin/cms', $subCityRoutes);
 
-        // Staff has 4 items (Overview, Feedback, Services, Routes)
+        // Staff has 5 items (Overview, Feedback, Services, Documents, Routes)
         $staffRoutes = $staff->navigationItems->pluck('route')->toArray();
-        $this->assertCount(4, $staffRoutes);
+        $this->assertCount(5, $staffRoutes);
         $this->assertContains('/admin/overview', $staffRoutes);
         $this->assertContains('/admin/services', $staffRoutes);
+        $this->assertContains('/admin/documents', $staffRoutes);
         $this->assertNotContains('/admin/subcities', $staffRoutes);
         $this->assertNotContains('/admin/accounts', $staffRoutes);
         $this->assertNotContains('/admin/cms', $staffRoutes);

@@ -146,7 +146,7 @@ class NavigationSidebarApiTest extends TestCase
         $this->assertSame($sortedOrders, $orders);
     }
 
-    public function test_sub_city_admin_receives_9_items_excluding_super_admin_only_items(): void
+    public function test_sub_city_admin_receives_11_items_excluding_super_admin_only_items(): void
     {
         Sanctum::actingAs($this->subCityAdmin);
 
@@ -154,7 +154,7 @@ class NavigationSidebarApiTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json('data');
-        $this->assertCount(9, $data);
+        $this->assertCount(11, $data);
 
         $routes = array_column($data, 'route');
 
@@ -162,14 +162,14 @@ class NavigationSidebarApiTest extends TestCase
         $this->assertContains('/admin/accounts', $routes);
         $this->assertContains('/admin/documents', $routes);
         $this->assertContains('/admin/news', $routes);
+        $this->assertContains('/admin/levels', $routes);
+        $this->assertContains('/admin/activity', $routes);
 
-        $this->assertNotContains('/admin/levels', $routes);
         $this->assertNotContains('/admin/roles', $routes);
         $this->assertNotContains('/admin/cms', $routes);
-        $this->assertNotContains('/admin/activity', $routes);
     }
 
-    public function test_staff_receives_4_operational_items_only(): void
+    public function test_staff_receives_5_operational_items_only(): void
     {
         Sanctum::actingAs($this->staff);
 
@@ -177,12 +177,15 @@ class NavigationSidebarApiTest extends TestCase
 
         $response->assertStatus(200);
         $data = $response->json('data');
-        $this->assertCount(4, $data);
+        $this->assertCount(5, $data);
 
         $routes = array_column($data, 'route');
         $this->assertContains('/admin/overview', $routes);
         $this->assertContains('/admin/feedback', $routes);
         $this->assertContains('/admin/services', $routes);
+        $this->assertContains('/admin/documents', $routes);
+        $this->assertContains('/admin/routes', $routes);
+        $this->assertNotContains('/admin/subcities', $routes);
         $this->assertContains('/admin/routes', $routes);
         $this->assertNotContains('/admin/subcities', $routes);
         $this->assertNotContains('/admin/accounts', $routes);
