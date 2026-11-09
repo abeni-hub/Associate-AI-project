@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import Icon from '../ui/Icon.jsx';
 import FeedbackFormActions from './FeedbackFormActions.jsx';
 import FeedbackStepContent from './FeedbackStepContent.jsx';
@@ -55,6 +55,98 @@ export default function FeedbackFormCard({ t, onTrack }) {
   const allOrganizations = useMemo(() => {
     return (allOrgsData?.data && Array.isArray(allOrgsData.data)) ? allOrgsData.data : [];
   }, [allOrgsData]);
+
+  const hasPrefilledRef = useRef(false);
+
+  useEffect(() => {
+    if (hasPrefilledRef.current || !allOrganizations.length) return;
+
+    const searchParams = new URLSearchParams(window.location.search);
+    let hashSearch = '';
+    if (window.location.hash.includes('?')) {
+      hashSearch = window.location.hash.split('?')[1];
+    }
+    const hashParams = new URLSearchParams(hashSearch);
+    const getParam = (key) => hashParams.get(key) || searchParams.get(key);
+
+    const orgParam = getParam('org') || getParam('bureau') || getParam('office');
+    const subCityParam = getParam('sub_city') || getParam('subcity') || getParam('city');
+    const serviceParam = getParam('service') || getParam('sub_service') || getParam('subservice');
+    const typeParam = getParam('type');
+
+    if (orgParam || subCityParam || serviceParam || typeParam || window.location.hash.includes('feedback')) {
+      hasPrefilledRef.current = true;
+
+      // Default to 'Complaint' when routed via QR poster or complaint specified
+      const isComplaint = !typeParam || typeParam.toLowerCase() === 'complaint';
+      if (isComplaint) {
+        dispatch(setFeedbackType('Complaint'));
+      } else if (typeParam) {
+        const capitalized = typeParam.charAt(0).toUpperCase() + typeParam.slice(1).toLowerCase();
+        dispatch(setFeedbackType(capitalized));
+      }
+
+      let matchedOrg = null;
+      if (orgParam) {
+        matchedOrg = allOrganizations.find(
+          (o) =>
+            String(o.id) === String(orgParam) ||
+            String(o.code).toLowerCase() === String(orgParam).toLowerCase() ||
+            o.name.toLowerCase() === String(orgParam).toLowerCase() ||
+            o.name.toLowerCase().includes(String(orgParam).toLowerCase())
+        );
+      }
+
+      let matchedSubCity = null;
+      if (subCityParam) {
+        matchedSubCity = allOrganizations.find(
+          (o) =>
+            o.parent_organization_id === null &&
+            (String(o.id) === String(subCityParam) ||
+              String(o.code).toLowerCase() === String(subCityParam).toLowerCase() ||
+              o.name.toLowerCase() === String(subCityParam).toLowerCase() ||
+              o.name.toLowerCase().includes(String(subCityParam).toLowerCase()))
+        );
+      }
+
+      if (matchedOrg) {
+        if (matchedOrg.parent_organization_id) {
+          const parent = allOrganizations.find((p) => p.id === matchedOrg.parent_organization_id);
+          if (parent) {
+            dispatch(setFeedbackCity(parent.name));
+          }
+          dispatch(setFeedbackBureau(String(matchedOrg.id)));
+        } else if (
+          matchedOrg.type?.code === 'sub_city' ||
+          matchedOrg.name.toLowerCase().includes('sub-city') ||
+          matchedOrg.name.toLowerCase().includes('subcity')
+        ) {
+          dispatch(setFeedbackCity(matchedOrg.name));
+        } else {
+          // Central bureau
+          if (matchedSubCity) {
+            dispatch(setFeedbackCity(matchedSubCity.name));
+          }
+          dispatch(setFeedbackBureau(String(matchedOrg.id)));
+        }
+      } else if (matchedSubCity) {
+        dispatch(setFeedbackCity(matchedSubCity.name));
+      }
+
+      if (serviceParam) {
+        dispatch(setFeedbackService(serviceParam));
+        dispatch(setFeedbackStep(5));
+      } else if (matchedOrg || matchedSubCity) {
+        // Route to Step 4: "What service did you receive?"
+        dispatch(setFeedbackStep(4));
+      }
+
+      setTimeout(() => {
+        const el = document.getElementById('feedback');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [allOrganizations, dispatch]);
 
   const subCitiesData = useMemo(() => {
     const list = allOrganizations.filter(
@@ -156,7 +248,9 @@ export default function FeedbackFormCard({ t, onTrack }) {
     setType: (val) => dispatch(setFeedbackType(val)),
     setCity: (val) => {
       dispatch(setFeedbackCity(val));
-      dispatch(setFeedbackBureau(''));
+      if (feedbackCity && feedbackCity !== val) {
+        dispatch(setFeedbackBureau(''));
+      }
     },
     setService: (val) => dispatch(setFeedbackService(val)),
     setMessage: (val) => dispatch(setFeedbackMessage(val)),

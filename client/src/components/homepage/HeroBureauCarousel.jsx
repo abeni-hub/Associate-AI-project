@@ -55,7 +55,6 @@ export default function HeroBureauCarousel({ activeIndex, onSlideChange, isPlayi
           </button>
         </div>
       </div>
-      <span className="hero-photo-credit">{t('PHOTO:')} <a href={slide.source} target="_blank" rel="noreferrer">{slide.credit}</a></span>
     </section>
   )
 }

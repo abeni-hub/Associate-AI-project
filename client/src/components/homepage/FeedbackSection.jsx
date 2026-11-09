@@ -11,13 +11,29 @@ export default function FeedbackSection({ language, t, feedbackContent }) {
     const hash = window.location.hash.toLowerCase()
     const path = window.location.pathname.toLowerCase()
     const search = new URLSearchParams(window.location.search)
-    const trackNum = search.get('track') || search.get('tracking')
+    let hashSearch = ''
+    if (window.location.hash.includes('?')) {
+      hashSearch = window.location.hash.split('?')[1]
+    }
+    const hashParams = new URLSearchParams(hashSearch)
+    const trackNum = search.get('track') || search.get('tracking') || hashParams.get('track') || hashParams.get('tracking')
 
     if (trackNum) {
       setTargetTrackingNumber(trackNum)
       setActiveMode('track')
     } else if (hash.includes('track') || path.includes('track')) {
       setActiveMode('track')
+    } else if (
+      hash.includes('feedback') ||
+      path.includes('feedback') ||
+      search.has('org') ||
+      hashParams.has('org') ||
+      search.has('bureau') ||
+      hashParams.has('bureau') ||
+      search.has('type') ||
+      hashParams.has('type')
+    ) {
+      setActiveMode('form')
     }
   }, [])
 
