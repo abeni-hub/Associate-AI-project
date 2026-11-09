@@ -38,13 +38,27 @@ export const QRDialog: React.FC<QRDialogProps> = ({
     return organizations.find((o) => o.id === effectiveOrgId) || userOrg || null;
   }, [organizations, effectiveOrgId, userOrg]);
 
+  const buildDefaultTargetUrl = (org?: OrganizationItem | null) => {
+    if (!org) return `${window.location.origin}/#feedback?type=complaint`;
+    const params = new URLSearchParams({
+      type: 'complaint',
+      org: org.code || String(org.id),
+      bureau: String(org.id),
+    });
+    const subCityName = org.parent?.name || (org.type?.code === 'sub_city' ? org.name : '');
+    if (subCityName) {
+      params.set('sub_city', subCityName);
+    }
+    return `${window.location.origin}/#feedback?${params.toString()}`;
+  };
+
   const [label, setLabel] = useState(existingQr?.label || 'Public Service Reception Desk');
   const [code, setCode] = useState(
     existingQr?.code ||
       `QR-${(activeOrg?.code || userOrg?.code || 'OFFICE').toUpperCase().replace(/[^A-Z0-9]/g, '')}-${Date.now().toString().slice(-4)}`
   );
   const [targetUrl, setTargetUrl] = useState(
-    existingQr?.target_url || `${window.location.origin}/#feedback`
+    existingQr?.target_url || buildDefaultTargetUrl(activeOrg)
   );
   const [status, setStatus] = useState<'active' | 'inactive'>(
     (existingQr?.status as 'active' | 'inactive') || 'active'
@@ -57,7 +71,7 @@ export const QRDialog: React.FC<QRDialogProps> = ({
     if (org) {
       const cleanPrefix = (org.code || 'OFFICE').toUpperCase().replace(/[^A-Z0-9]/g, '');
       setCode(`QR-${cleanPrefix}-${Date.now().toString().slice(-4)}`);
-      setTargetUrl(`${window.location.origin}/#feedback?org=${encodeURIComponent(org.code)}`);
+      setTargetUrl(buildDefaultTargetUrl(org));
     }
   };
 

@@ -15,15 +15,6 @@ export interface LandingPageCmsProps {
   onSaveCms?: (cms: any) => void;
 }
 
-const TINT_SWATCHES = [
-  { label: 'Dark Teal', color: '#164d58' },
-  { label: 'Deep Slate', color: '#365b63' },
-  { label: 'Forest Green', color: '#3b625e' },
-  { label: 'Charcoal', color: '#536458' },
-  { label: 'Midnight Blue', color: '#0f2a36' },
-  { label: 'Olive Bronze', color: '#2d4536' },
-];
-
 export const CMS_SECTIONS = [
   { id: 'announcement', num: '01', label: 'Announcement', icon: 'bell', desc: 'Top alert banner' },
   { id: 'hero', num: '02', label: 'Hero & Spotlight', icon: 'desktop', desc: 'Headlines, CTA buttons & photo slides' },
@@ -519,15 +510,6 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
             {/* TAB 2: Hero Section (Streamlined 2-SubTab UX) */}
             {activeTab === 'hero' && (
               <div className="cms-tab-pane">
-                <div className="form-section-header" style={{ marginBottom: '14px' }}>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '16px', color: '#164a54' }}>Hero Section & Visual Spotlight</h3>
-                    <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#64748b' }}>
-                      Configure primary homepage messaging, action buttons, and rotating bureau spotlight photography.
-                    </p>
-                  </div>
-                </div>
-
                 {/* Sub-Tabs: Copy vs Spotlight Slides */}
                 <div
                   style={{
@@ -620,48 +602,9 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                         gap: '12px',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
-                          Primary Headline & Subheading
-                        </span>
-
-                        <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '6px' }}>
-                          <button
-                            type="button"
-                            onClick={() => setCopyLang('en')}
-                            style={{
-                              padding: '4px 12px',
-                              borderRadius: '4px',
-                              border: 'none',
-                              background: copyLang === 'en' ? '#ffffff' : 'transparent',
-                              color: copyLang === 'en' ? '#00485a' : '#64748b',
-                              fontWeight: copyLang === 'en' ? 700 : 500,
-                              fontSize: '12px',
-                              cursor: 'pointer',
-                              boxShadow: copyLang === 'en' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                            }}
-                          >
-                            English (EN)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setCopyLang('am')}
-                            style={{
-                              padding: '4px 12px',
-                              borderRadius: '4px',
-                              border: 'none',
-                              background: copyLang === 'am' ? '#ffffff' : 'transparent',
-                              color: copyLang === 'am' ? '#00485a' : '#64748b',
-                              fontWeight: copyLang === 'am' ? 700 : 500,
-                              fontSize: '12px',
-                              cursor: 'pointer',
-                              boxShadow: copyLang === 'am' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                            }}
-                          >
-                            አማርኛ (Amharic)
-                          </button>
-                        </div>
-                      </div>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>
+                        Primary Headline & Subheading
+                      </span>
 
                       {copyLang === 'en' ? (
                         <>
@@ -942,61 +885,6 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                               onChange={(e) => handleFileUpload(e, activeSlideIndex)}
                             />
                           </label>
-                        </div>
-
-                        {/* Alt text, Credit & Atmospheric Color Tint */}
-                        <div className="cms-fields-grid" style={{ paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
-                          <label className="modal-field">
-                            <span>Photo credit / attribution</span>
-                            <input
-                              value={currentSlide.credit || ''}
-                              placeholder="e.g. Yeka Subcity Office · CC BY 4.0"
-                              onChange={(e) => updateSlide(activeSlideIndex, 'credit', e.target.value)}
-                            />
-                          </label>
-
-                          <label className="modal-field">
-                            <span>Photo alt text (accessibility)</span>
-                            <input
-                              value={currentSlide.alt || ''}
-                              placeholder="Describe image for screen readers"
-                              onChange={(e) => updateSlide(activeSlideIndex, 'alt', e.target.value)}
-                            />
-                          </label>
-
-                          {/* Atmospheric Color Tint Swatches */}
-                          <div className="modal-field full">
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                              <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
-                                Atmospheric photo tint overlay
-                              </span>
-                              <small style={{ color: '#64748b', fontSize: '11px' }}>
-                                Darkens the hero photo so white typography remains easily readable
-                              </small>
-                            </div>
-                            <div className="cms-tint-swatches">
-                              {TINT_SWATCHES.map((swatch) => (
-                                <button
-                                  key={swatch.color}
-                                  type="button"
-                                  title={swatch.label}
-                                  aria-label={swatch.label}
-                                  style={{ backgroundColor: swatch.color }}
-                                  className={`cms-tint-swatch${currentSlide.tint === swatch.color ? ' active' : ''}`}
-                                  onClick={() => updateSlide(activeSlideIndex, 'tint', swatch.color)}
-                                />
-                              ))}
-                              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginLeft: '8px', fontSize: '11px', color: '#64748b' }}>
-                                <span>Custom:</span>
-                                <input
-                                  type="color"
-                                  value={currentSlide.tint || '#164d58'}
-                                  onChange={(e) => updateSlide(activeSlideIndex, 'tint', e.target.value)}
-                                  style={{ width: '28px', height: '28px', padding: 0, border: 'none', cursor: 'pointer' }}
-                                />
-                              </label>
-                            </div>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -1753,26 +1641,6 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
                             <small style={{ color: '#64748b', fontSize: '11px' }}>Current slide photo preview</small>
                           </div>
                         )}
-                      </label>
-                      <label className="modal-field">
-                        <span>Photo credit</span>
-                        <input
-                          value={modalItem.credit || ''}
-                          onChange={(e) =>
-                            setModalItem((m: any) => ({ ...m, credit: e.target.value }))
-                          }
-                          placeholder="e.g. Yeka Subcity Office"
-                        />
-                      </label>
-                      <label className="modal-field">
-                        <span>Image alt text</span>
-                        <input
-                          value={modalItem.alt || ''}
-                          onChange={(e) =>
-                            setModalItem((m: any) => ({ ...m, alt: e.target.value }))
-                          }
-                          placeholder="Accessibility description"
-                        />
                       </label>
                     </>
                   )}
