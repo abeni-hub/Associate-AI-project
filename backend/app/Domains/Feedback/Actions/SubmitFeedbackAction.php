@@ -22,11 +22,9 @@ class SubmitFeedbackAction
                 'feedback_type' => $data->feedbackType,
                 'full_name' => $data->fullName,
                 'phone_number' => $data->phoneNumber,
+                'status' => 'submitted',
+                'tracking_number' => $this->generateTrackingNumber(),
             ];
-
-            if ($data->feedbackType === 'complaint') {
-                $payload['tracking_number'] = $this->generateTrackingNumber();
-            }
 
             return Feedback::create($payload);
         });

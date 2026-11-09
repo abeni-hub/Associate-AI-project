@@ -28,13 +28,13 @@ class OrganizationResource extends JsonResource
             'organization_type_id' => $this->organization_type_id,
             'parent_organization_id' => $this->parent_organization_id,
             'is_root' => $this->isRoot(),
-            'type' => $this->type ? [
+            'type' => $this->relationLoaded('type') && $this->type ? [
                 'id' => $this->type->id,
                 'name' => $this->type->name,
                 'code' => $this->type->code,
                 'level' => $this->type->level,
             ] : null,
-            'parent' => $this->parent ? [
+            'parent' => $this->relationLoaded('parent') && $this->parent ? [
                 'id' => $this->parent->id,
                 'name' => $this->parent->name,
                 'code' => $this->parent->code,

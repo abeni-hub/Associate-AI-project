@@ -188,7 +188,7 @@ export default function FeedbackStepContent({
             </option>
             {availableSubCities.map((subCity) => (
               <option key={subCity.id} value={subCity.name}>
-                {subCity.name}
+                {t(subCity.name)}
               </option>
             ))}
           </select>
@@ -217,7 +217,7 @@ export default function FeedbackStepContent({
             </option>
             {bureauList.map((bureau) => (
               <option key={bureau.id} value={bureau.id}>
-                {bureau.label}
+                {t(bureau.label)}
               </option>
             ))}
           </select>
@@ -246,7 +246,7 @@ export default function FeedbackStepContent({
             </option>
             {activeServices.map((service) => (
               <option key={service.id} value={service.id}>
-                {service.label}
+                {t(service.label)}
               </option>
             ))}
           </select>

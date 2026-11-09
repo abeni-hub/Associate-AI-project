@@ -47,7 +47,11 @@ function App() {
 
   const cmsConfig = (apiCmsData && ('data' in apiCmsData ? apiCmsData.data : apiCmsData)) || cachedCms
 
-  const [language, setLanguage] = useState(() => window.localStorage.getItem('civiclink-language') === 'am' ? 'am' : 'en')
+  const [language, setLanguage] = useState(() => {
+    const saved = window.localStorage.getItem('civiclink-language')
+    if (saved === 'am' || saved === 'om') return saved
+    return 'en'
+  })
   const [detailItemId, setDetailItemId] = useState(() => {
     const hash = window.location.hash
     const match = hash.match(/^#\/(news|event)\/([^/?#]+)/i)
@@ -100,12 +104,32 @@ function App() {
   }
 
   function toggleLanguage() {
-    setLanguage((current) => current === 'en' ? 'am' : 'en')
+    setLanguage((current) => (current === 'en' ? 'am' : current === 'am' ? 'om' : 'en'))
+  }
+
+  function handleSelectLanguage(newLang) {
+    if (newLang === 'en' || newLang === 'am' || newLang === 'om') {
+      setLanguage(newLang)
+    }
   }
 
   useEffect(() => {
     function onHashChange() {
+      const path = window.location.pathname.toLowerCase()
       const hash = window.location.hash
+      const lower = hash.toLowerCase()
+
+      // 1. Direct feedback or tracking route
+      if (path === '/feedback' || path.startsWith('/feedback') || lower === '#/feedback' || lower.startsWith('#feedback') || path === '/track' || lower === '#/track' || lower.startsWith('#track')) {
+        setCurrentView('home')
+        setDetailItemId(null)
+        window.setTimeout(() => {
+          document.getElementById('feedback')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 100)
+        return
+      }
+
+      // 2. News/Event detail match
       const detailMatch = hash.match(/^#\/(news|event)\/([^/?#]+)/i)
       if (detailMatch) {
         setDetailItemId(detailMatch[2])
@@ -114,26 +138,32 @@ function App() {
         return
       }
 
-      const lower = hash.toLowerCase()
-      if (lower === '#/news-events') {
+      // 3. News and Events hub
+      if (lower === '#/news-events' || path === '/news-events') {
         setCurrentView('news-events')
         setNewsEventsTab('all')
         setDetailItemId(null)
-      } else if (lower === '#/news') {
+      } else if (lower === '#/news' || path === '/news') {
         setCurrentView('news-events')
         setNewsEventsTab('news')
         setDetailItemId(null)
-      } else if (lower === '#/events') {
+      } else if (lower === '#/events' || path === '/events') {
         setCurrentView('news-events')
         setNewsEventsTab('events')
         setDetailItemId(null)
-      } else if (lower === '#/' || lower === '' || lower === '#top' || lower.startsWith('#find') || lower.startsWith('#how') || lower.startsWith('#feedback') || lower.startsWith('#news')) {
+      } else if (lower === '#/' || lower === '' || lower === '#top' || lower.startsWith('#find') || lower.startsWith('#how') || lower.startsWith('#news')) {
         setCurrentView('home')
         setDetailItemId(null)
       }
     }
+
+    onHashChange()
     window.addEventListener('hashchange', onHashChange)
-    return () => window.removeEventListener('hashchange', onHashChange)
+    window.addEventListener('popstate', onHashChange)
+    return () => {
+      window.removeEventListener('hashchange', onHashChange)
+      window.removeEventListener('popstate', onHashChange)
+    }
   }, [])
 
   const t = (text) => translate(text, language)
@@ -142,11 +172,21 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem('civiclink-language', language)
     document.documentElement.lang = language
-    document.title = language === 'am' ? 'ሲቪክሊንክ ኢትዮጵያ — የዜጎች አገልግሎት' : 'CivicLink Ethiopia — Citizen Services, Made Clear'
+    document.title =
+      language === 'am'
+        ? 'ሲቪክሊንክ ኢትዮጵያ — የዜጎች አገልግሎት'
+        : language === 'om'
+          ? 'CivicLink Itoophiyaa — Tajaajila Lammiilee'
+          : 'CivicLink Ethiopia — Citizen Services, Made Clear'
     const description = document.querySelector('meta[name="description"]')
-    if (description) description.content = language === 'am'
-      ? 'የኢትዮጵያን የህዝብ አገልግሎቶች ለመጠቀም ይዘጋጁ። ሰነዶችን፣ የቢሮ ሂደቶችን፣ የማህበረሰብ ዜናዎችንና የአስተያየት መንገዶችን በአንድ ቦታ ያግኙ።'
-      : 'Plan your visit to Ethiopian public services. Find the documents, office steps, community news, and feedback channels you need in one place.'
+    if (description) {
+      description.content =
+        language === 'am'
+          ? 'የኢትዮጵያን የህዝብ አገልግሎቶች ለመጠቀም ይዘጋጁ። ሰነዶችን፣ የቢሮ ሂደቶችን፣ የማህበረሰብ ዜናዎችንና የአስተያየት መንገዶችን በአንድ ቦታ ያግኙ።'
+          : language === 'om'
+            ? 'Daawwanna keessan tajaajila mootummaa Itoophiyaatiif qopheessaa. Sanadoota, adeemsa biiroo, oduu hawaasaa fi karaalee yaada kennuu bakka tokkotti argadhaa.'
+            : 'Plan your visit to Ethiopian public services. Find the documents, office steps, community news, and feedback channels you need in one place.'
+    }
   }, [language])
 
   useLayoutEffect(() => {
@@ -193,6 +233,7 @@ function App() {
         onNavigateToHomeSection={navigateToHomeSection}
         onNavigateToNews={navigateToNews}
         onToggleLanguage={toggleLanguage}
+        onSelectLanguage={handleSelectLanguage}
       />
 
       {currentView === 'detail' && detailItemId ? (

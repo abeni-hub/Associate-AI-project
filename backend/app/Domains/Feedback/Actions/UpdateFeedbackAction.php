@@ -17,6 +17,22 @@ class UpdateFeedbackAction
     public function execute(Feedback $feedback, array $validatedData): Feedback
     {
         return DB::transaction(function () use ($feedback, $validatedData) {
+            if (isset($validatedData['status'])) {
+                $status = strtolower((string) $validatedData['status']);
+                if ($status === 'in_review') {
+                    $validatedData['status'] = 'under_review';
+                } elseif ($status === 'open') {
+                    $validatedData['status'] = 'submitted';
+                }
+            }
+
+            $isResolvedOrClosed = isset($validatedData['status']) && in_array($validatedData['status'], ['resolved', 'closed'], true);
+            $hasResponse = ! empty($validatedData['response']);
+
+            if (($isResolvedOrClosed || $hasResponse) && ! isset($validatedData['resolved_at'])) {
+                $validatedData['resolved_at'] = now();
+            }
+
             $feedback->update($validatedData);
             $feedback->load('organization');
 

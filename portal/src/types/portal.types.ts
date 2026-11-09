@@ -150,6 +150,7 @@ export interface FeedbackItem {
   fullName?: string;
   phoneNumber?: string;
   email?: string;
+  response?: string;
 }
 
 export interface PostItem {

@@ -136,16 +136,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             ->middleware('permission:organizations.delete')
             ->name('organization-types.destroy');
 
-        Route::get('/organization', [OrganizationController::class, 'index'])
-            ->middleware('permission:organizations.view');
-
         Route::prefix('organizations')->name('organizations.')->group(function () {
-            Route::get('/', [OrganizationController::class, 'index'])
-                ->middleware('permission:organizations.view')
-                ->name('index');
-            Route::get('/tree', [OrganizationController::class, 'tree'])
-                ->middleware('permission:organizations.view')
-                ->name('tree');
             Route::post('/', [OrganizationController::class, 'store'])
                 ->middleware('permission:organizations.create')
                 ->name('store');
@@ -334,8 +325,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('/news/{news}', [NewsController::class, 'show'])
         ->name('news.show');
 
-    // Public Feedback Submission (no authentication required)
+    // Public Feedback Submission & Complaint Tracking (no authentication required)
     Route::post('/feedbacks', [FeedbackController::class, 'store'])
         ->middleware('throttle:feedback-submit')
         ->name('feedbacks.store');
+    Route::get('/feedbacks/track/{tracking_number}', [FeedbackController::class, 'track'])
+        ->name('feedbacks.track');
 });

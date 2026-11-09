@@ -29,7 +29,7 @@ const stepTitles = [
   'Tell us a little more',
 ];
 
-export default function FeedbackFormCard({ t }) {
+export default function FeedbackFormCard({ t, onTrack }) {
   const dispatch = useAppDispatch();
   const feedbackState = useAppSelector((state) => state.feedback);
 
@@ -197,6 +197,7 @@ export default function FeedbackFormCard({ t }) {
           t={t}
           onReset={handleReset}
           trackingNumber={trackingNumber}
+          onTrack={onTrack}
         />
       )}
       <div className="feedback-form-footer">

@@ -43,7 +43,7 @@ export default function HomeNewsArticleCard({ item, language, onSelectItem }) {
             <span>{bureau}</span>
           </span>
           <span>·</span>
-          <span>{item.readTimeMinutes} {isAm ? 'ደቂቃ ንባብ' : 'min read'}</span>
+          <span>{item.readTimeMinutes} {isAm ? 'ደቂቃ ንባብ' : language === 'om' ? 'daqiiqaa dubbisaa' : 'min read'}</span>
         </div>
         <h3 className="ne-card-title">{title}</h3>
         <p className="ne-card-summary">{summary}</p>
@@ -55,7 +55,7 @@ export default function HomeNewsArticleCard({ item, language, onSelectItem }) {
             <span>{isAm && item.author?.nameAm ? item.author.nameAm : item.author?.name}</span>
           </div>
           <span className="ne-card-action">
-            {isAm ? 'ሙሉውን አንብብ' : 'Read story'}
+            {isAm ? 'ሙሉውን አንብብ' : language === 'om' ? 'Guutuu dubbisaa' : 'Read story'}
             <ArrowRight size={14} />
           </span>
         </div>

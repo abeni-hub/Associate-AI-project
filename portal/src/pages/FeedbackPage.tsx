@@ -19,6 +19,22 @@ export interface FeedbackPageProps {
   setStatusFilter?: (s: string) => void;
 }
 
+function normalizeFeedbackStatus(rawStatus?: string, hasResponse?: boolean): 'Open' | 'In review' | 'Resolved' | 'Closed' {
+  const s = String(rawStatus || '').toLowerCase().trim();
+  if (s === 'resolved' || (hasResponse && !s)) return 'Resolved';
+  if (s === 'closed' || s === 'rejected') return 'Closed';
+  if (s === 'under_review' || s === 'in_progress' || s === 'in_review' || s === 'in review') return 'In review';
+  return 'Open';
+}
+
+function toBackendFeedbackStatus(uiStatus: string): string {
+  const s = String(uiStatus || '').toLowerCase().trim();
+  if (s === 'in review' || s === 'in_review' || s === 'under review' || s === 'under_review') return 'under_review';
+  if (s === 'resolved') return 'resolved';
+  if (s === 'closed') return 'closed';
+  return 'submitted';
+}
+
 export const FeedbackPage: React.FC<FeedbackPageProps> = ({
   items: propItems,
   onOpen: propOnOpen,
@@ -53,6 +69,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
             ? 'Satisfaction'
             : 'Suggestion';
 
+        const normalizedStatus = normalizeFeedbackStatus(f.status, Boolean(f.response));
         const displayId = f.tracking_number ? `#${f.tracking_number}` : `FB-${f.id}`;
         return {
           id: displayId,
@@ -67,12 +84,13 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
           time: f.created_at
             ? new Date(f.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
             : 'Today',
-          status: f.status || 'Open',
+          status: normalizedStatus,
           priority: isComplaint ? 'High' : (f.priority || 'Normal'),
           notes: [],
           fullName: f.full_name || f.fullName,
           phoneNumber: f.phone_number || f.phoneNumber || (f as any).phone,
           email: f.email,
+          response: f.response || undefined,
         };
       });
     }
@@ -104,26 +122,29 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
       kind: 'feedback',
       item,
       onUpdate: async (newStatus: string, responseText?: string) => {
+        const normalizedNewStatus = normalizeFeedbackStatus(newStatus);
+
         // Optimistic UI update
-        setStatusOverrides((prev) => ({ ...prev, [item.id]: newStatus }));
-        setFeedbackNotice(`Status updated to "${newStatus}" for response ${item.id}.`);
+        setStatusOverrides((prev) => ({ ...prev, [item.id]: normalizedNewStatus }));
+        setFeedbackNotice(`Status updated to "${normalizedNewStatus}" for response ${item.id}.`);
         setTimeout(() => setFeedbackNotice(null), 3500);
 
-        // Resolve identifier: send numeric database ID first if available
-        const targetId = item.numericId || item.id.replace(/^FB-/, '').replace(/^#/, '');
+        // Resolve identifier: send numeric database ID first if available, or clean tracking number
+        const targetId = item.numericId || item.trackingNumber || item.id.replace(/^FB-/, '').replace(/^#/, '');
 
-        // Map status to snake_case backend format
-        const backendStatus = newStatus.toLowerCase().replace(/\s+/g, '_');
+        // Map status to backend format: under_review, resolved, closed, submitted
+        const backendStatus = toBackendFeedbackStatus(newStatus);
+        const cleanResponse = responseText !== undefined && responseText.trim() !== '' ? responseText.trim() : undefined;
 
         try {
-          if (responseText && responseText.trim()) {
-            await updateFeedbackStatusTrigger({ id: targetId, response: responseText.trim() }).unwrap();
-          } else {
-            await updateFeedbackStatusTrigger({ id: targetId, status: backendStatus }).unwrap();
-          }
+          await updateFeedbackStatusTrigger({
+            id: targetId,
+            status: backendStatus,
+            ...(cleanResponse !== undefined ? { response: cleanResponse } : {}),
+          }).unwrap();
           await refetch();
         } catch (err) {
-          console.warn('Backend feedback status update fallback to local state:', err);
+          console.error('Backend feedback status update error:', err);
         }
       },
     });

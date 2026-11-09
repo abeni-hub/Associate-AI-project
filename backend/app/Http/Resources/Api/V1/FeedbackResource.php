@@ -22,6 +22,7 @@ class FeedbackResource extends JsonResource
             'feedback_content' => $this->feedback_content,
             'feedback_type' => $this->feedback_type,
             'tracking_number' => $this->tracking_number,
+            'status' => $this->status ?? (! empty($this->response) ? 'resolved' : 'submitted'),
             'full_name' => $this->full_name,
             'phone_number' => $this->phone_number,
             'email' => $this->email,

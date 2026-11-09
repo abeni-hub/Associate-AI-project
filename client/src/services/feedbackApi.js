@@ -30,8 +30,16 @@ export const feedbackApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Feedback'],
     }),
+
+    trackFeedback: builder.query({
+      query: (trackingNumber) => ({
+        url: `/feedbacks/track/${encodeURIComponent(String(trackingNumber).trim())}`,
+        method: 'GET',
+      }),
+      providesTags: (result, error, arg) => [{ type: 'Feedback', id: arg }],
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useGetFeedbacksQuery, useSubmitFeedbackMutation } = feedbackApi;
+export const { useGetFeedbacksQuery, useSubmitFeedbackMutation, useTrackFeedbackQuery, useLazyTrackFeedbackQuery } = feedbackApi;
