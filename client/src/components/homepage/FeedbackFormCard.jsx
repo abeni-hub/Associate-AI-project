@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import Icon from '../ui/Icon.jsx';
 import FeedbackFormActions from './FeedbackFormActions.jsx';
 import FeedbackStepContent from './FeedbackStepContent.jsx';
