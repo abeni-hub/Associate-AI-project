@@ -310,7 +310,7 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
     // 1. If citizen selected a specific sub-city, prioritize that sub-city's organization ID
     if (serviceGuide.subCity && serviceGuide.subCity !== 'all') {
       const cleanSubCity = serviceGuide.subCity.toLowerCase().replace(/sub-city|sub city|subcity/g, '').trim();
-      const matchSubCity = subCitiesData?.data?.find((o: any) => {
+      const matchSubCity = subCityList.find((o: any) => {
         const name = (o.name || '').toLowerCase();
         const code = (o.code || '').toLowerCase();
         return name.includes(cleanSubCity) || code.includes(cleanSubCity);
@@ -319,11 +319,11 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
     }
     // 2. Otherwise if bureau is selected, use bureau ID
     if (serviceGuide.bureauId && serviceGuide.bureauId !== 'all') {
-      const matchBureau = bureausData?.data?.find((o: any) => String(o.id) === String(serviceGuide.bureauId));
+      const matchBureau = allOrganizations.find((o: any) => String(o.id) === String(serviceGuide.bureauId));
       if (matchBureau) return matchBureau.id;
     }
     return undefined;
-  }, [serviceGuide.subCity, serviceGuide.bureauId, subCitiesData, bureausData]);
+  }, [serviceGuide.subCity, serviceGuide.bureauId, subCityList, allOrganizations]);
 
   const stepsQueryArg = useMemo(() => {
     if (!effectiveGuideServiceId) return null
