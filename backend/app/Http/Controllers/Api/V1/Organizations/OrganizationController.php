@@ -14,6 +14,7 @@ use App\Http\Resources\Api\V1\OrganizationResource;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OrganizationController extends Controller
 {
@@ -52,7 +53,7 @@ class OrganizationController extends Controller
         // 2. Filters
         if ($request->filled('search')) {
             $search = (string) $request->input('search');
-            $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
             $query->where(function ($q) use ($search, $like) {
                 $q->where('name', $like, "%{$search}%")
                     ->orWhere('code', $like, "%{$search}%");
@@ -61,7 +62,7 @@ class OrganizationController extends Controller
 
         if ($request->filled('type')) {
             $typeInput = strtolower(trim((string) $request->input('type')));
-            $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
             if ($typeInput === 'sub_city' || $typeInput === 'subcity') {
                 $query->where(function ($q) use ($like) {
@@ -70,8 +71,8 @@ class OrganizationController extends Controller
                         ->orWhere('name', $like, '%Sub City%')
                         ->orWhere('name', $like, '%Subcity%');
                 })->where(function ($q) use ($like) {
-                    $q->where('name', 'not ' . $like, '%Bureau%')
-                        ->where('name', 'not ' . $like, '%Agency%');
+                    $q->where('name', 'not '.$like, '%Bureau%')
+                        ->where('name', 'not '.$like, '%Agency%');
                 });
             } elseif ($typeInput === 'bureau' || $typeInput === 'agency') {
                 $query->where(function ($q) use ($like) {
@@ -79,8 +80,8 @@ class OrganizationController extends Controller
                         ->orWhere('name', $like, '%Bureau%')
                         ->orWhere('name', $like, '%Agency%');
                 })->where(function ($q) use ($like) {
-                    $q->where('name', 'not ' . $like, '%Sub-city%')
-                        ->where('name', 'not ' . $like, '%Subcity%');
+                    $q->where('name', 'not '.$like, '%Sub-city%')
+                        ->where('name', 'not '.$like, '%Subcity%');
                 });
             } else {
                 $query->whereHas('type', fn ($q) => $q->where('code', $typeInput));
@@ -188,6 +189,8 @@ class OrganizationController extends Controller
     public function store(CreateOrganizationRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $data['logo_path'] = $request->file('logo')->store('organizations/logos', 'public');
+        unset($data['logo']);
         $data['status'] = $data['status'] ?? 'active';
 
         $organization = Organization::create($data);

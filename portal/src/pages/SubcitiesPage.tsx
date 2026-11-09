@@ -57,7 +57,6 @@ export const SubcitiesPage: React.FC<SubcitiesPageProps> = ({
         submit: 'Create sub-city',
         fields: [
           { name: 'name', label: 'Sub-city name', required: true },
-          { name: 'code', label: 'Sub-city code (slug)', placeholder: 'e.g. subcity-bole', required: true },
           { name: 'email', label: 'Work email', type: 'email', required: true },
           { name: 'phone', label: 'Official phone', placeholder: '+251911000000' },
         ],
@@ -65,7 +64,7 @@ export const SubcitiesPage: React.FC<SubcitiesPageProps> = ({
           try {
             await createOrgTrigger({
               name: v.name,
-              code: v.code.toLowerCase().replace(/\s+/g, '-'),
+              code: v.name.toLowerCase().replace(/\s+/g, '-'),
               organization_type_id: 1,
               email: v.email,
               phone: v.phone,

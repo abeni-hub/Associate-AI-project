@@ -32,6 +32,7 @@ class Organization extends Model
         'address',
         'phone',
         'email',
+        'logo_path',
         'status',
     ];
 

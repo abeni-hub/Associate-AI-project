@@ -172,11 +172,6 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
     }
   };
 
-  const handleCodeChange = (val: string) => {
-    setIsCustomCode(true);
-    setCode(slugify(val));
-  };
-
   const handleToggleDoc = (docId: number) => {
     setSelectedDocs((prev) => {
       const copy = { ...prev };
@@ -606,19 +601,8 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                   />
                 </label>
 
-                {/* Unique Code Slug */}
-                <label className="modal-field">
-                  <span style={{ fontWeight: 700, color: '#003946' }}>
-                    Code Slug <i>*</i>
-                  </span>
-                  <input
-                    required
-                    placeholder="e.g. civil-vital, birth-registration"
-                    value={code}
-                    onChange={(e) => handleCodeChange(e.target.value)}
-                    style={{ fontSize: '13.5px', fontFamily: 'monospace' }}
-                  />
-                </label>
+                {/* Code slug — auto-generated from name */}
+                <input type="hidden" value={code} readOnly />
 
                 {/* Governing Organization / Bureau */}
                 <label className="modal-field">
