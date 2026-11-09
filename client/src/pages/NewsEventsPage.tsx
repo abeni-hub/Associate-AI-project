@@ -244,11 +244,14 @@ export default function NewsEventsPage({
 
         <NewsEventsFeed
           items={items}
+          totalCount={totalCount}
           loading={loading}
           language={language}
           hasMore={hasMore}
           activeType={activeType}
+          sentinelRef={sentinelRef}
           onNavigateToDetail={onNavigateToDetail}
+          onResetFilters={() => dispatch(resetFilters())}
         />
 
         {/* Infinite Scroll Sentinel element */}
