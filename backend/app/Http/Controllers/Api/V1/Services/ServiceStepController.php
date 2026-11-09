@@ -198,7 +198,9 @@ class ServiceStepController extends Controller
         $serviceModel = $this->resolveService($service);
 
         $validated = $request->validate([
+            'organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
             'steps' => ['present', 'array'],
+            'steps.*.organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
             'steps.*.step_number' => ['nullable', 'integer'],
             'steps.*.title' => ['required', 'string', 'max:255'],
             'steps.*.instruction' => ['nullable', 'string'],
@@ -211,11 +213,18 @@ class ServiceStepController extends Controller
             'steps.*.is_active' => ['nullable', 'boolean'],
         ]);
 
-        DB::transaction(function () use ($serviceModel, $validated) {
-            $serviceModel->steps()->delete();
+        $targetOrgId = $validated['organization_id'] ?? null;
+
+        DB::transaction(function () use ($serviceModel, $validated, $targetOrgId) {
+            if ($targetOrgId !== null) {
+                $serviceModel->steps()->where('organization_id', $targetOrgId)->delete();
+            } else {
+                $serviceModel->steps()->delete();
+            }
 
             foreach ($validated['steps'] as $idx => $stepData) {
                 $serviceModel->steps()->create([
+                    'organization_id' => $stepData['organization_id'] ?? $targetOrgId,
                     'step_number' => $stepData['step_number'] ?? ($idx + 1),
                     'title' => $stepData['title'],
                     'instruction' => $stepData['instruction'] ?? '',

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../shared/Icon';
 import { useGetDocumentsQuery } from '../../services/documentsApi';
+import { useGetOrganizationsQuery } from '../../services/organizationsApi';
+import { useGetServicesQuery } from '../../services/servicesApi';
 import type { CreateServicePayload, UpdateServicePayload } from '../../services/servicesApi';
 
 export interface ServiceModalProps {
@@ -34,6 +36,15 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
   const { data: docsResponse, isLoading: isLoadingDocs } = useGetDocumentsQuery();
   const availableDocuments = useMemo(() => docsResponse?.data || [], [docsResponse]);
 
+  const { data: orgsResponse } = useGetOrganizationsQuery();
+  const organizations = useMemo(() => orgsResponse?.data || [], [orgsResponse]);
+
+  const { data: allServicesResponse } = useGetServicesQuery();
+  const masterServices = useMemo(() => {
+    if (!allServicesResponse?.data) return [];
+    return allServicesResponse.data.filter((s: any) => s.is_master || s.parent_id === null);
+  }, [allServicesResponse]);
+
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
@@ -41,7 +52,12 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
   const [estimatedDuration, setEstimatedDuration] = useState<string | number>('30');
   const [isActive, setIsActive] = useState(true);
   const [isCustomCode, setIsCustomCode] = useState(false);
+  const [isMaster, setIsMaster] = useState(true);
+  const [parentId, setParentId] = useState<number | null>(null);
+  const [primaryOrgId, setPrimaryOrgId] = useState<number | null>(null);
+  const [selectedOfferingOrgs, setSelectedOfferingOrgs] = useState<number[]>([]);
   const [docSearch, setDocSearch] = useState('');
+  const [orgSearch, setOrgSearch] = useState('');
   const [selectedDocs, setSelectedDocs] = useState<Record<number, SelectedDocMeta>>({});
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -56,6 +72,12 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
         setEstimatedDuration(raw.estimated_duration_minutes !== undefined ? raw.estimated_duration_minutes : 30);
         setIsActive(raw.is_active !== undefined ? Boolean(raw.is_active) : (service.published ?? true));
         setIsCustomCode(true);
+        setIsMaster(raw.is_master !== undefined ? Boolean(raw.is_master) : (raw.parent_id === null));
+        setParentId(raw.parent_id || null);
+        setPrimaryOrgId(raw.organization_id || raw.organization?.id || null);
+
+        const initialOrgs = raw.offering_organizations?.map((o: any) => o.id) || [];
+        setSelectedOfferingOrgs(initialOrgs);
 
         const initialDocs: Record<number, SelectedDocMeta> = {};
         if (raw.required_documents && Array.isArray(raw.required_documents)) {
@@ -76,9 +98,14 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
         setEstimatedDuration('30');
         setIsActive(true);
         setIsCustomCode(false);
+        setIsMaster(true);
+        setParentId(null);
+        setPrimaryOrgId(null);
+        setSelectedOfferingOrgs([]);
         setSelectedDocs({});
       }
       setDocSearch('');
+      setOrgSearch('');
       setErrorMsg(null);
     }
   }, [isOpen, service]);
@@ -191,6 +218,9 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
         name: name.trim(),
         code: cleanCode,
         description: description.trim() || undefined,
+        parent_id: isMaster ? null : (parentId || null),
+        organization_id: primaryOrgId || undefined,
+        offering_organizations: selectedOfferingOrgs,
         fee_amount: Number(feeAmount) || 0,
         fee_currency: 'ETB',
         estimated_duration_minutes: Number(estimatedDuration) || 30,
@@ -248,6 +278,68 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
           )}
 
           <div className="modal-form-grid" style={{ padding: '1.25rem 1.5rem' }}>
+            {/* Service Hierarchy */}
+            <div className="modal-field full" style={{ display: 'flex', gap: '16px', alignItems: 'center', background: '#f8fafc', padding: '10px 14px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155' }}>Service Level:</span>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                <input
+                  type="radio"
+                  name="service_level"
+                  checked={isMaster}
+                  onChange={() => { setIsMaster(true); setParentId(null); }}
+                  style={{ accentColor: '#00485a' }}
+                />
+                <b>Main (Master) Service</b>
+              </label>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                <input
+                  type="radio"
+                  name="service_level"
+                  checked={!isMaster}
+                  onChange={() => setIsMaster(false)}
+                  style={{ accentColor: '#00485a' }}
+                />
+                <b>Subservice (Actionable Unit)</b>
+              </label>
+            </div>
+
+            {/* Parent Master Service Selector if Subservice */}
+            {!isMaster && (
+              <label className="modal-field full">
+                <span>Parent Master Service <i>*</i></span>
+                <select
+                  required={!isMaster}
+                  value={parentId ?? ''}
+                  onChange={(e) => setParentId(e.target.value ? Number(e.target.value) : null)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                >
+                  <option value="">Select Parent Master Service...</option>
+                  {masterServices.map((ms: any) => (
+                    <option key={ms.id} value={ms.id}>
+                      {ms.name} ({ms.code})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {/* Governing Bureau / Sector Organization */}
+            <label className="modal-field full">
+              <span>Governing Bureau / Sector Organization</span>
+              <select
+                value={primaryOrgId ?? ''}
+                onChange={(e) => setPrimaryOrgId(e.target.value ? Number(e.target.value) : null)}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+              >
+                <option value="">Select Governing Bureau / Sector Agency (Optional)...</option>
+                {organizations.map((org: any) => (
+                  <option key={org.id} value={org.id}>
+                    {org.name} ({org.code})
+                  </option>
+                ))}
+              </select>
+            </label>
+
             {/* Service Name */}
             <label className="modal-field full">
               <span>Service name <i>*</i></span>
@@ -477,6 +569,107 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                     );
                   })
                 )}
+              </div>
+            </div>
+
+            {/* =========================================================================
+                OFFERING OFFICES & SUB-CITIES CHECKLIST
+               ========================================================================= */}
+            <div className="modal-field full" style={{ marginTop: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <div>
+                  <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#165760' }}>
+                    Offering Offices & Sub-cities
+                  </span>
+                  <small style={{ display: 'block', color: '#688075', fontSize: '11.5px' }}>
+                    Select which municipal sub-cities, bureaus, or woredas provide this service.
+                  </small>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedOfferingOrgs.length === organizations.length) {
+                        setSelectedOfferingOrgs([]);
+                      } else {
+                        setSelectedOfferingOrgs(organizations.map((o: any) => o.id));
+                      }
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '4px',
+                      padding: '2px 8px',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      color: '#00485a',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {selectedOfferingOrgs.length === organizations.length ? 'Deselect all' : 'Select all branches'}
+                  </button>
+                  <span
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      background: selectedOfferingOrgs.length > 0 ? '#e4f3ee' : '#edf3ef',
+                      color: selectedOfferingOrgs.length > 0 ? '#1b694f' : '#64776e',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {selectedOfferingOrgs.length} offices
+                  </span>
+                </div>
+              </div>
+
+              {/* Organization Checklist Container */}
+              <div
+                style={{
+                  maxHeight: '160px',
+                  overflowY: 'auto',
+                  border: '1px solid #d8e5dd',
+                  borderRadius: '6px',
+                  padding: '6px',
+                  background: '#fafcfb',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                  gap: '6px',
+                }}
+              >
+                {organizations.map((org: any) => {
+                  const isChecked = selectedOfferingOrgs.includes(org.id);
+                  return (
+                    <label
+                      key={org.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '6px 8px',
+                        borderRadius: '4px',
+                        background: isChecked ? '#e6f4ea' : '#ffffff',
+                        border: `1px solid ${isChecked ? '#a7d7b9' : '#e2e8f0'}`,
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: isChecked ? 600 : 400,
+                        color: isChecked ? '#137333' : '#334155',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setSelectedOfferingOrgs((prev) =>
+                            prev.includes(org.id) ? prev.filter((id) => id !== org.id) : [...prev, org.id]
+                          );
+                        }}
+                        style={{ width: '15px', height: '15px', accentColor: '#00485a' }}
+                      />
+                      <span>{org.name}</span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
           </div>

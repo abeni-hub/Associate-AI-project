@@ -231,11 +231,34 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
 
   // Query service details and steps for selected guide service
   const effectiveGuideServiceId = serviceGuide.serviceId || serviceId
+
+  // Resolve target organization ID for organization-level room steps filtering
+  const selectedOrgId = useMemo(() => {
+    if (serviceGuide.bureauId && serviceGuide.bureauId !== 'all') {
+      const matchBureau = orgData?.data?.find((o: any) => String(o.id) === String(serviceGuide.bureauId))
+      if (matchBureau) return matchBureau.id
+    }
+    if (serviceGuide.subCity && serviceGuide.subCity !== 'all') {
+      const matchSubCity = orgData?.data?.find(
+        (o: any) => o.name === serviceGuide.subCity || o.name?.toLowerCase().includes(serviceGuide.subCity.toLowerCase())
+      )
+      if (matchSubCity) return matchSubCity.id
+    }
+    return undefined
+  }, [serviceGuide.bureauId, serviceGuide.subCity, orgData])
+
+  const stepsQueryArg = useMemo(() => {
+    if (!effectiveGuideServiceId) return null
+    return selectedOrgId
+      ? { serviceId: effectiveGuideServiceId, organization_id: selectedOrgId }
+      : effectiveGuideServiceId
+  }, [effectiveGuideServiceId, selectedOrgId])
+
   const { data: liveServiceDetail } = useGetServiceByIdQuery(effectiveGuideServiceId, {
     skip: !effectiveGuideServiceId,
   })
-  const { data: liveServiceSteps } = useGetServiceStepsQuery(effectiveGuideServiceId, {
-    skip: !effectiveGuideServiceId,
+  const { data: liveServiceSteps } = useGetServiceStepsQuery(stepsQueryArg, {
+    skip: !stepsQueryArg,
   })
 
   const guideService = useMemo(() => {

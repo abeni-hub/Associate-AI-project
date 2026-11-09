@@ -73,12 +73,14 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
       portal.setModal({
         kind: 'route',
         route,
-        onSave: async (steps: RouteStep[]) => {
+        onSave: async (steps: RouteStep[], orgId?: number | null) => {
           portal.saveRouteSteps(route.id, steps);
           try {
             await syncStepsTrigger({
               serviceId: route.id,
+              organization_id: orgId || null,
               steps: steps.map((s, idx) => ({
+                organization_id: orgId || null,
                 step_number: idx + 1,
                 title: s.title || `Step ${idx + 1}`,
                 instruction: s.detail || '',

@@ -13,6 +13,7 @@ import {
   useUpdateServiceMutation,
   useDeleteServiceMutation,
   useSyncServiceDocumentsMutation,
+  useSyncServiceOrganizationsMutation,
 } from '../services/servicesApi';
 
 export interface ServicesPageProps {
@@ -45,6 +46,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
   const [updateServiceTrigger, { isLoading: isUpdating }] = useUpdateServiceMutation();
   const [deleteServiceTrigger] = useDeleteServiceMutation();
   const [syncDocsTrigger] = useSyncServiceDocumentsMutation();
+  const [syncOrgsTrigger] = useSyncServiceOrganizationsMutation();
 
   // Map backend services or merge with prop items
   const items: (ServiceItem & { raw?: any })[] = useMemo(() => {
@@ -94,23 +96,32 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
 
   const handleSaveService = async (payload: any) => {
     try {
-      if (payload.id) {
+      let targetId = payload.id;
+      if (targetId) {
         await updateServiceTrigger(payload).unwrap();
-        if (payload.documents) {
+      } else {
+        const res = await createServiceTrigger(payload).unwrap();
+        targetId = res?.data?.id;
+      }
+
+      if (targetId) {
+        if (payload.documents && Array.isArray(payload.documents)) {
           await syncDocsTrigger({
-            serviceId: payload.id,
+            serviceId: targetId,
             documents: payload.documents,
           }).unwrap();
         }
-      } else {
-        const res = await createServiceTrigger(payload).unwrap();
-        if (res?.data?.id && payload.documents && payload.documents.length > 0) {
-          await syncDocsTrigger({
-            serviceId: res.data.id,
-            documents: payload.documents,
+        if (payload.offering_organizations && Array.isArray(payload.offering_organizations)) {
+          await syncOrgsTrigger({
+            serviceId: targetId,
+            organizations: payload.offering_organizations.map((orgId: number) => ({
+              organization_id: orgId,
+              is_available: true,
+            })),
           }).unwrap();
         }
       }
+
       setIsModalOpen(false);
       setSelectedService(null);
       await refetch();

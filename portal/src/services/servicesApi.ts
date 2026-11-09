@@ -326,6 +326,29 @@ export const servicesApi = baseApi.injectEndpoints({
         'Document',
       ],
     }),
+
+    syncServiceOrganizations: builder.mutation<
+      ApiResponse<ServiceDetail>,
+      {
+        serviceId: number | string;
+        organizations: Array<{
+          organization_id: number;
+          is_available?: boolean;
+          specific_instructions?: string;
+        }>;
+      }
+    >({
+      query: ({ serviceId, organizations }) => ({
+        url: `/services/${serviceId}/organizations`,
+        method: 'POST',
+        body: { organizations },
+      }),
+      invalidatesTags: (_result, _error, { serviceId }) => [
+        { type: 'Service', id: serviceId },
+        { type: 'Service', id: 'LIST' },
+        'Service',
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -344,4 +367,5 @@ export const {
   useReorderServiceStepsMutation,
   useSyncServiceStepsMutation,
   useSyncServiceDocumentsMutation,
+  useSyncServiceOrganizationsMutation,
 } = servicesApi;

@@ -128,6 +128,8 @@ export interface RouteItem {
   service: string;
   category: string;
   bureau: string;
+  organizationId?: number;
+  organizationName?: string;
   status: string;
   updated: string;
   steps: RouteStep[];
@@ -245,7 +247,7 @@ export interface FormModalConfig {
 export interface RouteModalConfig {
   kind: 'route';
   route: RouteItem;
-  onSave: (steps: RouteStep[]) => void;
+  onSave: (steps: RouteStep[], organizationId?: number | null) => void;
 }
 
 export interface FeedbackModalConfig {
