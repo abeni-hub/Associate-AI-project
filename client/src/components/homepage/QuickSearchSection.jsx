@@ -214,138 +214,67 @@ export default function QuickSearchSection({
           </button>
         </form>
 
-        {/* Live Filter Results Showcase */}
+        {/* Streamlined Live Match Bar & Fast Service Chips */}
         {activeServiceList && activeServiceList.length > 0 ? (
-          <div className="search-filter-results-container">
-            <div className="search-filter-results-header">
-              <span className="search-filter-results-title">
-                <Icon name="file" size={15} />
-                {t('Matching Citizen Services')} ({activeServiceList.length})
+          <div className="quick-search-match-bar">
+            <div className="match-bar-info">
+              <span className="match-count-pill">
+                <Icon name="check" size={13} />
+                <b>{activeServiceList.length}</b> {t(activeServiceList.length === 1 ? 'service available' : 'services available')}
               </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {hasActiveFilters && (
-                  <button type="button" onClick={handleResetFilters} className="filter-reset-link" style={{ fontSize: '11px' }}>
-                    {t('Reset all filters')}
-                  </button>
-                )}
-                {activeServiceList.length > 6 && !searchKeyword.trim() && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllResults((prev) => !prev)}
-                    className="service-chip-btn"
-                    style={{ fontSize: '11px', fontWeight: 600 }}
-                  >
-                    {showAllResults ? t('Show fewer') : t(`Show all (${activeServiceList.length})`)}
-                  </button>
-                )}
-              </div>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="filter-reset-link"
+                >
+                  <Icon name="close" size={12} /> {t('Clear filters')}
+                </button>
+              )}
             </div>
 
-            <div className="search-filter-results-grid">
-              {displayedCards.map((service) => {
-                const isSelected = String(service.id) === String(serviceId)
-                const raw = service.raw || {}
-                const stepCount = raw.steps?.length || raw.steps_count || 0
-                const feeText = raw.fee_amount && Number(raw.fee_amount) > 0
-                  ? `${raw.fee_amount} ${raw.fee_currency || 'ETB'}`
-                  : 'Free'
-                const durationText = raw.estimated_duration_minutes
-                  ? `${raw.estimated_duration_minutes} min`
-                  : null
-
-                return (
+            {/* Quick Select Chips */}
+            <div className="quick-service-chips-row" role="tablist" aria-label={t('Matching services')}>
+              <span className="chips-label">{hasActiveFilters ? t('Matching:') : t('Quick Picks:')}</span>
+              <div className="chips-scroll-wrap">
+                {activeServiceList.slice(0, 7).map((srv) => (
                   <button
-                    key={service.id}
+                    key={srv.id}
                     type="button"
-                    className={`search-filter-card ${isSelected ? 'is-active' : ''}`}
-                    onClick={() => handleSelectCard(service.id)}
+                    className={`service-chip-btn ${srv.id === serviceId ? 'is-selected' : ''}`}
+                    onClick={() => handleSelectCard(srv.id)}
+                    title={srv.parentName ? `${srv.parentName} › ${srv.label}` : srv.label}
                   >
-                    <div className="search-filter-card-category">
-                      <span>{service.parentName || service.organizationName || 'Citizen Service'}</span>
-                      {isSelected && (
-                        <span className="search-filter-active-pill">
-                          ✓ {t('Selected')}
-                        </span>
-                      )}
-                    </div>
-
-                    <h4 className="search-filter-card-title">{service.label}</h4>
-
-                    <div className="search-filter-card-meta">
-                      {durationText && (
-                        <span className="search-filter-badge">
-                          <Icon name="clock" size={11} /> {durationText}
-                        </span>
-                      )}
-                      <span className="search-filter-badge fee">
-                        {feeText}
-                      </span>
-                      {stepCount > 0 ? (
-                        <span className="search-filter-badge route">
-                          <Icon name="route" size={11} /> {stepCount} {stepCount === 1 ? 'room step' : 'room steps'}
-                        </span>
-                      ) : (
-                        <span className="search-filter-badge">
-                          <Icon name="pin" size={11} /> {service.organizationName || 'City Office'}
-                        </span>
-                      )}
-                    </div>
+                    {srv.label}
                   </button>
-                )
-              })}
+                ))}
+              </div>
             </div>
           </div>
         ) : (
-          <div
-            style={{
-              padding: '24px 16px',
-              textAlign: 'center',
-              background: '#f8faf7',
-              borderRadius: '6px',
-              border: '1px dashed #d5ded6',
-              marginTop: '12px',
-            }}
-          >
-            <Icon name="search" size={24} />
-            <h4 style={{ margin: '8px 0 4px', fontSize: '13px', color: '#274438' }}>
-              {t('No services found matching your search filter')}
-            </h4>
-            <p style={{ margin: '0 0 12px', fontSize: '11.5px', color: '#7a8e83' }}>
-              {t('Try adjusting your search keywords, switching categories, or clearing location filters.')}
-            </p>
+          <div className="quick-search-empty-state">
+            <Icon name="search" size={20} />
+            <div className="empty-state-copy">
+              <h4>{t('No matching services found')}</h4>
+              <p>{t('Try clearing your search keyword or switching office location filters.')}</p>
+            </div>
             <button
               type="button"
-              className="button button-secondary"
+              className="button button-secondary small-button"
               onClick={handleResetFilters}
-              style={{ fontSize: '11px', padding: '4px 12px', height: '32px' }}
+              style={{ padding: '4px 12px', fontSize: '11px', height: '32px' }}
             >
-              {t('Reset all filters')}
+              {t('Reset filters')}
             </button>
           </div>
         )}
 
-        {/* Footer info & popular quick picks */}
+        {/* Footer info footnote */}
         <div className="quick-search-footer">
           <div className="search-footnote">
             <Icon name="sparkle" size={14} />
             <span>{t(footnoteText)}</span>
           </div>
-
-          {!hasActiveFilters && quickPicks.length > 0 && (
-            <div className="quick-service-chips">
-              <span className="chips-label">{t('Quick Picks:')}</span>
-              {quickPicks.map((srv) => (
-                <button
-                  key={srv.id}
-                  type="button"
-                  className={`service-chip-btn ${srv.id === serviceId ? 'is-selected' : ''}`}
-                  onClick={() => handleSelectCard(srv.id)}
-                >
-                  {t(srv.label)}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </section>
