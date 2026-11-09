@@ -74,7 +74,8 @@ export default function FeedbackStepContent({
             seenIds.add(subId);
             list.push({
               id: subId,
-              label: `${s.name} › ${sub.name}`,
+              label: sub.name,
+              subtext: s.name,
               group: s.name,
               raw: sub,
             });
@@ -87,6 +88,7 @@ export default function FeedbackStepContent({
           list.push({
             id: sId,
             label: s.name,
+            subtext: s.organization?.name || '',
             group: s.organization?.name || 'General Services',
             raw: s,
           });
@@ -210,10 +212,7 @@ export default function FeedbackStepContent({
         <SearchableSelect
           value={feedback.service || ''}
           onChange={(val) => actions.setService(val)}
-          options={activeServices.map((service) => ({
-            id: service.id,
-            label: service.label,
-          }))}
+          options={activeServices}
           icon="file"
           placeholder="Choose a service…"
           searchPlaceholder="Search services (e.g. Birth, License, Tax)…"
@@ -261,25 +260,23 @@ export default function FeedbackStepContent({
       </label>
 
       {/* Optional Contact Fields for Resolution Follow-up */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '6px' }}>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '12px', fontWeight: 600, color: '#334155' }}>
-          <span>{t('Your name')} <small style={{ fontWeight: 400, color: '#64748b' }}>({t('optional')})</small></span>
+      <div className="feedback-contact-grid">
+        <label className="feedback-contact-label">
+          <span>{t('Your name')} <small>({t('optional')})</small></span>
           <input
             type="text"
             placeholder={t('e.g. Abebe Bekele')}
             value={feedback.fullName || ''}
             onChange={(e) => actions.setFullName?.(e.target.value)}
-            style={{ padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
           />
         </label>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '12px', fontWeight: 600, color: '#334155' }}>
-          <span>{t('Phone number')} <small style={{ fontWeight: 400, color: '#64748b' }}>({t('for SMS updates')})</small></span>
+        <label className="feedback-contact-label">
+          <span>{t('Phone number')} <small>({t('for SMS updates')})</small></span>
           <input
             type="tel"
             placeholder={t('+251 91 100 0000')}
             value={feedback.phoneNumber || ''}
             onChange={(e) => actions.setPhoneNumber?.(e.target.value)}
-            style={{ padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
           />
         </label>
       </div>

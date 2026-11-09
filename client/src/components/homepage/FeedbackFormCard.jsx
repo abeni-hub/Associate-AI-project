@@ -207,7 +207,7 @@ export default function FeedbackFormCard({ t, onTrack }) {
             <span>{t(`STEP ${feedbackStep} OF 5`)}</span>
             <h4>{t(stepTitles[feedbackStep - 1])}</h4>
           </div>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="feedback-card-form">
             <FeedbackStepContent
               step={feedbackStep}
               feedback={feedback}
