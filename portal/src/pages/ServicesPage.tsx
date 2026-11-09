@@ -417,7 +417,10 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
         service: service.name,
         category: service.parent?.name || (service.is_master ? 'Master Catalog' : 'Sub-service'),
         bureau: service.organization?.name || 'Addis Ababa City Administration',
-        organizationId: service.organization_id || null,
+        organizationId:
+          selectedOrgFilter !== 'all'
+            ? Number(selectedOrgFilter)
+            : service.organization_id || null,
         status: service.is_active ? (liveSteps.length > 0 ? 'Active' : 'Draft') : 'Disabled',
         updated: service.created_at ? new Date(service.created_at).toLocaleDateString() : 'Live',
         steps: liveSteps,

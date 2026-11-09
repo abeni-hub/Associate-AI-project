@@ -38,6 +38,8 @@ class ServiceStepController extends Controller
 
     /**
      * List physical room-by-room navigation steps for a service.
+     * Supports organization-specific routing (e.g. unique rooms per Sub-city office)
+     * with graceful fallback to default service templates.
      */
     public function index(Request $request, string $service): JsonResponse
     {
@@ -53,8 +55,24 @@ class ServiceStepController extends Controller
 
         // Optional filtering by organization office
         if ($request->has('organization_id')) {
-            $orgId = $request->input('organization_id') !== null ? (int) $request->input('organization_id') : null;
-            $query->forOrganization($orgId);
+            $rawOrgId = $request->input('organization_id');
+            $orgId = ($rawOrgId !== null && $rawOrgId !== 'all' && $rawOrgId !== '') ? (int) $rawOrgId : null;
+
+            if ($orgId !== null) {
+                // Check if specific physical steps exist for this organization branch
+                $hasBranchSteps = (clone $query)->where('organization_id', $orgId)->exists();
+                if ($hasBranchSteps) {
+                    $query->where('organization_id', $orgId);
+                } else {
+                    // Fall back to template steps or primary bureau steps
+                    $query->where(function ($q) use ($serviceModel) {
+                        $q->whereNull('organization_id')
+                            ->orWhere('organization_id', $serviceModel->organization_id);
+                    });
+                }
+            } else {
+                $query->whereNull('organization_id');
+            }
         }
 
         $steps = $query->ordered()->get();
@@ -219,7 +237,7 @@ class ServiceStepController extends Controller
             if ($targetOrgId !== null) {
                 $serviceModel->steps()->where('organization_id', $targetOrgId)->delete();
             } else {
-                $serviceModel->steps()->delete();
+                $serviceModel->steps()->whereNull('organization_id')->delete();
             }
 
             foreach ($validated['steps'] as $idx => $stepData) {

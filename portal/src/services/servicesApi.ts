@@ -222,12 +222,27 @@ export const servicesApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: 'Service', id: 'LIST' }, 'Service'],
     }),
 
-    getServiceSteps: builder.query<ApiResponse<ServiceStep[]>, string | number>({
-      query: (serviceIdOrCode) => ({
-        url: `/services/${serviceIdOrCode}/steps`,
-        method: 'GET',
-      }),
-      providesTags: (_result, _error, serviceIdOrCode) => [{ type: 'ServiceStep', id: `SERVICE-${serviceIdOrCode}` }],
+    getServiceSteps: builder.query<
+      ApiResponse<ServiceStep[]>,
+      string | number | { serviceId: string | number; organization_id?: number | null }
+    >({
+      query: (arg) => {
+        const serviceId = typeof arg === 'object' && arg !== null ? arg.serviceId : arg;
+        const orgId = typeof arg === 'object' && arg !== null ? arg.organization_id : undefined;
+        return {
+          url: `/services/${serviceId}/steps`,
+          method: 'GET',
+          params: orgId ? { organization_id: orgId } : undefined,
+        };
+      },
+      providesTags: (_result, _error, arg) => {
+        const serviceId = typeof arg === 'object' && arg !== null ? arg.serviceId : arg;
+        const orgId = typeof arg === 'object' && arg !== null ? arg.organization_id : 'ALL';
+        return [
+          { type: 'ServiceStep', id: `SERVICE-${serviceId}-ORG-${orgId}` },
+          { type: 'ServiceStep', id: `SERVICE-${serviceId}` },
+        ];
+      },
     }),
 
     createServiceStep: builder.mutation<ApiResponse<ServiceStep>, CreateServiceStepPayload>({
@@ -281,6 +296,7 @@ export const servicesApi = baseApi.injectEndpoints({
       ApiResponse<ServiceStep[]>,
       {
         serviceId: number | string;
+        organization_id?: number | null;
         steps: Array<{
           step_number?: number;
           title: string;
@@ -292,16 +308,21 @@ export const servicesApi = baseApi.injectEndpoints({
           responsible_title?: string | null;
           estimated_duration_minutes?: number;
           is_active?: boolean;
+          organization_id?: number | null;
         }>;
       }
     >({
-      query: ({ serviceId, steps }) => ({
+      query: ({ serviceId, organization_id, steps }) => ({
         url: `/services/${serviceId}/steps/sync`,
         method: 'POST',
-        body: { steps },
+        body: {
+          organization_id: organization_id ?? null,
+          steps,
+        },
       }),
-      invalidatesTags: (_result, _error, { serviceId }) => [
+      invalidatesTags: (_result, _error, { serviceId, organization_id }) => [
         { type: 'ServiceStep', id: `SERVICE-${serviceId}` },
+        { type: 'ServiceStep', id: `SERVICE-${serviceId}-ORG-${organization_id ?? 'ALL'}` },
         { type: 'Service', id: serviceId },
         { type: 'Service', id: 'LIST' },
       ],
