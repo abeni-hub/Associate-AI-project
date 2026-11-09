@@ -52,8 +52,8 @@ export default function FeedbackStepContent({
     if (bureausData?.data && Array.isArray(bureausData.data)) {
       return bureausData.data.map((o) => ({
         id: String(o.id),
-        label: o.name,
-        subtext: o.code || '',
+        label: o.label || o.name,
+        subtext: o.subtext || o.code || '',
       }));
     }
     return [];

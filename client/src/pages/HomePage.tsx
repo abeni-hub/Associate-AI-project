@@ -37,34 +37,136 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [serviceGuide, setServiceGuide] = useState<ServiceGuideSelection>({ subCity: 'all', bureauId: 'all', serviceId: '' });
 
-  // 1. Live Sub-cities from backend API
-  const { data: subCitiesData, isLoading: isSubCitiesLoading } = useGetOrganizationsQuery({
-    type: 'sub_city',
-    per_page: 50,
+  // 1. Live Organizations from backend API
+  const { data: allOrgsData, isLoading: isOrgsLoading } = useGetOrganizationsQuery({
+    per_page: 100,
   });
-  const subCityOptions = useMemo(() => {
-    if (subCitiesData?.data && Array.isArray(subCitiesData.data)) {
-      return subCitiesData.data.map((o: any) => o.name);
-    }
-    return [];
-  }, [subCitiesData]);
 
-  // 2. Live Municipal Bureaus / Offices from backend API
-  const { data: bureausData, isLoading: isBureausLoading } = useGetOrganizationsQuery({
-    type: 'bureau',
-    per_page: 50,
-  });
-  const bureauOptions = useMemo(() => {
-    if (bureausData?.data && Array.isArray(bureausData.data)) {
-      return bureausData.data.map((o: any) => ({
+  const allOrganizations = useMemo(() => {
+    return (allOrgsData?.data && Array.isArray(allOrgsData.data)) ? allOrgsData.data : [];
+  }, [allOrgsData]);
+
+  // Sub-cities from backend API
+  const subCityList = useMemo(() => {
+    return allOrganizations.filter(
+      (o: any) =>
+        o.parent_organization_id === null &&
+        (o.type?.code === 'sub_city' ||
+          o.name?.toLowerCase().includes('sub-city') ||
+          o.name?.toLowerCase().includes('subcity'))
+    );
+  }, [allOrganizations]);
+
+  const subCityOptions = useMemo(() => {
+    return subCityList.map((o: any) => o.name);
+  }, [subCityList]);
+
+  // Selected sub-city object
+  const selectedSubCityObj = useMemo(() => {
+    if (!subCity || subCity === 'all') return null;
+    return subCityList.find(
+      (o: any) =>
+        o.name.toLowerCase() === subCity.toLowerCase() ||
+        String(o.id) === String(subCity) ||
+        o.code === subCity
+    );
+  }, [subCity, subCityList]);
+
+  // 2. Municipal Bureaus / Offices grouped and filtered under their parent
+  const { bureauOptions, bureauGroups } = useMemo(() => {
+    if (!allOrganizations.length) return { bureauOptions: [], bureauGroups: null };
+
+    // Central bureaus (no parent and bureau/agency type or naming)
+    const centralBureaus = allOrganizations.filter(
+      (o: any) =>
+        o.parent_organization_id === null &&
+        (o.type?.code === 'bureau' ||
+          o.type?.code === 'agency' ||
+          o.name?.toLowerCase().includes('bureau') ||
+          o.name?.toLowerCase().includes('agency'))
+    );
+
+    // If a sub-city is selected: filter child offices under that parent
+    if (selectedSubCityObj) {
+      const childOffices = allOrganizations.filter(
+        (o: any) => o.parent_organization_id === selectedSubCityObj.id
+      );
+
+      const options = [
+        ...childOffices.map((o: any) => ({
+          id: String(o.id),
+          label: o.name,
+          shortLabel: `Under ${selectedSubCityObj.name}`,
+          code: o.code,
+        })),
+        ...centralBureaus.map((o: any) => ({
+          id: String(o.id),
+          label: o.name,
+          shortLabel: o.name.replace(/Bureau|Office|Agency/i, '').trim() || o.name,
+          code: o.code,
+        })),
+      ];
+
+      const groups: Record<string, any[]> = {};
+      if (childOffices.length > 0) {
+        groups[`${selectedSubCityObj.name} Offices`] = childOffices.map((o: any) => ({
+          id: String(o.id),
+          label: o.name,
+          subtext: `Under ${selectedSubCityObj.name}`,
+          code: o.code,
+        }));
+      }
+      groups['Central Bureaus & Authorities'] = centralBureaus.map((o: any) => ({
+        id: String(o.id),
+        label: o.name,
+        subtext: o.code || '',
+        code: o.code,
+      }));
+
+      return { bureauOptions: options, bureauGroups: groups };
+    }
+
+    // When "all" sub-cities are selected: show all bureaus and child offices grouped under their parent
+    const childOffices = allOrganizations.filter((o: any) => o.parent_organization_id !== null);
+
+    const options = [
+      ...centralBureaus.map((o: any) => ({
         id: String(o.id),
         label: o.name,
         shortLabel: o.name.replace(/Bureau|Office|Agency/i, '').trim() || o.name,
         code: o.code,
-      }));
-    }
-    return [];
-  }, [bureausData]);
+      })),
+      ...childOffices.map((o: any) => ({
+        id: String(o.id),
+        label: o.parent ? `${o.parent.name} › ${o.name}` : o.name,
+        shortLabel: o.parent ? `Under ${o.parent.name}` : '',
+        code: o.code,
+      })),
+    ];
+
+    const groups: Record<string, any[]> = {};
+    groups['Central Bureaus & Authorities'] = centralBureaus.map((o: any) => ({
+      id: String(o.id),
+      label: o.name,
+      subtext: o.code || '',
+      code: o.code,
+    }));
+
+    // Group child offices under their parent organization name
+    childOffices.forEach((o: any) => {
+      const parentName = o.parent?.name || 'Local Sub-city Offices';
+      const groupKey = `${parentName} Offices`;
+      if (!groups[groupKey]) groups[groupKey] = [];
+      groups[groupKey].push({
+        id: String(o.id),
+        label: o.name,
+        subtext: `Under ${parentName}`,
+        code: o.code,
+      });
+    });
+
+    return { bureauOptions: options, bureauGroups: groups };
+  }, [allOrganizations, selectedSubCityObj]);
 
   // 3. Live Services with Subservices queried with backend filtering
   const servicesQueryParams = useMemo(() => {
@@ -85,7 +187,7 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
   }, [subCity, bureauId, selectedCategory, searchKeyword]);
 
   const { data: servicesData, isLoading: isServicesLoading } = useGetServicesQuery(servicesQueryParams);
-  const isDropdownsLoading = isSubCitiesLoading || isBureausLoading || isServicesLoading;
+  const isDropdownsLoading = isOrgsLoading || isServicesLoading;
 
   // Live CMS configuration
   const { data: apiCmsData } = useGetLandingPageCmsQuery(undefined, {
@@ -350,6 +452,13 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
       ...prev,
       subCity: nextSubCity,
     }))
+    // If current bureau is a child of another sub-city, reset it
+    if (bureauId && bureauId !== 'all') {
+      const matchOrg = allOrganizations.find((o: any) => String(o.id) === String(bureauId))
+      if (matchOrg && matchOrg.parent_organization_id) {
+        setBureauId('all')
+      }
+    }
   }
 
   function changeBureau(nextBureau: string) {
@@ -360,8 +469,8 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
         ...prev,
         bureauId: 'all',
       }))
-    } else if (bureausData?.data) {
-      const org = bureausData.data.find((o: any) => String(o.id) === String(nextBureau))
+    } else if (allOrganizations.length) {
+      const org = allOrganizations.find((o: any) => String(o.id) === String(nextBureau))
       if (org) {
         if (org.code === 'civil-registration-agency') setSelectedCategory('vital')
         else if (org.code === 'revenues-bureau') setSelectedCategory('tax')
@@ -401,8 +510,8 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
     if (catLower === 'land') targetBureauCode = 'land-development-bureau'
     if (catLower === 'plan') targetBureauCode = 'urban-planning-bureau'
 
-    if (targetBureauCode && bureausData?.data) {
-      const matchOrg = bureausData.data.find((o: any) => o.code === targetBureauCode)
+    if (targetBureauCode && allOrganizations.length) {
+      const matchOrg = allOrganizations.find((o: any) => o.code === targetBureauCode)
       if (matchOrg) {
         setBureauId(String(matchOrg.id))
       }
@@ -445,6 +554,7 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
           onSubmit={handleFindService}
           subCityOptions={subCityOptions}
           bureauOptions={bureauOptions}
+          bureauGroups={bureauGroups}
           quickSearchContent={cmsConfig?.quickSearch}
           isLoading={isDropdownsLoading}
         />

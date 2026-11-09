@@ -38,9 +38,24 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
   const { data: orgsResponse } = useGetOrganizationsQuery({ per_page: 100 });
   const organizations = useMemo(() => orgsResponse?.data || [], [orgsResponse]);
 
-  const { subcities, bureaus } = useMemo(() => {
+  const { subcities, bureaus, subcityHierarchy, bureauHierarchy } = useMemo(() => {
     const subs: typeof organizations = [];
     const burs: typeof organizations = [];
+    const orgMap = new Map<number, any>();
+    organizations.forEach((o: any) => orgMap.set(o.id, { ...o, children: [] }));
+
+    const subList: any[] = [];
+    const burList: any[] = [];
+    const childSet = new Set<number>();
+
+    organizations.forEach((o: any) => {
+      const parentId = o.parent_organization_id || o.parentId;
+      if (parentId && orgMap.has(parentId)) {
+        orgMap.get(parentId).children.push(orgMap.get(o.id));
+        childSet.add(o.id);
+      }
+    });
+
     organizations.forEach((o: any) => {
       const isSub =
         o.type?.code === 'sub_city' ||
@@ -51,8 +66,23 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
       } else {
         burs.push(o);
       }
+
+      if (!childSet.has(o.id)) {
+        const node = orgMap.get(o.id);
+        if (isSub) {
+          subList.push(node);
+        } else {
+          burList.push(node);
+        }
+      }
     });
-    return { subcities: subs, bureaus: burs };
+
+    return {
+      subcities: subs,
+      bureaus: burs,
+      subcityHierarchy: subList,
+      bureauHierarchy: burList,
+    };
   }, [organizations]);
 
   const { data: allServicesResponse } = useGetServicesQuery({ per_page: 100 });
@@ -224,6 +254,12 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
       return;
     }
 
+    if (!primaryOrgId) {
+      setErrorMsg('Please select a Governing Organization or Bureau for this service.');
+      setActiveTab('info');
+      return;
+    }
+
     if (!isMaster && !parentId) {
       setErrorMsg('Please select a Parent Master Service for this subservice.');
       setActiveTab('info');
@@ -240,6 +276,9 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
         }));
 
     const rawId = service ? (service.raw?.id || service.id) : undefined;
+    const finalOfferingOrgs = selectedOfferingOrgs.length > 0
+      ? selectedOfferingOrgs
+      : (primaryOrgId ? [primaryOrgId] : []);
 
     try {
       await onSave({
@@ -248,8 +287,8 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
         code: cleanCode,
         description: description.trim() || undefined,
         parent_id: isMaster ? null : (parentId || null),
-        organization_id: primaryOrgId || undefined,
-        offering_organizations: isMaster ? [] : selectedOfferingOrgs,
+        organization_id: primaryOrgId,
+        offering_organizations: finalOfferingOrgs,
         fee_amount: isMaster ? 0 : (Number(feeAmount) || 0),
         fee_currency: 'ETB',
         estimated_duration_minutes: isMaster ? 0 : (Number(estimatedDuration) || 30),
@@ -581,12 +620,13 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                   />
                 </label>
 
-                {/* Governing Bureau / Sector Agency */}
+                {/* Governing Organization / Bureau */}
                 <label className="modal-field">
                   <span style={{ fontWeight: 700, color: '#003946' }}>
-                    Governing Bureau / Agency
+                    Governing Organization / Bureau <i>*</i>
                   </span>
                   <select
+                    required
                     value={primaryOrgId ?? ''}
                     onChange={(e) => setPrimaryOrgId(e.target.value ? Number(e.target.value) : null)}
                     style={{
@@ -596,19 +636,38 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                       border: '1px solid #cbd5e1',
                       fontSize: '13px',
                       background: '#ffffff',
+                      fontWeight: 500,
                     }}
                   >
-                    <option value="">Select Governing Bureau (Optional)...</option>
-                    {bureaus.map((org: any) => (
-                      <option key={org.id} value={org.id}>
-                        🏢 {org.name}
-                      </option>
-                    ))}
-                    {subcities.map((org: any) => (
-                      <option key={org.id} value={org.id}>
-                        🏛 {org.name}
-                      </option>
-                    ))}
+                    <option value="">Select Governing Organization (Required)...</option>
+                    <optgroup label="🏛 Municipal Sub-cities & Local Offices">
+                      {subcityHierarchy.map((sub: any) => (
+                        <React.Fragment key={sub.id}>
+                          <option value={sub.id} style={{ fontWeight: 700 }}>
+                            🏛 {sub.name}
+                          </option>
+                          {sub.children?.map((child: any) => (
+                            <option key={child.id} value={child.id}>
+                              &nbsp;&nbsp;&nbsp;&nbsp;↳ {child.name} ({sub.name})
+                            </option>
+                          ))}
+                        </React.Fragment>
+                      ))}
+                    </optgroup>
+                    <optgroup label="🏢 Central Bureaus & Sector Agencies">
+                      {bureauHierarchy.map((bur: any) => (
+                        <React.Fragment key={bur.id}>
+                          <option value={bur.id} style={{ fontWeight: 700 }}>
+                            🏢 {bur.name}
+                          </option>
+                          {bur.children?.map((child: any) => (
+                            <option key={child.id} value={child.id}>
+                              &nbsp;&nbsp;&nbsp;&nbsp;↳ {child.name}
+                            </option>
+                          ))}
+                        </React.Fragment>
+                      ))}
+                    </optgroup>
                   </select>
                 </label>
 
@@ -916,49 +975,86 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                   </div>
                 </div>
 
-                {/* Sub-cities Group */}
+                {/* Sub-cities Group with Child Offices */}
                 <div style={{ marginBottom: '16px' }}>
                   <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
-                    🏛 Municipal Sub-cities ({subcities.length})
+                    🏛 Municipal Sub-cities & Local Offices ({subcityHierarchy.length})
                   </span>
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                      gap: '8px',
-                    }}
-                  >
-                    {subcities.map((org: any) => {
-                      const isChecked = selectedOfferingOrgs.includes(org.id);
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {subcityHierarchy.map((sub: any) => {
+                      const isSubChecked = selectedOfferingOrgs.includes(sub.id);
                       return (
-                        <label
-                          key={org.id}
+                        <div
+                          key={sub.id}
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '8px 10px',
+                            padding: '10px 12px',
                             borderRadius: '6px',
-                            background: isChecked ? '#f0fdf4' : '#ffffff',
-                            border: `1px solid ${isChecked ? '#86efac' : '#e2e8f0'}`,
-                            cursor: 'pointer',
-                            fontSize: '12.5px',
-                            fontWeight: isChecked ? 700 : 500,
-                            color: isChecked ? '#15803d' : '#334155',
+                            background: isSubChecked ? '#f0fdf4' : '#f8faf9',
+                            border: `1px solid ${isSubChecked ? '#86efac' : '#e2e8f0'}`,
                           }}
                         >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {
-                              setSelectedOfferingOrgs((prev) =>
-                                prev.includes(org.id) ? prev.filter((id) => id !== org.id) : [...prev, org.id]
-                              );
+                          <label
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              cursor: 'pointer',
+                              fontWeight: 700,
+                              fontSize: '13px',
+                              color: isSubChecked ? '#15803d' : '#003946',
                             }}
-                            style={{ accentColor: '#00485a' }}
-                          />
-                          <span>{org.name}</span>
-                        </label>
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSubChecked}
+                              onChange={() => {
+                                setSelectedOfferingOrgs((prev) =>
+                                  prev.includes(sub.id) ? prev.filter((id) => id !== sub.id) : [...prev, sub.id]
+                                );
+                              }}
+                              style={{ accentColor: '#00485a' }}
+                            />
+                            <span>🏛 {sub.name}</span>
+                          </label>
+
+                          {sub.children && sub.children.length > 0 && (
+                            <div style={{ marginLeft: '24px', marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {sub.children.map((child: any) => {
+                                const isChildChecked = selectedOfferingOrgs.includes(child.id);
+                                return (
+                                  <label
+                                    key={child.id}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      padding: '4px 8px',
+                                      borderRadius: '4px',
+                                      background: isChildChecked ? '#dcfce7' : '#ffffff',
+                                      border: `1px solid ${isChildChecked ? '#86efac' : '#cbd5e1'}`,
+                                      cursor: 'pointer',
+                                      fontSize: '12px',
+                                      fontWeight: isChildChecked ? 700 : 500,
+                                      color: isChildChecked ? '#15803d' : '#334155',
+                                    }}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChildChecked}
+                                      onChange={() => {
+                                        setSelectedOfferingOrgs((prev) =>
+                                          prev.includes(child.id) ? prev.filter((id) => id !== child.id) : [...prev, child.id]
+                                        );
+                                      }}
+                                      style={{ accentColor: '#00485a' }}
+                                    />
+                                    <span>↳ {child.name}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>

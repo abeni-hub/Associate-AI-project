@@ -19,6 +19,7 @@ export default function QuickSearchSection({
   onSubmit,
   subCityOptions,
   bureauOptions,
+  bureauGroups = null,
   quickSearchContent,
   isLoading = false,
 }) {
@@ -103,7 +104,7 @@ export default function QuickSearchSection({
       <div className="quick-search-body">
         {/* Live Search & Filter Bar */}
         <div className="quick-search-toolbar">
-          <div className="quick-search-input-wrap">
+          {/* <div className="quick-search-input-wrap">
             <Icon name="search" size={17} />
             <input
               type="text"
@@ -122,10 +123,10 @@ export default function QuickSearchSection({
                 <Icon name="close" size={14} />
               </button>
             )}
-          </div>
+          </div> */}
 
           {/* Category Filter Pills */}
-          <div className="category-pills-row" role="tablist" aria-label={t('Filter by category')}>
+          {/* <div className="category-pills-row" role="tablist" aria-label={t('Filter by category')}>
             {categories.map((cat) => (
               <button
                 key={cat.id}
@@ -138,7 +139,7 @@ export default function QuickSearchSection({
                 {t(cat.label)}
               </button>
             ))}
-          </div>
+          </div> */}
         </div>
 
         {/* Location & Authority Searchable Filter Form */}
@@ -164,6 +165,7 @@ export default function QuickSearchSection({
             <SearchableSelect
               value={bureauId || 'all'}
               onChange={(val) => onBureauChange(val)}
+              groups={bureauGroups}
               options={bureauOptions.map((b) => ({
                 id: String(b.id),
                 label: b.label,

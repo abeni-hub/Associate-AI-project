@@ -52,6 +52,7 @@ class ServiceController extends Controller
                         ->orWhere('code', $like, "%{$cleanSubCity}%");
                 })->pluck('id')->all();
             }
+            $subCityOrgIds = $this->expandOrganizationIdsWithHierarchy($subCityOrgIds);
         }
 
         // 2. Resolve Bureau / Organization Filter
@@ -63,6 +64,7 @@ class ServiceController extends Controller
             } else {
                 $bureauOrgIds = \App\Domains\Organizations\Models\Organization::where('code', (string) $bureauInput)->pluck('id')->all();
             }
+            $bureauOrgIds = $this->expandOrganizationIdsWithHierarchy($bureauOrgIds);
         }
 
         // 3. User Permission Scoping
@@ -105,14 +107,16 @@ class ServiceController extends Controller
             if ($subCityOrgIds !== null) {
                 $sq->where(function ($q) use ($subCityOrgIds) {
                     $q->whereIn('organization_id', $subCityOrgIds)
-                        ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $subCityOrgIds));
+                        ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $subCityOrgIds))
+                        ->orWhereHas('parent', fn ($p) => $p->whereIn('organization_id', $subCityOrgIds));
                 });
             }
 
             if ($bureauOrgIds !== null) {
                 $sq->where(function ($q) use ($bureauOrgIds) {
                     $q->whereIn('organization_id', $bureauOrgIds)
-                        ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $bureauOrgIds));
+                        ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $bureauOrgIds))
+                        ->orWhereHas('parent', fn ($p) => $p->whereIn('organization_id', $bureauOrgIds));
                 });
             }
 
@@ -408,6 +412,10 @@ class ServiceController extends Controller
         $data = $request->validated();
         $documents = $data['documents'] ?? null;
         unset($data['documents']);
+        $offeringOrgs = $request->input('offering_organizations');
+        if (array_key_exists('offering_organizations', $data)) {
+            unset($data['offering_organizations']);
+        }
 
         $data['is_active'] = $data['is_active'] ?? true;
         $data['fee_amount'] = $data['fee_amount'] ?? 0.00;
@@ -432,7 +440,24 @@ class ServiceController extends Controller
             }
         }
 
-        $service->load(['parent', 'organization', 'requiredDocuments']);
+        // Link service to offering organizations
+        $orgsToSync = [];
+        if (is_array($offeringOrgs) && count($offeringOrgs) > 0) {
+            foreach ($offeringOrgs as $orgItem) {
+                $oId = is_array($orgItem) ? ($orgItem['organization_id'] ?? null) : (int) $orgItem;
+                if ($oId) {
+                    $orgsToSync[$oId] = ['is_available' => true];
+                }
+            }
+        }
+        if (!empty($service->organization_id) && !isset($orgsToSync[$service->organization_id])) {
+            $orgsToSync[$service->organization_id] = ['is_available' => true];
+        }
+        if (!empty($orgsToSync)) {
+            $service->offeringOrganizations()->sync($orgsToSync);
+        }
+
+        $service->load(['parent', 'organization', 'offeringOrganizations', 'requiredDocuments']);
 
         $this->auditLogAction->execute(
             action: 'created',
@@ -476,8 +501,29 @@ class ServiceController extends Controller
             }
         }
 
+        if ($request->has('offering_organizations')) {
+            $offeringOrgs = $request->input('offering_organizations');
+            if (array_key_exists('offering_organizations', $data)) {
+                unset($data['offering_organizations']);
+            }
+            $orgsToSync = [];
+            if (is_array($offeringOrgs)) {
+                foreach ($offeringOrgs as $orgItem) {
+                    $oId = is_array($orgItem) ? ($orgItem['organization_id'] ?? null) : (int) $orgItem;
+                    if ($oId) {
+                        $orgsToSync[$oId] = ['is_available' => true];
+                    }
+                }
+            }
+            $targetOrgId = $data['organization_id'] ?? $service->organization_id;
+            if (!empty($targetOrgId) && !isset($orgsToSync[$targetOrgId])) {
+                $orgsToSync[$targetOrgId] = ['is_available' => true];
+            }
+            $service->offeringOrganizations()->sync($orgsToSync);
+        }
+
         $service->update($data);
-        $service->load(['parent', 'organization', 'requiredDocuments']);
+        $service->load(['parent', 'organization', 'offeringOrganizations', 'requiredDocuments']);
 
         $this->auditLogAction->execute(
             action: 'updated',
@@ -588,5 +634,35 @@ class ServiceController extends Controller
             data: new ServiceResource($service),
             message: 'Offering organizations updated successfully.'
         );
+    }
+
+    /**
+     * Expand an array of organization IDs to include both ancestor organizations (parents)
+     * and descendant organizations (children). This guarantees that:
+     * 1) If an organization has a parent, filtering by that child office includes its parent's services.
+     * 2) If a parent organization (e.g. Sub-city) is selected, services of its child offices are included.
+     *
+     * @param array<int> $orgIds
+     * @return array<int>
+     */
+    private function expandOrganizationIdsWithHierarchy(array $orgIds): array
+    {
+        if (empty($orgIds)) {
+            return [];
+        }
+
+        $allIds = $orgIds;
+        $orgs = \App\Domains\Organizations\Models\Organization::with(['children', 'parent'])->whereIn('id', $orgIds)->get();
+
+        foreach ($orgs as $org) {
+            foreach ($org->allAncestors() as $ancestor) {
+                $allIds[] = $ancestor->id;
+            }
+            foreach ($org->allDescendants() as $descendant) {
+                $allIds[] = $descendant->id;
+            }
+        }
+
+        return array_values(array_unique(array_map('intval', $allIds)));
     }
 }

@@ -343,14 +343,14 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
         targetId = res?.data?.id;
       }
 
-      if (targetId && !payload.is_master) {
-        if (payload.documents && Array.isArray(payload.documents)) {
+      if (targetId) {
+        if (!payload.is_master && payload.documents && Array.isArray(payload.documents)) {
           await syncDocsTrigger({
             serviceId: targetId,
             documents: payload.documents,
           }).unwrap();
         }
-        if (payload.offering_organizations && Array.isArray(payload.offering_organizations)) {
+        if (payload.offering_organizations && Array.isArray(payload.offering_organizations) && payload.offering_organizations.length > 0) {
           await syncOrgsTrigger({
             serviceId: targetId,
             organizations: payload.offering_organizations.map((orgId: number) => ({

@@ -2525,6 +2525,10 @@
   cursor: pointer;
 }
 .office-tree-edit:hover { border-color: #dce8df; background: #eef4ef; color: #376f6d; }
+.office-tree-children-preview { min-width: 0; margin-top: 6px; padding-top: 5px; border-top: 1px solid #edf1ed; display: flex; flex-direction: column; gap: 3px; }
+.office-tree-children-label { font-size: 8.5px; font-weight: 800; color: #4e7365; text-transform: uppercase; letter-spacing: 0.04em; }
+.office-tree-children-tags { display: flex; flex-wrap: wrap; gap: 3px; }
+.office-tree-child-chip { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9.5px; font-weight: 600; color: #284c41; background: #f0f6f2; border: 1px solid #d4e3d7; border-radius: 4px; padding: 1px 5px; line-height: 1.3; }
 .office-tree-card-meta { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 5px; margin-top: 7px; padding-top: 6px; border-top: 1px solid #edf1ed; }
 .office-tree-person { min-width: 0; display: inline-flex; align-items: center; gap: 4px; color: #75877d; font-size: 9px; }
 .office-tree-person > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

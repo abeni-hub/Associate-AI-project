@@ -48,14 +48,85 @@ export default function FeedbackFormCard({ t, onTrack }) {
 
   // RTK Query hooks with backend filtering
   const [submitFeedbackMutation, { isLoading: isSubmitting }] = useSubmitFeedbackMutation();
-  const { data: subCitiesData, isLoading: isSubCitiesLoading } = useGetOrganizationsQuery({
-    type: 'sub_city',
-    per_page: 50,
+  const { data: allOrgsData, isLoading: isOrgsLoading } = useGetOrganizationsQuery({
+    per_page: 100,
   });
-  const { data: bureausData, isLoading: isBureausLoading } = useGetOrganizationsQuery({
-    type: 'bureau',
-    per_page: 50,
-  });
+
+  const allOrganizations = useMemo(() => {
+    return (allOrgsData?.data && Array.isArray(allOrgsData.data)) ? allOrgsData.data : [];
+  }, [allOrgsData]);
+
+  const subCitiesData = useMemo(() => {
+    const list = allOrganizations.filter(
+      (o) =>
+        o.parent_organization_id === null &&
+        (o.type?.code === 'sub_city' ||
+          o.name?.toLowerCase().includes('sub-city') ||
+          o.name?.toLowerCase().includes('subcity'))
+    );
+    return { data: list };
+  }, [allOrganizations]);
+
+  const isSubCitiesLoading = isOrgsLoading;
+  const isBureausLoading = isOrgsLoading;
+
+  // Selected sub-city object
+  const selectedSubCity = useMemo(() => {
+    if (!feedbackCity || feedbackCity === 'all') return null;
+    return subCitiesData.data.find(
+      (o) =>
+        o.name.toLowerCase() === feedbackCity.toLowerCase() ||
+        String(o.id) === String(feedbackCity)
+    );
+  }, [feedbackCity, subCitiesData]);
+
+  // Bureaus & child offices filtered under selected sub-city
+  const bureausData = useMemo(() => {
+    const centralBureaus = allOrganizations.filter(
+      (o) =>
+        o.parent_organization_id === null &&
+        (o.type?.code === 'bureau' ||
+          o.type?.code === 'agency' ||
+          o.name?.toLowerCase().includes('bureau') ||
+          o.name?.toLowerCase().includes('agency'))
+    );
+
+    if (selectedSubCity) {
+      const childOffices = allOrganizations.filter(
+        (o) => o.parent_organization_id === selectedSubCity.id
+      );
+      return {
+        data: [
+          ...childOffices.map((o) => ({
+            ...o,
+            label: o.name,
+            subtext: `Under ${selectedSubCity.name}`,
+          })),
+          ...centralBureaus.map((o) => ({
+            ...o,
+            label: o.name,
+            subtext: o.code || '',
+          })),
+        ],
+      };
+    }
+
+    const childOffices = allOrganizations.filter((o) => o.parent_organization_id !== null);
+    return {
+      data: [
+        ...centralBureaus.map((o) => ({
+          ...o,
+          label: o.name,
+          subtext: o.code || '',
+        })),
+        ...childOffices.map((o) => ({
+          ...o,
+          label: o.parent ? `${o.parent.name} › ${o.name}` : o.name,
+          subtext: o.parent ? `Under ${o.parent.name}` : '',
+        })),
+      ],
+    };
+  }, [allOrganizations, selectedSubCity]);
 
   const feedbackServicesParams = useMemo(() => {
     const params = { per_page: 100, tree: true };
@@ -83,7 +154,10 @@ export default function FeedbackFormCard({ t, onTrack }) {
 
   const actions = {
     setType: (val) => dispatch(setFeedbackType(val)),
-    setCity: (val) => dispatch(setFeedbackCity(val)),
+    setCity: (val) => {
+      dispatch(setFeedbackCity(val));
+      dispatch(setFeedbackBureau(''));
+    },
     setService: (val) => dispatch(setFeedbackService(val)),
     setMessage: (val) => dispatch(setFeedbackMessage(val)),
     setSatisfaction: (val) => dispatch(setFeedbackSatisfaction(val)),
