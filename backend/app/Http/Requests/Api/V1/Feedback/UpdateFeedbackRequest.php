@@ -25,6 +25,8 @@ class UpdateFeedbackRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'status' => ['sometimes', 'string', 'in:submitted,open,under_review,in_progress,in_review,resolved,closed,rejected'],
+            'response' => ['nullable', 'string', 'max:5000'],
             'feedback_content' => ['sometimes', 'string', 'max:5000'],
             'feedback_type' => ['sometimes', 'in:feedback,complaint,satisfaction'],
             'full_name' => ['nullable', 'string', 'max:255'],

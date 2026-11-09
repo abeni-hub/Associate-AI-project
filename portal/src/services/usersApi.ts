@@ -66,7 +66,7 @@ export const usersApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'User', id: 'LIST' }],
+      invalidatesTags: [{ type: 'User', id: 'LIST' }, 'User'],
     }),
 
     updateUser: builder.mutation<ApiResponse<AuthUser>, UpdateUserPayload>({
@@ -78,6 +78,7 @@ export const usersApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'User', id },
         { type: 'User', id: 'LIST' },
+        'User',
       ],
     }),
 
@@ -86,7 +87,7 @@ export const usersApi = baseApi.injectEndpoints({
         url: `/users/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'User', id: 'LIST' }],
+      invalidatesTags: [{ type: 'User', id: 'LIST' }, 'User'],
     }),
   }),
   overrideExisting: false,

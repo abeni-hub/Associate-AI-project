@@ -12,6 +12,7 @@ use App\Domains\Feedback\Actions\UpdateFeedbackAction;
 use App\Domains\Feedback\DTOs\FeedbackData;
 use App\Domains\Feedback\Models\Feedback;
 use App\Domains\Organizations\Services\OrganizationScopeService;
+use App\Domains\Users\Models\User;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Feedback\RespondFeedbackRequest;
 use App\Http\Requests\Api\V1\Feedback\SubmitFeedbackRequest;
@@ -92,7 +93,7 @@ class FeedbackController extends Controller
         $user = $request->user();
         $includeDescendants = $user->hasPermission('feedback.view_descendants');
 
-        if (! $this->scopeService->canAccessOrganization($user, $feedback->feedback_for_organization, allowDescendants: $includeDescendants)) {
+        if (! $this->canAccessFeedback($user, $feedback, $includeDescendants)) {
             return ApiResponse::error(
                 message: 'You do not have permission to view this feedback.',
                 statusCode: 403
@@ -117,7 +118,7 @@ class FeedbackController extends Controller
         $user = $request->user();
         $includeDescendants = $user->hasPermission('feedback.view_descendants');
 
-        if (! $this->scopeService->canAccessOrganization($user, $feedback->feedback_for_organization, allowDescendants: $includeDescendants)) {
+        if (! $this->canAccessFeedback($user, $feedback, $includeDescendants)) {
             return ApiResponse::error(
                 message: 'You do not have permission to update this feedback.',
                 statusCode: 403
@@ -167,7 +168,7 @@ class FeedbackController extends Controller
         $user = $request->user();
         $includeDescendants = $user->hasPermission('feedback.view_descendants');
 
-        if (! $this->scopeService->canAccessOrganization($user, $feedback->feedback_for_organization, allowDescendants: $includeDescendants)) {
+        if (! $this->canAccessFeedback($user, $feedback, $includeDescendants)) {
             return ApiResponse::error(
                 message: 'You do not have permission to respond to this feedback.',
                 statusCode: 403
@@ -207,7 +208,7 @@ class FeedbackController extends Controller
         $user = $request->user();
         $includeDescendants = $user->hasPermission('feedback.view_descendants');
 
-        if (! $this->scopeService->canAccessOrganization($user, $feedback->feedback_for_organization, allowDescendants: $includeDescendants)) {
+        if (! $this->canAccessFeedback($user, $feedback, $includeDescendants)) {
             return ApiResponse::error(
                 message: 'You do not have permission to delete this feedback.',
                 statusCode: 403
@@ -260,6 +261,50 @@ class FeedbackController extends Controller
             data: new FeedbackResource($feedback),
             message: 'Feedback submitted successfully.',
             statusCode: 201
+        );
+    }
+
+    /**
+     * Publicly track feedback or complaint by its tracking number.
+     *
+     * Publicly accessible without authentication.
+     */
+    public function track(string $trackingNumber): JsonResponse
+    {
+        $feedback = Feedback::where('tracking_number', trim($trackingNumber))
+            ->with('organization:id,name,code')
+            ->first();
+
+        if (! $feedback) {
+            return ApiResponse::error(
+                message: 'No complaint or feedback found matching this tracking number.',
+                statusCode: 404
+            );
+        }
+
+        return ApiResponse::success(
+            data: new FeedbackResource($feedback),
+            message: 'Feedback tracking record retrieved successfully.'
+        );
+    }
+
+    /**
+     * Determine if the user has permission to access the feedback.
+     */
+    private function canAccessFeedback(User $user, Feedback $feedback, bool $includeDescendants = false): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($feedback->feedback_for_organization === null) {
+            return true;
+        }
+
+        return $this->scopeService->canAccessOrganization(
+            $user,
+            (int) $feedback->feedback_for_organization,
+            allowDescendants: $includeDescendants
         );
     }
 }

@@ -27,7 +27,7 @@ class EventController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = $request->user() ?? auth('sanctum')->user();
         $query = Event::with(['organization:id,name,code', 'images'])->latest('event_date');
 
         if (! $user) {
@@ -38,8 +38,8 @@ class EventController extends Controller
 
         $events = $query->paginate(15);
 
-        return ApiResponse::success(
-            data: $events,
+        return ApiResponse::paginated(
+            paginator: $events,
             message: 'Events retrieved successfully.'
         );
     }

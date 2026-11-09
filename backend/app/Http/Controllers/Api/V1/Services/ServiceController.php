@@ -26,19 +26,81 @@ class ServiceController extends Controller
     ) {}
 
     /**
-     * List services and subservices with search and filters.
+     * List services and subservices with search, organization scoping, and hierarchical tree support.
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Service::with(['organization', 'parent', 'steps.organization', 'requiredDocuments'])
-            ->withCount(['subservices', 'requiredDocuments', 'offeringOrganizations', 'steps']);
+        $user = $request->user() ?? auth('sanctum')->user();
+        $isSuperAdmin = $user && $user->isSuperAdmin();
+        $targetOrgIds = null;
+
+        if ($isSuperAdmin) {
+            // Super Admin: sees all services across the entire platform by default.
+            // Can optionally filter down to any specific organization if provided in the request.
+            if ($request->filled('organization_id')) {
+                $targetOrgIds = [(int) $request->input('organization_id')];
+            }
+        } elseif ($user && $user->organization_id) {
+            // Organization-level user (Subcity Admin, Bureau Admin, Woreda Admin, Staff):
+            // Scoped strictly to their assigned organization and all child descendant offices.
+            $allowedOrgIds = $this->scopeService->getAllowedOrganizationIds($user, includeDescendants: true) ?? [];
+            if ($request->filled('organization_id')) {
+                $requestedOrgId = (int) $request->input('organization_id');
+                $targetOrgIds = in_array($requestedOrgId, $allowedOrgIds, true) ? [$requestedOrgId] : [-1];
+            } else {
+                $targetOrgIds = $allowedOrgIds;
+            }
+        } elseif ($request->filled('organization_id')) {
+            // Public citizen filtering by an organization / sub-city
+            $targetOrgIds = [(int) $request->input('organization_id')];
+        }
+
+        $subservicesLoader = function ($sq) use ($targetOrgIds, $user) {
+            if ($targetOrgIds !== null) {
+                $sq->where(function ($subQ) use ($targetOrgIds) {
+                    $subQ->whereIn('organization_id', $targetOrgIds)
+                        ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $targetOrgIds));
+                });
+            }
+            if (! $user || ! $user->hasPermission('services.update')) {
+                $sq->where('is_active', true);
+            }
+            $sq->with([
+                'organization',
+                'parent',
+                'steps.organization',
+                'requiredDocuments',
+                'offeringOrganizations.type',
+            ])->withCount(['requiredDocuments', 'offeringOrganizations', 'steps'])
+            ->orderBy('name');
+        };
+
+        $query = Service::with([
+            'organization',
+            'parent',
+            'steps.organization',
+            'requiredDocuments',
+            'offeringOrganizations.type',
+            'subservices' => $subservicesLoader,
+        ])->withCount(['subservices', 'requiredDocuments', 'offeringOrganizations', 'steps']);
 
         // Public citizens only see active services unless caller has management rights
-        $user = $request->user() ?? auth('sanctum')->user();
         if (! $user || ! $user->hasPermission('services.update')) {
             $query->where('is_active', true);
         } elseif ($request->has('is_active')) {
             $query->where('is_active', filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN));
+        }
+
+        // Apply organization scoping
+        if ($targetOrgIds !== null) {
+            $query->where(function ($q) use ($targetOrgIds) {
+                $q->whereIn('organization_id', $targetOrgIds)
+                    ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $targetOrgIds))
+                    ->orWhereHas('subservices', function ($sq) use ($targetOrgIds) {
+                        $sq->whereIn('organization_id', $targetOrgIds)
+                            ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $targetOrgIds));
+                    });
+            });
         }
 
         // Search
@@ -48,12 +110,18 @@ class ServiceController extends Controller
             $query->where(function ($q) use ($search, $like) {
                 $q->where('name', $like, "%{$search}%")
                     ->orWhere('code', $like, "%{$search}%")
-                    ->orWhere('description', $like, "%{$search}%");
+                    ->orWhere('description', $like, "%{$search}%")
+                    ->orWhereHas('subservices', function ($sq) use ($search, $like) {
+                        $sq->where('name', $like, "%{$search}%")
+                            ->orWhere('code', $like, "%{$search}%");
+                    });
             });
         }
 
-        // Parent / Master level filter
-        if ($request->has('parent_id')) {
+        // Tree view mode: return master root services with their child subservices nested
+        if ($request->boolean('tree') || $request->input('view') === 'tree') {
+            $query->whereNull('parent_id');
+        } elseif ($request->has('parent_id')) {
             $parentId = $request->input('parent_id');
             if ($parentId === 'null' || $parentId === 'root') {
                 $query->whereNull('parent_id');
@@ -62,15 +130,6 @@ class ServiceController extends Controller
             } else {
                 $query->where('parent_id', (int) $parentId);
             }
-        }
-
-        // Filter by offering organization
-        if ($request->filled('organization_id')) {
-            $orgId = (int) $request->input('organization_id');
-            $query->where(function ($q) use ($orgId) {
-                $q->where('organization_id', $orgId)
-                    ->orWhereHas('offeringOrganizations', fn ($o) => $o->where('organizations.id', $orgId));
-            });
         }
 
         // Filter by fee
@@ -83,7 +142,13 @@ class ServiceController extends Controller
             }
         }
 
-        $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
+        $perPageInput = $request->input('per_page');
+        if ($perPageInput === 'all' || $request->boolean('all') || $request->boolean('tree') || $request->input('view') === 'tree') {
+            $perPage = 250;
+        } else {
+            $perPage = min(max((int) ($perPageInput ?? 100), 1), 250);
+        }
+
         $paginator = $query->orderBy('name')->paginate($perPage);
 
         return ApiResponse::paginated(
@@ -264,7 +329,8 @@ class ServiceController extends Controller
     public function syncDocuments(SyncServiceDocumentsRequest $request, Service $service): JsonResponse
     {
         $syncData = [];
-        foreach ($request->validated('documents') as $doc) {
+        $docs = $request->validated('documents') ?? [];
+        foreach ($docs as $doc) {
             $syncData[$doc['document_id']] = [
                 'is_mandatory' => $doc['is_mandatory'] ?? true,
                 'order_column' => $doc['order_column'] ?? 1,
@@ -297,7 +363,8 @@ class ServiceController extends Controller
     public function syncOrganizations(SyncOfferingOrganizationsRequest $request, Service $service): JsonResponse
     {
         $syncData = [];
-        foreach ($request->validated('organizations') as $org) {
+        $orgs = $request->validated('organizations') ?? [];
+        foreach ($orgs as $org) {
             $syncData[$org['organization_id']] = [
                 'is_available' => $org['is_available'] ?? true,
             ];

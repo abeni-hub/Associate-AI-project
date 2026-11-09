@@ -86,7 +86,7 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
   cmsConfig = INITIAL_CMS_CONFIG,
   onSaveCms,
 }) => {
-  const { data: apiCmsResponse } = useGetLandingPageCmsQuery();
+  const { data: apiCmsResponse, refetch: refetchCms } = useGetLandingPageCmsQuery(undefined, { refetchOnMountOrArgChange: true });
   const [updateCmsTrigger, { isLoading: isPublishing }] = useUpdateLandingPageCmsMutation();
   const [uploadImageTrigger] = useUploadCmsImageMutation();
 
@@ -303,6 +303,7 @@ export const LandingPageCms: React.FC<LandingPageCmsProps> = ({
       onSaveCms?.(payload);
 
       await updateCmsTrigger(payload).unwrap();
+      await refetchCms();
       setToastMessage('Landing page content successfully published to citizen platform!');
     } catch (err: any) {
       console.error('Failed to update CMS on backend:', err);

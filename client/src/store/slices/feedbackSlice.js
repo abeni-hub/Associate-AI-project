@@ -3,9 +3,9 @@ import { createSlice } from '@reduxjs/toolkit';
 const initialState = {
   step: 1,
   type: '',
-  city: 'Bole',
-  bureau: 'civil',
-  service: 'birth-copy',
+  city: '',
+  bureau: '',
+  service: '',
   message: '',
   satisfaction: 0,
   fullName: '',
@@ -53,9 +53,9 @@ export const feedbackSlice = createSlice({
     resetFeedback: (state) => {
       state.step = 1;
       state.type = '';
-      state.city = 'Bole';
-      state.bureau = 'civil';
-      state.service = 'birth-copy';
+      state.city = '';
+      state.bureau = '';
+      state.service = '';
       state.message = '';
       state.satisfaction = 0;
       state.fullName = '';

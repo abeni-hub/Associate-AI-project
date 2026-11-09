@@ -2,9 +2,10 @@ import Icon from '../ui/Icon.jsx';
 import FeedbackFormActions from './FeedbackFormActions.jsx';
 import FeedbackStepContent from './FeedbackStepContent.jsx';
 import FeedbackSuccess from './FeedbackSuccess.jsx';
-import { serviceCatalog } from '../../data/homePageData.js';
 import { createFeedbackTrackingNumber } from '../../utils/feedbackTracking.js';
 import { useSubmitFeedbackMutation } from '../../services/feedbackApi.js';
+import { useGetOrganizationsQuery } from '../../services/organizationsApi.js';
+import { useGetServicesQuery } from '../../services/servicesApi.js';
 import { useAppDispatch, useAppSelector } from '../../store/hooks.js';
 import {
   setFeedbackStep,
@@ -28,7 +29,7 @@ const stepTitles = [
   'Tell us a little more',
 ];
 
-export default function FeedbackFormCard({ t }) {
+export default function FeedbackFormCard({ t, onTrack }) {
   const dispatch = useAppDispatch();
   const feedbackState = useAppSelector((state) => state.feedback);
 
@@ -44,8 +45,10 @@ export default function FeedbackFormCard({ t }) {
   const feedbackSubmitted = feedbackState.submitted;
   const trackingNumber = feedbackState.trackingNumber;
 
-  // RTK Query Mutation Hook
+  // RTK Query hooks
   const [submitFeedbackMutation, { isLoading: isSubmitting }] = useSubmitFeedbackMutation();
+  const { data: orgData, isLoading: isOrgsLoading } = useGetOrganizationsQuery({ per_page: 100 });
+  const { data: servicesData, isLoading: isServicesLoading } = useGetServicesQuery({ per_page: 100 });
 
   const feedback = {
     type: feedbackType,
@@ -68,7 +71,6 @@ export default function FeedbackFormCard({ t }) {
     setPhoneNumber: (val) => dispatch(setFeedbackPhoneNumber(val)),
     changeBureau(nextBureau) {
       dispatch(setFeedbackBureau(nextBureau));
-      dispatch(setFeedbackService(serviceCatalog[nextBureau]?.[0]?.id ?? ''));
     },
   };
 
@@ -76,21 +78,61 @@ export default function FeedbackFormCard({ t }) {
     event.preventDefault();
     if (!feedbackMessage.trim() || (feedbackType === 'Satisfaction' && !satisfaction)) return;
 
+    // 1. Resolve target organization ID
+    let targetOrgId = Number(feedbackBureau);
+    if (!targetOrgId && orgData?.data && Array.isArray(orgData.data)) {
+      const match = orgData.data.find(
+        (o) => String(o.id) === String(feedbackBureau) || o.name.toLowerCase().includes(String(feedbackCity).toLowerCase())
+      );
+      if (match) targetOrgId = match.id;
+    }
+    if (!targetOrgId) {
+      targetOrgId = orgData?.data?.[0]?.id || 1;
+    }
+
+    // 2. Resolve Service and Bureau display labels for contextual enrichment
+    const activeServices = servicesData?.data || [];
+    const matchedService = activeServices.find(
+      (s) => String(s.code || s.id) === String(feedbackService) || String(s.id) === String(feedbackService)
+    );
+    const serviceLabel = matchedService?.name || (feedbackService ? String(feedbackService) : '');
+
+    const matchedOrg = orgData?.data?.find((o) => Number(o.id) === Number(targetOrgId));
+    const orgLabel = matchedOrg?.name || '';
+    const cityLabel = feedbackCity || '';
+
+    const contextTags = [];
+    if (serviceLabel) contextTags.push(`Service: ${serviceLabel}`);
+    if (orgLabel) contextTags.push(`Office: ${orgLabel}`);
+    if (cityLabel && !orgLabel.includes(cityLabel)) contextTags.push(`Sub-city: ${cityLabel}`);
+    if (feedbackType === 'Satisfaction' && satisfaction) {
+      contextTags.push(`Rating: ${satisfaction}/5`);
+    }
+
+    const contextPrefix = contextTags.length > 0 ? `[${contextTags.join(' · ')}]\n\n` : '';
+    const enrichedContent = `${contextPrefix}${feedbackMessage.trim()}`;
+
+    // 3. Normalize feedback type
+    const normalizedType =
+      feedbackType.toLowerCase() === 'complaint'
+        ? 'complaint'
+        : feedbackType.toLowerCase() === 'satisfaction'
+          ? 'satisfaction'
+          : 'feedback';
+
     let tracking = null;
-    const targetOrgId = Number(feedbackBureau) || 1;
 
     try {
       const response = await submitFeedbackMutation({
         feedback_for_organization: targetOrgId,
-        feedback_content: feedbackMessage,
-        feedback_type: feedbackType,
-        full_name: feedbackFullName || 'Citizen',
-        phone_number: feedbackPhoneNumber || '',
-        rating: satisfaction || undefined,
+        feedback_content: enrichedContent,
+        feedback_type: normalizedType,
+        full_name: feedbackFullName.trim() || undefined,
+        phone_number: feedbackPhoneNumber.trim() || undefined,
       }).unwrap();
-      tracking = response.data?.tracking_number;
+      tracking = response?.data?.tracking_number;
     } catch (err) {
-      console.warn('Backend feedback submission error, providing local fallback:', err);
+      console.warn('Backend feedback submission error, providing fallback:', err);
     }
 
     if (!tracking) {
@@ -125,7 +167,16 @@ export default function FeedbackFormCard({ t }) {
             <h4>{t(stepTitles[feedbackStep - 1])}</h4>
           </div>
           <form onSubmit={handleSubmit}>
-            <FeedbackStepContent step={feedbackStep} feedback={feedback} actions={actions} t={t} />
+            <FeedbackStepContent
+              step={feedbackStep}
+              feedback={feedback}
+              actions={actions}
+              orgData={orgData}
+              servicesData={servicesData}
+              isOrgsLoading={isOrgsLoading}
+              isServicesLoading={isServicesLoading}
+              t={t}
+            />
             <FeedbackFormActions
               step={feedbackStep}
               feedbackType={feedbackType}
@@ -146,6 +197,7 @@ export default function FeedbackFormCard({ t }) {
           t={t}
           onReset={handleReset}
           trackingNumber={trackingNumber}
+          onTrack={onTrack}
         />
       )}
       <div className="feedback-form-footer">

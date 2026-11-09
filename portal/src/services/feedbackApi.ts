@@ -27,6 +27,8 @@ export interface CitizenFeedback {
     name: string;
     code: string;
   };
+  response?: string;
+  resolved_at?: string;
 }
 
 export interface FeedbackFilterParams extends PaginationQueryParams {
@@ -80,7 +82,7 @@ export const feedbackApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'Feedback', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Feedback', id: 'LIST' }, 'Feedback'],
     }),
 
     updateFeedback: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; [key: string]: any }>({
@@ -92,6 +94,7 @@ export const feedbackApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Feedback', id },
         { type: 'Feedback', id: 'LIST' },
+        'Feedback',
       ],
     }),
 
@@ -104,6 +107,7 @@ export const feedbackApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Feedback', id },
         { type: 'Feedback', id: 'LIST' },
+        'Feedback',
       ],
     }),
 
@@ -112,27 +116,22 @@ export const feedbackApi = baseApi.injectEndpoints({
         url: `/feedbacks/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'Feedback', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Feedback', id: 'LIST' }, 'Feedback'],
     }),
 
     updateFeedbackStatus: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; status?: string; response?: string }>({
-      query: ({ id, status, response }) => {
-        if (response) {
-          return {
-            url: `/feedbacks/${id}/respond`,
-            method: 'POST',
-            body: { response },
-          };
-        }
-        return {
-          url: `/feedbacks/${id}`,
-          method: 'PUT',
-          body: { status },
-        };
-      },
+      query: ({ id, status, response }) => ({
+        url: `/feedbacks/${id}`,
+        method: 'PUT',
+        body: {
+          ...(status ? { status } : {}),
+          ...(response !== undefined ? { response } : {}),
+        },
+      }),
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Feedback', id },
         { type: 'Feedback', id: 'LIST' },
+        'Feedback',
       ],
     }),
   }),

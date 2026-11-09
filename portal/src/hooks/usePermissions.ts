@@ -155,12 +155,14 @@ export function usePermissions() {
   const { authUser, role } = usePortal();
 
   const isSuperAdmin = useMemo(() => {
-    return (
-      role === 'super' ||
-      authUser?.role?.slug === 'super_admin' ||
-      authUser?.role?.slug === 'super' ||
-      authUser?.role?.scope_level === 'global'
-    );
+    if (authUser) {
+      return (
+        authUser.role?.slug === 'super_admin' ||
+        authUser.role?.slug === 'super' ||
+        (Array.isArray(authUser.permissions) && authUser.permissions.includes('*'))
+      );
+    }
+    return role === 'super';
   }, [role, authUser]);
 
   const scopeLevel = useMemo<'global' | 'sub_city' | 'woreda' | 'bureau' | 'staff'>(() => {
@@ -178,17 +180,13 @@ export function usePermissions() {
       return [...ALL_SYSTEM_PERMISSIONS];
     }
     // Check if live profile has explicit permissions array
-    if (
-      authUser?.permissions &&
-      Array.isArray(authUser.permissions) &&
-      authUser.permissions.length > 0
-    ) {
+    if (authUser?.permissions && Array.isArray(authUser.permissions)) {
       if (authUser.permissions.includes('*')) {
         return [...ALL_SYSTEM_PERMISSIONS];
       }
       return authUser.permissions;
     }
-    // Check role default fallback
+    // Check role default fallback only when permissions array is undefined
     const roleSlug = authUser?.role?.slug || role;
     return ROLE_DEFAULT_PERMISSIONS[roleSlug] || [];
   }, [authUser, isSuperAdmin, role]);

@@ -17,7 +17,7 @@ export const NAV = {
     { label: 'Community', items: [{ id: 'feedback', text: 'Citizen feedback', icon: 'message', badge: '8' }, { id: 'news', text: 'News & events', icon: 'news' }] },
   ],
   bureau: [
-    { label: 'Workspace', items: [{ id: 'overview', text: 'Overview', icon: 'overview' }, { id: 'routes', text: 'Room routes', icon: 'route' }, { id: 'feedback', text: 'Citizen feedback', icon: 'message', badge: '5' }] },
+    { label: 'Workspace', items: [{ id: 'overview', text: 'Overview', icon: 'overview' }, { id: 'services', text: 'Service standards', icon: 'layers' }, { id: 'documents', text: 'Required documents', icon: 'file' }, { id: 'routes', text: 'Room routes', icon: 'route' }, { id: 'feedback', text: 'Citizen feedback', icon: 'message', badge: '5' }] },
     { label: 'Office tools', items: [{ id: 'qr', text: 'Feedback QR codes', icon: 'qr' }, { id: 'office', text: 'Office profile', icon: 'building' }] },
   ],
 }

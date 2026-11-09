@@ -10,6 +10,7 @@ export default function SiteHeader({
   onNavigateToHomeSection,
   onNavigateToNews,
   onToggleLanguage,
+  onSelectLanguage,
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -78,14 +79,32 @@ export default function SiteHeader({
           {t('News & events')}
         </a>
 
-        <button
-          className="language-toggle"
-          type="button"
-          aria-label={t(language === 'en' ? 'Switch language to Amharic' : 'Switch language to English')}
-          onClick={onToggleLanguage}
-        >
-          <span lang={language === 'en' ? 'am' : 'en'}>{language === 'en' ? 'አማርኛ' : 'English'}</span>
-        </button>
+        <div className="language-selector" role="group" aria-label={t('Select language')}>
+          <button
+            type="button"
+            className={`lang-btn ${language === 'en' ? 'is-active' : ''}`}
+            onClick={() => (onSelectLanguage ? onSelectLanguage('en') : onToggleLanguage())}
+            title="English"
+          >
+            EN
+          </button>
+          <button
+            type="button"
+            className={`lang-btn ${language === 'am' ? 'is-active' : ''}`}
+            onClick={() => (onSelectLanguage ? onSelectLanguage('am') : onToggleLanguage())}
+            title="አማርኛ"
+          >
+            አማ
+          </button>
+          <button
+            type="button"
+            className={`lang-btn ${language === 'om' ? 'is-active' : ''}`}
+            onClick={() => (onSelectLanguage ? onSelectLanguage('om') : onToggleLanguage())}
+            title="Afaan Oromoo"
+          >
+            ORO
+          </button>
+        </div>
 
         <button
           className="nav-feedback"

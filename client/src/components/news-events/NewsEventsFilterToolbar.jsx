@@ -5,7 +5,7 @@ import {
   Search,
   X,
 } from 'lucide-react'
-import { categories, subCities } from './newsEventsOptions.js'
+import { categories, subCities as defaultSubCities } from './newsEventsOptions.js'
 
 export default function NewsEventsFilterToolbar({
   language,
@@ -18,8 +18,10 @@ export default function NewsEventsFilterToolbar({
   selectedCategory,
   setSelectedCategory,
   onReset,
+  subCities = defaultSubCities,
 }) {
   const isAm = language === 'am'
+  const isOm = language === 'om'
 
   return (
     <div className="nep-toolbar-wrap">
@@ -32,7 +34,7 @@ export default function NewsEventsFilterToolbar({
               onClick={() => setActiveType('all')}
             >
               <Globe size={16} />
-              <span>{isAm ? 'ሁሉም' : 'All Feeds'}</span>
+              <span>{isAm ? 'ሁሉም' : isOm ? 'Hunda' : 'All Feeds'}</span>
             </button>
             <button
               type="button"
@@ -40,7 +42,7 @@ export default function NewsEventsFilterToolbar({
               onClick={() => setActiveType('news')}
             >
               <Newspaper size={16} />
-              <span>{isAm ? 'ዜና እና ማስታወቂያ' : 'News & Notices'}</span>
+              <span>{isAm ? 'ዜና እና ማስታወቂያ' : isOm ? 'Oduu fi Beeksisa' : 'News & Notices'}</span>
             </button>
             <button
               type="button"
@@ -48,7 +50,7 @@ export default function NewsEventsFilterToolbar({
               onClick={() => setActiveType('events')}
             >
               <CalendarDays size={16} />
-              <span>{isAm ? 'ዝግጅቶችና መድረኮች' : 'Events & Town Halls'}</span>
+              <span>{isAm ? 'ዝግጅቶችና መድረኮች' : isOm ? 'Sagantaalee fi Kora Uummataa' : 'Events & Town Halls'}</span>
             </button>
           </div>
 
@@ -58,7 +60,7 @@ export default function NewsEventsFilterToolbar({
               type="text"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder={isAm ? 'በዜና፣ በርዕስ ወይም በቢሮ ይፈልጉ…' : 'Search notices, town halls, bureaus, tags…'}
+              placeholder={isAm ? 'በዜና፣ በርዕስ ወይም በቢሮ ይፈልጉ…' : isOm ? 'Oduu, mataduree ykn biiroodhaan barbaadaa…' : 'Search notices, town halls, bureaus, tags…'}
             />
             {searchQuery && (
               <button
@@ -74,7 +76,7 @@ export default function NewsEventsFilterToolbar({
         </div>
 
         <div className="nep-toolbar-secondary">
-          <span className="nep-filter-label">{isAm ? 'ክፍለ ከተማ፡' : 'Sub-City:'}</span>
+          <span className="nep-filter-label">{isAm ? 'ክፍለ ከተማ፡' : isOm ? 'Kutaa Magaalaa:' : 'Sub-City:'}</span>
           <select
             className="nep-subcity-select"
             value={selectedSubCity}
@@ -86,7 +88,7 @@ export default function NewsEventsFilterToolbar({
           </select>
 
           <span className="nep-filter-label" style={{ marginLeft: '8px' }}>
-            {isAm ? 'ዘርፍ፡' : 'Category:'}
+            {isAm ? 'ዘርፍ፡' : isOm ? 'Ramaddii:' : 'Category:'}
           </span>
           <div className="nep-category-chips">
             {categories.map((category) => (
@@ -103,7 +105,7 @@ export default function NewsEventsFilterToolbar({
 
           {(selectedCategory !== 'all' || selectedSubCity !== 'All Addis Ababa' || searchQuery) && (
             <button type="button" className="nep-reset-btn" onClick={onReset}>
-              {isAm ? 'ማጣሪያዎቹን አጽዳ' : 'Reset filters'}
+              {isAm ? 'ማጣሪያዎቹን አጽዳ' : isOm ? 'Calaltuuwwan qulqulleessi' : 'Reset filters'}
             </button>
           )}
         </div>

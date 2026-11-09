@@ -1,29 +1,10 @@
-export const subCityOptions = [
-  'Addis Ketema',
-  'Akaki Kality',
-  'Arada',
-  'Bole',
-  'Gulele',
-  'Kirkos',
-  'Kolfe Keranio',
-  'Lideta',
-  'Lemi Kura',
-  'Nifas Silk-Lafto',
-  'Yeka',
-]
+export const subCityOptions = []
 
-export const bureauOptions = [
-  { id: 'revenue', label: 'Addis Ababa Revenues Bureau', shortLabel: 'Revenues Bureau' },
-  { id: 'civil', label: 'Civil Registration & Residency Service Agency', shortLabel: 'CRRSA district office' },
-  { id: 'land', label: 'Land Development & Administration Bureau', shortLabel: 'Land Development & Administration' },
-  { id: 'trade', label: 'City Government Trade Bureau', shortLabel: 'Trade Bureau' },
-  { id: 'planning', label: 'Plan & Development Office', shortLabel: 'Plan & Development' },
-]
+export const bureauOptions = []
 
 export const serviceCatalog = {}
 
-export const serviceFor = (bureauId, serviceId) =>
-  serviceCatalog[bureauId]?.find((service) => service.id === serviceId) ?? serviceCatalog[bureauId]?.[0] ?? null
+export const serviceFor = () => null
 
 export const heroSlides = [
   {

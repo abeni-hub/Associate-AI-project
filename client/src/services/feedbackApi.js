@@ -24,16 +24,22 @@ export const feedbackApi = baseApi.injectEndpoints({
               : String(body.feedback_type || '').toLowerCase() === 'satisfaction'
                 ? 'satisfaction'
                 : 'feedback',
-          full_name: body.full_name || 'Citizen',
-          phone_number: body.phone_number || '',
-          email: body.email || '',
-          rating: body.rating || undefined,
+          full_name: body.full_name?.trim() || null,
+          phone_number: body.phone_number?.trim() || null,
         },
       }),
       invalidatesTags: ['Feedback'],
+    }),
+
+    trackFeedback: builder.query({
+      query: (trackingNumber) => ({
+        url: `/feedbacks/track/${encodeURIComponent(String(trackingNumber).trim())}`,
+        method: 'GET',
+      }),
+      providesTags: (result, error, arg) => [{ type: 'Feedback', id: arg }],
     }),
   }),
   overrideExisting: false,
 });
 
-export const { useGetFeedbacksQuery, useSubmitFeedbackMutation } = feedbackApi;
+export const { useGetFeedbacksQuery, useSubmitFeedbackMutation, useTrackFeedbackQuery, useLazyTrackFeedbackQuery } = feedbackApi;

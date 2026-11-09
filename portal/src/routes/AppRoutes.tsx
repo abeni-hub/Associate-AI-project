@@ -1,7 +1,10 @@
 import React from 'react';
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
-import { RoleGuard } from './RoleGuard';
+import { RoleGuard, getFirstAuthorizedPath, AccessDeniedScreen } from './RoleGuard';
+import { usePermissions } from '../hooks/usePermissions';
+import { useGetSidebarNavigationQuery } from '../services/navigationApi';
+import { tokenStorage } from '../utils/tokenStorage';
 import {
   AccountsPage,
   ActivityPage,
@@ -21,9 +24,37 @@ import {
   DocumentsPage,
 } from '../pages';
 
+const RootIndexRedirect: React.FC = () => {
+  const { isSuperAdmin, hasPermission } = usePermissions();
+  const hasToken = tokenStorage.hasToken();
+  const { data: apiNavResponse, isLoading } = useGetSidebarNavigationQuery(undefined, {
+    skip: !hasToken,
+    refetchOnMountOrArgChange: true,
+  });
+
+  if (isSuperAdmin) {
+    return <Navigate to="/overview" replace />;
+  }
+
+  if (isLoading && !apiNavResponse) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px', color: '#64748b' }}>
+        <span>Loading workspace…</span>
+      </div>
+    );
+  }
+
+  const firstPath = getFirstAuthorizedPath(apiNavResponse?.data, hasPermission);
+  if (firstPath) {
+    return <Navigate to={firstPath} replace />;
+  }
+
+  return <AccessDeniedScreen />;
+};
+
 const AdminRedirect: React.FC = () => {
   const { page } = useParams<{ role?: string; page?: string }>();
-  return <Navigate to={`/${page || 'overview'}`} replace />;
+  return <Navigate to={page ? `/${page}` : '/'} replace />;
 };
 
 export const AppRoutes: React.FC = () => {
@@ -31,14 +62,21 @@ export const AppRoutes: React.FC = () => {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<AppLayout />}>
-        <Route index element={<Navigate to="/overview" replace />} />
-        <Route path="overview" element={<OverviewPage />} />
+        <Route index element={<RootIndexRedirect />} />
+        <Route
+          path="overview"
+          element={
+            <RoleGuard requiredPermission="dashboard.view" pageKey="overview">
+              <OverviewPage />
+            </RoleGuard>
+          }
+        />
 
         {/* Directory / Offices - Accessible with organizations.view permission */}
         <Route
           path="offices"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity']} requiredPermission="organizations.view">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="organizations.view" pageKey="offices">
               <OfficesPage />
             </RoleGuard>
           }
@@ -46,7 +84,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="subcities"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity']} requiredPermission="organizations.view">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="organizations.view" pageKey="subcities">
               <OfficesPage />
             </RoleGuard>
           }
@@ -54,7 +92,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="bureaus"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity']} requiredPermission="organizations.view">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="organizations.view" pageKey="bureaus">
               <OfficesPage />
             </RoleGuard>
           }
@@ -64,7 +102,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="accounts"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity']} requiredPermission="users.view">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="users.view" pageKey="accounts">
               <AccountsPage />
             </RoleGuard>
           }
@@ -72,7 +110,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="roles"
           element={
-            <RoleGuard allowedRoles={['super']} requiredPermission="roles.view">
+            <RoleGuard allowedRoles={['super']} requiredPermission="roles.view" pageKey="roles">
               <RolesPermissionsPage />
             </RoleGuard>
           }
@@ -80,7 +118,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="levels"
           element={
-            <RoleGuard allowedRoles={['super']} requiredPermission="organizations.view">
+            <RoleGuard allowedRoles={['super']} requiredPermission="organizations.view" pageKey="levels">
               <LevelsPage />
             </RoleGuard>
           }
@@ -88,7 +126,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="cms"
           element={
-            <RoleGuard allowedRoles={['super']} requiredPermission="cms.manage">
+            <RoleGuard allowedRoles={['super']} requiredPermission="cms.manage" pageKey="cms">
               <LandingPageCms />
             </RoleGuard>
           }
@@ -96,7 +134,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="activity"
           element={
-            <RoleGuard allowedRoles={['super']} requiredPermission="audit_logs.view">
+            <RoleGuard allowedRoles={['super']} requiredPermission="audit_logs.view" pageKey="activity">
               <ActivityPage />
             </RoleGuard>
           }
@@ -106,7 +144,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="news/:id"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity']} requiredPermission="news.view">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="news.view" pageKey="news">
               <NewsDetailPage />
             </RoleGuard>
           }
@@ -114,7 +152,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="news"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity']} requiredPermission="news.view">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="news.view" pageKey="news">
               <NewsPage />
             </RoleGuard>
           }
@@ -124,7 +162,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="services"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity']} requiredPermission="services.view">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="services.view" pageKey="services">
               <ServicesPage />
             </RoleGuard>
           }
@@ -132,7 +170,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="documents"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="documents.view">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="documents.view" pageKey="documents">
               <DocumentsPage />
             </RoleGuard>
           }
@@ -142,7 +180,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="routes"
           element={
-            <RoleGuard allowedRoles={['super', 'bureau']} requiredPermission="service_steps.view">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="service_steps.view" pageKey="routes">
               <RoutesPage />
             </RoleGuard>
           }
@@ -150,7 +188,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="qr"
           element={
-            <RoleGuard allowedRoles={['super', 'bureau', 'subcity']} requiredPermission="qr_codes.view">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="qr_codes.view" pageKey="qr">
               <QRPage />
             </RoleGuard>
           }
@@ -158,7 +196,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="office"
           element={
-            <RoleGuard allowedRoles={['super', 'bureau']} requiredPermission="services.view">
+            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="services.view" pageKey="office">
               <OfficePage />
             </RoleGuard>
           }
@@ -168,7 +206,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="feedback"
           element={
-            <RoleGuard requiredPermission={['feedback.view_own', 'feedback.view_descendants']}>
+            <RoleGuard requiredPermission={['feedback.view_own', 'feedback.view_descendants']} pageKey="feedback">
               <FeedbackPage />
             </RoleGuard>
           }
@@ -177,11 +215,11 @@ export const AppRoutes: React.FC = () => {
 
       {/* Admin path redirect for backwards-compatibility */}
       <Route path="/admin/:role/:page" element={<AdminRedirect />} />
-      <Route path="/admin/:role" element={<Navigate to="/overview" replace />} />
-      <Route path="/admin" element={<Navigate to="/overview" replace />} />
+      <Route path="/admin/:role" element={<Navigate to="/" replace />} />
+      <Route path="/admin" element={<Navigate to="/" replace />} />
 
       {/* Catch-all fallback */}
-      <Route path="*" element={<Navigate to="/overview" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };

@@ -26,7 +26,11 @@ export default function HomeNewsGrid({ items, loading, language, onSelectItem })
     return (
       <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: '#64748b', gridColumn: '1 / -1' }}>
         <p style={{ margin: 0, fontSize: '15px', fontWeight: 500 }}>
-          {language === 'am' ? 'ምንም ዜና ወይም ሁነቶች አልተገኙም' : 'No news or events published yet.'}
+          {language === 'am'
+            ? 'ምንም ዜና ወይም ሁነቶች አልተገኙም'
+            : language === 'om'
+              ? 'Oduun yookiin sagantaan hin argamne.'
+              : 'No news or events published yet.'}
         </p>
       </div>
     )

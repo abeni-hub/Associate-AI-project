@@ -32,7 +32,7 @@ export const QRPage: React.FC<QRPageProps> = ({
   const [officeFilter, setOfficeFilter] = useState('All offices');
   const [statusFilter, setStatusFilter] = useState('All statuses');
 
-  const { data: apiQrResponse, isLoading } = useGetQrCodesQuery();
+  const { data: apiQrResponse, isLoading, refetch: refetchQrs } = useGetQrCodesQuery(undefined, { refetchOnMountOrArgChange: true });
   const { data: orgsResponse } = useGetOrganizationsQuery({ per_page: 100 });
   const [deleteQrTrigger] = useDeleteQrCodeMutation();
 
@@ -94,6 +94,7 @@ export const QRPage: React.FC<QRPageProps> = ({
           if (createdQr?.id) {
             setSelectedId(createdQr.id);
           }
+          refetchQrs();
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
         },
@@ -114,6 +115,7 @@ export const QRPage: React.FC<QRPageProps> = ({
       try {
         await deleteQrTrigger(id).unwrap();
         if (selectedId === id) setSelectedId(null);
+        await refetchQrs();
       } catch (err) {
         console.warn('Failed to delete QR poster:', err);
       }

@@ -12,15 +12,4 @@ export const categories = [
 
 export const subCities = [
   'All Addis Ababa',
-  'Bole',
-  'Kirkos',
-  'Yeka',
-  'Arada',
-  'Lideta',
-  'Addis Ketema',
-  'Lemi Kura',
-  'Gulele',
-  'Kolfe Keranio',
-  'Nifas Silk-Lafto',
-  'Akaki Kality',
 ]

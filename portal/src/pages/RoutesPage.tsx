@@ -31,7 +31,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;
 
-  const { data: apiServices, isLoading } = useGetServicesQuery();
+  const { data: apiServices, isLoading, refetch } = useGetServicesQuery(undefined, { refetchOnMountOrArgChange: true });
   const [syncStepsTrigger] = useSyncServiceStepsMutation();
 
   const items: RouteItem[] = useMemo(() => {
@@ -67,25 +67,20 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
     return [];
   }, [propItems, apiServices]);
 
-  const configuredCount = useMemo(
-    () => items.filter((item) => item.steps.length > 0).length,
-    [items]
-  );
-  const readinessPercent =
-    items.length > 0 ? Math.round((configuredCount / items.length) * 100) : 0;
-
   const onEdit =
     propOnEdit ||
     ((route: RouteItem) => {
       portal.setModal({
         kind: 'route',
         route,
-        onSave: async (steps: RouteStep[]) => {
+        onSave: async (steps: RouteStep[], orgId?: number | null) => {
           portal.saveRouteSteps(route.id, steps);
           try {
             await syncStepsTrigger({
               serviceId: route.id,
+              organization_id: orgId || null,
               steps: steps.map((s, idx) => ({
+                organization_id: orgId || null,
                 step_number: idx + 1,
                 title: s.title || `Step ${idx + 1}`,
                 instruction: s.detail || '',
@@ -96,6 +91,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
                 is_active: true,
               })),
             }).unwrap();
+            await refetch();
           } catch (err) {
             console.warn('API service step sync notice:', err);
           }
@@ -118,32 +114,6 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
           window.alert('Public guide preview is active in Citizen App Live Preview.')
         }
       />
-      <div className="route-summary">
-        <div>
-          <span className="summary-icon">
-            <Icon name="route" />
-          </span>
-          <span>
-            <b>{isLoading && !apiServices ? '...' : `${items.length} service routes`}</b>
-            <small>Configured for municipal administrative offices</small>
-          </span>
-        </div>
-        <span className="summary-divider" />
-        <div>
-          <span className="route-progress-big">
-            {isLoading && !apiServices ? '...' : `${readinessPercent}%`}
-          </span>
-          <span>
-            <b>Route readiness</b>
-            <small>
-              {configuredCount} of {items.length} services configured with physical rooms
-            </small>
-          </span>
-        </div>
-        <span className="summary-note">
-          <i /> Citizens can see published routes in mobile app
-        </span>
-      </div>
       <div className="route-toolbar">
         <div>
           <h2>Your service routes</h2>
@@ -221,17 +191,6 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
             <p>Try another search.</p>
           </div>
         )}
-      </div>
-      <div className="tip-banner">
-        <span className="tip-icon">
-          <Icon name="globe" size={17} />
-        </span>
-        <span>
-          <b>Publishing keeps the citizen guide current</b>
-          <small>
-            Review room numbers and directions after any change to your office layout.
-          </small>
-        </span>
       </div>
     </>
   );

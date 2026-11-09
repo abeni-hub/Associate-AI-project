@@ -22,7 +22,7 @@ export const SubcitiesPage: React.FC<SubcitiesPageProps> = ({
 }) => {
   const portal = usePortal();
 
-  const { data: apiOrgs, isLoading } = useGetOrganizationsQuery();
+  const { data: apiOrgs, isLoading, refetch } = useGetOrganizationsQuery(undefined, { refetchOnMountOrArgChange: true });
   const [createOrgTrigger] = useCreateOrganizationMutation();
 
   const items: SubcityItem[] = useMemo(() => {
@@ -71,6 +71,7 @@ export const SubcitiesPage: React.FC<SubcitiesPageProps> = ({
               phone: v.phone,
               status: 'active',
             }).unwrap();
+            await refetch();
           } catch {
             portal.createForPage('subcities');
           }

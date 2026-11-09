@@ -6,7 +6,7 @@ import HomeNewsSection from '../components/homepage/HomeNewsSection.jsx'
 import JourneySection from '../components/homepage/JourneySection.jsx'
 import QuickSearchSection from '../components/homepage/QuickSearchSection.jsx'
 import ServiceGuideSection from '../components/homepage/ServiceGuideSection.jsx'
-import { bureauOptions as fallbackBureaus, heroSlides, serviceCatalog, serviceFor, subCityOptions as fallbackSubCities } from '../data/homePageData.js'
+import { heroSlides } from '../data/homePageData.js'
 import type { FeedType, LandingPageCmsConfig, Language, NewsEventItem } from '../types/newsEvents'
 import { useGetLandingPageCmsQuery } from '../services/cmsApi.js'
 import { useGetOrganizationsQuery } from '../services/organizationsApi.js'
@@ -20,124 +20,399 @@ interface HomePageProps {
   cmsConfig?: LandingPageCmsConfig | null;
   documentRef?: Document;
 }
-type BureauId = keyof typeof serviceCatalog;
+
 interface ServiceGuideSelection {
   subCity: string;
-  bureauId: BureauId;
+  bureauId: string;
   serviceId: string;
 }
 
 export default function HomePage({ language, t, onNavigateToHub, onSelectItem, cmsConfig: propCmsConfig, documentRef }: HomePageProps) {
   const pageDocument = documentRef || document
 
-  // Live queries
+  // Live queries from backend
   const { data: apiCmsData } = useGetLandingPageCmsQuery(undefined, {
     refetchOnMountOrArgChange: true,
     refetchOnFocus: true,
   })
-  const { data: orgData } = useGetOrganizationsQuery()
-  const { data: servicesData } = useGetServicesQuery()
+  const { data: orgData, isLoading: isOrgsLoading } = useGetOrganizationsQuery({ per_page: 100 })
+  const { data: servicesData, isLoading: isServicesLoading } = useGetServicesQuery({ per_page: 100 })
+  const isDropdownsLoading = isOrgsLoading || isServicesLoading
 
   const liveCms = (apiCmsData && ('data' in (apiCmsData as any) ? (apiCmsData as any).data : apiCmsData)) as LandingPageCmsConfig | null
   const cmsConfig = propCmsConfig || liveCms || null
 
+  // Sub-city options strictly from database organizations
   const subCityOptions = useMemo(() => {
-    if (orgData?.data) {
-      const list = orgData.data
-        .filter((o: any) => o.organization_type_id === 1 || o.type?.code === 'sub_city')
-        .map((o: any) => o.name)
-      if (list.length > 0) return list
+    if (orgData?.data && Array.isArray(orgData.data)) {
+      return orgData.data
+        .filter((o: any) => {
+          const typeCode = (o.type?.code || '').toLowerCase();
+          const name = (o.name || '').toLowerCase();
+          const isSubcity =
+            o.organization_type_id === 1 ||
+            typeCode === 'sub_city' ||
+            name.includes('sub-city') ||
+            name.includes('subcity') ||
+            name.includes('sub city');
+          const isBureauOrAgency =
+            o.organization_type_id === 3 ||
+            typeCode === 'bureau' ||
+            name.includes('bureau') ||
+            name.includes('agency');
+          const isWoreda =
+            o.organization_type_id === 2 ||
+            typeCode === 'woreda' ||
+            name.includes('woreda');
+          return isSubcity && !isBureauOrAgency && !isWoreda;
+        })
+        .map((o: any) => o.name);
     }
-    return fallbackSubCities
-  }, [orgData])
+    return [];
+  }, [orgData]);
 
+  // Bureau options strictly from database organizations (excluding sub-cities)
   const bureauOptions = useMemo(() => {
-    if (orgData?.data) {
-      const list = orgData.data
-        .filter((o: any) => o.organization_type_id === 3 || o.type?.code === 'bureau')
+    if (orgData?.data && Array.isArray(orgData.data) && orgData.data.length > 0) {
+      return orgData.data
+        .filter((o: any) => {
+          const typeCode = (o.type?.code || '').toLowerCase();
+          const name = (o.name || '').toLowerCase();
+          const isBureauOrAgency =
+            o.organization_type_id === 3 ||
+            typeCode === 'bureau' ||
+            name.includes('bureau') ||
+            name.includes('agency');
+          const isSubcity =
+            o.organization_type_id === 1 ||
+            typeCode === 'sub_city' ||
+            name.includes('sub-city') ||
+            name.includes('subcity');
+          const isWoreda =
+            o.organization_type_id === 2 ||
+            typeCode === 'woreda' ||
+            name.includes('woreda');
+          return isBureauOrAgency && !isSubcity && !isWoreda;
+        })
         .map((o: any) => ({
           id: String(o.id),
           label: o.name,
-          shortLabel: o.name.replace(/Bureau|Office|Agency/i, '').trim(),
-        }))
-      if (list.length > 0) return list
+          shortLabel: o.name.replace(/Bureau|Office|Agency/i, '').trim() || o.name,
+          code: o.code,
+        }));
     }
-    return fallbackBureaus
-  }, [orgData])
+    return [];
+  }, [orgData]);
 
-  const configuredSlides = cmsConfig?.hero?.slides
+  const configuredSlides = cmsConfig?.hero?.slides;
   const slides = configuredSlides?.length
     ? configuredSlides.map((slide, index) => {
-        const fallback = heroSlides[index % heroSlides.length]
+        const fallback = heroSlides[index % heroSlides.length];
         return {
           ...fallback,
           ...slide,
           bureau: slide.bureau || fallback.bureau,
           title: slide.title || fallback.title,
           description: slide.category || slide.description || fallback.description,
-        }
+        };
       })
-    : heroSlides
+    : heroSlides;
 
-  const [heroSlideIndex, setHeroSlideIndex] = useState(0)
-  const [heroCarouselPlaying, setHeroCarouselPlaying] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-  const [subCity, setSubCity] = useState('Bole')
-  const [bureauId, setBureauId] = useState<string>('civil')
-  const [serviceId, setServiceId] = useState('birth-copy')
-  const [serviceGuide, setServiceGuide] = useState<ServiceGuideSelection>({ subCity: 'Bole', bureauId: 'civil' as BureauId, serviceId: 'birth-copy' })
+  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
+  const [heroCarouselPlaying, setHeroCarouselPlaying] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const [subCity, setSubCity] = useState<string>('all');
+  const [bureauId, setBureauId] = useState<string>('all');
+  const [serviceId, setServiceId] = useState<string>('');
+  const [searchKeyword, setSearchKeyword] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [serviceGuide, setServiceGuide] = useState<ServiceGuideSelection>({ subCity: 'all', bureauId: 'all', serviceId: '' });
+
+  // Service list strictly from database
+  const allServices = useMemo(() => {
+    if (servicesData?.data && Array.isArray(servicesData.data)) {
+      return servicesData.data.map((s: any) => ({
+        id: String(s.id),
+        code: s.code || String(s.id),
+        label: s.name,
+        organizationId: s.organization_id ? String(s.organization_id) : (s.organization?.id ? String(s.organization.id) : undefined),
+        organizationName: s.organization?.name || '',
+        parentId: s.parent_id ? String(s.parent_id) : (s.parent?.id ? String(s.parent.id) : null),
+        parentName: s.parent?.name || null,
+        parentCode: s.parent?.code || null,
+        isMaster: Boolean(s.is_master ?? (s.parent_id === null)),
+        description: s.description || '',
+        offeringOrganizations: s.offering_organizations || [],
+        subservicesCount: s.subservices_count || 0,
+        raw: s,
+      }));
+    }
+    return [];
+  }, [servicesData]);
+
+  // Filtered service list based on selected Sub-city, Bureau, keyword search, and category
+  const activeServiceList = useMemo(() => {
+    // Prioritize actionable subservices (and standalone services that have no child subservices)
+    let list = allServices.filter((s) => !s.isMaster || s.subservicesCount === 0);
+    if (list.length === 0) {
+      list = allServices;
+    }
+
+    // 1. Sub-city filter
+    if (subCity && subCity !== 'all') {
+      const cleanSubCity = subCity.toLowerCase().replace(/sub-city|sub city|subcity/g, '').trim();
+      list = list.filter((s) => {
+        if (s.offeringOrganizations && s.offeringOrganizations.length > 0) {
+          const matched = s.offeringOrganizations.some((o: any) => {
+            const orgName = (o.name || '').toLowerCase();
+            const orgCode = (o.code || '').toLowerCase();
+            return orgName.includes(cleanSubCity) || orgCode.includes(cleanSubCity);
+          });
+          if (matched) return true;
+        }
+        if (s.organizationName && s.organizationName.toLowerCase().includes(cleanSubCity)) {
+          return true;
+        }
+        return false;
+      });
+    }
+
+    // 2. Bureau filter
+    if (bureauId && bureauId !== 'all') {
+      list = list.filter((s) => {
+        const matchesDirectOrg = String(s.organizationId) === String(bureauId);
+        const matchesOfferingOrg = s.offeringOrganizations?.some((o: any) => String(o.id) === String(bureauId));
+        const matchesParentOrg = s.raw?.parent?.organization_id && String(s.raw.parent.organization_id) === String(bureauId);
+        return matchesDirectOrg || matchesOfferingOrg || matchesParentOrg;
+      });
+    }
+
+    // 3. Category filter
+    if (selectedCategory && selectedCategory !== 'all') {
+      const catLower = selectedCategory.toLowerCase();
+      list = list.filter((s) => {
+        const code = (s.code || '').toUpperCase();
+        const parentCode = (s.parentCode || '').toUpperCase();
+        const text = `${s.label} ${s.description} ${s.organizationName} ${s.parentName || ''} ${s.code}`.toLowerCase();
+
+        if (catLower === 'vital') {
+          return (
+            code.startsWith('CIV') ||
+            parentCode === 'CIV-REC' ||
+            text.includes('vital') ||
+            text.includes('birth') ||
+            text.includes('marriage') ||
+            text.includes('death') ||
+            text.includes('civil') ||
+            text.includes('residence') ||
+            text.includes('id card')
+          );
+        }
+        if (catLower === 'tax') {
+          return (
+            code.startsWith('REV') ||
+            parentCode === 'REV-TAX' ||
+            text.includes('tax') ||
+            text.includes('tin') ||
+            text.includes('revenue') ||
+            text.includes('clearance') ||
+            text.includes('turnover')
+          );
+        }
+        if (catLower === 'business') {
+          return (
+            code.startsWith('TRD') ||
+            parentCode === 'TRD-LIC' ||
+            text.includes('business') ||
+            text.includes('license') ||
+            text.includes('trade') ||
+            text.includes('commercial')
+          );
+        }
+        if (catLower === 'land') {
+          return (
+            code.startsWith('LND') ||
+            parentCode === 'LND-ADM' ||
+            text.includes('land') ||
+            text.includes('property') ||
+            text.includes('lease') ||
+            text.includes('holding') ||
+            text.includes('cadastre') ||
+            text.includes('deed')
+          );
+        }
+        if (catLower === 'plan') {
+          return (
+            code.startsWith('PLN') ||
+            parentCode === 'PLN-DEV' ||
+            text.includes('plan') ||
+            text.includes('urban') ||
+            text.includes('building') ||
+            text.includes('permit') ||
+            text.includes('structure') ||
+            text.includes('construction')
+          );
+        }
+        return text.includes(catLower);
+      });
+    }
+
+    // 4. Keyword search filter
+    if (searchKeyword.trim()) {
+      const q = searchKeyword.trim().toLowerCase();
+      list = list.filter((s) => {
+        const text = `${s.label} ${s.description} ${s.code} ${s.organizationName} ${s.parentName || ''}`.toLowerCase();
+        return text.includes(q);
+      });
+    }
+
+    return list;
+  }, [allServices, subCity, bureauId, selectedCategory, searchKeyword]);
+
+  // Automatically sync serviceId with activeServiceList
+  useEffect(() => {
+    if (activeServiceList.length > 0) {
+      const exists = activeServiceList.some((s) => s.id === serviceId);
+      if (!exists) {
+        const nextId = activeServiceList[0].id;
+        setServiceId(nextId);
+        setServiceGuide((prev) => ({
+          ...prev,
+          serviceId: nextId,
+        }));
+      }
+    } else {
+      setServiceId('');
+      setServiceGuide((prev) => ({
+        ...prev,
+        serviceId: '',
+      }));
+    }
+  }, [activeServiceList, serviceId]);
+
+  // Initial service guide bootstrap
+  useEffect(() => {
+    if (serviceId && !serviceGuide.serviceId) {
+      setServiceGuide({
+        subCity: subCity || 'all',
+        bureauId: bureauId || 'all',
+        serviceId,
+      });
+    }
+  }, [subCity, bureauId, serviceId, serviceGuide]);
 
   // Query service details and steps for selected guide service
-  const { data: liveServiceDetail } = useGetServiceByIdQuery(serviceGuide.serviceId, {
-    skip: !serviceGuide.serviceId,
-  })
-  const { data: liveServiceSteps } = useGetServiceStepsQuery(serviceGuide.serviceId, {
-    skip: !serviceGuide.serviceId,
-  })
+  const effectiveGuideServiceId = serviceGuide.serviceId || serviceId;
 
-  const activeServiceList = useMemo(() => {
-    if (servicesData?.data) {
-      return servicesData.data.map((s: any) => ({
-        id: s.code || String(s.id),
-        label: s.name,
-      }))
+  // Resolve target organization ID for organization-level room steps filtering
+  const selectedOrgId = useMemo(() => {
+    // 1. If citizen selected a specific sub-city, prioritize that sub-city's organization ID
+    if (serviceGuide.subCity && serviceGuide.subCity !== 'all') {
+      const cleanSubCity = serviceGuide.subCity.toLowerCase().replace(/sub-city|sub city|subcity/g, '').trim();
+      const matchSubCity = orgData?.data?.find((o: any) => {
+        const name = (o.name || '').toLowerCase();
+        const code = (o.code || '').toLowerCase();
+        return name.includes(cleanSubCity) || code.includes(cleanSubCity);
+      });
+      if (matchSubCity) return matchSubCity.id;
     }
-    return []
-  }, [servicesData])
+    // 2. Otherwise if bureau is selected, use bureau ID
+    if (serviceGuide.bureauId && serviceGuide.bureauId !== 'all') {
+      const matchBureau = orgData?.data?.find((o: any) => String(o.id) === String(serviceGuide.bureauId));
+      if (matchBureau) return matchBureau.id;
+    }
+    return undefined;
+  }, [serviceGuide.subCity, serviceGuide.bureauId, orgData]);
+
+  const stepsQueryArg = useMemo(() => {
+    if (!effectiveGuideServiceId) return null
+    return selectedOrgId
+      ? { serviceId: effectiveGuideServiceId, organization_id: selectedOrgId }
+      : effectiveGuideServiceId
+  }, [effectiveGuideServiceId, selectedOrgId])
+
+  const { data: liveServiceDetail } = useGetServiceByIdQuery(effectiveGuideServiceId, {
+    skip: !effectiveGuideServiceId,
+  })
+  const { data: liveServiceSteps } = useGetServiceStepsQuery(stepsQueryArg, {
+    skip: !stepsQueryArg,
+  })
 
   const guideService = useMemo(() => {
-    if (liveServiceDetail?.data) {
-      const s = liveServiceDetail.data as any
+    const targetId = serviceGuide.serviceId || serviceId
+    if (!targetId) return null
+
+    const s = (liveServiceDetail?.data || servicesData?.data?.find((item: any) => String(item.id) === String(targetId) || item.code === targetId)) as any
+
+    if (s) {
       const steps = liveServiceSteps?.data && Array.isArray(liveServiceSteps.data) && liveServiceSteps.data.length > 0
         ? (liveServiceSteps.data as any[]).map((st) => ({
             room: st.room_number || `Room ${st.step_number}`,
             title: st.title,
             detail: st.instruction,
+            floor: st.floor,
+            building: st.building,
+            department: st.department_name,
+            responsible: st.responsible_title,
+            duration: st.estimated_duration_minutes,
           }))
-        : [
-            { room: '01', title: 'Intake Desk', detail: 'Verify identity and submitted documents.' },
-            { room: '02', title: 'Processing Counter', detail: 'Officer reviews application and confirms fee payment.' },
-            { room: '03', title: 'Issuance Counter', detail: 'Receive certified service delivery and receipt.' },
-          ]
+        : (s.steps && Array.isArray(s.steps) && s.steps.length > 0
+            ? s.steps.map((st: any) => ({
+                room: st.room_number || `Room ${st.step_number}`,
+                title: st.title,
+                detail: st.instruction,
+                floor: st.floor,
+                building: st.building,
+                department: st.department_name,
+                responsible: st.responsible_title,
+                duration: st.estimated_duration_minutes,
+              }))
+            : [])
+
+      const rawDocs = s.required_documents || s.requiredDocuments || []
+      const documents = Array.isArray(rawDocs)
+        ? rawDocs.map((d: any) => (typeof d === 'string' ? d : d.name)).filter(Boolean)
+        : []
 
       return {
-        id: s.code || String(s.id),
+        id: String(s.id),
+        code: s.code || String(s.id),
         label: s.name,
-        summary: s.description || 'Official Government Citizen Service.',
-        documents: s.required_documents?.length
-          ? s.required_documents.map((d: any) => d.name)
-          : ['Valid Kebele Resident ID or Fayda Digital ID', 'Application reference form or proof of residency'],
+        summary: s.description || '',
+        documents,
         steps,
+        durationMinutes: s.estimated_duration_minutes,
+        feeAmount: s.fee_amount,
+        feeCurrency: s.fee_currency || 'ETB',
+        feeNotes: s.fee_notes,
+        eligibility: s.eligibility_criteria,
+        organizationName: s.organization?.name || '',
         visitNote: s.estimated_duration_minutes
           ? `Estimated processing time: ${s.estimated_duration_minutes} minutes. Standard fee: ${s.fee_amount || 'Free'} ${s.fee_currency || 'ETB'}.`
-          : 'Service requirements and hours may be subject to administrative updates.',
+          : (s.fee_amount ? `Standard fee: ${s.fee_amount} ${s.fee_currency || 'ETB'}.` : ''),
       }
     }
-    return serviceFor(serviceGuide.bureauId, serviceGuide.serviceId)
-  }, [liveServiceDetail, liveServiceSteps, serviceGuide])
+
+    return null
+  }, [liveServiceDetail, servicesData, liveServiceSteps, serviceGuide.serviceId, serviceId])
 
   const guideBureau = useMemo(() => {
-    return bureauOptions.find((b: any) => b.id === serviceGuide.bureauId) || fallbackBureaus[0]
-  }, [bureauOptions, serviceGuide.bureauId])
+    if (serviceGuide.bureauId && serviceGuide.bureauId !== 'all') {
+      const match = bureauOptions.find((b: any) => String(b.id) === String(serviceGuide.bureauId))
+      if (match) return match
+    }
+
+    // Resolve automatically from service's parent bureau
+    const s = liveServiceDetail?.data || servicesData?.data?.find((item: any) => String(item.id) === String(serviceGuide.serviceId || serviceId) || item.code === (serviceGuide.serviceId || serviceId))
+    if (s?.organization) {
+      return {
+        id: String(s.organization.id),
+        label: s.organization.name,
+        shortLabel: s.organization.name.replace(/Bureau|Office|Agency/i, '').trim() || s.organization.name,
+      }
+    }
+
+    return bureauOptions[0] || null
+  }, [bureauOptions, serviceGuide.bureauId, liveServiceDetail, servicesData, serviceGuide.serviceId, serviceId])
 
   const activeHeroSlide = slides[heroSlideIndex] || slides[0]
 
@@ -155,17 +430,78 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
 
   function handleFindService(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setServiceGuide({ subCity, bureauId: bureauId as any, serviceId })
-    window.setTimeout(() => pageDocument.getElementById('service-guide')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30)
+    setServiceGuide({
+      subCity: subCity || 'all',
+      bureauId: bureauId || 'all',
+      serviceId,
+    })
+    window.setTimeout(() => {
+      pageDocument.getElementById('service-guide')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 40)
   }
 
-  function changeBureau(nextBureau: any) {
+  function changeSubCity(nextSubCity: string) {
+    setSubCity(nextSubCity)
+    setServiceGuide((prev) => ({
+      ...prev,
+      subCity: nextSubCity,
+    }))
+  }
+
+  function changeBureau(nextBureau: string) {
     setBureauId(nextBureau)
-    const nextList = (serviceCatalog as any)[nextBureau]
-    if (activeServiceList && activeServiceList.length > 0) {
-      setServiceId(activeServiceList[0].id)
-    } else if (nextList?.[0]?.id) {
-      setServiceId(nextList[0].id)
+    if (nextBureau === 'all') {
+      setSelectedCategory('all')
+      setServiceGuide((prev) => ({
+        ...prev,
+        bureauId: 'all',
+      }))
+    } else if (orgData?.data) {
+      const org = orgData.data.find((o: any) => String(o.id) === String(nextBureau))
+      if (org) {
+        if (org.code === 'civil-registration-agency') setSelectedCategory('vital')
+        else if (org.code === 'revenues-bureau') setSelectedCategory('tax')
+        else if (org.code === 'trade-industry-bureau') setSelectedCategory('business')
+        else if (org.code === 'land-development-bureau') setSelectedCategory('land')
+        else if (org.code === 'urban-planning-bureau') setSelectedCategory('plan')
+      }
+      setServiceGuide((prev) => ({
+        ...prev,
+        bureauId: nextBureau,
+      }))
+    }
+  }
+
+  function changeService(nextServiceId: string) {
+    setServiceId(nextServiceId)
+    setServiceGuide((prev) => ({
+      ...prev,
+      serviceId: nextServiceId,
+    }))
+  }
+
+  function changeCategory(catId: string) {
+    setSelectedCategory(catId)
+
+    if (catId === 'all') {
+      setBureauId('all')
+      return
+    }
+
+    // Auto-match corresponding bureau for category convenience
+    const catLower = catId.toLowerCase()
+    let targetBureauCode = ''
+    if (catLower === 'vital') targetBureauCode = 'civil-registration-agency'
+    if (catLower === 'tax') targetBureauCode = 'revenues-bureau'
+    if (catLower === 'business') targetBureauCode = 'trade-industry-bureau'
+    if (catLower === 'land') targetBureauCode = 'land-development-bureau'
+    if (catLower === 'plan') targetBureauCode = 'urban-planning-bureau'
+
+    if (targetBureauCode && orgData?.data) {
+      const matchOrg = orgData.data.find((o: any) => o.code === targetBureauCode)
+      if (matchOrg) {
+        setBureauId(String(matchOrg.id))
+      }
     }
   }
 
@@ -191,16 +527,21 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
         <QuickSearchSection
           t={t}
           subCity={subCity}
-          onSubCityChange={setSubCity}
+          onSubCityChange={changeSubCity}
           bureauId={bureauId}
           onBureauChange={changeBureau}
           serviceId={serviceId}
-          onServiceChange={setServiceId}
+          onServiceChange={changeService}
+          searchKeyword={searchKeyword}
+          onSearchKeywordChange={setSearchKeyword}
+          selectedCategory={selectedCategory}
+          onSelectCategory={changeCategory}
           activeServiceList={activeServiceList}
           onSubmit={handleFindService}
           subCityOptions={subCityOptions}
           bureauOptions={bureauOptions}
           quickSearchContent={cmsConfig?.quickSearch}
+          isLoading={isDropdownsLoading}
         />
       )}
       {cmsConfig?.serviceGuide?.enabled !== false && (

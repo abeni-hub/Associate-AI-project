@@ -25,7 +25,7 @@ class SyncOfferingOrganizationsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'organizations' => ['required', 'array'],
+            'organizations' => ['present', 'array'],
             'organizations.*.organization_id' => ['required', 'integer', 'exists:organizations,id'],
             'organizations.*.is_available' => ['nullable', 'boolean'],
             'organizations.*.specific_instructions' => ['nullable', 'string', 'max:1000'],

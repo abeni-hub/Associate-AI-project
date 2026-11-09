@@ -59,6 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const { data: apiNavResponse } = useGetSidebarNavigationQuery(undefined, {
     skip: !portal.session?.user && !portal.authUser && !tokenStorage.hasToken(),
+    refetchOnMountOrArgChange: true,
   });
 
   const data = ROLE[role] || ROLE.super;
@@ -100,40 +101,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           };
         })
         .filter((item) => !item.required_permission || hasPermission(item.required_permission));
-
-      // Ensure authorized portal sections are always accessible in the sidebar
-      if (hasPermission('roles.view') && !items.some((i) => i.id === 'roles')) {
-        items.push({
-          id: 'roles',
-          text: 'Roles & permissions',
-          icon: 'shield',
-          required_permission: 'roles.view',
-        });
-      }
-      if (hasPermission('documents.view') && !items.some((i) => i.id === 'documents')) {
-        items.push({
-          id: 'documents',
-          text: 'Required documents',
-          icon: 'file',
-          required_permission: 'documents.view',
-        });
-      }
-      if (hasPermission('news.view') && !items.some((i) => i.id === 'news')) {
-        items.push({
-          id: 'news',
-          text: 'News & events',
-          icon: 'news',
-          required_permission: 'news.view',
-        });
-      }
-      if (hasPermission('audit_logs.view') && !items.some((i) => i.id === 'activity')) {
-        items.push({
-          id: 'activity',
-          text: 'Activity log',
-          icon: 'activity',
-          required_permission: 'audit_logs.view',
-        });
-      }
 
       return [{ label: '', items }];
     }

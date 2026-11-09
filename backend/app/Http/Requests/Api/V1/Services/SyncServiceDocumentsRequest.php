@@ -25,7 +25,7 @@ class SyncServiceDocumentsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'documents' => ['required', 'array'],
+            'documents' => ['present', 'array'],
             'documents.*.document_id' => ['required', 'integer', 'exists:documents,id'],
             'documents.*.is_mandatory' => ['nullable', 'boolean'],
             'documents.*.order_column' => ['nullable', 'integer', 'min:1'],

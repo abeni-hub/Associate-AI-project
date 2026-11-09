@@ -53,13 +53,18 @@ export const eventsApi = baseApi.injectEndpoints({
         method: 'GET',
         params: params || undefined,
       }),
-      providesTags: (result) =>
-        result?.data
-          ? [
-              ...result.data.map(({ id }) => ({ type: 'Event' as const, id })),
-              { type: 'Event', id: 'LIST' },
-            ]
-          : [{ type: 'Event', id: 'LIST' }],
+      providesTags: (result) => {
+        const raw = result?.data;
+        const list = Array.isArray(raw)
+          ? raw
+          : raw && typeof raw === 'object' && Array.isArray((raw as any).data)
+          ? (raw as any).data
+          : [];
+        return [
+          ...list.map(({ id }: { id: number }) => ({ type: 'Event' as const, id })),
+          { type: 'Event', id: 'LIST' },
+        ];
+      },
     }),
 
     getEventById: builder.query<ApiResponse<EventItem>, number | string>({
@@ -76,7 +81,7 @@ export const eventsApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'Event', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Event', id: 'LIST' }, 'Event'],
     }),
 
     deleteEvent: builder.mutation<ApiResponse<null>, number | string>({
@@ -84,7 +89,7 @@ export const eventsApi = baseApi.injectEndpoints({
         url: `/events/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'Event', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Event', id: 'LIST' }, 'Event'],
     }),
   }),
   overrideExisting: false,

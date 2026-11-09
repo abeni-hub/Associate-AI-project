@@ -18,7 +18,9 @@ export const DocumentsPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [usageFilter, setUsageFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
 
-  const { data: response, isLoading } = useGetDocumentsQuery();
+  const { data: response, isLoading, refetch } = useGetDocumentsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
   const [createDoc, { isLoading: isCreating }] = useCreateDocumentMutation();
   const [updateDoc, { isLoading: isUpdating }] = useUpdateDocumentMutation();
   const [deleteDoc, { isLoading: isDeleting }] = useDeleteDocumentMutation();
@@ -83,6 +85,7 @@ export const DocumentsPage: React.FC = () => {
     } else {
       await createDoc(payload).unwrap();
     }
+    await refetch();
     setIsModalOpen(false);
     setSelectedDoc(null);
   };
@@ -93,6 +96,7 @@ export const DocumentsPage: React.FC = () => {
         id: doc.id,
         is_active: !doc.is_active,
       }).unwrap();
+      await refetch();
     } catch (err: any) {
       window.alert(err?.data?.message || 'Failed to update document status.');
     }
@@ -110,6 +114,7 @@ export const DocumentsPage: React.FC = () => {
     ) {
       try {
         await deleteDoc(doc.id).unwrap();
+        await refetch();
         if (inspectDoc?.id === doc.id) {
           setInspectDoc(null);
         }

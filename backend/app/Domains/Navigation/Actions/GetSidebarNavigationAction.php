@@ -27,9 +27,19 @@ class GetSidebarNavigationAction
                 ->ordered()
                 ->get();
         } else {
+            $permissionKeys = $role->relationLoaded('permissions')
+                ? $role->permissions->pluck('key')->all()
+                : $role->permissions()->pluck('key')->all();
+
             $items = NavigationItem::query()
-                ->whereHas('roles', function ($query) use ($role) {
-                    $query->where('roles.id', $role->id);
+                ->where(function ($query) use ($role, $permissionKeys) {
+                    $query->whereHas('roles', function ($q) use ($role) {
+                        $q->where('roles.id', $role->id);
+                    });
+
+                    if (! empty($permissionKeys)) {
+                        $query->orWhereIn('required_permission', $permissionKeys);
+                    }
                 })
                 ->active()
                 ->ordered()

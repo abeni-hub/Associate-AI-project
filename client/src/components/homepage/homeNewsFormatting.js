@@ -2,7 +2,8 @@ export function formatDate(dateString, language) {
   if (!dateString) return ''
   const date = new Date(dateString)
   if (isNaN(date.getTime())) return dateString
-  return date.toLocaleDateString(language === 'am' ? 'am-ET' : 'en-US', {
+  const locale = language === 'am' ? 'am-ET' : language === 'om' ? 'om-ET' : 'en-US'
+  return date.toLocaleDateString(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -13,7 +14,8 @@ export function getMonthShort(dateString, language) {
   if (!dateString) return ''
   const date = new Date(dateString)
   if (isNaN(date.getTime())) return 'OCT'
-  return date.toLocaleDateString(language === 'am' ? 'am-ET' : 'en-US', { month: 'short' }).toUpperCase()
+  const locale = language === 'am' ? 'am-ET' : language === 'om' ? 'om-ET' : 'en-US'
+  return date.toLocaleDateString(locale, { month: 'short' }).toUpperCase()
 }
 
 export function getDayNum(dateString) {

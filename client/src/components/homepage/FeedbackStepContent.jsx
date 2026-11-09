@@ -1,5 +1,5 @@
+import { useEffect, useMemo } from 'react'
 import Icon from '../ui/Icon.jsx'
-import { bureauOptions, serviceCatalog, subCityOptions } from '../../data/homePageData.js'
 import { useGetOrganizationsQuery } from '../../services/organizationsApi.js'
 import { useGetServicesQuery } from '../../services/servicesApi.js'
 
@@ -9,53 +9,152 @@ const feedbackTypes = [
   { value: 'Satisfaction', icon: 'heart', label: 'A rating', copy: 'Share how it went' },
 ]
 
-export default function FeedbackStepContent({ step, feedback, actions, t }) {
-  const { data: orgData } = useGetOrganizationsQuery()
+export default function FeedbackStepContent({
+  step,
+  feedback,
+  actions,
+  orgData: propOrgData,
+  servicesData: propServicesData,
+  isOrgsLoading: propIsOrgsLoading,
+  isServicesLoading: propIsServicesLoading,
+  t,
+}) {
+  const { data: apiOrgData, isLoading: apiOrgsLoading } = useGetOrganizationsQuery({ per_page: 100 })
+  const { data: apiServicesData, isLoading: apiServicesLoading } = useGetServicesQuery({ per_page: 100 })
 
-  // Dynamic live sub-cities from organizations API (organization_type_id === 1)
-  const apiSubCities = orgData?.data
-    ? orgData.data.filter((o) => o.organization_type_id === 1).map((o) => ({ id: o.id, name: o.name }))
-    : []
+  const orgData = propOrgData || apiOrgData
+  const servicesData = propServicesData || apiServicesData
+  const isOrgsLoading = propIsOrgsLoading !== undefined ? propIsOrgsLoading : apiOrgsLoading
+  const isServicesLoading = propIsServicesLoading !== undefined ? propIsServicesLoading : apiServicesLoading
 
-  const availableSubCities =
-    apiSubCities.length > 0
-      ? apiSubCities
-      : subCityOptions.map((name, idx) => ({ id: idx + 1, name }))
+  // Unpack organizations safely regardless of payload structure
+  const rawOrgs = useMemo(() => {
+    if (!orgData) return []
+    if (Array.isArray(orgData)) return orgData
+    if (Array.isArray(orgData.data)) return orgData.data
+    if (Array.isArray(orgData.data?.data)) return orgData.data.data
+    return []
+  }, [orgData])
 
-  // Find currently selected sub-city ID
-  const selectedSubCityObj = availableSubCities.find(
-    (c) => String(c.id) === String(feedback.city) || c.name.toLowerCase().includes(String(feedback.city).toLowerCase())
-  )
-
-  // Bureaus list filtered by sub-city or general bureaus
-  const bureauList = (() => {
-    if (orgData?.data && Array.isArray(orgData.data) && orgData.data.length > 0) {
-      const filtered = orgData.data.filter((o) => {
-        if (o.organization_type_id === 1) return false // exclude sub-cities
-        if (selectedSubCityObj && o.parent_organization_id) {
-          return o.parent_organization_id === selectedSubCityObj.id
-        }
-        return true
+  // Live sub-cities strictly from database
+  const availableSubCities = useMemo(() => {
+    if (rawOrgs.length > 0) {
+      const filtered = rawOrgs.filter((o) => {
+        const typeCode = (o.type?.code || '').toLowerCase()
+        const name = (o.name || '').toLowerCase()
+        const isSubcity =
+          Number(o.organization_type_id) === 1 ||
+          typeCode === 'sub_city' ||
+          name.includes('sub-city') ||
+          name.includes('subcity') ||
+          name.includes('sub city')
+        const isBureau =
+          Number(o.organization_type_id) === 3 ||
+          typeCode === 'bureau' ||
+          name.includes('bureau') ||
+          name.includes('agency')
+        const isWoreda =
+          Number(o.organization_type_id) === 2 ||
+          typeCode === 'woreda' ||
+          name.includes('woreda')
+        return isSubcity && !isBureau && !isWoreda
       })
       if (filtered.length > 0) {
-        return filtered.map((o) => ({ id: String(o.id), label: o.name }))
+        return filtered.map((o) => ({ id: o.id, name: o.name }))
       }
-      return orgData.data.filter((o) => o.organization_type_id !== 1).map((o) => ({ id: String(o.id), label: o.name }))
+      return rawOrgs.map((o) => ({ id: o.id, name: o.name }))
     }
-    return bureauOptions
-  })()
+    return []
+  }, [rawOrgs])
 
-  const { data: servicesData } = useGetServicesQuery()
+  // Find currently selected sub-city object
+  const selectedSubCityObj =
+    availableSubCities.find(
+      (c) => String(c.id) === String(feedback.city) || c.name.toLowerCase().includes(String(feedback.city).toLowerCase())
+    ) || availableSubCities[0]
 
-  const activeServices = (() => {
-    if (servicesData?.data && Array.isArray(servicesData.data)) {
-      return servicesData.data.map((s) => ({
+  // Bureaus list strictly from database, contextualized by selected sub-city
+  const bureauList = useMemo(() => {
+    if (rawOrgs.length > 0) {
+      // Find currently selected sub-city ID
+      const selectedSubCityId = selectedSubCityObj?.id
+
+      // 1. Try to find child bureaus whose parent is this sub-city
+      if (selectedSubCityId) {
+        const childBureaus = rawOrgs.filter((o) => {
+          const parentId = o.parent_organization_id || o.parent?.id
+          return parentId && Number(parentId) === Number(selectedSubCityId)
+        })
+        if (childBureaus.length > 0) {
+          return childBureaus.map((o) => ({ id: String(o.id), label: o.name }))
+        }
+      }
+
+      // 2. All organizations that are not sub-cities
+      const nonSubCities = rawOrgs.filter((o) => {
+        const isSub =
+          Number(o.organization_type_id) === 1 ||
+          o.type?.code === 'sub_city' ||
+          Number(o.type?.level) === 1 ||
+          o.name?.toLowerCase().includes('sub-city') ||
+          o.name?.toLowerCase().includes('sub city') ||
+          o.name?.toLowerCase().includes('subcity')
+        return !isSub
+      })
+      if (nonSubCities.length > 0) {
+        return nonSubCities.map((o) => ({ id: String(o.id), label: o.name }))
+      }
+
+      // 3. Fallback to all organizations from database
+      return rawOrgs.map((o) => ({ id: String(o.id), label: o.name }))
+    }
+    return []
+  }, [rawOrgs, selectedSubCityObj])
+
+  // Unpack services safely regardless of payload structure
+  const rawServices = useMemo(() => {
+    if (!servicesData) return []
+    if (Array.isArray(servicesData)) return servicesData
+    if (Array.isArray(servicesData.data)) return servicesData.data
+    if (Array.isArray(servicesData.data?.data)) return servicesData.data.data
+    return []
+  }, [servicesData])
+
+  // Services strictly from database
+  const activeServices = useMemo(() => {
+    if (rawServices.length > 0) {
+      return rawServices.map((s) => ({
         id: s.code || String(s.id),
         label: s.name,
       }))
     }
     return []
-  })()
+  }, [rawServices])
+
+  // Auto-sync initial selections with live options
+  useEffect(() => {
+    if (availableSubCities.length > 0 && !feedback.city) {
+      actions.setCity(availableSubCities[0].name)
+    }
+  }, [availableSubCities, feedback.city])
+
+  useEffect(() => {
+    if (bureauList.length > 0) {
+      const hasMatch = bureauList.some((b) => String(b.id) === String(feedback.bureau))
+      if (!hasMatch && bureauList[0]) {
+        actions.changeBureau(bureauList[0].id)
+      }
+    }
+  }, [bureauList, feedback.bureau])
+
+  useEffect(() => {
+    if (activeServices.length > 0) {
+      const hasMatch = activeServices.some((s) => String(s.id) === String(feedback.service))
+      if (!hasMatch && activeServices[0]) {
+        actions.setService(activeServices[0].id)
+      }
+    }
+  }, [activeServices, feedback.service])
 
   if (step === 1) {
     return (
@@ -82,7 +181,17 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
         {t('Select the sub-city')}
         <span className="feedback-select-wrap">
           <Icon name="pin" size={18} />
-          <select value={feedback.city} onChange={(event) => actions.setCity(event.target.value)}>
+          <select
+            value={feedback.city || ''}
+            onChange={(event) => actions.setCity(event.target.value)}
+          >
+            <option value="">
+              {isOrgsLoading
+                ? t('Loading sub-cities…')
+                : availableSubCities.length > 0
+                ? t('Choose a sub-city…')
+                : t('No sub-cities found')}
+            </option>
             {availableSubCities.map((subCity) => (
               <option key={subCity.id} value={subCity.name}>
                 {t(subCity.name)}
@@ -101,7 +210,17 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
         {t('Select the city office / bureau')}
         <span className="feedback-select-wrap">
           <Icon name="building" size={18} />
-          <select value={feedback.bureau} onChange={(event) => actions.changeBureau(event.target.value)}>
+          <select
+            value={feedback.bureau || ''}
+            onChange={(event) => actions.changeBureau(event.target.value)}
+          >
+            <option value="">
+              {isOrgsLoading
+                ? t('Loading offices…')
+                : bureauList.length > 0
+                ? t('Choose an office…')
+                : t('No offices found')}
+            </option>
             {bureauList.map((bureau) => (
               <option key={bureau.id} value={bureau.id}>
                 {t(bureau.label)}
@@ -120,7 +239,17 @@ export default function FeedbackStepContent({ step, feedback, actions, t }) {
         {t('Select the service')}
         <span className="feedback-select-wrap">
           <Icon name="file" size={18} />
-          <select value={feedback.service} onChange={(event) => actions.setService(event.target.value)}>
+          <select
+            value={feedback.service || ''}
+            onChange={(event) => actions.setService(event.target.value)}
+          >
+            <option value="">
+              {isServicesLoading
+                ? t('Loading services…')
+                : activeServices.length > 0
+                ? t('Choose a service…')
+                : t('No services found')}
+            </option>
             {activeServices.map((service) => (
               <option key={service.id} value={service.id}>
                 {t(service.label)}
