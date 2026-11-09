@@ -66,6 +66,10 @@ export interface ServiceFilterParams extends PaginationQueryParams {
   is_active?: boolean;
   tree?: boolean;
   view?: string;
+  scope?: string;
+  type?: string;
+  sub_city?: string | number;
+  category?: string;
 }
 
 export interface CreateServicePayload {

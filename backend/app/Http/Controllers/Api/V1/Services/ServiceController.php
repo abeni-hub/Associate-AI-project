@@ -315,10 +315,14 @@ class ServiceController extends Controller
         }
 
         // Scope / View Type Handling (Master vs Subservices vs All)
-        $scopeInput = $request->input('scope') ?? $request->input('type') ?? $request->input('view');
+        $scopeInput = strtolower(trim((string) ($request->input('scope') ?? $request->input('type') ?? $request->input('view') ?? '')));
         if ($request->boolean('tree') || $scopeInput === 'tree' || $scopeInput === 'master') {
             $query->whereNull('parent_id');
-        } elseif ($scopeInput === 'subservices' || $request->input('parent_id') === 'subservices') {
+        } elseif (
+            in_array($scopeInput, ['subservices', 'subservice', 'sub_service', 'sub-service', 'subservices_only'], true)
+            || $request->input('parent_id') === 'subservices'
+            || $request->boolean('subservices_only')
+        ) {
             $query->whereNotNull('parent_id');
         } elseif ($request->has('parent_id')) {
             $parentId = $request->input('parent_id');
