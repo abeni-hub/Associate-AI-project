@@ -14,130 +14,112 @@ export default function FeedbackStepContent({
   step,
   feedback,
   actions,
-  orgData: propOrgData,
+  subCitiesData: propSubCitiesData,
+  bureausData: propBureausData,
   servicesData: propServicesData,
-  isOrgsLoading: propIsOrgsLoading,
+  isSubCitiesLoading: propIsSubCitiesLoading,
+  isBureausLoading: propIsBureausLoading,
   isServicesLoading: propIsServicesLoading,
   t,
 }) {
-  const { data: apiOrgData, isLoading: apiOrgsLoading } = useGetOrganizationsQuery({ per_page: 100 })
-  const { data: apiServicesData, isLoading: apiServicesLoading } = useGetServicesQuery({ per_page: 100 })
+  const { data: apiSubCities, isLoading: apiSubCitiesLoading } = useGetOrganizationsQuery(
+    { type: 'sub_city', per_page: 50 },
+    { skip: Boolean(propSubCitiesData) }
+  );
+  const { data: apiBureaus, isLoading: apiBureausLoading } = useGetOrganizationsQuery(
+    { type: 'bureau', per_page: 50 },
+    { skip: Boolean(propBureausData) }
+  );
 
-  const orgData = propOrgData || apiOrgData
-  const servicesData = propServicesData || apiServicesData
-  const isOrgsLoading = propIsOrgsLoading !== undefined ? propIsOrgsLoading : apiOrgsLoading
-  const isServicesLoading = propIsServicesLoading !== undefined ? propIsServicesLoading : apiServicesLoading
+  const subCitiesData = propSubCitiesData || apiSubCities;
+  const bureausData = propBureausData || apiBureaus;
+  const servicesData = propServicesData;
+  const isSubCitiesLoading = propIsSubCitiesLoading !== undefined ? propIsSubCitiesLoading : apiSubCitiesLoading;
+  const isBureausLoading = propIsBureausLoading !== undefined ? propIsBureausLoading : apiBureausLoading;
+  const isServicesLoading = Boolean(propIsServicesLoading);
 
-  // Unpack organizations safely regardless of payload structure
-  const rawOrgs = useMemo(() => {
-    if (!orgData) return []
-    if (Array.isArray(orgData)) return orgData
-    if (Array.isArray(orgData.data)) return orgData.data
-    if (Array.isArray(orgData.data?.data)) return orgData.data.data
-    return []
-  }, [orgData])
-
-  // Live sub-cities strictly from database
+  // Live sub-cities strictly from backend database
   const availableSubCities = useMemo(() => {
-    if (rawOrgs.length > 0) {
-      const filtered = rawOrgs.filter((o) => {
-        const typeCode = (o.type?.code || '').toLowerCase()
-        const name = (o.name || '').toLowerCase()
-        const isSubcity =
-          Number(o.organization_type_id) === 1 ||
-          typeCode === 'sub_city' ||
-          name.includes('sub-city') ||
-          name.includes('subcity') ||
-          name.includes('sub city')
-        const isBureau =
-          Number(o.organization_type_id) === 3 ||
-          typeCode === 'bureau' ||
-          name.includes('bureau') ||
-          name.includes('agency')
-        const isWoreda =
-          Number(o.organization_type_id) === 2 ||
-          typeCode === 'woreda' ||
-          name.includes('woreda')
-        return isSubcity && !isBureau && !isWoreda
-      })
-      if (filtered.length > 0) {
-        return filtered.map((o) => ({ id: o.id, name: o.name }))
-      }
-      return rawOrgs.map((o) => ({ id: o.id, name: o.name }))
+    if (subCitiesData?.data && Array.isArray(subCitiesData.data)) {
+      return subCitiesData.data.map((o) => ({ id: o.id, name: o.name }));
     }
-    return []
-  }, [rawOrgs])
+    return [];
+  }, [subCitiesData]);
 
-  // Find currently selected sub-city object
-  const selectedSubCityObj =
-    availableSubCities.find(
-      (c) => String(c.id) === String(feedback.city) || c.name.toLowerCase().includes(String(feedback.city).toLowerCase())
-    ) || availableSubCities[0]
-
-  // Bureaus list strictly from database, contextualized by selected sub-city
+  // Municipal bureaus strictly from backend database
   const bureauList = useMemo(() => {
-    if (rawOrgs.length > 0) {
-      // Find currently selected sub-city ID
-      const selectedSubCityId = selectedSubCityObj?.id
+    if (bureausData?.data && Array.isArray(bureausData.data)) {
+      return bureausData.data.map((o) => ({
+        id: String(o.id),
+        label: o.name,
+        subtext: o.code || '',
+      }));
+    }
+    return [];
+  }, [bureausData]);
 
-      // 1. Try to find child bureaus whose parent is this sub-city
-      if (selectedSubCityId) {
-        const childBureaus = rawOrgs.filter((o) => {
-          const parentId = o.parent_organization_id || o.parent?.id
-          return parentId && Number(parentId) === Number(selectedSubCityId)
-        })
-        if (childBureaus.length > 0) {
-          return childBureaus.map((o) => ({ id: String(o.id), label: o.name }))
+  // Services with subservices strictly from backend database
+  const activeServices = useMemo(() => {
+    if (!servicesData?.data || !Array.isArray(servicesData.data)) return [];
+
+    const list = [];
+    const seenIds = new Set();
+
+    servicesData.data.forEach((s) => {
+      if (s.subservices && Array.isArray(s.subservices) && s.subservices.length > 0) {
+        s.subservices.forEach((sub) => {
+          const subId = sub.code || String(sub.id);
+          if (!seenIds.has(subId)) {
+            seenIds.add(subId);
+            list.push({
+              id: subId,
+              label: `${s.name} › ${sub.name}`,
+              group: s.name,
+              raw: sub,
+            });
+          }
+        });
+      } else {
+        const sId = s.code || String(s.id);
+        if (!seenIds.has(sId)) {
+          seenIds.add(sId);
+          list.push({
+            id: sId,
+            label: s.name,
+            group: s.organization?.name || 'General Services',
+            raw: s,
+          });
         }
       }
+    });
 
-      // 2. All organizations that are not sub-cities
-      const nonSubCities = rawOrgs.filter((o) => {
-        const isSub =
-          Number(o.organization_type_id) === 1 ||
-          o.type?.code === 'sub_city' ||
-          Number(o.type?.level) === 1 ||
-          o.name?.toLowerCase().includes('sub-city') ||
-          o.name?.toLowerCase().includes('sub city') ||
-          o.name?.toLowerCase().includes('subcity')
-        return !isSub
-      })
-      if (nonSubCities.length > 0) {
-        return nonSubCities.map((o) => ({ id: String(o.id), label: o.name }))
-      }
-
-      // 3. Fallback to all organizations from database
-      return rawOrgs.map((o) => ({ id: String(o.id), label: o.name }))
-    }
-    return []
-  }, [rawOrgs, selectedSubCityObj])
-
-  // Unpack services safely regardless of payload structure
-  const rawServices = useMemo(() => {
-    if (!servicesData) return []
-    if (Array.isArray(servicesData)) return servicesData
-    if (Array.isArray(servicesData.data)) return servicesData.data
-    if (Array.isArray(servicesData.data?.data)) return servicesData.data.data
-    return []
-  }, [servicesData])
-
-  // Services strictly from database
-  const activeServices = useMemo(() => {
-    if (rawServices.length > 0) {
-      return rawServices.map((s) => ({
-        id: s.code || String(s.id),
-        label: s.name,
-      }))
-    }
-    return []
-  }, [rawServices])
+    return list;
+  }, [servicesData]);
 
   // Auto-sync initial selections with live options
   useEffect(() => {
     if (availableSubCities.length > 0 && !feedback.city) {
-      actions.setCity(availableSubCities[0].name)
+      actions.setCity(availableSubCities[0].name);
     }
-  }, [availableSubCities, feedback.city])
+  }, [availableSubCities, feedback.city]);
+
+  useEffect(() => {
+    if (bureauList.length > 0) {
+      const hasMatch = bureauList.some((b) => String(b.id) === String(feedback.bureau));
+      if (!hasMatch && bureauList[0]) {
+        actions.changeBureau(bureauList[0].id);
+      }
+    }
+  }, [bureauList, feedback.bureau]);
+
+  useEffect(() => {
+    if (activeServices.length > 0) {
+      const hasMatch = activeServices.some((s) => String(s.id) === String(feedback.service));
+      if (!hasMatch && activeServices[0]) {
+        actions.setService(activeServices[0].id);
+      }
+    }
+  }, [activeServices, feedback.service]);
 
   useEffect(() => {
     if (bureauList.length > 0) {

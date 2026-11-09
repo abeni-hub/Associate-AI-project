@@ -45,10 +45,29 @@ export default function FeedbackFormCard({ t, onTrack }) {
   const feedbackSubmitted = feedbackState.submitted;
   const trackingNumber = feedbackState.trackingNumber;
 
-  // RTK Query hooks
+  // RTK Query hooks with backend filtering
   const [submitFeedbackMutation, { isLoading: isSubmitting }] = useSubmitFeedbackMutation();
-  const { data: orgData, isLoading: isOrgsLoading } = useGetOrganizationsQuery({ per_page: 100 });
-  const { data: servicesData, isLoading: isServicesLoading } = useGetServicesQuery({ per_page: 100 });
+  const { data: subCitiesData, isLoading: isSubCitiesLoading } = useGetOrganizationsQuery({
+    type: 'sub_city',
+    per_page: 50,
+  });
+  const { data: bureausData, isLoading: isBureausLoading } = useGetOrganizationsQuery({
+    type: 'bureau',
+    per_page: 50,
+  });
+
+  const feedbackServicesParams = useMemo(() => {
+    const params = { per_page: 100, tree: true };
+    if (feedbackCity && feedbackCity !== 'all') {
+      params.sub_city = feedbackCity;
+    }
+    if (feedbackBureau && feedbackBureau !== 'all') {
+      params.organization_id = feedbackBureau;
+    }
+    return params;
+  }, [feedbackCity, feedbackBureau]);
+
+  const { data: servicesData, isLoading: isServicesLoading } = useGetServicesQuery(feedbackServicesParams);
 
   const feedback = {
     type: feedbackType,
@@ -80,24 +99,45 @@ export default function FeedbackFormCard({ t, onTrack }) {
 
     // 1. Resolve target organization ID
     let targetOrgId = Number(feedbackBureau);
-    if (!targetOrgId && orgData?.data && Array.isArray(orgData.data)) {
-      const match = orgData.data.find(
-        (o) => String(o.id) === String(feedbackBureau) || o.name.toLowerCase().includes(String(feedbackCity).toLowerCase())
+    if (!targetOrgId && bureausData?.data && Array.isArray(bureausData.data)) {
+      const match = bureausData.data.find(
+        (o) => String(o.id) === String(feedbackBureau) || String(o.code) === String(feedbackBureau)
       );
       if (match) targetOrgId = match.id;
     }
+    if (!targetOrgId && subCitiesData?.data && Array.isArray(subCitiesData.data)) {
+      const matchSub = subCitiesData.data.find(
+        (o) => String(o.id) === String(feedbackCity) || o.name.toLowerCase().includes(String(feedbackCity).toLowerCase())
+      );
+      if (matchSub) targetOrgId = matchSub.id;
+    }
     if (!targetOrgId) {
-      targetOrgId = orgData?.data?.[0]?.id || 1;
+      targetOrgId = bureausData?.data?.[0]?.id || subCitiesData?.data?.[0]?.id || 1;
     }
 
     // 2. Resolve Service and Bureau display labels for contextual enrichment
-    const activeServices = servicesData?.data || [];
-    const matchedService = activeServices.find(
-      (s) => String(s.code || s.id) === String(feedbackService) || String(s.id) === String(feedbackService)
-    );
-    const serviceLabel = matchedService?.name || (feedbackService ? String(feedbackService) : '');
+    let serviceLabel = '';
+    const rawServices = servicesData?.data || [];
+    for (const s of rawServices) {
+      if (String(s.code || s.id) === String(feedbackService) || String(s.id) === String(feedbackService)) {
+        serviceLabel = s.name;
+        break;
+      }
+      if (s.subservices && Array.isArray(s.subservices)) {
+        const matchedSub = s.subservices.find(
+          (sub) => String(sub.code || sub.id) === String(feedbackService) || String(sub.id) === String(feedbackService)
+        );
+        if (matchedSub) {
+          serviceLabel = `${s.name} › ${matchedSub.name}`;
+          break;
+        }
+      }
+    }
+    if (!serviceLabel && feedbackService) serviceLabel = String(feedbackService);
 
-    const matchedOrg = orgData?.data?.find((o) => Number(o.id) === Number(targetOrgId));
+    const matchedOrg =
+      bureausData?.data?.find((o) => Number(o.id) === Number(targetOrgId)) ||
+      subCitiesData?.data?.find((o) => Number(o.id) === Number(targetOrgId));
     const orgLabel = matchedOrg?.name || '';
     const cityLabel = feedbackCity || '';
 
@@ -171,9 +211,11 @@ export default function FeedbackFormCard({ t, onTrack }) {
               step={feedbackStep}
               feedback={feedback}
               actions={actions}
-              orgData={orgData}
+              subCitiesData={subCitiesData}
+              bureausData={bureausData}
               servicesData={servicesData}
-              isOrgsLoading={isOrgsLoading}
+              isSubCitiesLoading={isSubCitiesLoading}
+              isBureausLoading={isBureausLoading}
               isServicesLoading={isServicesLoading}
               t={t}
             />
