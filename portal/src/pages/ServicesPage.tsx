@@ -141,13 +141,22 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
     return result;
   }, [apiServices?.data]);
 
-  // Expand all master nodes when data loads or search query changes
+  // Auto-expand matching master nodes when user is searching
   useEffect(() => {
-    if (masterTreeNodes.length > 0) {
-      const allMasterIds = masterTreeNodes.map((m) => m.id);
-      setExpandedMasterIds(new Set(allMasterIds));
+    const q = search.trim().toLowerCase();
+    if (q && masterTreeNodes.length > 0) {
+      const matchingIds = masterTreeNodes
+        .filter((m) => {
+          const matchMaster = m.name.toLowerCase().includes(q) || m.code.toLowerCase().includes(q);
+          const matchChild = m.children.some(
+            (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+          );
+          return matchMaster || matchChild;
+        })
+        .map((m) => m.id);
+      setExpandedMasterIds(new Set(matchingIds));
     }
-  }, [masterTreeNodes.length, search]);
+  }, [search, masterTreeNodes]);
 
   // Filter tree nodes according to live search text and published status
   const filteredTreeNodes = useMemo(() => {
@@ -269,13 +278,11 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
 
   const toggleMasterExpand = (id: number) => {
     setExpandedMasterIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
+      // Expand only the clicked master node (accordion mode)
+      if (prev.has(id)) {
+        return new Set();
       }
-      return next;
+      return new Set([id]);
     });
   };
 
@@ -336,14 +343,14 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
         targetId = res?.data?.id;
       }
 
-      if (targetId && !payload.is_master) {
-        if (payload.documents && Array.isArray(payload.documents)) {
+      if (targetId) {
+        if (!payload.is_master && payload.documents && Array.isArray(payload.documents)) {
           await syncDocsTrigger({
             serviceId: targetId,
             documents: payload.documents,
           }).unwrap();
         }
-        if (payload.offering_organizations && Array.isArray(payload.offering_organizations)) {
+        if (payload.offering_organizations && Array.isArray(payload.offering_organizations) && payload.offering_organizations.length > 0) {
           await syncOrgsTrigger({
             serviceId: targetId,
             organizations: payload.offering_organizations.map((orgId: number) => ({

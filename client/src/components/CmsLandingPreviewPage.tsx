@@ -1,4 +1,4 @@
-import { Component, type ReactNode, useState } from 'react'
+import { Component, type ReactNode, useState, useEffect } from 'react'
 import { Provider } from 'react-redux'
 import store from '../store/index.js'
 import { translate } from '../i18n/translations.js'
@@ -11,6 +11,7 @@ import type { LandingPageCmsConfig, Language } from '../types/newsEvents'
 interface CmsLandingPreviewPageProps {
   cmsConfig?: LandingPageCmsConfig | null;
   documentRef?: Document;
+  previewLanguage?: Language;
 }
 
 interface ErrorBoundaryProps {
@@ -54,8 +55,13 @@ class PreviewErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 }
 
-export default function CmsLandingPreviewPage({ cmsConfig, documentRef }: CmsLandingPreviewPageProps) {
-  const [language, setLanguage] = useState<Language>('en')
+function PreviewContent({ cmsConfig, documentRef, previewLanguage }: CmsLandingPreviewPageProps) {
+  const [language, setLanguage] = useState<Language>(previewLanguage || 'en')
+
+  useEffect(() => {
+    if (previewLanguage) setLanguage(previewLanguage)
+  }, [previewLanguage])
+
   const t = (text: string) => translate(text, language)
   const pageDocument = documentRef || document
 
@@ -73,37 +79,45 @@ export default function CmsLandingPreviewPage({ cmsConfig, documentRef }: CmsLan
   }
 
   return (
+    <div className="site-shell" lang={language}>
+      <AnnouncementBar
+        t={t}
+        language={language}
+        announcement={cmsConfig?.announcement}
+        onNavigateToHomeSection={scrollToSection}
+      />
+      <SiteHeader
+        currentView="home"
+        language={language}
+        t={t}
+        onNavigateToHome={navigateToHome}
+        onNavigateToHomeSection={scrollToSection}
+        onNavigateToNews={navigateToNews}
+        onToggleLanguage={() => setLanguage((current) => current === 'en' ? 'am' : 'en')}
+      />
+      <HomePage
+        language={language}
+        t={t}
+        cmsConfig={cmsConfig}
+        documentRef={pageDocument}
+        onNavigateToHub={navigateToNews}
+        onSelectItem={navigateToNews}
+      />
+      <SiteFooter
+        t={t}
+        language={language}
+        footerContent={cmsConfig?.footer}
+        onNavigateToHomeSection={scrollToSection}
+      />
+    </div>
+  )
+}
+
+export default function CmsLandingPreviewPage(props: CmsLandingPreviewPageProps) {
+  return (
     <Provider store={store}>
       <PreviewErrorBoundary>
-        <div className="site-shell" lang={language}>
-          <AnnouncementBar
-            t={t}
-            announcement={cmsConfig?.announcement}
-            onNavigateToHomeSection={scrollToSection}
-          />
-          <SiteHeader
-            currentView="home"
-            language={language}
-            t={t}
-            onNavigateToHome={navigateToHome}
-            onNavigateToHomeSection={scrollToSection}
-            onNavigateToNews={navigateToNews}
-            onToggleLanguage={() => setLanguage((current) => current === 'en' ? 'am' : 'en')}
-          />
-          <HomePage
-            language={language}
-            t={t}
-            cmsConfig={cmsConfig}
-            documentRef={pageDocument}
-            onNavigateToHub={navigateToNews}
-            onSelectItem={navigateToNews}
-          />
-          <SiteFooter
-            t={t}
-            footerContent={cmsConfig?.footer}
-            onNavigateToHomeSection={scrollToSection}
-          />
-        </div>
+        <PreviewContent {...props} />
       </PreviewErrorBoundary>
     </Provider>
   )

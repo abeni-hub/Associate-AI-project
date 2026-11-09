@@ -16,9 +16,11 @@ function addStylesheet(documentNode, css) {
 }
 
 function initializeFrameDocument(iframe) {
-  const frameDocument = iframe.contentDocument
+  const frameDocument = iframe?.contentDocument
+  if (!frameDocument) return null
+
   frameDocument.open()
-  frameDocument.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>CivicLink Ethiopia — Citizen Services</title></head><body><div id="client-landing-preview-root"></div></body></html>')
+  frameDocument.write('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>CivicLink Ethiopia — Citizen Services</title></head><body style="margin:0;padding:0;"><div id="client-landing-preview-root"></div></body></html>')
   frameDocument.close()
 
   const preconnect = frameDocument.createElement('link')
@@ -45,11 +47,39 @@ function initializeFrameDocument(iframe) {
   return frameDocument
 }
 
-export default function ClientLandingPageFrame({ cmsConfig, isMobile }) {
+export default function ClientLandingPageFrame({ cmsConfig, isMobile, previewLanguage }) {
   const iframeRef = useRef(null)
   const stageRef = useRef(null)
   const rootRef = useRef(null)
   const [stageWidth, setStageWidth] = useState(0)
+
+  const renderPreview = () => {
+    const iframe = iframeRef.current
+    if (!iframe) return
+
+    let frameDoc = iframe.contentDocument
+    if (!frameDoc) return
+
+    let mountPoint = frameDoc.getElementById('client-landing-preview-root')
+    if (!mountPoint) {
+      frameDoc = initializeFrameDocument(iframe)
+      mountPoint = frameDoc?.getElementById('client-landing-preview-root')
+    }
+
+    if (!mountPoint) return
+
+    if (!rootRef.current) {
+      rootRef.current = createRoot(mountPoint)
+    }
+
+    rootRef.current.render(
+      <CmsLandingPreviewPage
+        cmsConfig={cmsConfig}
+        documentRef={frameDoc}
+        previewLanguage={previewLanguage}
+      />
+    )
+  }
 
   useEffect(() => {
     const stage = stageRef.current
@@ -63,27 +93,17 @@ export default function ClientLandingPageFrame({ cmsConfig, isMobile }) {
   }, [])
 
   useEffect(() => {
-    const iframe = iframeRef.current
-    if (!iframe || rootRef.current) return undefined
-
-    const frameDocument = initializeFrameDocument(iframe)
-    const mountPoint = frameDocument.getElementById('client-landing-preview-root')
-    const root = createRoot(mountPoint)
-    rootRef.current = root
-    root.render(<CmsLandingPreviewPage cmsConfig={cmsConfig} documentRef={frameDocument} />)
-
-    return () => {
-      root.unmount()
-      rootRef.current = null
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    renderPreview()
+  }, [cmsConfig, previewLanguage])
 
   useEffect(() => {
-    rootRef.current?.render(
-      <CmsLandingPreviewPage cmsConfig={cmsConfig} documentRef={iframeRef.current?.contentDocument} />,
-    )
-  }, [cmsConfig])
+    return () => {
+      if (rootRef.current) {
+        rootRef.current.unmount()
+        rootRef.current = null
+      }
+    }
+  }, [])
 
   const scale = isMobile || !stageWidth ? 1 : Math.min(1, stageWidth / DESKTOP_VIEWPORT_WIDTH)
   const frameStyle = isMobile
@@ -99,6 +119,7 @@ export default function ClientLandingPageFrame({ cmsConfig, isMobile }) {
     <div className={`client-frame-stage${isMobile ? ' is-mobile' : ' is-desktop'}`} ref={stageRef} style={stageStyle}>
       <iframe
         ref={iframeRef}
+        onLoad={renderPreview}
         className="client-landing-frame"
         title={isMobile ? 'Client landing page mobile preview' : 'Client landing page desktop preview'}
         style={frameStyle}

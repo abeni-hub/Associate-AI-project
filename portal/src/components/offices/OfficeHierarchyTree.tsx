@@ -56,15 +56,6 @@ const filterTree = (
   return { office: node.office, children };
 };
 
-const initialsFor = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase();
-
 const countNodes = (node: OfficeTreeNode): number =>
   1 + node.children.reduce((total, child) => total + countNodes(child), 0);
 
@@ -72,28 +63,33 @@ const OfficeTreeBranch: React.FC<{
   node: OfficeTreeNode;
   officeTypes: OfficeType[];
   depth: number;
+  officesById: Map<number, OfficeItem>;
   onEdit: (office: OfficeItem) => void;
-}> = ({ node, officeTypes, depth, onEdit }) => {
+}> = ({ node, officeTypes, depth, officesById, onEdit }) => {
   const { office, children } = node;
   const type = officeTypes.find((item) => item.id === office.typeId);
   const isActive = office.status.toLowerCase() === 'active';
   const levelLabel = type?.name || `Office level ${office.typeId}`;
-  const isSubcity = depth === 1;
+  const parentOffice = office.parentId !== null ? officesById.get(office.parentId) : null;
+  const parentName = parentOffice?.name || (depth === 1 ? 'City Administration' : null);
 
   return (
     <div className={`office-tree-branch office-tree-depth-${Math.min(depth, 4)}`}>
       <article className={`office-tree-card office-tree-card-level-${Math.min(depth, 4)}`}>
         <div className="office-tree-card-topline">
           <span className="office-tree-icon" aria-hidden="true">
-            <Icon name={office.typeId === 1 ? 'map' : office.typeId === 2 ? 'building' : 'layers'} size={16} />
+            <Icon name={office.typeId === 1 ? 'map' : office.typeId === 2 ? 'building' : 'layers'} size={15} />
           </span>
           <span className="office-tree-card-heading-copy">
-            <span className="office-tree-kicker">{levelLabel}</span>
+            {parentName && (
+              <span className="office-tree-kicker" title={`Parent: ${parentName}`}>
+                Parent: {parentName}
+              </span>
+            )}
             <strong title={office.name}>{office.name}</strong>
           </span>
           <span className={`office-tree-status${isActive ? ' is-active' : ' is-inactive'}`} title={`Status: ${office.status}`}>
             <i className="office-tree-status-dot" aria-hidden="true" />
-            <small>{office.status}</small>
           </span>
           <button
             type="button"
@@ -105,33 +101,38 @@ const OfficeTreeBranch: React.FC<{
             <Icon name="arrow" size={13} />
           </button>
         </div>
-        <div className="office-tree-card-meta">
-          <span className="office-tree-person">
-            <span className="office-tree-avatar">{initialsFor(office.admin)}</span>
-            <span title={office.admin}>{office.admin}</span>
-          </span>
-          <span className="office-tree-services"><b>{office.services}</b> services</span>
-        </div>
-        <div className="office-tree-readiness" aria-label={`${office.completion}% service guide completion`}>
-          <span
-            className="office-tree-progress"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.max(0, Math.min(100, office.completion))}
-            aria-label="Service guide completion"
-          >
-            <span style={{ width: `${Math.max(0, Math.min(100, office.completion))}%` }} />
-          </span>
-          <small>{office.completion}% ready</small>
-          {isSubcity && <small className="office-tree-child-count">{children.length} offices below</small>}
-        </div>
+
+        {children.length > 0 && (
+          <div className="office-tree-children-preview">
+            <span className="office-tree-children-label">
+              Child Offices ({children.length}):
+            </span>
+            <div className="office-tree-children-tags">
+              {children.map((child) => (
+                <span
+                  key={child.office.id}
+                  className="office-tree-child-chip"
+                  title={child.office.name}
+                >
+                  {child.office.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </article>
+
       {children.length > 0 && (
         <ul className="office-tree-children" aria-label={`${office.name} offices`}>
           {children.map((child) => (
             <li key={child.office.id}>
-              <OfficeTreeBranch node={child} officeTypes={officeTypes} depth={depth + 1} onEdit={onEdit} />
+              <OfficeTreeBranch
+                node={child}
+                officeTypes={officeTypes}
+                depth={depth + 1}
+                officesById={officesById}
+                onEdit={onEdit}
+              />
             </li>
           ))}
         </ul>
@@ -146,6 +147,7 @@ export const OfficeHierarchyTree: React.FC<OfficeHierarchyTreeProps> = ({
   matchingOfficeIds,
   onEdit,
 }) => {
+  const officesById = useMemo(() => new Map(offices.map((office) => [office.id, office])), [offices]);
   const visibleTree = useMemo(
     () => buildOfficeForest(offices).map((node) => filterTree(node, matchingOfficeIds)).filter((node): node is OfficeTreeNode => node !== null),
     [offices, matchingOfficeIds]
@@ -199,7 +201,7 @@ export const OfficeHierarchyTree: React.FC<OfficeHierarchyTreeProps> = ({
           >
             {visibleTree.map((node) => (
               <li className="office-tree-subcity-column" key={node.office.id}>
-                <OfficeTreeBranch node={node} officeTypes={officeTypes} depth={1} onEdit={onEdit} />
+                <OfficeTreeBranch node={node} officeTypes={officeTypes} depth={1} officesById={officesById} onEdit={onEdit} />
               </li>
             ))}
           </ul>

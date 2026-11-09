@@ -15,33 +15,17 @@ function App() {
     refetchOnMountOrArgChange: true,
     refetchOnFocus: true,
   })
-  const [cachedCms, setCachedCms] = useState(() => {
-    try {
-      const local = localStorage.getItem('CIVIC_LANDING_CMS_CACHE')
-      return local ? JSON.parse(local) : null
-    } catch {
-      return null
-    }
-  })
+  const [cachedCms, setCachedCms] = useState(null)
 
   useEffect(() => {
     const handleCmsUpdate = (e) => {
       if (e?.detail) {
         setCachedCms(e.detail)
-      } else {
-        try {
-          const local = localStorage.getItem('CIVIC_LANDING_CMS_CACHE')
-          if (local) setCachedCms(JSON.parse(local))
-        } catch {
-          // ignore
-        }
       }
     }
     window.addEventListener('civiclink-cms-updated', handleCmsUpdate)
-    window.addEventListener('storage', handleCmsUpdate)
     return () => {
       window.removeEventListener('civiclink-cms-updated', handleCmsUpdate)
-      window.removeEventListener('storage', handleCmsUpdate)
     }
   }, [])
 
@@ -220,11 +204,12 @@ function App() {
 
   return (
     <div className={`site-shell ${currentView === 'news-events' ? 'site-shell-hub' : currentView === 'detail' ? 'site-shell-detail' : ''}`} lang={language}>
-      <AnnouncementBar
+      {/* <AnnouncementBar
         t={t}
+        language={language}
         onNavigateToHomeSection={navigateToHomeSection}
         announcement={cmsConfig?.announcement}
-      />
+      /> */}
       <SiteHeader
         currentView={currentView}
         language={language}
@@ -275,6 +260,7 @@ function App() {
 
       <SiteFooter
         t={t}
+        language={language}
         onNavigateToHomeSection={navigateToHomeSection}
         footerContent={cmsConfig?.footer}
       />

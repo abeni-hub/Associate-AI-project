@@ -1,6 +1,5 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from 'vite';
-import { cmsDevMiddleware } from '../shared/cmsDevMiddleware.mjs';
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -9,7 +8,7 @@ export default defineConfig(({ mode }) => {
   const target = rawTarget.replace(/\/api\/?$/, '');
 
   return {
-    plugins: [react(), cmsDevMiddleware()],
+    plugins: [react()],
     server: {
       proxy: {
         '/api': {

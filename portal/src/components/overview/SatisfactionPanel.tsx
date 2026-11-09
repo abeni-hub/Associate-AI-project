@@ -70,7 +70,7 @@ export const SatisfactionPanel: React.FC<SatisfactionPanelProps> = ({
           <h2>Service satisfaction</h2>
         </div>
         <span className="subtle-icon">
-          <Icon name="spark" size={17} />
+          <Icon name="message" size={17} />
         </span>
       </div>
       <div className="satisfaction-score">

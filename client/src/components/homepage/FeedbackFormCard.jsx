@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import Icon from '../ui/Icon.jsx';
 import FeedbackFormActions from './FeedbackFormActions.jsx';
 import FeedbackStepContent from './FeedbackStepContent.jsx';
@@ -45,10 +46,100 @@ export default function FeedbackFormCard({ t, onTrack }) {
   const feedbackSubmitted = feedbackState.submitted;
   const trackingNumber = feedbackState.trackingNumber;
 
-  // RTK Query hooks
+  // RTK Query hooks with backend filtering
   const [submitFeedbackMutation, { isLoading: isSubmitting }] = useSubmitFeedbackMutation();
-  const { data: orgData, isLoading: isOrgsLoading } = useGetOrganizationsQuery({ per_page: 100 });
-  const { data: servicesData, isLoading: isServicesLoading } = useGetServicesQuery({ per_page: 100 });
+  const { data: allOrgsData, isLoading: isOrgsLoading } = useGetOrganizationsQuery({
+    per_page: 100,
+  });
+
+  const allOrganizations = useMemo(() => {
+    return (allOrgsData?.data && Array.isArray(allOrgsData.data)) ? allOrgsData.data : [];
+  }, [allOrgsData]);
+
+  const subCitiesData = useMemo(() => {
+    const list = allOrganizations.filter(
+      (o) =>
+        o.parent_organization_id === null &&
+        (o.type?.code === 'sub_city' ||
+          o.name?.toLowerCase().includes('sub-city') ||
+          o.name?.toLowerCase().includes('subcity'))
+    );
+    return { data: list };
+  }, [allOrganizations]);
+
+  const isSubCitiesLoading = isOrgsLoading;
+  const isBureausLoading = isOrgsLoading;
+
+  // Selected sub-city object
+  const selectedSubCity = useMemo(() => {
+    if (!feedbackCity || feedbackCity === 'all') return null;
+    return subCitiesData.data.find(
+      (o) =>
+        o.name.toLowerCase() === feedbackCity.toLowerCase() ||
+        String(o.id) === String(feedbackCity)
+    );
+  }, [feedbackCity, subCitiesData]);
+
+  // Bureaus & child offices filtered under selected sub-city
+  const bureausData = useMemo(() => {
+    const centralBureaus = allOrganizations.filter(
+      (o) =>
+        o.parent_organization_id === null &&
+        (o.type?.code === 'bureau' ||
+          o.type?.code === 'agency' ||
+          o.name?.toLowerCase().includes('bureau') ||
+          o.name?.toLowerCase().includes('agency'))
+    );
+
+    if (selectedSubCity) {
+      const childOffices = allOrganizations.filter(
+        (o) => o.parent_organization_id === selectedSubCity.id
+      );
+      return {
+        data: [
+          ...childOffices.map((o) => ({
+            ...o,
+            label: o.name,
+            subtext: `Under ${selectedSubCity.name}`,
+          })),
+          ...centralBureaus.map((o) => ({
+            ...o,
+            label: o.name,
+            subtext: o.code || '',
+          })),
+        ],
+      };
+    }
+
+    const childOffices = allOrganizations.filter((o) => o.parent_organization_id !== null);
+    return {
+      data: [
+        ...centralBureaus.map((o) => ({
+          ...o,
+          label: o.name,
+          subtext: o.code || '',
+        })),
+        ...childOffices.map((o) => ({
+          ...o,
+          label: o.parent ? `${o.parent.name} › ${o.name}` : o.name,
+          subtext: o.parent ? `Under ${o.parent.name}` : '',
+        })),
+      ],
+    };
+  }, [allOrganizations, selectedSubCity]);
+
+  const feedbackServicesParams = useMemo(() => {
+    const params = { per_page: 100, tree: true };
+    if (feedbackCity && feedbackCity !== 'all') {
+      params.sub_city = feedbackCity;
+    }
+    if (feedbackBureau && feedbackBureau !== 'all') {
+      params.organization_id = feedbackBureau;
+    }
+    return params;
+  }, [feedbackCity, feedbackBureau]);
+
+  const { data: servicesData, isLoading: isServicesLoading } = useGetServicesQuery(feedbackServicesParams);
 
   const feedback = {
     type: feedbackType,
@@ -63,7 +154,10 @@ export default function FeedbackFormCard({ t, onTrack }) {
 
   const actions = {
     setType: (val) => dispatch(setFeedbackType(val)),
-    setCity: (val) => dispatch(setFeedbackCity(val)),
+    setCity: (val) => {
+      dispatch(setFeedbackCity(val));
+      dispatch(setFeedbackBureau(''));
+    },
     setService: (val) => dispatch(setFeedbackService(val)),
     setMessage: (val) => dispatch(setFeedbackMessage(val)),
     setSatisfaction: (val) => dispatch(setFeedbackSatisfaction(val)),
@@ -80,24 +174,45 @@ export default function FeedbackFormCard({ t, onTrack }) {
 
     // 1. Resolve target organization ID
     let targetOrgId = Number(feedbackBureau);
-    if (!targetOrgId && orgData?.data && Array.isArray(orgData.data)) {
-      const match = orgData.data.find(
-        (o) => String(o.id) === String(feedbackBureau) || o.name.toLowerCase().includes(String(feedbackCity).toLowerCase())
+    if (!targetOrgId && bureausData?.data && Array.isArray(bureausData.data)) {
+      const match = bureausData.data.find(
+        (o) => String(o.id) === String(feedbackBureau) || String(o.code) === String(feedbackBureau)
       );
       if (match) targetOrgId = match.id;
     }
+    if (!targetOrgId && subCitiesData?.data && Array.isArray(subCitiesData.data)) {
+      const matchSub = subCitiesData.data.find(
+        (o) => String(o.id) === String(feedbackCity) || o.name.toLowerCase().includes(String(feedbackCity).toLowerCase())
+      );
+      if (matchSub) targetOrgId = matchSub.id;
+    }
     if (!targetOrgId) {
-      targetOrgId = orgData?.data?.[0]?.id || 1;
+      targetOrgId = bureausData?.data?.[0]?.id || subCitiesData?.data?.[0]?.id || 1;
     }
 
     // 2. Resolve Service and Bureau display labels for contextual enrichment
-    const activeServices = servicesData?.data || [];
-    const matchedService = activeServices.find(
-      (s) => String(s.code || s.id) === String(feedbackService) || String(s.id) === String(feedbackService)
-    );
-    const serviceLabel = matchedService?.name || (feedbackService ? String(feedbackService) : '');
+    let serviceLabel = '';
+    const rawServices = servicesData?.data || [];
+    for (const s of rawServices) {
+      if (String(s.code || s.id) === String(feedbackService) || String(s.id) === String(feedbackService)) {
+        serviceLabel = s.name;
+        break;
+      }
+      if (s.subservices && Array.isArray(s.subservices)) {
+        const matchedSub = s.subservices.find(
+          (sub) => String(sub.code || sub.id) === String(feedbackService) || String(sub.id) === String(feedbackService)
+        );
+        if (matchedSub) {
+          serviceLabel = `${s.name} › ${matchedSub.name}`;
+          break;
+        }
+      }
+    }
+    if (!serviceLabel && feedbackService) serviceLabel = String(feedbackService);
 
-    const matchedOrg = orgData?.data?.find((o) => Number(o.id) === Number(targetOrgId));
+    const matchedOrg =
+      bureausData?.data?.find((o) => Number(o.id) === Number(targetOrgId)) ||
+      subCitiesData?.data?.find((o) => Number(o.id) === Number(targetOrgId));
     const orgLabel = matchedOrg?.name || '';
     const cityLabel = feedbackCity || '';
 
@@ -166,14 +281,16 @@ export default function FeedbackFormCard({ t, onTrack }) {
             <span>{t(`STEP ${feedbackStep} OF 5`)}</span>
             <h4>{t(stepTitles[feedbackStep - 1])}</h4>
           </div>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="feedback-card-form">
             <FeedbackStepContent
               step={feedbackStep}
               feedback={feedback}
               actions={actions}
-              orgData={orgData}
+              subCitiesData={subCitiesData}
+              bureausData={bureausData}
               servicesData={servicesData}
-              isOrgsLoading={isOrgsLoading}
+              isSubCitiesLoading={isSubCitiesLoading}
+              isBureausLoading={isBureausLoading}
               isServicesLoading={isServicesLoading}
               t={t}
             />

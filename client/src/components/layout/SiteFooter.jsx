@@ -1,15 +1,15 @@
 import BrandMark from '../ui/BrandMark.jsx'
 
-export default function SiteFooter({ t, onNavigateToHomeSection, footerContent }) {
+export default function SiteFooter({ t, onNavigateToHomeSection, footerContent, language }) {
   function handleSectionNavigation(event, sectionId) {
     event.preventDefault()
     onNavigateToHomeSection(sectionId)
   }
 
-  const brandTagline = footerContent?.brandTagline || 'Clearer information for every visit.'
-  const description = footerContent?.description || 'A more responsive public service.'
-  const copyright = footerContent?.copyright || '© 2026 CivicLink Ethiopia · Public service information platform'
-  const bottomNote = footerContent?.bottomNote || 'Built for citizens, maintained by bureaus.'
+  const brandTagline = (language === 'am' && footerContent?.brandTaglineAm) || footerContent?.brandTagline || 'Clearer information for every visit.'
+  const description = (language === 'am' && footerContent?.descriptionAm) || footerContent?.description || 'A more responsive public service.'
+  const copyright = (language === 'am' && footerContent?.copyrightAm) || footerContent?.copyright || '© 2026 CivicLink Ethiopia · Public service information platform'
+  const bottomNote = (language === 'am' && footerContent?.bottomNoteAm) || footerContent?.bottomNote || 'Built for citizens, maintained by bureaus.'
 
   return (
     <footer className="site-footer">

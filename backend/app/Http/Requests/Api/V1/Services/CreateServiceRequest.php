@@ -63,6 +63,8 @@ class CreateServiceRequest extends FormRequest
             'fee_currency' => ['nullable', 'string', 'max:3'],
             'fee_notes' => ['nullable', 'string', 'max:500'],
             'is_active' => ['nullable', 'boolean'],
+            'offering_organizations' => ['nullable', 'array'],
+            'offering_organizations.*' => ['nullable'],
             'documents' => ['nullable', 'array'],
             'documents.*.document_id' => ['required_with:documents', 'integer', 'exists:documents,id'],
             'documents.*.is_mandatory' => ['nullable', 'boolean'],

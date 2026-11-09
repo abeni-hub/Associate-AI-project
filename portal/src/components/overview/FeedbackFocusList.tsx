@@ -45,7 +45,7 @@ export const FeedbackFocusList: React.FC<FeedbackFocusListProps> = ({
             >
               <span className={`focus-type ${rawType}`}>
                 <Icon
-                  name={isComplaint ? 'alertTriangle' : isSatisfaction ? 'spark' : 'message'}
+                  name={isComplaint ? 'alertTriangle' : isSatisfaction ? 'heart' : 'message'}
                   size={15}
                 />
               </span>

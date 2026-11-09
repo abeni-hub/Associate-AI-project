@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { usePortal } from '../context';
 import { usePermissions } from '../hooks/usePermissions';
 import { Icon } from '../components/shared/Icon';
@@ -10,6 +10,7 @@ import {
   useGetServicesQuery,
   useSyncServiceStepsMutation,
 } from '../services/servicesApi';
+import { useGetOrganizationsQuery } from '../services/organizationsApi';
 
 export interface RoutesPageProps {
   items?: RouteItem[];
@@ -31,14 +32,54 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;
 
-  const { data: apiServices, isLoading, refetch } = useGetServicesQuery(undefined, { refetchOnMountOrArgChange: true });
+  const [selectedOrgFilter, setSelectedOrgFilter] = useState<string>('all');
+
+  // Query ONLY sub-services for room routes from backend API
+  const queryParams = useMemo(() => {
+    const params: { scope: string; per_page: number; organization_id?: number } = {
+      scope: 'subservices',
+      per_page: 100,
+    };
+    if (selectedOrgFilter !== 'all') {
+      params.organization_id = Number(selectedOrgFilter);
+    }
+    return params;
+  }, [selectedOrgFilter]);
+
+  const { data: apiServices, isLoading, refetch } = useGetServicesQuery(queryParams, {
+    refetchOnMountOrArgChange: true,
+  });
+
+  const { data: orgsData } = useGetOrganizationsQuery({ per_page: 100 });
+  const organizations = useMemo(() => orgsData?.data || [], [orgsData]);
+
+  const { subcitiesList, bureausList } = useMemo(() => {
+    const subcities: typeof organizations = [];
+    const bureaus: typeof organizations = [];
+    organizations.forEach((org) => {
+      const isSubcity =
+        org.type?.code === 'sub_city' ||
+        org.name.toLowerCase().includes('sub-city') ||
+        org.name.toLowerCase().includes('subcity');
+      if (isSubcity) {
+        subcities.push(org);
+      } else {
+        bureaus.push(org);
+      }
+    });
+    return { subcitiesList: subcities, bureausList: bureaus };
+  }, [organizations]);
+
   const [syncStepsTrigger] = useSyncServiceStepsMutation();
 
   const items: RouteItem[] = useMemo(() => {
     if (propItems && propItems.length > 0) return propItems;
 
     if (apiServices?.data && apiServices.data.length > 0) {
-      return apiServices.data.map((s) => {
+      // ONLY sub-services can have room routes (exclude master catalogs)
+      const subServicesOnly = apiServices.data.filter((s) => !s.is_master && s.parent_id !== null);
+
+      return subServicesOnly.map((s) => {
         const liveSteps: RouteStep[] =
           s.steps && s.steps.length > 0
             ? s.steps.map((step) => ({
@@ -52,11 +93,17 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
               }))
             : [];
 
+        const parentCategoryName = s.parent?.name || 'Sub-service';
+
         return {
           id: s.id,
           service: s.name,
-          category: s.is_master ? 'Master Catalog' : 'Sub-service',
+          category: parentCategoryName,
           bureau: s.organization?.name || 'Addis Ababa City Administration',
+          organizationId:
+            selectedOrgFilter !== 'all'
+              ? Number(selectedOrgFilter)
+              : s.organization_id || null,
           status: s.is_active ? (liveSteps.length > 0 ? 'Active' : 'Draft') : 'Disabled',
           updated: s.created_at ? new Date(s.created_at).toLocaleDateString() : 'Live from API',
           steps: liveSteps,
@@ -65,7 +112,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
     }
 
     return [];
-  }, [propItems, apiServices]);
+  }, [propItems, apiServices, selectedOrgFilter]);
 
   const onEdit =
     propOnEdit ||
@@ -114,12 +161,49 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
           window.alert('Public guide preview is active in Citizen App Live Preview.')
         }
       />
-      <div className="route-toolbar">
+      <div className="route-toolbar" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h2>Your service routes</h2>
           <p>Room locations can be updated whenever your office layout changes.</p>
         </div>
-        <SearchBox value={search} onChange={setSearch} placeholder="Search routes" />
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <select
+            className="scope-dropdown"
+            value={selectedOrgFilter}
+            onChange={(e) => setSelectedOrgFilter(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              backgroundColor: '#fff',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: '#1e293b',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="all">🏢 All Offices & Branches</option>
+            {subcitiesList.length > 0 && (
+              <optgroup label="── Sub-city Administrations ──">
+                {subcitiesList.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    🏛 {org.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {bureausList.length > 0 && (
+              <optgroup label="── Bureaus & Agencies ──">
+                {bureausList.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    🏢 {org.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+          <SearchBox value={search} onChange={setSearch} placeholder="Search sub-services..." />
+        </div>
       </div>
       <div className="route-grid">
         {isLoading && !apiServices ? (

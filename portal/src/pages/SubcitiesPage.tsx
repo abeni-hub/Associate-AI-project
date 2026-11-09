@@ -122,7 +122,7 @@ export const SubcitiesPage: React.FC<SubcitiesPageProps> = ({
         </div>
         <div className="directory-stat">
           <span className="directory-stat-icon teal">
-            <Icon name="spark" />
+            <Icon name="check" />
           </span>
           <span>
             <b>99.4%</b>

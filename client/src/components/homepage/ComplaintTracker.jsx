@@ -182,7 +182,7 @@ export default function ComplaintTracker({ t, initialTrackingNumber, onSwitchToF
             <div className={`timeline-connector ${statusStep >= 3 ? 'is-complete' : ''}`} />
             <div className={`timeline-step ${statusStep >= 3 ? 'is-complete' : ''} ${statusStep === 3 ? 'is-active' : ''}`}>
               <div className="timeline-node">
-                <Icon name="sparkle" size={14} />
+                <Icon name="check" size={14} />
               </div>
               <div className="timeline-text">
                 <strong>{t('Step 3: Official Resolution')}</strong>

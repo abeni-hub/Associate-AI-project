@@ -28,43 +28,149 @@ class ServiceController extends Controller
     /**
      * List services and subservices with search, organization scoping, and hierarchical tree support.
      */
+    /**
+     * Display a listing of services with hierarchical relationships,
+     * backend search, sub-city filtering, bureau/organization filtering,
+     * category filtering, and role-based scoping.
+     */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user() ?? auth('sanctum')->user();
         $isSuperAdmin = $user && $user->isSuperAdmin();
-        $targetOrgIds = null;
+        $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
-        if ($isSuperAdmin) {
-            // Super Admin: sees all services across the entire platform by default.
-            // Can optionally filter down to any specific organization if provided in the request.
-            if ($request->filled('organization_id')) {
-                $targetOrgIds = [(int) $request->input('organization_id')];
-            }
-        } elseif ($user && $user->organization_id) {
-            // Organization-level user (Subcity Admin, Bureau Admin, Woreda Admin, Staff):
-            // Scoped strictly to their assigned organization and all child descendant offices.
-            $allowedOrgIds = $this->scopeService->getAllowedOrganizationIds($user, includeDescendants: true) ?? [];
-            if ($request->filled('organization_id')) {
-                $requestedOrgId = (int) $request->input('organization_id');
-                $targetOrgIds = in_array($requestedOrgId, $allowedOrgIds, true) ? [$requestedOrgId] : [-1];
+        // 1. Resolve Sub-city Organization Filter
+        $subCityInput = $request->input('sub_city') ?? $request->input('sub_city_id');
+        $subCityOrgIds = null;
+        if ($subCityInput && $subCityInput !== 'all' && $subCityInput !== '') {
+            if (is_numeric($subCityInput)) {
+                $subCityOrgIds = [(int) $subCityInput];
             } else {
-                $targetOrgIds = $allowedOrgIds;
+                $cleanSubCity = strtolower(trim(preg_replace('/sub-city|sub city|subcity/i', '', (string) $subCityInput)));
+                $subCityOrgIds = \App\Domains\Organizations\Models\Organization::where(function ($q) use ($cleanSubCity, $like) {
+                    $q->where('name', $like, "%{$cleanSubCity}%")
+                        ->orWhere('code', $like, "%{$cleanSubCity}%");
+                })->pluck('id')->all();
             }
-        } elseif ($request->filled('organization_id')) {
-            // Public citizen filtering by an organization / sub-city
-            $targetOrgIds = [(int) $request->input('organization_id')];
+            $subCityOrgIds = $this->expandOrganizationIdsWithHierarchy($subCityOrgIds);
         }
 
-        $subservicesLoader = function ($sq) use ($targetOrgIds, $user) {
-            if ($targetOrgIds !== null) {
-                $sq->where(function ($subQ) use ($targetOrgIds) {
-                    $subQ->whereIn('organization_id', $targetOrgIds)
-                        ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $targetOrgIds));
-                });
+        // 2. Resolve Bureau / Organization Filter
+        $bureauInput = $request->input('organization_id') ?? $request->input('bureau_id');
+        $bureauOrgIds = null;
+        if ($bureauInput && $bureauInput !== 'all' && $bureauInput !== '') {
+            if (is_numeric($bureauInput)) {
+                $bureauOrgIds = [(int) $bureauInput];
+            } else {
+                $bureauOrgIds = \App\Domains\Organizations\Models\Organization::where('code', (string) $bureauInput)->pluck('id')->all();
             }
+            $bureauOrgIds = $this->expandOrganizationIdsWithHierarchy($bureauOrgIds);
+        }
+
+        // 3. User Permission Scoping
+        $staffOrgIds = null;
+        if ($user && ! $isSuperAdmin && $user->organization_id) {
+            $staffOrgIds = $this->scopeService->getAllowedOrganizationIds($user, includeDescendants: true) ?? [];
+        }
+
+        // 4. Resolve Category Filter
+        $categoryInput = strtolower(trim((string) $request->input('category', 'all')));
+        $hasCategoryFilter = $categoryInput !== '' && $categoryInput !== 'all';
+
+        // 5. Resolve Search Filter
+        $searchInput = trim((string) $request->input('search', ''));
+        $hasSearchFilter = $searchInput !== '';
+
+        // Helper filter closure to apply common criteria to subservices relation
+        $subservicesLoader = function ($sq) use (
+            $subCityOrgIds,
+            $bureauOrgIds,
+            $staffOrgIds,
+            $user,
+            $hasCategoryFilter,
+            $categoryInput,
+            $hasSearchFilter,
+            $searchInput,
+            $like
+        ) {
             if (! $user || ! $user->hasPermission('services.update')) {
                 $sq->where('is_active', true);
             }
+
+            if ($staffOrgIds !== null) {
+                $sq->where(function ($q) use ($staffOrgIds) {
+                    $q->whereIn('organization_id', $staffOrgIds)
+                        ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $staffOrgIds));
+                });
+            }
+
+            if ($subCityOrgIds !== null) {
+                $sq->where(function ($q) use ($subCityOrgIds) {
+                    $q->whereIn('organization_id', $subCityOrgIds)
+                        ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $subCityOrgIds))
+                        ->orWhereHas('parent', fn ($p) => $p->whereIn('organization_id', $subCityOrgIds));
+                });
+            }
+
+            if ($bureauOrgIds !== null) {
+                $sq->where(function ($q) use ($bureauOrgIds) {
+                    $q->whereIn('organization_id', $bureauOrgIds)
+                        ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $bureauOrgIds))
+                        ->orWhereHas('parent', fn ($p) => $p->whereIn('organization_id', $bureauOrgIds));
+                });
+            }
+
+            if ($hasCategoryFilter) {
+                $sq->where(function ($q) use ($categoryInput, $like) {
+                    if ($categoryInput === 'vital') {
+                        $q->where('code', $like, 'CIV%')
+                            ->orWhere('name', $like, '%vital%')
+                            ->orWhere('name', $like, '%birth%')
+                            ->orWhere('name', $like, '%marriage%')
+                            ->orWhere('name', $like, '%death%')
+                            ->orWhere('name', $like, '%civil%')
+                            ->orWhere('name', $like, '%residen%');
+                    } elseif ($categoryInput === 'tax') {
+                        $q->where('code', $like, 'REV%')
+                            ->orWhere('name', $like, '%tax%')
+                            ->orWhere('name', $like, '%tin%')
+                            ->orWhere('name', $like, '%revenue%')
+                            ->orWhere('name', $like, '%clearance%');
+                    } elseif ($categoryInput === 'business') {
+                        $q->where('code', $like, 'TRD%')
+                            ->orWhere('name', $like, '%business%')
+                            ->orWhere('name', $like, '%license%')
+                            ->orWhere('name', $like, '%trade%')
+                            ->orWhere('name', $like, '%commercial%');
+                    } elseif ($categoryInput === 'land') {
+                        $q->where('code', $like, 'LND%')
+                            ->orWhere('name', $like, '%land%')
+                            ->orWhere('name', $like, '%property%')
+                            ->orWhere('name', $like, '%lease%')
+                            ->orWhere('name', $like, '%cadastre%')
+                            ->orWhere('name', $like, '%deed%');
+                    } elseif ($categoryInput === 'plan') {
+                        $q->where('code', $like, 'PLN%')
+                            ->orWhere('name', $like, '%plan%')
+                            ->orWhere('name', $like, '%urban%')
+                            ->orWhere('name', $like, '%building%')
+                            ->orWhere('name', $like, '%permit%')
+                            ->orWhere('name', $like, '%construction%');
+                    } else {
+                        $q->where('name', $like, "%{$categoryInput}%")
+                            ->orWhere('code', $like, "%{$categoryInput}%");
+                    }
+                });
+            }
+
+            if ($hasSearchFilter) {
+                $sq->where(function ($q) use ($searchInput, $like) {
+                    $q->where('name', $like, "%{$searchInput}%")
+                        ->orWhere('code', $like, "%{$searchInput}%")
+                        ->orWhere('description', $like, "%{$searchInput}%");
+                });
+            }
+
             $sq->with([
                 'organization',
                 'parent',
@@ -91,42 +197,141 @@ class ServiceController extends Controller
             $query->where('is_active', filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN));
         }
 
-        // Apply organization scoping
-        if ($targetOrgIds !== null) {
-            $query->where(function ($q) use ($targetOrgIds) {
-                $q->whereIn('organization_id', $targetOrgIds)
-                    ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $targetOrgIds))
-                    ->orWhereHas('subservices', function ($sq) use ($targetOrgIds) {
-                        $sq->whereIn('organization_id', $targetOrgIds)
-                            ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $targetOrgIds));
+        // Apply Staff / Role-based Organization Scoping
+        if ($staffOrgIds !== null) {
+            $query->where(function ($q) use ($staffOrgIds) {
+                $q->whereIn('organization_id', $staffOrgIds)
+                    ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $staffOrgIds))
+                    ->orWhereHas('subservices', function ($sq) use ($staffOrgIds) {
+                        $sq->whereIn('organization_id', $staffOrgIds)
+                            ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $staffOrgIds));
                     });
             });
         }
 
-        // Search
-        if ($request->filled('search')) {
-            $search = (string) $request->input('search');
-            $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
-            $query->where(function ($q) use ($search, $like) {
-                $q->where('name', $like, "%{$search}%")
-                    ->orWhere('code', $like, "%{$search}%")
-                    ->orWhere('description', $like, "%{$search}%")
-                    ->orWhereHas('subservices', function ($sq) use ($search, $like) {
-                        $sq->where('name', $like, "%{$search}%")
-                            ->orWhere('code', $like, "%{$search}%");
+        // Apply Sub-city Filter from Request
+        if ($subCityOrgIds !== null) {
+            $query->where(function ($q) use ($subCityOrgIds) {
+                $q->whereIn('organization_id', $subCityOrgIds)
+                    ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $subCityOrgIds))
+                    ->orWhereHas('subservices', function ($sq) use ($subCityOrgIds) {
+                        $sq->whereIn('organization_id', $subCityOrgIds)
+                            ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $subCityOrgIds));
                     });
             });
         }
 
-        // Tree view mode: return master root services with their child subservices nested
-        if ($request->boolean('tree') || $request->input('view') === 'tree') {
+        // Apply Bureau / Organization Filter from Request
+        if ($bureauOrgIds !== null) {
+            $query->where(function ($q) use ($bureauOrgIds) {
+                $q->whereIn('organization_id', $bureauOrgIds)
+                    ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $bureauOrgIds))
+                    ->orWhereHas('parent', fn ($p) => $p->whereIn('organization_id', $bureauOrgIds))
+                    ->orWhereHas('subservices', function ($sq) use ($bureauOrgIds) {
+                        $sq->whereIn('organization_id', $bureauOrgIds)
+                            ->orWhereHas('offeringOrganizations', fn ($o) => $o->whereIn('organizations.id', $bureauOrgIds));
+                    });
+            });
+        }
+
+        // Apply Category Domain Filter
+        if ($hasCategoryFilter) {
+            $query->where(function ($q) use ($categoryInput, $like) {
+                if ($categoryInput === 'vital') {
+                    $q->where('code', $like, 'CIV%')
+                        ->orWhereHas('parent', fn ($p) => $p->where('code', $like, 'CIV%'))
+                        ->orWhere('name', $like, '%vital%')
+                        ->orWhere('name', $like, '%birth%')
+                        ->orWhere('name', $like, '%marriage%')
+                        ->orWhere('name', $like, '%death%')
+                        ->orWhere('name', $like, '%civil%')
+                        ->orWhere('name', $like, '%residen%')
+                        ->orWhereHas('subservices', function ($sq) use ($like) {
+                            $sq->where('code', $like, 'CIV%')->orWhere('name', $like, '%vital%');
+                        });
+                } elseif ($categoryInput === 'tax') {
+                    $q->where('code', $like, 'REV%')
+                        ->orWhereHas('parent', fn ($p) => $p->where('code', $like, 'REV%'))
+                        ->orWhere('name', $like, '%tax%')
+                        ->orWhere('name', $like, '%tin%')
+                        ->orWhere('name', $like, '%revenue%')
+                        ->orWhere('name', $like, '%clearance%')
+                        ->orWhereHas('subservices', function ($sq) use ($like) {
+                            $sq->where('code', $like, 'REV%')->orWhere('name', $like, '%tax%');
+                        });
+                } elseif ($categoryInput === 'business') {
+                    $q->where('code', $like, 'TRD%')
+                        ->orWhereHas('parent', fn ($p) => $p->where('code', $like, 'TRD%'))
+                        ->orWhere('name', $like, '%business%')
+                        ->orWhere('name', $like, '%license%')
+                        ->orWhere('name', $like, '%trade%')
+                        ->orWhere('name', $like, '%commercial%')
+                        ->orWhereHas('subservices', function ($sq) use ($like) {
+                            $sq->where('code', $like, 'TRD%')->orWhere('name', $like, '%trade%');
+                        });
+                } elseif ($categoryInput === 'land') {
+                    $q->where('code', $like, 'LND%')
+                        ->orWhereHas('parent', fn ($p) => $p->where('code', $like, 'LND%'))
+                        ->orWhere('name', $like, '%land%')
+                        ->orWhere('name', $like, '%property%')
+                        ->orWhere('name', $like, '%lease%')
+                        ->orWhere('name', $like, '%cadastre%')
+                        ->orWhere('name', $like, '%deed%')
+                        ->orWhereHas('subservices', function ($sq) use ($like) {
+                            $sq->where('code', $like, 'LND%')->orWhere('name', $like, '%land%');
+                        });
+                } elseif ($categoryInput === 'plan') {
+                    $q->where('code', $like, 'PLN%')
+                        ->orWhereHas('parent', fn ($p) => $p->where('code', $like, 'PLN%'))
+                        ->orWhere('name', $like, '%plan%')
+                        ->orWhere('name', $like, '%urban%')
+                        ->orWhere('name', $like, '%building%')
+                        ->orWhere('name', $like, '%permit%')
+                        ->orWhere('name', $like, '%construction%')
+                        ->orWhereHas('subservices', function ($sq) use ($like) {
+                            $sq->where('code', $like, 'PLN%')->orWhere('name', $like, '%plan%');
+                        });
+                } else {
+                    $q->where('name', $like, "%{$categoryInput}%")
+                        ->orWhere('code', $like, "%{$categoryInput}%")
+                        ->orWhereHas('subservices', function ($sq) use ($categoryInput, $like) {
+                            $sq->where('name', $like, "%{$categoryInput}%")
+                                ->orWhere('code', $like, "%{$categoryInput}%");
+                        });
+                }
+            });
+        }
+
+        // Apply Keyword Search Filter
+        if ($hasSearchFilter) {
+            $query->where(function ($q) use ($searchInput, $like) {
+                $q->where('name', $like, "%{$searchInput}%")
+                    ->orWhere('code', $like, "%{$searchInput}%")
+                    ->orWhere('description', $like, "%{$searchInput}%")
+                    ->orWhereHas('parent', fn ($p) => $p->where('name', $like, "%{$searchInput}%"))
+                    ->orWhereHas('organization', fn ($o) => $o->where('name', $like, "%{$searchInput}%"))
+                    ->orWhereHas('subservices', function ($sq) use ($searchInput, $like) {
+                        $sq->where('name', $like, "%{$searchInput}%")
+                            ->orWhere('code', $like, "%{$searchInput}%")
+                            ->orWhere('description', $like, "%{$searchInput}%");
+                    });
+            });
+        }
+
+        // Scope / View Type Handling (Master vs Subservices vs All)
+        $scopeInput = strtolower(trim((string) ($request->input('scope') ?? $request->input('type') ?? $request->input('view') ?? '')));
+        if ($request->boolean('tree') || $scopeInput === 'tree' || $scopeInput === 'master') {
             $query->whereNull('parent_id');
+        } elseif (
+            in_array($scopeInput, ['subservices', 'subservice', 'sub_service', 'sub-service', 'subservices_only'], true)
+            || $request->input('parent_id') === 'subservices'
+            || $request->boolean('subservices_only')
+        ) {
+            $query->whereNotNull('parent_id');
         } elseif ($request->has('parent_id')) {
             $parentId = $request->input('parent_id');
             if ($parentId === 'null' || $parentId === 'root') {
                 $query->whereNull('parent_id');
-            } elseif ($parentId === 'subservices') {
-                $query->whereNotNull('parent_id');
             } else {
                 $query->where('parent_id', (int) $parentId);
             }
@@ -143,7 +348,7 @@ class ServiceController extends Controller
         }
 
         $perPageInput = $request->input('per_page');
-        if ($perPageInput === 'all' || $request->boolean('all') || $request->boolean('tree') || $request->input('view') === 'tree') {
+        if ($perPageInput === 'all' || $request->boolean('all') || $request->boolean('tree') || $scopeInput === 'tree') {
             $perPage = 250;
         } else {
             $perPage = min(max((int) ($perPageInput ?? 100), 1), 250);
@@ -207,6 +412,10 @@ class ServiceController extends Controller
         $data = $request->validated();
         $documents = $data['documents'] ?? null;
         unset($data['documents']);
+        $offeringOrgs = $request->input('offering_organizations');
+        if (array_key_exists('offering_organizations', $data)) {
+            unset($data['offering_organizations']);
+        }
 
         $data['is_active'] = $data['is_active'] ?? true;
         $data['fee_amount'] = $data['fee_amount'] ?? 0.00;
@@ -231,7 +440,24 @@ class ServiceController extends Controller
             }
         }
 
-        $service->load(['parent', 'organization', 'requiredDocuments']);
+        // Link service to offering organizations
+        $orgsToSync = [];
+        if (is_array($offeringOrgs) && count($offeringOrgs) > 0) {
+            foreach ($offeringOrgs as $orgItem) {
+                $oId = is_array($orgItem) ? ($orgItem['organization_id'] ?? null) : (int) $orgItem;
+                if ($oId) {
+                    $orgsToSync[$oId] = ['is_available' => true];
+                }
+            }
+        }
+        if (!empty($service->organization_id) && !isset($orgsToSync[$service->organization_id])) {
+            $orgsToSync[$service->organization_id] = ['is_available' => true];
+        }
+        if (!empty($orgsToSync)) {
+            $service->offeringOrganizations()->sync($orgsToSync);
+        }
+
+        $service->load(['parent', 'organization', 'offeringOrganizations', 'requiredDocuments']);
 
         $this->auditLogAction->execute(
             action: 'created',
@@ -275,8 +501,29 @@ class ServiceController extends Controller
             }
         }
 
+        if ($request->has('offering_organizations')) {
+            $offeringOrgs = $request->input('offering_organizations');
+            if (array_key_exists('offering_organizations', $data)) {
+                unset($data['offering_organizations']);
+            }
+            $orgsToSync = [];
+            if (is_array($offeringOrgs)) {
+                foreach ($offeringOrgs as $orgItem) {
+                    $oId = is_array($orgItem) ? ($orgItem['organization_id'] ?? null) : (int) $orgItem;
+                    if ($oId) {
+                        $orgsToSync[$oId] = ['is_available' => true];
+                    }
+                }
+            }
+            $targetOrgId = $data['organization_id'] ?? $service->organization_id;
+            if (!empty($targetOrgId) && !isset($orgsToSync[$targetOrgId])) {
+                $orgsToSync[$targetOrgId] = ['is_available' => true];
+            }
+            $service->offeringOrganizations()->sync($orgsToSync);
+        }
+
         $service->update($data);
-        $service->load(['parent', 'organization', 'requiredDocuments']);
+        $service->load(['parent', 'organization', 'offeringOrganizations', 'requiredDocuments']);
 
         $this->auditLogAction->execute(
             action: 'updated',
@@ -387,5 +634,35 @@ class ServiceController extends Controller
             data: new ServiceResource($service),
             message: 'Offering organizations updated successfully.'
         );
+    }
+
+    /**
+     * Expand an array of organization IDs to include both ancestor organizations (parents)
+     * and descendant organizations (children). This guarantees that:
+     * 1) If an organization has a parent, filtering by that child office includes its parent's services.
+     * 2) If a parent organization (e.g. Sub-city) is selected, services of its child offices are included.
+     *
+     * @param array<int> $orgIds
+     * @return array<int>
+     */
+    private function expandOrganizationIdsWithHierarchy(array $orgIds): array
+    {
+        if (empty($orgIds)) {
+            return [];
+        }
+
+        $allIds = $orgIds;
+        $orgs = \App\Domains\Organizations\Models\Organization::with(['children', 'parent'])->whereIn('id', $orgIds)->get();
+
+        foreach ($orgs as $org) {
+            foreach ($org->allAncestors() as $ancestor) {
+                $allIds[] = $ancestor->id;
+            }
+            foreach ($org->allDescendants() as $descendant) {
+                $allIds[] = $descendant->id;
+            }
+        }
+
+        return array_values(array_unique(array_map('intval', $allIds)));
     }
 }

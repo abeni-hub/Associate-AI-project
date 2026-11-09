@@ -1,6 +1,6 @@
 import Icon from '../ui/Icon.jsx'
 
-export default function ServiceGuideSection({ t, serviceGuide, guideService, guideBureau, serviceGuideContent }) {
+export default function ServiceGuideSection({ t, serviceGuide, guideService, guideBureau, serviceGuideContent, language }) {
   if (serviceGuideContent?.enabled === false) return null
 
   const kickerNum = serviceGuideContent?.kickerNum || '02'
@@ -64,7 +64,6 @@ export default function ServiceGuideSection({ t, serviceGuide, guideService, gui
                   </span>
                 </span>
                 <span className="guide-badge badge-fee">
-                  <Icon name="sparkle" size={13} />
                   <span>
                     {guideService.feeAmount
                       ? `${guideService.feeAmount} ${guideService.feeCurrency || 'ETB'}`

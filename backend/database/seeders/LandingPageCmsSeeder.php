@@ -6,27 +6,24 @@ namespace Database\Seeders;
 
 use App\Domains\Cms\Models\LandingPageConfig;
 use App\Domains\Cms\Support\DefaultLandingPageContent;
-use App\Domains\Users\Models\User;
 use Illuminate\Database\Seeder;
 
 class LandingPageCmsSeeder extends Seeder
 {
     /**
-     * Run the landing page CMS seeder.
+     * Seed initial landing page CMS configuration into the database.
      */
     public function run(): void
     {
-        $superAdmin = User::whereHas('role', function ($q) {
-            $q->where('slug', 'super_admin');
-        })->first();
+        $config = LandingPageConfig::firstOrNew(['version' => 'v1']);
+        $existing = is_array($config->content) ? $config->content : [];
+        $fullPayload = array_replace_recursive(DefaultLandingPageContent::payload(), $existing);
 
-        LandingPageConfig::updateOrCreate(
-            ['version' => 'v1'],
-            [
-                'is_published' => true,
-                'content' => DefaultLandingPageContent::payload(),
-                'updated_by' => $superAdmin?->id,
-            ]
-        );
+        $config->fill([
+            'is_published' => true,
+            'content' => $fullPayload,
+        ]);
+        $config->save();
     }
 }
+

@@ -46,20 +46,22 @@ function splitConfiguredTitle(title, fallbackLines) {
   return [words.slice(0, midpoint).join(' '), words.slice(midpoint).join(' ')]
 }
 
-export default function JourneySection({ t, onGoToFeedback, journey }) {
+export default function JourneySection({ t, onGoToFeedback, journey, language }) {
   if (journey?.enabled === false) return null
 
   const kickerNum = journey?.kickerNum || '03'
-  const kicker = journey?.kicker || 'SIMPLE FROM START TO FINISH'
+  const kicker = (language === 'am' && journey?.kickerAm) || journey?.kicker || 'SIMPLE FROM START TO FINISH'
  
   const cards = journey?.steps?.length
     ? journey.steps.map((step, index) => {
         const fallback = journeyCards[index] || journeyCards[0]
+        const stepTitle = (language === 'am' && step.titleAm) || step.title
+        const stepDetail = (language === 'am' && step.detailAm) || step.detail || fallback.description
         return {
           ...fallback,
           index: step.step || fallback.index,
-          titleLines: splitConfiguredTitle(step.title, fallback.titleLines),
-          description: step.detail || fallback.description,
+          titleLines: splitConfiguredTitle(stepTitle, fallback.titleLines),
+          description: stepDetail,
         }
       })
     : journeyCards
@@ -72,7 +74,7 @@ export default function JourneySection({ t, onGoToFeedback, journey }) {
             <div className="section-kicker"><span>{kickerNum}</span> {t(kicker)}</div>
             <h2>{t('Three moments.')}<br /><em>{t('One smoother journey.')}</em></h2>
           </div>
-          <p>{t(journey?.title || 'From the moment you start planning to the moment you share your experience, everything you need is easy to find.')}</p>
+          <p>{t((language === 'am' && journey?.titleAm) || journey?.title || 'From the moment you start planning to the moment you share your experience, everything you need is easy to find.')}</p>
         </div>
         <div className="journey-cards scroll-reveal-group">
           {cards.map((card) => <JourneyCard key={card.index} card={card} t={t} onGoToFeedback={onGoToFeedback} />)}

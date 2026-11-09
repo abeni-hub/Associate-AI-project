@@ -6,6 +6,8 @@ import { useGetOrganizationsQuery } from '../../services/organizationsApi';
 import { useUploadCmsImageMutation } from '../../services/cmsApi';
 import { usePortal } from '../../context';
 import { useGetMeQuery } from '../../services/authApi';
+import { tokenStorage } from '../../utils/tokenStorage';
+import { ROLE } from '../../data/portalData.js';
 
 export interface ImageItem {
   id: string;
@@ -33,14 +35,74 @@ export const NewsModal: React.FC<NewsModalProps> = ({
 }) => {
   const portal = usePortal();
   const { data: meResponse } = useGetMeQuery(undefined, { skip: !isOpen });
-  const currentUser = meResponse?.data || portal.authUser || portal.session?.user;
-  const userOrg = currentUser?.organization;
-  const isSuperAdmin =
-    currentUser?.role?.slug === 'super_admin' ||
-    portal.role === 'super' ||
-    currentUser?.role?.scope_level === 'global';
+  const sessionUser = tokenStorage.getSessionUser<any>();
+  const currentUser = meResponse?.data || portal.authUser || portal.session?.user || sessionUser;
 
   const { data: apiOrgs } = useGetOrganizationsQuery(undefined, { skip: !isOpen });
+  const orgList = useMemo(() => {
+    return propOrganizations?.length ? propOrganizations : apiOrgs?.data || [];
+  }, [propOrganizations, apiOrgs]);
+
+  // Robustly resolve the user's home organization across API, session, or role context
+  const userOrg = useMemo(() => {
+    if (currentUser?.organization && typeof currentUser.organization === 'object') {
+      return currentUser.organization;
+    }
+    const directOrgId = currentUser?.organization_id || sessionUser?.organization_id;
+    if (directOrgId && orgList.length > 0) {
+      const match = orgList.find((o: any) => Number(o.id) === Number(directOrgId));
+      if (match) return match;
+    }
+    // Fallback for demo/mock role context (e.g. subcity / bureau role)
+    if (portal.role && portal.role !== 'super' && orgList.length > 0) {
+      const roleMeta = ROLE[portal.role as keyof typeof ROLE];
+      if (roleMeta?.organization) {
+        const needle = roleMeta.organization.toLowerCase();
+        const match = orgList.find((o: any) => {
+          const name = (o.name || '').toLowerCase();
+          return needle.includes(name) || name.includes(needle);
+        });
+        if (match) return match;
+      }
+    }
+    return null;
+  }, [currentUser, sessionUser, orgList, portal.role]);
+
+  const userOrgId = useMemo(() => {
+    if (userOrg?.id) return Number(userOrg.id);
+    const id = currentUser?.organization_id || sessionUser?.organization_id;
+    return id ? Number(id) : null;
+  }, [userOrg, currentUser, sessionUser]);
+
+  const isSuperAdmin =
+    currentUser?.role?.slug === 'super_admin' ||
+    currentUser?.role?.scope_level === 'global' ||
+    portal.role === 'super' ||
+    !userOrgId;
+
+  // Root organization of the administration hierarchy
+  const rootOrg = useMemo(() => {
+    if (!orgList.length) return null;
+    return (
+      orgList.find((o: any) => o.is_root === true) ||
+      orgList.find((o: any) => !o.parent_organization_id && !o.parent?.id) ||
+      orgList.find((o: any) => o.code?.toLowerCase() === 'root' || o.name?.toLowerCase().includes('city admin')) ||
+      orgList[0]
+    );
+  }, [orgList]);
+
+  // Default organization: root organization if super admin, else user's assigned organization
+  const defaultOrg = useMemo(() => {
+    if (isSuperAdmin) {
+      return rootOrg || userOrg || orgList[0] || null;
+    }
+    return userOrg || rootOrg || orgList[0] || null;
+  }, [isSuperAdmin, rootOrg, userOrg, orgList]);
+
+  const defaultOrgId = useMemo(() => {
+    return defaultOrg?.id ? Number(defaultOrg.id) : null;
+  }, [defaultOrg]);
+
   const [uploadCmsImage] = useUploadCmsImageMutation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -50,6 +112,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
   // Common Form states
   const [title, setTitle] = useState('');
   const [organizationId, setOrganizationId] = useState<number | null>(null);
+  const [hasUserChangedOrg, setHasUserChangedOrg] = useState(false);
   const [images, setImages] = useState<ImageItem[]>([]);
   const [summary, setSummary] = useState('');
   const [content, setContent] = useState('');
@@ -69,6 +132,8 @@ export const NewsModal: React.FC<NewsModalProps> = ({
   // Sync form states when opening or switching item
   useEffect(() => {
     if (isOpen) {
+      setHasUserChangedOrg(false);
+
       const isEvt =
         item?.type === 'event' ||
         !!item?.location_name ||
@@ -78,14 +143,15 @@ export const NewsModal: React.FC<NewsModalProps> = ({
 
       setTitle(item?.title || item?.news_title || '');
 
-      // Autofetch organization: existing item org > logged-in user org > first platform org
+      // Existing item org > super-admin root org > logged-in user org > first platform org
       const autoOrgId =
         item?.organization_id ||
         item?.organization?.id ||
-        (userOrg?.id ? Number(userOrg.id) : null) ||
-        (apiOrgs?.data?.[0]?.id ? Number(apiOrgs.data[0].id) : null);
+        defaultOrgId ||
+        userOrgId ||
+        (orgList[0]?.id ? Number(orgList[0].id) : null);
 
-      setOrganizationId(autoOrgId);
+      setOrganizationId(autoOrgId ? Number(autoOrgId) : null);
 
       // Extract images from multiple formats
       const initialImages: ImageItem[] = [];
@@ -167,23 +233,24 @@ export const NewsModal: React.FC<NewsModalProps> = ({
       setShowUrlInput(false);
       setUrlInputValue('');
     }
-  }, [isOpen, item, userOrg, apiOrgs]);
+  }, [isOpen, item?.id]);
 
-  // Autofetch user organization when creating new item if not yet populated
+  // Automatically fill publishing organization (root org for super admin, home org for scoped users)
   useEffect(() => {
-    if (isOpen && !item && !organizationId) {
-      if (userOrg?.id) {
-        setOrganizationId(Number(userOrg.id));
-      } else if (apiOrgs?.data && apiOrgs.data.length > 0) {
-        setOrganizationId(Number(apiOrgs.data[0].id));
+    if (isOpen && !item && !hasUserChangedOrg) {
+      if (defaultOrgId) {
+        setOrganizationId(defaultOrgId);
+      } else if (userOrgId) {
+        setOrganizationId(userOrgId);
+      } else if (!organizationId && orgList.length > 0) {
+        setOrganizationId(Number(orgList[0].id));
       }
     }
-  }, [isOpen, item, organizationId, userOrg, apiOrgs]);
+  }, [isOpen, item, hasUserChangedOrg, defaultOrgId, userOrgId, orgList, organizationId]);
 
   // Organization options for publisher link
   const organizationOptions: SearchSelectOption[] = useMemo(() => {
-    const list: any[] = propOrganizations?.length ? propOrganizations : apiOrgs?.data || [];
-    return list.map((org: any) => ({
+    return orgList.map((org: any) => ({
       value: org.id,
       label: org.name,
       code: org.code,
@@ -196,7 +263,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
       badgeTone:
         org.organization_type_id === 1 ? 'sage' : org.organization_type_id === 2 ? 'blue' : 'gold',
     }));
-  }, [propOrganizations, apiOrgs]);
+  }, [orgList]);
 
   // Handle multiple file upload
   const handleProcessFiles = (files: FileList | File[]) => {
@@ -299,7 +366,8 @@ export const NewsModal: React.FC<NewsModalProps> = ({
         contentType === 'event' ? 'Event title is required.' : 'Article headline is required.'
       );
     }
-    if (!organizationId) {
+    const finalOrgId = Number(organizationId || defaultOrgId || userOrgId);
+    if (!finalOrgId) {
       return setErrorMsg('Publishing organization is required.');
     }
 
@@ -325,7 +393,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
       const payload = {
         type: 'event',
         ...(item?.id ? { id: item.id } : {}),
-        organization_id: Number(organizationId),
+        organization_id: finalOrgId,
         title: title.trim(),
         description: content.trim() || summary.trim(),
         location_name: locationName.trim(),
@@ -379,7 +447,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
         type: 'news',
         ...(item?.id ? { id: item.id } : {}),
         news_title: title.trim(),
-        organization_id: Number(organizationId),
+        organization_id: finalOrgId,
         contents,
       };
 
@@ -567,9 +635,9 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <b style={{ fontSize: '13.5px', color: '#0f172a' }}>
-                          {userOrg.name}
+                          {item?.organization?.name || userOrg.name}
                         </b>
-                        {userOrg.code && (
+                        {(item?.organization?.code || userOrg.code) && (
                           <code
                             style={{
                               fontSize: '11px',
@@ -580,7 +648,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                               fontWeight: 600,
                             }}
                           >
-                            {userOrg.code}
+                            {item?.organization?.code || userOrg.code}
                           </code>
                         )}
                         <span
@@ -596,7 +664,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                             gap: '4px',
                           }}
                         >
-                          <Icon name="check" size={11} /> Autofetched
+                          <Icon name="check" size={11} /> Pre-filled
                         </span>
                       </div>
                       <small style={{ color: '#64748b', fontSize: '11.5px', marginTop: '2px', display: 'block' }}>
@@ -607,16 +675,23 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                   <input type="hidden" name="organization_id" value={organizationId || userOrg.id} />
                 </div>
               ) : (
-                /* Super Admin or fallback: SearchSelect prefilled with autofetched organization */
+                /* Super Admin: SearchSelect automatically defaulted to root organization */
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                     <span style={{ fontSize: '11.5px', color: '#047857', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <Icon name="check" size={12} /> Autofetched default organization
+                      <Icon name="check" size={12} /> {
+                        isSuperAdmin
+                          ? `Defaulted to root organization (${defaultOrg?.name || 'City Administration'})`
+                          : (userOrg ? `Pre-filled with your organization (${userOrg.name})` : 'Autofetched default organization')
+                      }
                     </span>
-                    {userOrg && organizationId !== userOrg.id && (
+                    {defaultOrg && organizationId !== Number(defaultOrg.id) && (
                       <button
                         type="button"
-                        onClick={() => setOrganizationId(Number(userOrg.id))}
+                        onClick={() => {
+                          setOrganizationId(Number(defaultOrg.id));
+                          setHasUserChangedOrg(false);
+                        }}
                         style={{
                           border: 'none',
                           background: 'transparent',
@@ -628,14 +703,15 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                           textDecoration: 'underline',
                         }}
                       >
-                        Reset to my organization ({userOrg.name})
+                        Reset to {isSuperAdmin ? 'root organization' : 'my organization'} ({defaultOrg.name})
                       </button>
                     )}
                   </div>
                   <SearchSelect
-                    value={organizationId}
+                    value={organizationId ?? defaultOrgId}
                     onChange={(val) => {
                       setOrganizationId(val ? Number(val) : null);
+                      setHasUserChangedOrg(true);
                       setErrorMsg(null);
                     }}
                     options={organizationOptions}
