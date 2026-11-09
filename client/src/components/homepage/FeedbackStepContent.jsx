@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import Icon from '../ui/Icon.jsx'
+import SearchableSelect from '../ui/SearchableSelect.jsx'
 import { useGetOrganizationsQuery } from '../../services/organizationsApi.js'
 import { useGetServicesQuery } from '../../services/servicesApi.js'
 
@@ -177,88 +178,67 @@ export default function FeedbackStepContent({
 
   if (step === 2) {
     return (
-      <label className="feedback-select-label">
-        {t('Select the sub-city')}
-        <span className="feedback-select-wrap">
-          <Icon name="pin" size={18} />
-          <select
-            value={feedback.city || ''}
-            onChange={(event) => actions.setCity(event.target.value)}
-          >
-            <option value="">
-              {isOrgsLoading
-                ? t('Loading sub-cities…')
-                : availableSubCities.length > 0
-                ? t('Choose a sub-city…')
-                : t('No sub-cities found')}
-            </option>
-            {availableSubCities.map((subCity) => (
-              <option key={subCity.id} value={subCity.name}>
-                {t(subCity.name)}
-              </option>
-            ))}
-          </select>
-          <Icon name="chevron" size={16} />
-        </span>
-      </label>
+      <div className="feedback-select-label">
+        <span style={{ display: 'block', marginBottom: '8px' }}>{t('Select the sub-city')}</span>
+        <SearchableSelect
+          value={feedback.city || ''}
+          onChange={(val) => actions.setCity(val)}
+          options={availableSubCities.map((subCity) => ({
+            id: subCity.name,
+            label: subCity.name,
+          }))}
+          icon="pin"
+          placeholder="Choose a sub-city…"
+          searchPlaceholder="Search sub-cities (e.g. Bole, Kirkos, Arada)…"
+          isLoading={isOrgsLoading}
+          ariaLabel={t('Select the sub-city')}
+          t={t}
+        />
+      </div>
     )
   }
 
   if (step === 3) {
     return (
-      <label className="feedback-select-label">
-        {t('Select the city office / bureau')}
-        <span className="feedback-select-wrap">
-          <Icon name="building" size={18} />
-          <select
-            value={feedback.bureau || ''}
-            onChange={(event) => actions.changeBureau(event.target.value)}
-          >
-            <option value="">
-              {isOrgsLoading
-                ? t('Loading offices…')
-                : bureauList.length > 0
-                ? t('Choose an office…')
-                : t('No offices found')}
-            </option>
-            {bureauList.map((bureau) => (
-              <option key={bureau.id} value={bureau.id}>
-                {t(bureau.label)}
-              </option>
-            ))}
-          </select>
-          <Icon name="chevron" size={16} />
-        </span>
-      </label>
+      <div className="feedback-select-label">
+        <span style={{ display: 'block', marginBottom: '8px' }}>{t('Select the city office / bureau')}</span>
+        <SearchableSelect
+          value={feedback.bureau || ''}
+          onChange={(val) => actions.changeBureau(val)}
+          options={bureauList.map((bureau) => ({
+            id: bureau.id,
+            label: bureau.label,
+          }))}
+          icon="building"
+          placeholder="Choose an office…"
+          searchPlaceholder="Search offices (e.g. Revenues, Trade, Land)…"
+          isLoading={isOrgsLoading}
+          ariaLabel={t('Select the city office / bureau')}
+          t={t}
+        />
+      </div>
     )
   }
 
   if (step === 4) {
     return (
-      <label className="feedback-select-label">
-        {t('Select the service')}
-        <span className="feedback-select-wrap">
-          <Icon name="file" size={18} />
-          <select
-            value={feedback.service || ''}
-            onChange={(event) => actions.setService(event.target.value)}
-          >
-            <option value="">
-              {isServicesLoading
-                ? t('Loading services…')
-                : activeServices.length > 0
-                ? t('Choose a service…')
-                : t('No services found')}
-            </option>
-            {activeServices.map((service) => (
-              <option key={service.id} value={service.id}>
-                {t(service.label)}
-              </option>
-            ))}
-          </select>
-          <Icon name="chevron" size={16} />
-        </span>
-      </label>
+      <div className="feedback-select-label">
+        <span style={{ display: 'block', marginBottom: '8px' }}>{t('Select the service')}</span>
+        <SearchableSelect
+          value={feedback.service || ''}
+          onChange={(val) => actions.setService(val)}
+          options={activeServices.map((service) => ({
+            id: service.id,
+            label: service.label,
+          }))}
+          icon="file"
+          placeholder="Choose a service…"
+          searchPlaceholder="Search services (e.g. Birth, License, Tax)…"
+          isLoading={isServicesLoading}
+          ariaLabel={t('Select the service')}
+          t={t}
+        />
+      </div>
     )
   }
 

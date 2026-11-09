@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import Icon from '../ui/Icon.jsx'
+import SearchableSelect from '../ui/SearchableSelect.jsx'
 
 export default function QuickSearchSection({
   t,
@@ -139,79 +140,73 @@ export default function QuickSearchSection({
           </div>
         </div>
 
-        {/* Location & Authority Filter Form */}
+        {/* Location & Authority Searchable Filter Form */}
         <form className="search-form scroll-reveal-group" onSubmit={onSubmit}>
-          <label className="select-field">
+          <div className="select-field">
             <span>{t('Sub-city Location')}</span>
-            <span className="select-wrap">
-              <Icon name="pin" size={18} />
-              <select value={subCity} onChange={(event) => onSubCityChange(event.target.value)}>
-                <option value="all">{t('All Sub-cities (Platform-wide)')}</option>
-                {subCityOptions && subCityOptions.length > 0 ? (
-                  subCityOptions.map((name) => <option key={name} value={name}>{t(name)}</option>)
-                ) : isLoading ? (
-                  <option value="">{t('Loading sub-cities…')}</option>
-                ) : (
-                  <option value="">{t('Select a sub-city')}</option>
-                )}
-              </select>
-              <Icon name="chevron" size={16} />
-            </span>
-          </label>
+            <SearchableSelect
+              value={subCity || 'all'}
+              onChange={(val) => onSubCityChange(val)}
+              options={subCityOptions}
+              allOption={{ value: 'all', label: 'All Sub-cities (Platform-wide)' }}
+              icon="pin"
+              placeholder="Choose a sub-city..."
+              searchPlaceholder="Search sub-cities (e.g. Bole, Kirkos, Arada)..."
+              isLoading={isLoading}
+              ariaLabel={t('Sub-city Location')}
+              t={t}
+            />
+          </div>
 
-          <label className="select-field">
+          <div className="select-field">
             <span>{t('City Office / Bureau')}</span>
-            <span className="select-wrap">
-              <Icon name="building" size={18} />
-              <select value={bureauId} onChange={(event) => onBureauChange(event.target.value)}>
-                <option value="all">{t('All Bureaus & Authorities')}</option>
-                {bureauOptions && bureauOptions.length > 0 ? (
-                  bureauOptions.map((bureau) => <option key={bureau.id} value={bureau.id}>{t(bureau.label)}</option>)
-                ) : isLoading ? (
-                  <option value="">{t('Loading offices…')}</option>
-                ) : (
-                  <option value="">{t('Select an office')}</option>
-                )}
-              </select>
-              <Icon name="chevron" size={16} />
-            </span>
-          </label>
+            <SearchableSelect
+              value={bureauId || 'all'}
+              onChange={(val) => onBureauChange(val)}
+              options={bureauOptions.map((b) => ({
+                id: String(b.id),
+                label: b.label,
+                subtext: b.shortLabel || b.code || '',
+              }))}
+              allOption={{ value: 'all', label: 'All Bureaus & Authorities' }}
+              icon="building"
+              placeholder="Choose an office..."
+              searchPlaceholder="Search offices (e.g. Revenues, Trade, Land)..."
+              isLoading={isLoading}
+              ariaLabel={t('City Office / Bureau')}
+              t={t}
+            />
+          </div>
 
-          <label className="select-field">
+          <div className="select-field">
             <span>
               {t('Selected Service')}
               {activeServiceList && (
                 <small className="service-count-badge"> ({activeServiceList.length})</small>
               )}
             </span>
-            <span className="select-wrap">
-              <Icon name="file" size={18} />
-              <select value={serviceId} onChange={(event) => onServiceChange(event.target.value)}>
-                {serviceGroups ? (
-                  Object.entries(serviceGroups).map(([groupTitle, services]) => (
-                    <optgroup key={groupTitle} label={t(groupTitle)}>
-                      {services.map((service) => (
-                        <option key={service.id} value={service.id}>
-                          {t(service.label)}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))
-                ) : activeServiceList && activeServiceList.length > 0 ? (
-                  activeServiceList.map((service) => (
-                    <option key={service.id} value={service.id}>
-                      {t(service.label)}
-                    </option>
-                  ))
-                ) : isLoading ? (
-                  <option value="">{t('Loading services…')}</option>
-                ) : (
-                  <option value="">{t('No matching services found')}</option>
-                )}
-              </select>
-              <Icon name="chevron" size={16} />
-            </span>
-          </label>
+            <SearchableSelect
+              value={serviceId || ''}
+              onChange={(val) => onServiceChange(val)}
+              groups={serviceGroups}
+              options={
+                !serviceGroups && activeServiceList
+                  ? activeServiceList.map((s) => ({
+                      id: String(s.id),
+                      label: s.label,
+                      subtext: s.parentName || s.organizationName || '',
+                      raw: s.raw,
+                    }))
+                  : []
+              }
+              icon="file"
+              placeholder="Choose a service..."
+              searchPlaceholder="Search services (e.g. Birth, License, Tax, Deed)..."
+              isLoading={isLoading}
+              ariaLabel={t('Selected Service')}
+              t={t}
+            />
+          </div>
 
           <button className="button button-primary search-button" type="submit">
             <Icon name="search" size={18} /> {t(buttonText)}
