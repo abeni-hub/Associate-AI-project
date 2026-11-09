@@ -15,8 +15,12 @@ class RespondFeedbackAction
     public function execute(Feedback $feedback, string $responseText): Feedback
     {
         return DB::transaction(function () use ($feedback, $responseText) {
+            $feedback->update([
+                'response' => $responseText,
+                'status' => 'resolved',
+                'resolved_at' => now(),
+            ]);
             $feedback->load('organization');
-            $feedback->setAttribute('response', $responseText);
 
             return $feedback;
         });

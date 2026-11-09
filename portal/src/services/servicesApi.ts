@@ -8,27 +8,19 @@ export interface ServiceListItem {
   description: string;
   fee_amount: number;
   fee_currency: string;
+  fee_notes?: string;
+  eligibility_criteria?: string;
   estimated_duration_minutes: number;
   is_active: boolean;
   is_master: boolean;
   parent_id?: number | null;
+  parent?: { id: number; name: string; code: string } | null;
   subservices_count?: number;
   required_documents_count?: number;
   offering_organizations_count?: number;
   steps_count?: number;
   steps?: ServiceStep[];
-  organization?: {
-    id: number;
-    name: string;
-    code: string;
-  } | null;
-  created_at?: string;
-}
-
-export interface ServiceDetail extends ServiceListItem {
-  eligibility_criteria?: string;
-  fee_notes?: string;
-  parent?: { id: number; name: string; code: string } | null;
+  subservices?: ServiceListItem[];
   required_documents?: Array<{
     id: number;
     name: string;
@@ -42,7 +34,15 @@ export interface ServiceDetail extends ServiceListItem {
     name: string;
     code: string;
   }>;
+  organization?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  created_at?: string;
 }
+
+export interface ServiceDetail extends ServiceListItem {}
 
 export interface ServiceStep {
   id: number;
@@ -64,6 +64,12 @@ export interface ServiceFilterParams extends PaginationQueryParams {
   organization_id?: number;
   fee?: 'free' | 'paid';
   is_active?: boolean;
+  tree?: boolean;
+  view?: string;
+  scope?: string;
+  type?: string;
+  sub_city?: string | number;
+  category?: string;
 }
 
 export interface CreateServicePayload {
@@ -147,7 +153,10 @@ export const servicesApi = baseApi.injectEndpoints({
       query: (params) => ({
         url: '/services',
         method: 'GET',
-        params: params || undefined,
+        params: {
+          per_page: 100,
+          ...(params || {}),
+        },
       }),
       providesTags: (result) =>
         result?.data
@@ -217,12 +226,27 @@ export const servicesApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: 'Service', id: 'LIST' }, 'Service'],
     }),
 
-    getServiceSteps: builder.query<ApiResponse<ServiceStep[]>, string | number>({
-      query: (serviceIdOrCode) => ({
-        url: `/services/${serviceIdOrCode}/steps`,
-        method: 'GET',
-      }),
-      providesTags: (_result, _error, serviceIdOrCode) => [{ type: 'ServiceStep', id: `SERVICE-${serviceIdOrCode}` }],
+    getServiceSteps: builder.query<
+      ApiResponse<ServiceStep[]>,
+      string | number | { serviceId: string | number; organization_id?: number | null }
+    >({
+      query: (arg) => {
+        const serviceId = typeof arg === 'object' && arg !== null ? arg.serviceId : arg;
+        const orgId = typeof arg === 'object' && arg !== null ? arg.organization_id : undefined;
+        return {
+          url: `/services/${serviceId}/steps`,
+          method: 'GET',
+          params: orgId ? { organization_id: orgId } : undefined,
+        };
+      },
+      providesTags: (_result, _error, arg) => {
+        const serviceId = typeof arg === 'object' && arg !== null ? arg.serviceId : arg;
+        const orgId = typeof arg === 'object' && arg !== null ? arg.organization_id : 'ALL';
+        return [
+          { type: 'ServiceStep', id: `SERVICE-${serviceId}-ORG-${orgId}` },
+          { type: 'ServiceStep', id: `SERVICE-${serviceId}` },
+        ];
+      },
     }),
 
     createServiceStep: builder.mutation<ApiResponse<ServiceStep>, CreateServiceStepPayload>({
@@ -276,6 +300,7 @@ export const servicesApi = baseApi.injectEndpoints({
       ApiResponse<ServiceStep[]>,
       {
         serviceId: number | string;
+        organization_id?: number | null;
         steps: Array<{
           step_number?: number;
           title: string;
@@ -287,16 +312,21 @@ export const servicesApi = baseApi.injectEndpoints({
           responsible_title?: string | null;
           estimated_duration_minutes?: number;
           is_active?: boolean;
+          organization_id?: number | null;
         }>;
       }
     >({
-      query: ({ serviceId, steps }) => ({
+      query: ({ serviceId, organization_id, steps }) => ({
         url: `/services/${serviceId}/steps/sync`,
         method: 'POST',
-        body: { steps },
+        body: {
+          organization_id: organization_id ?? null,
+          steps,
+        },
       }),
-      invalidatesTags: (_result, _error, { serviceId }) => [
+      invalidatesTags: (_result, _error, { serviceId, organization_id }) => [
         { type: 'ServiceStep', id: `SERVICE-${serviceId}` },
+        { type: 'ServiceStep', id: `SERVICE-${serviceId}-ORG-${organization_id ?? 'ALL'}` },
         { type: 'Service', id: serviceId },
         { type: 'Service', id: 'LIST' },
       ],
@@ -326,6 +356,29 @@ export const servicesApi = baseApi.injectEndpoints({
         'Document',
       ],
     }),
+
+    syncServiceOrganizations: builder.mutation<
+      ApiResponse<ServiceDetail>,
+      {
+        serviceId: number | string;
+        organizations: Array<{
+          organization_id: number;
+          is_available?: boolean;
+          specific_instructions?: string;
+        }>;
+      }
+    >({
+      query: ({ serviceId, organizations }) => ({
+        url: `/services/${serviceId}/organizations`,
+        method: 'POST',
+        body: { organizations },
+      }),
+      invalidatesTags: (_result, _error, { serviceId }) => [
+        { type: 'Service', id: serviceId },
+        { type: 'Service', id: 'LIST' },
+        'Service',
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -344,4 +397,5 @@ export const {
   useReorderServiceStepsMutation,
   useSyncServiceStepsMutation,
   useSyncServiceDocumentsMutation,
+  useSyncServiceOrganizationsMutation,
 } = servicesApi;

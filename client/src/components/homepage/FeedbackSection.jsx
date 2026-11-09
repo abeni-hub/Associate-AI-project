@@ -1,7 +1,26 @@
+import { useState, useEffect } from 'react'
 import Icon from '../ui/Icon.jsx'
 import FeedbackFormCard from './FeedbackFormCard.jsx'
+import ComplaintTracker from './ComplaintTracker.jsx'
 
 export default function FeedbackSection({ language, t, feedbackContent }) {
+  const [activeMode, setActiveMode] = useState('form') // 'form' | 'track'
+  const [targetTrackingNumber, setTargetTrackingNumber] = useState('')
+
+  useEffect(() => {
+    const hash = window.location.hash.toLowerCase()
+    const path = window.location.pathname.toLowerCase()
+    const search = new URLSearchParams(window.location.search)
+    const trackNum = search.get('track') || search.get('tracking')
+
+    if (trackNum) {
+      setTargetTrackingNumber(trackNum)
+      setActiveMode('track')
+    } else if (hash.includes('track') || path.includes('track')) {
+      setActiveMode('track')
+    }
+  }, [])
+
   if (feedbackContent?.enabled === false) return null
 
   const kickerNum = feedbackContent?.kickerNum || '05'
@@ -35,6 +54,11 @@ export default function FeedbackSection({ language, t, feedbackContent }) {
     mainTitle = words.join(' ')
   }
 
+  function handleStartTracking(num) {
+    setTargetTrackingNumber(num)
+    setActiveMode('track')
+  }
+
   return (
     <section className="feedback-section" id="feedback">
       <div className="feedback-backdrop" />
@@ -49,7 +73,45 @@ export default function FeedbackSection({ language, t, feedbackContent }) {
           </div>
           <div className="feedback-quote"><span className="quote-mark">“</span><p>{t(quote)}</p></div>
         </div>
-        <FeedbackFormCard language={language} t={t} />
+
+        <div className="feedback-interactive-col">
+          <div className="feedback-tabs-nav" role="tablist" aria-label={t('Citizen feedback options')}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeMode === 'form'}
+              className={`feedback-tab-btn ${activeMode === 'form' ? 'is-active' : ''}`}
+              onClick={() => setActiveMode('form')}
+            >
+              <Icon name="file" size={16} />
+              <span>{t('Submit Feedback')}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeMode === 'track'}
+              className={`feedback-tab-btn ${activeMode === 'track' ? 'is-active' : ''}`}
+              onClick={() => setActiveMode('track')}
+            >
+              <Icon name="search" size={16} />
+              <span>{t('Track Complaint Status')}</span>
+            </button>
+          </div>
+
+          {activeMode === 'form' ? (
+            <FeedbackFormCard
+              language={language}
+              t={t}
+              onTrack={handleStartTracking}
+            />
+          ) : (
+            <ComplaintTracker
+              t={t}
+              initialTrackingNumber={targetTrackingNumber}
+              onSwitchToForm={() => setActiveMode('form')}
+            />
+          )}
+        </div>
       </div>
     </section>
   )

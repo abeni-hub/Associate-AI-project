@@ -21,8 +21,16 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
   const { hasPermission } = usePermissions();
   const canUpdateStatus = hasPermission('feedback.update_status');
 
-  const [status, setStatus] = useState<string>(() => item?.status || 'Open');
-  const [responseText, setResponseText] = useState<string>('');
+  const initialStatus = (() => {
+    const s = String(item?.status || '').toLowerCase().trim();
+    if (s === 'in review' || s === 'in_review' || s === 'under_review' || s === 'in_progress') return 'In review';
+    if (s === 'resolved') return 'Resolved';
+    if (s === 'closed' || s === 'rejected') return 'Closed';
+    return 'Open';
+  })();
+
+  const [status, setStatus] = useState<string>(initialStatus);
+  const [responseText, setResponseText] = useState<string>(() => (item as any)?.response || '');
   const [trackingCopied, setTrackingCopied] = useState<boolean>(false);
 
   if (!item) return null;

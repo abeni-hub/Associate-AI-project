@@ -7,6 +7,7 @@ import { getDayNum, getMonthShort } from './homeNewsFormatting.js'
 
 export default function HomeNewsEventCard({ item, language, onSelectItem }) {
   const isAm = language === 'am'
+  const isOm = language === 'om'
   const title = isAm && item.titleAm ? item.titleAm : item.title
   const summary = isAm && item.summaryAm ? item.summaryAm : item.summary
   const category = isAm && item.categoryAm ? item.categoryAm : item.category
@@ -36,9 +37,9 @@ export default function HomeNewsEventCard({ item, language, onSelectItem }) {
         <div className="ne-card-badges">
           <span className="ne-pill ne-pill-category">{category}</span>
           {item.location?.isVirtual ? (
-            <span className="ne-pill ne-pill-event-virtual">{isAm ? 'በኦንላይን' : 'Virtual / Online'}</span>
+            <span className="ne-pill ne-pill-event-virtual">{isAm ? 'በኦንላይን' : isOm ? 'Toora Interneetii' : 'Virtual / Online'}</span>
           ) : (
-            <span className="ne-pill ne-pill-event-status">{isAm ? 'ምዝገባ ክፍት ነው' : 'Upcoming'}</span>
+            <span className="ne-pill ne-pill-event-status">{isAm ? 'ምዝገባ ክፍት ነው' : isOm ? 'Kan dhiyaatu' : 'Upcoming'}</span>
           )}
         </div>
         <div className="ne-date-box">
@@ -63,7 +64,7 @@ export default function HomeNewsEventCard({ item, language, onSelectItem }) {
             <span>{location}</span>
           </span>
           <span className="ne-card-action">
-            {isAm ? 'ዝርዝር መረጃ' : 'Event details'}
+            {isAm ? 'ዝርዝር መረጃ' : isOm ? 'Bal’ina sagantaa' : 'Event details'}
             <ArrowRight size={14} />
           </span>
         </div>

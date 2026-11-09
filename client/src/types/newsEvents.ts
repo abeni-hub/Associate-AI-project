@@ -1,4 +1,4 @@
-export type Language = 'en' | 'am';
+export type Language = 'en' | 'am' | 'om';
 export type FeedType = 'all' | 'news' | 'events';
 
 export interface NewsEventItem {

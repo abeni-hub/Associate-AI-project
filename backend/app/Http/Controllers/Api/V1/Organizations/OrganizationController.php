@@ -60,8 +60,31 @@ class OrganizationController extends Controller
         }
 
         if ($request->filled('type')) {
-            $typeCode = (string) $request->input('type');
-            $query->whereHas('type', fn ($q) => $q->where('code', $typeCode));
+            $typeInput = strtolower(trim((string) $request->input('type')));
+            $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+
+            if ($typeInput === 'sub_city' || $typeInput === 'subcity') {
+                $query->where(function ($q) use ($like) {
+                    $q->whereHas('type', fn ($t) => $t->whereIn('code', ['sub_city', 'subcity']))
+                        ->orWhere('name', $like, '%Sub-city%')
+                        ->orWhere('name', $like, '%Sub City%')
+                        ->orWhere('name', $like, '%Subcity%');
+                })->where(function ($q) use ($like) {
+                    $q->where('name', 'not ' . $like, '%Bureau%')
+                        ->where('name', 'not ' . $like, '%Agency%');
+                });
+            } elseif ($typeInput === 'bureau' || $typeInput === 'agency') {
+                $query->where(function ($q) use ($like) {
+                    $q->whereHas('type', fn ($t) => $t->whereIn('code', ['bureau', 'agency']))
+                        ->orWhere('name', $like, '%Bureau%')
+                        ->orWhere('name', $like, '%Agency%');
+                })->where(function ($q) use ($like) {
+                    $q->where('name', 'not ' . $like, '%Sub-city%')
+                        ->where('name', 'not ' . $like, '%Subcity%');
+                });
+            } else {
+                $query->whereHas('type', fn ($q) => $q->where('code', $typeInput));
+            }
         }
 
         if ($request->filled('type_id')) {
