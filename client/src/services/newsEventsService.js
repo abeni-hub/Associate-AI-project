@@ -1,4 +1,5 @@
 import { readSharedNewsEvents, writeSharedNewsEvents } from '../../../shared/newsEventsStorage.js'
+import { getBaseApiUrl } from '../config/apiConfig.js'
 
 /**
  * CivicLink Ethiopia — News & Events Service
@@ -202,19 +203,7 @@ export async function getHomeHighlights() {
   };
 }
 
-function getApiBaseUrl() {
-  const envUrl = import.meta.env?.VITE_API_BASE_URL || import.meta.env?.VITE_API_URL;
-  if (typeof envUrl === 'string' && envUrl.trim().length > 0) {
-    let url = envUrl.trim().replace(/\/+$/, '');
-    if (url.endsWith('/api')) {
-      url = `${url}/v1`;
-    } else if (!url.endsWith('/api/v1')) {
-      url = `${url}/api/v1`;
-    }
-    return url;
-  }
-  return '/api/v1';
-}
+const getApiBaseUrl = () => getBaseApiUrl(import.meta.env?.DEV);
 
 async function fetchBackendNews() {
   try {

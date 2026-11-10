@@ -1,27 +1,9 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { API_TAG_TYPES } from '../types/api.types';
 import { getCookie, tokenStorage } from '../utils/tokenStorage';
+import { getBaseApiUrl } from '../config/apiConfig.js';
 
-/**
- * Resolves the API base URL, defaulting to the live CivicLink deployment
- * and ensuring /api/v1 path is properly formatted.
- */
-const getBaseUrl = (): string => {
-  const envUrl = import.meta.env.VITE_API_BASE_URL;
-  if (typeof envUrl === 'string' && envUrl.trim().length > 0) {
-    let url = envUrl.trim().replace(/\/+$/, '');
-    if (url.endsWith('/api')) {
-      url = `${url}/v1`;
-    } else if (!url.endsWith('/api/v1')) {
-      url = `${url}/api/v1`;
-    }
-    return url;
-  }
-  if (import.meta.env.DEV) {
-    return '/api/v1';
-  }
-  return 'http://127.0.0.1:8000/api/v1';
-};
+const getBaseUrl = (): string => getBaseApiUrl(import.meta.env.DEV);
 
 /**
  * Shared RTK Query Base API
