@@ -159,7 +159,9 @@ class NewsApiTest extends TestCase
                     'news_title' => 'Tax Filing Deadline Extended',
                     'contents' => [
                         [
-                            'content' => 'First paragraph explaining extension.',
+                            'content' => [
+                                'eng' => 'First paragraph explaining extension.',
+                            ],
                             'order' => 1,
                         ],
                     ],
@@ -201,6 +203,31 @@ class NewsApiTest extends TestCase
             ]);
 
         $this->assertDatabaseHas('news', ['news_title' => 'Clean City Campaign Kickoff']);
+    }
+
+    public function test_authorized_user_can_create_news_with_localized_content(): void
+    {
+        $response = $this->actingAs($this->subCityAdmin)
+            ->postJson('/api/v1/news', [
+                'news_title' => 'Localized Campaign',
+                'contents' => [
+                    [
+                        'content' => 'English body.',
+                        'content_amh' => 'የአማርኛ ይዘት።',
+                        'content_oro' => 'Qabiyyee Afaan Oromoo.',
+                        'content_type' => 'text',
+                        'order' => 1,
+                    ],
+                ],
+            ]);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('news_content', [
+            'content' => 'English body.',
+            'content_amh' => 'የአማርኛ ይዘት።',
+            'content_oro' => 'Qabiyyee Afaan Oromoo.',
+        ]);
     }
 
     public function test_authorized_user_can_update_news(): void
@@ -543,7 +570,11 @@ class NewsApiTest extends TestCase
                         '*' => [
                             'id',
                             'news_id',
-                            'content',
+                            'content' => [
+                                'eng',
+                                'amh',
+                                'oro',
+                            ],
                             'content_type',
                             'order',
                             'created_at',

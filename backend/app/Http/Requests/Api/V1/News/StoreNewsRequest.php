@@ -29,6 +29,8 @@ class StoreNewsRequest extends FormRequest
             'organization_id' => ['sometimes', 'integer', 'exists:organizations,id'],
             'contents' => ['sometimes', 'array'],
             'contents.*.content' => ['required_with:contents', 'string'],
+            'contents.*.content_amh' => ['nullable', 'string'],
+            'contents.*.content_oro' => ['nullable', 'string'],
             'contents.*.content_type' => ['sometimes', 'string', 'max:50'],
             'contents.*.order' => ['sometimes', 'integer', 'min:1'],
         ];
