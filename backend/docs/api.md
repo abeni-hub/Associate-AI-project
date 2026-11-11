@@ -85,7 +85,7 @@ Authenticates user credentials and establishes a session.
       "code": "subcity-bole",
       "type": {
         "id": 1,
-        "name": "Sub-City",
+        "name": {"eng": "Sub-City", "amh": "", "oro": ""},
         "code": "sub_city"
       }
     },
@@ -170,7 +170,7 @@ Retrieves the profile, organization context, and role of the currently authentic
       "code": "subcity-bole",
       "type": {
         "id": 1,
-        "name": "Sub-City",
+        "name": {"eng": "Sub-City", "amh": "", "oro": ""},
         "code": "sub_city"
       }
     },
@@ -500,9 +500,9 @@ List all government organization classification tiers.
   "data": [
     {
       "id": 1,
-      "name": "Sub-City",
+      "name": {"eng": "Sub-City", "amh": "", "oro": ""},
       "code": "sub_city",
-      "description": "First-level urban administrative subdivision.",
+      "description": {"eng": "First-level urban administrative subdivision.", "amh": null, "oro": null},
       "level": 1,
       "can_be_root": true,
       "is_active": true,
@@ -510,14 +510,14 @@ List all government organization classification tiers.
     },
     {
       "id": 2,
-      "name": "Woreda",
+      "name": {"eng": "Woreda", "amh": "", "oro": ""},
       "code": "woreda",
-      "description": "Second-level urban administrative subdivision.",
+      "description": {"eng": "Second-level urban administrative subdivision.", "amh": null, "oro": null},
       "level": 2,
       "can_be_root": false,
       "is_active": true,
       "allowed_parent_types": [
-        {"id": 1, "name": "Sub-City", "code": "sub_city"}
+        {"id": 1, "name": {"eng": "Sub-City", "amh": "", "oro": ""}, "code": "sub_city"}
       ]
     }
   ],
@@ -556,14 +556,14 @@ Retrieve the complete hierarchical tree rooted in the user's scope.
       "name": "Bole Sub-City",
       "code": "subcity-bole",
       "is_root": true,
-      "type": {"id": 1, "name": "Sub-City", "code": "sub_city"},
+      "type": {"id": 1, "name": {"eng": "Sub-City", "amh": "", "oro": ""}, "code": "sub_city"},
       "children": [
         {
           "id": 2,
           "name": "Woreda 01",
           "code": "woreda-01-bole",
           "is_root": false,
-          "type": {"id": 2, "name": "Woreda", "code": "woreda"}
+          "type": {"id": 2, "name": {"eng": "Woreda", "amh": "", "oro": ""}, "code": "woreda"}
         }
       ]
     }
