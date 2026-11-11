@@ -38,22 +38,27 @@ export interface FeedPage {
   items: NewsEventItem[];
   hasMore: boolean;
   total: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
 }
 
 export interface FeedFilterParams {
-  page: number;
-  limit: number;
-  category: string;
-  subCity: string;
-  search: string;
+  page?: number;
+  limit?: number;
+  category?: string;
+  subCity?: string;
+  search?: string;
 }
 
 export interface LandingPageCmsConfig {
-  announcement?: unknown;
-  hero?: {
-    slides?: Array<Record<string, unknown> & { bureau?: string; title?: string; description?: string; category?: string }>;
-    [key: string]: unknown;
-  };
-  journey?: unknown;
-  [key: string]: unknown;
+  announcement?: any;
+  hero?: any;
+  journey?: any;
+  quickSearch?: any;
+  serviceGuide?: any;
+  newsEvents?: any;
+  feedback?: any;
+  footer?: any;
+  [key: string]: any;
 }
