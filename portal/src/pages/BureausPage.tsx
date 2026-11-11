@@ -58,7 +58,6 @@ export const BureausPage: React.FC<BureausPageProps> = ({
         submit: 'Create bureau',
         fields: [
           { name: 'name', label: 'Bureau name', required: true },
-          { name: 'code', label: 'Bureau code (slug)', placeholder: 'e.g. vital-events-bureau', required: true },
           { name: 'parent_id', label: 'Parent Sub-City / Woreda ID', placeholder: 'e.g. 1', required: true },
           { name: 'email', label: 'Work email', type: 'email' },
           { name: 'phone', label: 'Official phone', placeholder: '+251911000000' },
@@ -67,7 +66,7 @@ export const BureausPage: React.FC<BureausPageProps> = ({
           try {
             await createOrgTrigger({
               name: v.name,
-              code: v.code.toLowerCase().replace(/\s+/g, '-'),
+              code: v.name.toLowerCase().replace(/\s+/g, '-'),
               organization_type_id: 3,
               parent_organization_id: v.parent_id ? parseInt(v.parent_id, 10) : 1,
               email: v.email,

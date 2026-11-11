@@ -41,6 +41,7 @@ export interface OrganizationItem {
   phone?: string | null;
   email?: string | null;
   status: 'active' | 'inactive' | 'suspended';
+  logo?: string | null;
   is_root?: boolean;
   type?: { id: number; name: string; code: string };
   parent?: { id: number; name: string; code: string } | null;
@@ -64,6 +65,7 @@ export interface CreateOrganizationPayload {
   address?: string;
   phone?: string;
   email?: string;
+  logo?: File;
   status?: 'active' | 'inactive';
 }
 
@@ -126,11 +128,22 @@ export const organizationsApi = baseApi.injectEndpoints({
     }),
 
     createOrganization: builder.mutation<ApiResponse<OrganizationItem>, CreateOrganizationPayload>({
-      query: (body) => ({
-        url: '/organizations',
-        method: 'POST',
-        body,
-      }),
+      query: ({ logo, ...body }) => {
+        const formData = new FormData();
+        Object.entries(body).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            formData.append(key, String(value));
+          }
+        });
+        if (logo) {
+          formData.append('logo', logo);
+        }
+        return {
+          url: '/organizations',
+          method: 'POST',
+          body: formData,
+        };
+      },
       invalidatesTags: [
         { type: 'Organization', id: 'LIST' },
         { type: 'Organization', id: 'TREE' },

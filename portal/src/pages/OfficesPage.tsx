@@ -81,6 +81,7 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
           id: o.id,
           name: o.name,
           code: o.code,
+          logo: o.logo || null,
           typeId: resolvedTypeId,
           typeName: resolvedTypeName,
           typeCode: typeFromRef?.code || o.code,
@@ -299,12 +300,12 @@ export const OfficesPage: React.FC<OfficesPageProps> = ({
                     <tr key={item.id}>
                       <td>
                         <div className="entity-cell">
-                          <span className="entity-icon">
-                            <Icon
-                              name={item.typeId === 1 ? 'map' : item.typeId === 2 ? 'layers' : 'building'}
-                              size={17}
-                            />
-                          </span>
+                          <img
+                            className="entity-icon"
+                            src={item.logo || '/favicon.svg'}
+                            alt={`${item.name} logo`}
+                            style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover' }}
+                          />
                           <div>
                             <b>{item.name}</b>
                             {item.code && (

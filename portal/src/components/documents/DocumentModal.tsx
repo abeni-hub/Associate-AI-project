@@ -75,11 +75,6 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
     }
   };
 
-  const handleCodeChange = (val: string) => {
-    setIsCustomCode(true);
-    setCode(slugify(val));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -172,19 +167,8 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
               />
             </label>
 
-            {/* Document Code Slug */}
-            <label className="modal-field full">
-              <span>System code slug <i>*</i></span>
-              <input
-                required
-                placeholder="e.g. kebele-resident-id, trade-license-renewed"
-                value={code}
-                onChange={(e) => handleCodeChange(e.target.value)}
-              />
-              <small style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                Unique system key used by APIs and services (lowercase alphanumeric and hyphens).
-              </small>
-            </label>
+            {/* Document code slug — auto-generated from name */}
+            <input type="hidden" value={code} readOnly />
 
             {/* Description */}
             <label className="modal-field full">
