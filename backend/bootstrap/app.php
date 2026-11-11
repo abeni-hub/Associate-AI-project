@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureHasPermission;
 use App\Support\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -28,9 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
+        $middleware->redirectGuestsTo(fn () => null);
         $middleware->alias([
             'account.active' => EnsureAccountIsActive::class,
-            'permission' => \App\Http\Middleware\EnsureHasPermission::class,
+            'permission' => EnsureHasPermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -40,8 +42,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (ValidationException $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
+                $firstError = collect($e->errors())->flatten()->first();
                 return ApiResponse::error(
-                    message: 'Validation failed.',
+                    message: $firstError ?: 'Validation failed.',
                     statusCode: 422,
                     errors: $e->errors(),
                 );

@@ -22,6 +22,14 @@ class PermissionResource extends JsonResource
             'name' => $this->name,
             'group' => $this->group,
             'description' => $this->description,
+            'pivot' => $this->whenPivotLoaded('role_permissions', function () {
+                return [
+                    'can_create' => (bool) ($this->pivot->can_create ?? true),
+                    'can_read' => (bool) ($this->pivot->can_read ?? true),
+                    'can_update' => (bool) ($this->pivot->can_update ?? true),
+                    'can_delete' => (bool) ($this->pivot->can_delete ?? true),
+                ];
+            }),
         ];
     }
 }

@@ -14,6 +14,7 @@ use App\Http\Resources\Api\V1\OrganizationResource;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OrganizationController extends Controller
 {
@@ -27,25 +28,64 @@ class OrganizationController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = $request->user() ?? auth('sanctum')->user();
+
+        if ($user && ! $user->hasPermission('organizations.view')) {
+            return ApiResponse::error(
+                message: 'You do not have permission to view organizations.',
+                statusCode: 403
+            );
+        }
+
         $query = Organization::with(['type', 'parent.type'])
             ->withCount(['children', 'users']);
 
-        // 1. Apply organization hierarchy data scoping (Super Admin = all; others = own + descendants)
-        $this->scopeService->applyScope($query, $user, 'id', includeDescendants: true);
+        // 1. Apply organization hierarchy data scoping (Super Admin = all; others = own + descendants; public = active)
+        if ($user) {
+            $this->scopeService->applyScope($query, $user, 'id', includeDescendants: true);
+        } else {
+            $query->where(function ($q) {
+                $q->whereNull('status')
+                    ->orWhereNotIn('status', ['inactive', 'suspended']);
+            });
+        }
 
         // 2. Filters
         if ($request->filled('search')) {
             $search = (string) $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                    ->orWhere('code', 'ilike', "%{$search}%");
+            $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->where(function ($q) use ($search, $like) {
+                $q->where('name', $like, "%{$search}%")
+                    ->orWhere('code', $like, "%{$search}%");
             });
         }
 
         if ($request->filled('type')) {
-            $typeCode = (string) $request->input('type');
-            $query->whereHas('type', fn ($q) => $q->where('code', $typeCode));
+            $typeInput = strtolower(trim((string) $request->input('type')));
+            $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+
+            if ($typeInput === 'sub_city' || $typeInput === 'subcity') {
+                $query->where(function ($q) use ($like) {
+                    $q->whereHas('type', fn ($t) => $t->whereIn('code', ['sub_city', 'subcity']))
+                        ->orWhere('name', $like, '%Sub-city%')
+                        ->orWhere('name', $like, '%Sub City%')
+                        ->orWhere('name', $like, '%Subcity%');
+                })->where(function ($q) use ($like) {
+                    $q->where('name', 'not '.$like, '%Bureau%')
+                        ->where('name', 'not '.$like, '%Agency%');
+                });
+            } elseif ($typeInput === 'bureau' || $typeInput === 'agency') {
+                $query->where(function ($q) use ($like) {
+                    $q->whereHas('type', fn ($t) => $t->whereIn('code', ['bureau', 'agency']))
+                        ->orWhere('name', $like, '%Bureau%')
+                        ->orWhere('name', $like, '%Agency%');
+                })->where(function ($q) use ($like) {
+                    $q->where('name', 'not '.$like, '%Sub-city%')
+                        ->where('name', 'not '.$like, '%Subcity%');
+                });
+            } else {
+                $query->whereHas('type', fn ($q) => $q->where('code', $typeInput));
+            }
         }
 
         if ($request->filled('type_id')) {
@@ -80,16 +120,16 @@ class OrganizationController extends Controller
      */
     public function tree(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = $request->user() ?? auth('sanctum')->user();
 
-        if ($user->isSuperAdmin()) {
-            // Root organizations with nested descendants
-            $roots = Organization::whereNull('parent_organization_id')
-                ->with(['type', 'children.type', 'children.children.type'])
-                ->withCount(['children', 'users'])
-                ->orderBy('name')
-                ->get();
-        } else {
+        if ($user && ! $user->hasPermission('organizations.view')) {
+            return ApiResponse::error(
+                message: 'You do not have permission to view organizations.',
+                statusCode: 403
+            );
+        }
+
+        if ($user && ! $user->isSuperAdmin()) {
             // Start from the user's root in their scope
             $userOrg = $user->organization ?? Organization::find($user->organization_id);
 
@@ -101,6 +141,17 @@ class OrganizationController extends Controller
                     ->withCount(['children', 'users'])
                     ->get();
             }
+        } else {
+            // Super Admin or public citizen discovery: Root organizations with nested descendants
+            $query = Organization::whereNull('parent_organization_id');
+            if (! $user) {
+                $query->where('status', 'active');
+            }
+            $roots = $query
+                ->with(['type', 'children.type', 'children.children.type'])
+                ->withCount(['children', 'users'])
+                ->orderBy('name')
+                ->get();
         }
 
         return ApiResponse::success(
@@ -138,6 +189,8 @@ class OrganizationController extends Controller
     public function store(CreateOrganizationRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $data['logo_path'] = $request->file('logo')->store('organizations/logos', 'public');
+        unset($data['logo']);
         $data['status'] = $data['status'] ?? 'active';
 
         $organization = Organization::create($data);

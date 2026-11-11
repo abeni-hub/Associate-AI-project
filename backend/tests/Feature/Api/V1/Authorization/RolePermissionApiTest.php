@@ -192,4 +192,54 @@ class RolePermissionApiTest extends TestCase
                 'message' => 'Super Admin permissions cannot be modified.',
             ]);
     }
+
+    public function test_roles_index_supports_pagination_with_metadata(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->getJson('/api/v1/roles?per_page=2&page=1');
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Roles retrieved successfully.',
+            ])
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => ['id', 'name', 'slug'],
+                ],
+                'meta' => [
+                    'current_page',
+                    'last_page',
+                    'per_page',
+                    'total',
+                    'from',
+                    'to',
+                ],
+            ]);
+
+        $this->assertCount(2, $response->json('data'));
+        $this->assertSame(2, $response->json('meta.per_page'));
+        $this->assertGreaterThanOrEqual(4, $response->json('meta.total'));
+    }
+
+    public function test_roles_index_enforces_maximum_page_size(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->getJson('/api/v1/roles?per_page=300');
+
+        $response->assertStatus(200);
+        $this->assertSame(100, $response->json('meta.per_page'));
+    }
+
+    public function test_roles_index_filters_by_search_query(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->getJson('/api/v1/roles?search=super_admin');
+
+        $response->assertStatus(200);
+        $slugs = collect($response->json('data'))->pluck('slug')->all();
+
+        $this->assertContains('super_admin', $slugs);
+        $this->assertNotContains('staff', $slugs);
+    }
 }

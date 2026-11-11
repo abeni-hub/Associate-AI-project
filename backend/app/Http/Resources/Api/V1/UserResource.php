@@ -31,7 +31,7 @@ class UserResource extends JsonResource
                 'code' => $this->organization->code,
                 'type' => $this->organization->type ? [
                     'id' => $this->organization->type->id,
-                    'name' => $this->organization->type->name,
+                    'name' => ['eng' => $this->organization->type->name, 'amh' => $this->organization->type->name_amh, 'oro' => $this->organization->type->name_oro],
                     'code' => $this->organization->type->code,
                 ] : null,
             ] : null,
@@ -39,7 +39,11 @@ class UserResource extends JsonResource
                 'id' => $this->role->id,
                 'name' => $this->role->name,
                 'slug' => $this->role->slug,
+                'scope_level' => $this->role->scope_level ?? 'global',
             ] : null,
+            'permissions' => $this->isSuperAdmin()
+                ? ['*']
+                : ($this->role ? $this->role->permissions()->pluck('key')->all() : []),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

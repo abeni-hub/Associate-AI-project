@@ -38,6 +38,8 @@ class ServiceStepController extends Controller
 
     /**
      * List physical room-by-room navigation steps for a service.
+     * Supports organization-specific routing (e.g. unique rooms per Sub-city office)
+     * with graceful fallback to default service templates.
      */
     public function index(Request $request, string $service): JsonResponse
     {
@@ -53,8 +55,24 @@ class ServiceStepController extends Controller
 
         // Optional filtering by organization office
         if ($request->has('organization_id')) {
-            $orgId = $request->input('organization_id') !== null ? (int) $request->input('organization_id') : null;
-            $query->forOrganization($orgId);
+            $rawOrgId = $request->input('organization_id');
+            $orgId = ($rawOrgId !== null && $rawOrgId !== 'all' && $rawOrgId !== '') ? (int) $rawOrgId : null;
+
+            if ($orgId !== null) {
+                // Check if specific physical steps exist for this organization branch
+                $hasBranchSteps = (clone $query)->where('organization_id', $orgId)->exists();
+                if ($hasBranchSteps) {
+                    $query->where('organization_id', $orgId);
+                } else {
+                    // Fall back to template steps or primary bureau steps
+                    $query->where(function ($q) use ($serviceModel) {
+                        $q->whereNull('organization_id')
+                            ->orWhere('organization_id', $serviceModel->organization_id);
+                    });
+                }
+            } else {
+                $query->whereNull('organization_id');
+            }
         }
 
         $steps = $query->ordered()->get();
@@ -73,12 +91,12 @@ class ServiceStepController extends Controller
         $serviceModel = $this->resolveService($service);
 
         if ($step->service_id !== $serviceModel->id) {
-            throw new NotFoundHttpException("Step not found for this service.");
+            throw new NotFoundHttpException('Step not found for this service.');
         }
 
         $user = $request->user();
         if (! $step->is_active && (! $user || ! $user->hasPermission('service_steps.manage'))) {
-            throw new NotFoundHttpException("Step not found or inactive.");
+            throw new NotFoundHttpException('Step not found or inactive.');
         }
 
         $step->loadMissing('organization');
@@ -124,7 +142,7 @@ class ServiceStepController extends Controller
         $serviceModel = $this->resolveService($service);
 
         if ($step->service_id !== $serviceModel->id) {
-            throw new NotFoundHttpException("Step not found for this service.");
+            throw new NotFoundHttpException('Step not found for this service.');
         }
 
         $step->update($request->validated());
@@ -148,7 +166,7 @@ class ServiceStepController extends Controller
         $serviceModel = $this->resolveService($service);
 
         if ($step->service_id !== $serviceModel->id) {
-            throw new NotFoundHttpException("Step not found for this service.");
+            throw new NotFoundHttpException('Step not found for this service.');
         }
 
         if ($step->organization_id !== null && ! $scopeService->canManageOrganization($request->user(), $step->organization_id)) {
@@ -187,6 +205,112 @@ class ServiceStepController extends Controller
         return ApiResponse::success(
             data: ServiceStepResource::collection($steps),
             message: 'Service steps reordered successfully.'
+        );
+    }
+
+    /**
+     * Synchronize full sequence of room instruction steps for a service.
+     */
+    public function sync(Request $request, string $service): JsonResponse
+    {
+        $serviceModel = $this->resolveService($service);
+
+        // Sanitize incoming organization_id
+        $rawOrgId = $request->input('organization_id');
+        $sanitizedOrgId = ($rawOrgId !== null && $rawOrgId !== '' && $rawOrgId !== 'all' && is_numeric($rawOrgId) && (int) $rawOrgId > 0)
+            ? (int) $rawOrgId
+            : null;
+
+        // Sanitize incoming steps list: filter out completely empty entries and autofill missing titles
+        $rawSteps = $request->input('steps');
+        $cleanSteps = [];
+        if (is_array($rawSteps)) {
+            $stepCounter = 1;
+            foreach ($rawSteps as $st) {
+                if (! is_array($st)) continue;
+
+                $room = trim((string) ($st['room_number'] ?? $st['room'] ?? ''));
+                $title = trim((string) ($st['title'] ?? ''));
+                $instruction = trim((string) ($st['instruction'] ?? $st['detail'] ?? ''));
+                $floor = trim((string) ($st['floor'] ?? ''));
+                $building = trim((string) ($st['building'] ?? ''));
+                $department = trim((string) ($st['department_name'] ?? $st['department'] ?? ''));
+
+                // Skip entirely blank step entries
+                if ($room === '' && $title === '' && $instruction === '' && $floor === '') {
+                    continue;
+                }
+
+                $effectiveTitle = $title !== '' ? $title : ($room !== '' ? $room : "Step {$stepCounter}");
+
+                $cleanSteps[] = [
+                    'organization_id' => ! empty($st['organization_id']) ? (int) $st['organization_id'] : $sanitizedOrgId,
+                    'step_number' => $stepCounter++,
+                    'title' => $effectiveTitle,
+                    'instruction' => $instruction,
+                    'room_number' => $room !== '' ? $room : null,
+                    'floor' => $floor !== '' ? $floor : null,
+                    'building' => $building !== '' ? $building : null,
+                    'department_name' => $department !== '' ? $department : null,
+                    'responsible_title' => ! empty($st['responsible_title']) ? (string) $st['responsible_title'] : null,
+                    'estimated_duration_minutes' => isset($st['estimated_duration_minutes']) ? (int) $st['estimated_duration_minutes'] : 15,
+                    'is_active' => isset($st['is_active']) ? (bool) $st['is_active'] : true,
+                ];
+            }
+        }
+
+        $request->merge([
+            'organization_id' => $sanitizedOrgId,
+            'steps' => $cleanSteps,
+        ]);
+
+        $validated = $request->validate([
+            'organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
+            'steps' => ['present', 'array'],
+            'steps.*.organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
+            'steps.*.step_number' => ['nullable', 'integer'],
+            'steps.*.title' => ['required', 'string', 'max:255'],
+            'steps.*.instruction' => ['nullable', 'string'],
+            'steps.*.room_number' => ['nullable', 'string', 'max:100'],
+            'steps.*.floor' => ['nullable', 'string', 'max:100'],
+            'steps.*.building' => ['nullable', 'string', 'max:150'],
+            'steps.*.department_name' => ['nullable', 'string', 'max:255'],
+            'steps.*.responsible_title' => ['nullable', 'string', 'max:150'],
+            'steps.*.estimated_duration_minutes' => ['nullable', 'integer'],
+            'steps.*.is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $targetOrgId = $validated['organization_id'] ?? null;
+
+        DB::transaction(function () use ($serviceModel, $cleanSteps, $targetOrgId) {
+            if ($targetOrgId !== null) {
+                $serviceModel->steps()->where('organization_id', $targetOrgId)->delete();
+            } else {
+                $serviceModel->steps()->whereNull('organization_id')->delete();
+            }
+
+            foreach ($cleanSteps as $stepData) {
+                $serviceModel->steps()->create([
+                    'organization_id' => $stepData['organization_id'] ?? $targetOrgId,
+                    'step_number' => $stepData['step_number'],
+                    'title' => $stepData['title'],
+                    'instruction' => $stepData['instruction'] ?? '',
+                    'room_number' => $stepData['room_number'] ?? null,
+                    'floor' => $stepData['floor'] ?? null,
+                    'building' => $stepData['building'] ?? null,
+                    'department_name' => $stepData['department_name'] ?? null,
+                    'responsible_title' => $stepData['responsible_title'] ?? null,
+                    'estimated_duration_minutes' => $stepData['estimated_duration_minutes'] ?? 15,
+                    'is_active' => $stepData['is_active'] ?? true,
+                ]);
+            }
+        });
+
+        $steps = $serviceModel->steps()->with('organization')->ordered()->get();
+
+        return ApiResponse::success(
+            data: ServiceStepResource::collection($steps),
+            message: 'Service steps synchronized successfully.'
         );
     }
 }

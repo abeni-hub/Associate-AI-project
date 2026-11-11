@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\V1\Services;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SyncOfferingOrganizationsRequest extends FormRequest
@@ -19,12 +20,12 @@ class SyncOfferingOrganizationsRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'organizations' => ['required', 'array'],
+            'organizations' => ['present', 'array'],
             'organizations.*.organization_id' => ['required', 'integer', 'exists:organizations,id'],
             'organizations.*.is_available' => ['nullable', 'boolean'],
             'organizations.*.specific_instructions' => ['nullable', 'string', 'max:1000'],

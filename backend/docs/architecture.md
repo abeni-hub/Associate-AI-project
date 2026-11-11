@@ -1,21 +1,21 @@
-# Government Citizen Engagement Platform — Architecture Specification
+# Government Citizen Engagement Platform (CivicLink) — Architecture Specification
 
 ## 1. System Overview
 
-The **Government Citizen Engagement Platform** is a centralized, modular backend service built with **Laravel 13** and **PostgreSQL** to serve Ethiopian Government entities (Sub-Cities, Woredas, and Bureaus) and citizens.
+The **Government Citizen Engagement Platform (CivicLink)** is a centralized, modular backend service built with **Laravel 13** and **PostgreSQL** serving Ethiopian Government entities (Sub-Cities, Woredas, Bureaus) and citizens.
 
-The platform provides citizen transparency, service discovery, required document listings, room-by-room navigation, official announcements, citizen feedback submission, and hierarchy-aware administrative dashboards.
+The platform provides citizen transparency, public service catalog discovery, room-by-room physical routing, official announcements, citizen feedback submission, and hierarchy-aware administrative operations.
 
 ---
 
 ## 2. Technology Stack & Runtime
 
 - **Framework**: Laravel 13 (`laravel/framework: v13.38.0`)
-- **PHP Runtime**: PHP 8.5.11 (ZTS Visual C++ 2022 x64)
+- **PHP Runtime**: PHP 8.5+ (64-bit)
 - **Database**: PostgreSQL (`pgsql` driver via PDO)
-- **Authentication**: Laravel Sanctum (`laravel/sanctum: v4.3.3`) with stateful SPA session cookie authentication
+- **Authentication**: Laravel Sanctum (`laravel/sanctum: v4.3.3`) supporting both stateful SPA session cookie authentication and Bearer API tokens
 - **API Architecture**: Versioned RESTful API (`/api/v1`)
-- **Code Quality**: Laravel Pint (`laravel/pint: v1.32.1`), PHPUnit 12
+- **Code Quality**: Laravel Pint (`laravel/pint`), PHPUnit 12
 
 ---
 
@@ -26,16 +26,18 @@ The application adopts a **domain-oriented modular architecture** embedded withi
 ```
 app/
 ├── Domains/
-│   ├── AuditLogs/          # Audit logging of critical administrative operations
+│   ├── AuditLogs/          # Immutable audit logging with full JSON diagnostics
 │   ├── Authentication/     # Session state, login rate limiting, password reset
-│   ├── Authorization/      # Role-permission verification, data-scope policies
+│   ├── Authorization/      # Scoped RBAC, role hierarchy & granular CRUD flags
+│   ├── Cms/                # Super Admin Landing Page CMS (8 sections & hero slides)
 │   ├── Dashboard/          # Role and organization-scoped reporting queries
 │   ├── Documents/          # Required document definitions and service mappings
-│   ├── Events/             # Scheduled government events & publication state
+│   ├── Events/             # Civic community events with multi-image photo gallery
 │   ├── Feedback/           # Citizen complaints, suggestions, satisfaction feedback
+│   ├── Navigation/         # Dynamic database-driven sidebar navigation items
 │   ├── News/               # Official press releases & news management
-│   ├── Organizations/      # Generic organization hierarchy (Sub-City, Woreda, Bureau)
-│   ├── QrCodes/            # QR token generation, status validation & routing
+│   ├── Organizations/      # Statutory organization hierarchy (Sub-City, Woreda, Bureau)
+│   ├── QrCodes/            # Desk/office QR poster tokens & public citizen scan tracking
 │   ├── Services/           # Master service & subservice catalog, organization access
 │   ├── ServiceSteps/       # Ordered room-by-room citizen step instructions
 │   └── Users/              # User accounts & single-organization membership
@@ -51,7 +53,40 @@ app/
 
 ---
 
-## 4. API Standardization & Response Envelope
+## 4. Key Architectural Pillars
+
+### 4.1. Dynamic Database-Driven Sidebar Navigation
+Rather than hardcoding sidebar navigation inside frontend code or relying on complex recursive database queries, navigation is managed dynamically via `navigation_items` and `role_navigation_items`:
+- **Flat Schema:** Navigation items have no `parent_id` column, eliminating recursive CTE queries and tree-to-JSON serialization overhead.
+- **Role-Aware Delivery:** Authenticated users query `GET /api/v1/navigation/sidebar` on login. The backend delivers only items authorized for their role, ordered by `display_order`.
+- **RBAC Alignment:**
+  - *Super Admin (8 items):* Overview, Sub-cities, Accounts, Feedback, Services, Routes, QR Poster, CMS.
+  * *Sub-City Admin (7 items):* All items except CMS.
+  * *Woreda / Bureau Admin (6 items):* Overview, Accounts, Feedback, Services, Routes, QR Poster.
+  * *Staff (4 items):* Overview, Feedback, Services, Routes.
+
+### 4.2. Statutory Organizational Hierarchy (No Allowed Parents Pivot)
+In Ethiopian public administration, government tiers are statutory and immutable:
+$$\text{Level 1 (Sub-City)} \longrightarrow \text{Level 2 (Woreda)} \longrightarrow \text{Level 3 (Bureau)}$$
+- The structural tree is modeled by a self-referencing foreign key: `organizations.parent_organization_id`.
+- Boundary rules (e.g. a Woreda must choose a parent Sub-City, a Sub-City cannot report to a Woreda) are enforced cleanly in application business logic via `OrganizationType::isAllowedParentType()` (`$parentType->level < $this->level`) and Laravel Form Requests (`CreateOrganizationRequest`, `UpdateOrganizationRequest`).
+- This eliminates unnecessary database junction table maintenance while guaranteeing data integrity.
+
+### 4.3. Multi-Tier Administrative Scoping & Privilege Escalation Protection
+- System roles carry an explicit `scope_level`: `global`, `sub_city`, `woreda`, `bureau`.
+- `OrganizationScopeService` restricts database queries so that Sub-City Administrators can only access or modify records within their own Sub-City hierarchy.
+- Privileges are strictly bounded: an administrator cannot assign or edit accounts with an administrative scope level higher than their own rank (`$actorRole->canManageScope($targetRole->scope_level)`), preventing privilege escalation.
+
+### 4.4. Forensic Audit Logging with JSON Payloads
+The `audit_logs` table provides complete forensic accountability for critical administrative operations:
+- **Execution Outcome:** Tracks `status` (`'success'` vs `'failed'`) and integer HTTP `status_code` (e.g., 200, 201, 403, 422, 500).
+- **Request Payload (`request_payload` JSONB):** Automatically captures the incoming HTTP request body and parameters with sensitive keys (`password`, `secret`, `token`) stripped or masked.
+- **Response Payload (`response_payload` JSONB):** Records the returned JSON response or the detailed exception stack trace on operational failure.
+- **Entity Snapshots:** Records `old_values` and `new_values` for full before-and-after change diffs.
+
+---
+
+## 5. API Standardization & Response Envelope
 
 Every endpoint under `/api/v1` returns an identical, predictable JSON envelope:
 
@@ -65,35 +100,7 @@ Every endpoint under `/api/v1` returns an identical, predictable JSON envelope:
 }
 ```
 
-### Paginated Envelope
-```json
-{
-  "success": true,
-  "message": "Data retrieved successfully.",
-  "data": [ ... ],
-  "errors": null,
-  "meta": {
-    "current_page": 1,
-    "last_page": 5,
-    "per_page": 15,
-    "total": 75,
-    "from": 1,
-    "to": 15
-  }
-}
-```
-
 ### Error Envelope
-```json
-{
-  "success": false,
-  "message": "Error description.",
-  "data": null,
-  "errors": null
-}
-```
-
-### Validation Error Envelope (HTTP 422)
 ```json
 {
   "success": false,
@@ -101,31 +108,8 @@ Every endpoint under `/api/v1` returns an identical, predictable JSON envelope:
   "data": null,
   "errors": {
     "field_name": [
-      "The field_name field is required."
+      "The field_name is required."
     ]
   }
 }
 ```
-
----
-
-## 5. Centralized Exception Handling
-
-Configured inside `bootstrap/app.php`:
-- Handled via `Exceptions::shouldRenderJsonWhen` whenever the request path starts with `api/*` or requests JSON.
-- **ValidationException** maps automatically to HTTP 422 with validation error bags.
-- **NotFoundHttpException** & **ModelNotFoundException** map to HTTP 404.
-- **AuthenticationException** maps to HTTP 401.
-- **AccessDeniedHttpException** & **AuthorizationException** map to HTTP 403.
-- **MethodNotAllowedHttpException** maps to HTTP 405.
-- Unhandled **Throwables** map to HTTP 500 with sanitized messages in production.
-
----
-
-## 6. Sanctum SPA Authentication Foundation
-
-Designed to integrate seamlessly with the React frontend hosted under a common root or same-site domain:
-- **Middleware**: `statefulApi()` configured in `bootstrap/app.php`.
-- **CORS**: `config/cors.php` configured with `supports_credentials => true`, dynamically referencing `FRONTEND_URL` and `SANCTUM_STATEFUL_DOMAINS`.
-- **CSRF**: Cookie-based CSRF tokens (`/sanctum/csrf-cookie`) enforced for all non-safe HTTP methods.
-- **Sessions**: Secure, SameSite-compliant HTTP-only session cookies.

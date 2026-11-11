@@ -27,13 +27,15 @@ class ServiceResource extends JsonResource
             'fee_currency' => $this->fee_currency,
             'fee_notes' => $this->fee_notes,
             'is_active' => (bool) $this->is_active,
+            'organization_id' => $this->organization_id,
+            'parent_id' => $this->parent_id,
             'is_master' => $this->isMaster(),
-            'parent' => $this->parent ? [
+            'parent' => $this->relationLoaded('parent') && $this->parent ? [
                 'id' => $this->parent->id,
                 'name' => $this->parent->name,
                 'code' => $this->parent->code,
             ] : null,
-            'organization' => $this->organization ? [
+            'organization' => $this->relationLoaded('organization') && $this->organization ? [
                 'id' => $this->organization->id,
                 'name' => $this->organization->name,
                 'code' => $this->organization->code,

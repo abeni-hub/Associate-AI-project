@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\V1\Services;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SyncServiceDocumentsRequest extends FormRequest
@@ -19,12 +20,12 @@ class SyncServiceDocumentsRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'documents' => ['required', 'array'],
+            'documents' => ['present', 'array'],
             'documents.*.document_id' => ['required', 'integer', 'exists:documents,id'],
             'documents.*.is_mandatory' => ['nullable', 'boolean'],
             'documents.*.order_column' => ['nullable', 'integer', 'min:1'],

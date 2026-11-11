@@ -30,11 +30,9 @@ class OrganizationScopeService
             return [$user->organization_id];
         }
 
-        $userOrg = $user->organization;
-
-        if (! $userOrg) {
-            $userOrg = Organization::find($user->organization_id);
-        }
+        $userOrg = $user->relationLoaded('organization')
+            ? $user->organization
+            : Organization::find($user->organization_id);
 
         if (! $userOrg) {
             return [$user->organization_id];

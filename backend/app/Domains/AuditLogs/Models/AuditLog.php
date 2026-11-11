@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domains\AuditLogs\Models;
 
-use App\Domains\Organizations\Models\Organization;
 use App\Domains\Users\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -20,10 +19,14 @@ class AuditLog extends Model
 
     protected $fillable = [
         'user_id',
-        'organization_id',
         'action',
         'entity_type',
         'entity_id',
+        'status',
+        'status_code',
+        'error_message',
+        'request_payload',
+        'response_payload',
         'old_values',
         'new_values',
         'ip_address',
@@ -34,8 +37,11 @@ class AuditLog extends Model
     protected function casts(): array
     {
         return [
+            'request_payload' => 'array',
+            'response_payload' => 'array',
             'old_values' => 'array',
             'new_values' => 'array',
+            'status_code' => 'integer',
             'created_at' => 'datetime',
         ];
     }
@@ -46,13 +52,5 @@ class AuditLog extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
-    }
-
-    /**
-     * The organization context in which the action occurred.
-     */
-    public function organization(): BelongsTo
-    {
-        return $this->belongsTo(Organization::class, 'organization_id');
     }
 }

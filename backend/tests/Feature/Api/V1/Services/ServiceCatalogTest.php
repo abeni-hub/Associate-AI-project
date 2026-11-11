@@ -73,7 +73,6 @@ class ServiceCatalogTest extends TestCase
         // Link organization offering
         $this->subservice->offeringOrganizations()->attach($this->boleSubCity->id, [
             'is_available' => true,
-            'specific_instructions' => 'Window 4 on 2nd Floor',
         ]);
     }
 

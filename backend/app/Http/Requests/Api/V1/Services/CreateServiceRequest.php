@@ -6,6 +6,7 @@ namespace App\Http\Requests\Api\V1\Services;
 
 use App\Domains\Organizations\Services\OrganizationScopeService;
 use App\Domains\Services\Models\Service;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -20,9 +21,33 @@ class CreateServiceRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        $code = $this->input('code');
+        if ($code !== null) {
+            $cleaned = strtolower(trim((string) $code));
+            $cleaned = preg_replace('/[^a-z0-9\-]+/', '-', $cleaned);
+            $cleaned = trim($cleaned, '-');
+            $this->merge(['code' => $cleaned]);
+        }
+
+        $parentId = $this->input('parent_id');
+        if ($parentId === '' || $parentId === 0 || $parentId === '0' || $parentId === 'null') {
+            $this->merge(['parent_id' => null]);
+        }
+
+        $orgId = $this->input('organization_id');
+        if ($orgId === '' || $orgId === 0 || $orgId === '0' || $orgId === 'null') {
+            $this->merge(['organization_id' => null]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -38,6 +63,13 @@ class CreateServiceRequest extends FormRequest
             'fee_currency' => ['nullable', 'string', 'max:3'],
             'fee_notes' => ['nullable', 'string', 'max:500'],
             'is_active' => ['nullable', 'boolean'],
+            'offering_organizations' => ['nullable', 'array'],
+            'offering_organizations.*' => ['nullable'],
+            'documents' => ['nullable', 'array'],
+            'documents.*.document_id' => ['required_with:documents', 'integer', 'exists:documents,id'],
+            'documents.*.is_mandatory' => ['nullable', 'boolean'],
+            'documents.*.order_column' => ['nullable', 'integer', 'min:1'],
+            'documents.*.notes' => ['nullable', 'string', 'max:500'],
         ];
     }
 

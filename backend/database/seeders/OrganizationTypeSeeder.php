@@ -10,11 +10,11 @@ use Illuminate\Database\Seeder;
 class OrganizationTypeSeeder extends Seeder
 {
     /**
-     * Seed standard Ethiopian Government organization types and allowed parent rules.
+     * Seed standard Ethiopian Government organization types and statutory hierarchy levels.
      */
     public function run(): void
     {
-        $subCity = OrganizationType::updateOrCreate(
+        OrganizationType::updateOrCreate(
             ['code' => 'sub_city'],
             [
                 'name' => 'Sub-City',
@@ -25,7 +25,7 @@ class OrganizationTypeSeeder extends Seeder
             ]
         );
 
-        $woreda = OrganizationType::updateOrCreate(
+        OrganizationType::updateOrCreate(
             ['code' => 'woreda'],
             [
                 'name' => 'Woreda',
@@ -36,7 +36,7 @@ class OrganizationTypeSeeder extends Seeder
             ]
         );
 
-        $bureau = OrganizationType::updateOrCreate(
+        OrganizationType::updateOrCreate(
             ['code' => 'bureau'],
             [
                 'name' => 'Bureau',
@@ -46,12 +46,5 @@ class OrganizationTypeSeeder extends Seeder
                 'is_active' => true,
             ]
         );
-
-        // Allowed Parent Hierarchy Rules:
-        // Woreda may only have a Sub-City as its parent
-        $woreda->allowedParents()->syncWithoutDetaching([$subCity->id]);
-
-        // Bureau may have either a Sub-City or a Woreda as its parent
-        $bureau->allowedParents()->syncWithoutDetaching([$subCity->id, $woreda->id]);
     }
 }

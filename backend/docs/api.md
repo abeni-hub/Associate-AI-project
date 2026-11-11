@@ -85,7 +85,7 @@ Authenticates user credentials and establishes a session.
       "code": "subcity-bole",
       "type": {
         "id": 1,
-        "name": "Sub-City",
+        "name": {"eng": "Sub-City", "amh": "", "oro": ""},
         "code": "sub_city"
       }
     },
@@ -170,7 +170,7 @@ Retrieves the profile, organization context, and role of the currently authentic
       "code": "subcity-bole",
       "type": {
         "id": 1,
-        "name": "Sub-City",
+        "name": {"eng": "Sub-City", "amh": "", "oro": ""},
         "code": "sub_city"
       }
     },
@@ -500,9 +500,9 @@ List all government organization classification tiers.
   "data": [
     {
       "id": 1,
-      "name": "Sub-City",
+      "name": {"eng": "Sub-City", "amh": "", "oro": ""},
       "code": "sub_city",
-      "description": "First-level urban administrative subdivision.",
+      "description": {"eng": "First-level urban administrative subdivision.", "amh": null, "oro": null},
       "level": 1,
       "can_be_root": true,
       "is_active": true,
@@ -510,14 +510,14 @@ List all government organization classification tiers.
     },
     {
       "id": 2,
-      "name": "Woreda",
+      "name": {"eng": "Woreda", "amh": "", "oro": ""},
       "code": "woreda",
-      "description": "Second-level urban administrative subdivision.",
+      "description": {"eng": "Second-level urban administrative subdivision.", "amh": null, "oro": null},
       "level": 2,
       "can_be_root": false,
       "is_active": true,
       "allowed_parent_types": [
-        {"id": 1, "name": "Sub-City", "code": "sub_city"}
+        {"id": 1, "name": {"eng": "Sub-City", "amh": "", "oro": ""}, "code": "sub_city"}
       ]
     }
   ],
@@ -556,14 +556,14 @@ Retrieve the complete hierarchical tree rooted in the user's scope.
       "name": "Bole Sub-City",
       "code": "subcity-bole",
       "is_root": true,
-      "type": {"id": 1, "name": "Sub-City", "code": "sub_city"},
+      "type": {"id": 1, "name": {"eng": "Sub-City", "amh": "", "oro": ""}, "code": "sub_city"},
       "children": [
         {
           "id": 2,
           "name": "Woreda 01",
           "code": "woreda-01-bole",
           "is_root": false,
-          "type": {"id": 2, "name": "Woreda", "code": "woreda"}
+          "type": {"id": 2, "name": {"eng": "Woreda", "amh": "", "oro": ""}, "code": "woreda"}
         }
       ]
     }
@@ -1013,6 +1013,1150 @@ Reorder sequential step numbers in batch.
 }
 ```
 - **Response (200 OK)**: Returns reordered array of `ServiceStepResource`.
+
+---
+
+## 10. News Management
+
+Public discovery and administrative management of official municipal announcements, press releases, and notices with ordered content blocks.
+
+---
+
+### `GET /api/v1/news`
+List all published news articles ordered newest first.
+- **Authentication**: None (Public)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "News retrieved successfully.",
+  "data": [
+    {
+      "id": 1,
+      "organization_id": 1,
+      "news_title": "City Administration Announces Digital Transformation Initiative",
+      "created_at": "2026-10-26T10:00:00+00:00",
+      "updated_at": "2026-10-26T10:00:00+00:00",
+      "organization": {
+        "id": 1,
+        "name": "Bole Sub-City",
+        "code": "subcity-bole"
+      },
+      "contents": [
+        {
+          "id": 1,
+          "news_id": 1,
+          "content": "The initiative aims to streamline citizen service delivery across all municipal bureaus.",
+          "content_type": "text",
+          "order": 1,
+          "created_at": "2026-10-26T10:00:00+00:00",
+          "updated_at": "2026-10-26T10:00:00+00:00"
+        },
+        {
+          "id": 2,
+          "news_id": 1,
+          "content": "Citizens can now track requests and view room instructions online.",
+          "content_type": "text",
+          "order": 2,
+          "created_at": "2026-10-26T10:00:00+00:00",
+          "updated_at": "2026-10-26T10:00:00+00:00"
+        }
+      ]
+    }
+  ],
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/news/{id}`
+Retrieve a single news article with its organization context and ordered content blocks.
+- **Authentication**: None (Public)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "News retrieved successfully.",
+  "data": {
+    "id": 1,
+    "organization_id": 1,
+    "news_title": "City Administration Announces Digital Transformation Initiative",
+    "created_at": "2026-10-26T10:00:00+00:00",
+    "updated_at": "2026-10-26T10:00:00+00:00",
+    "organization": {
+      "id": 1,
+      "name": "Bole Sub-City",
+      "code": "subcity-bole"
+    },
+    "contents": [
+      {
+        "id": 1,
+        "news_id": 1,
+        "content": "The initiative aims to streamline citizen service delivery across all municipal bureaus.",
+        "content_type": "text",
+        "order": 1,
+        "created_at": "2026-10-26T10:00:00+00:00",
+        "updated_at": "2026-10-26T10:00:00+00:00"
+      }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `POST /api/v1/news`
+Draft and create a new news article with ordered content blocks.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `news.create`
+- **Request Body**:
+```json
+{
+  "news_title": "Clean City Campaign Kickoff",
+  "organization_id": 1,
+  "contents": [
+    {
+      "content": "Volunteers and public officials are gathering at Bole Square this Saturday at 8:00 AM.",
+      "content_type": "text",
+      "order": 1
+    },
+    {
+      "content": "All community members are encouraged to participate in the environmental initiative.",
+      "content_type": "text",
+      "order": 2
+    }
+  ]
+}
+```
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "News created successfully.",
+  "data": {
+    "id": 2,
+    "organization_id": 1,
+    "news_title": "Clean City Campaign Kickoff",
+    "created_at": "2026-10-26T10:15:00+00:00",
+    "updated_at": "2026-10-26T10:15:00+00:00",
+    "organization": {
+      "id": 1,
+      "name": "Bole Sub-City",
+      "code": "subcity-bole"
+    },
+    "contents": [
+      {
+        "id": 3,
+        "news_id": 2,
+        "content": "Volunteers and public officials are gathering at Bole Square this Saturday at 8:00 AM.",
+        "content_type": "text",
+        "order": 1,
+        "created_at": "2026-10-26T10:15:00+00:00",
+        "updated_at": "2026-10-26T10:15:00+00:00"
+      }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `PUT /api/v1/news/{id}`
+Update a news article's title and/or replace its content blocks.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `news.update`
+- **Scope Restriction**: Only allowed for the authoring organization, its ancestor hierarchy, or Super Admin.
+- **Request Body**:
+```json
+{
+  "news_title": "Updated: Clean City Campaign Kickoff Location and Details",
+  "contents": [
+    {
+      "content": "Due to weather forecasts, gathering is rescheduled to 9:00 AM at Bole Central Park.",
+      "content_type": "text",
+      "order": 1
+    }
+  ]
+}
+```
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "News updated successfully.",
+  "data": {
+    "id": 2,
+    "organization_id": 1,
+    "news_title": "Updated: Clean City Campaign Kickoff Location and Details",
+    "created_at": "2026-10-26T10:15:00+00:00",
+    "updated_at": "2026-10-26T11:00:00+00:00",
+    "organization": {
+      "id": 1,
+      "name": "Bole Sub-City",
+      "code": "subcity-bole"
+    },
+    "contents": [
+      {
+        "id": 4,
+        "news_id": 2,
+        "content": "Due to weather forecasts, gathering is rescheduled to 9:00 AM at Bole Central Park.",
+        "content_type": "text",
+        "order": 1,
+        "created_at": "2026-10-26T11:00:00+00:00",
+        "updated_at": "2026-10-26T11:00:00+00:00"
+      }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `DELETE /api/v1/news/{id}`
+Delete a news article and its associated content blocks.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `news.delete`
+- **Scope Restriction**: Authoring organization, ancestor hierarchy, or Super Admin.
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "News deleted successfully.",
+  "data": null,
+  "errors": null
+}
+```
+
+---
+
+## 11. Citizen Feedback
+
+Public submission of citizen feedback, complaints, and satisfaction ratings with automatic 10-digit tracking numbers, alongside organization-scoped administrative review.
+
+---
+
+### `POST /api/v1/feedbacks`
+Submit citizen feedback, complaint, or satisfaction rating directed to a government organization.
+- **Authentication**: None (Public)
+- **Rate Limit**: 10 submissions per minute per client IP (`throttle:10,1`)
+- **Feedback Types**:
+  - `complaint`: Generates a random, unique 10-digit tracking number (`tracking_number`) for tracking.
+  - `feedback`: General feedback or recommendation.
+  - `satisfaction`: Service satisfaction rating.
+- **Request Body**:
+```json
+{
+  "feedback_for_organization": 1,
+  "feedback_content": "The intake officer at Room 102 was courteous and processed our documents in under 15 minutes.",
+  "feedback_type": "satisfaction",
+  "full_name": "Abebe Bikila",
+  "phone_number": "+251911223344"
+}
+```
+- **Complaint Request Body Example (with Tracking Number)**:
+```json
+{
+  "feedback_for_organization": 2,
+  "feedback_content": "The fee cashier desk was closed without notice during official operating hours.",
+  "feedback_type": "complaint",
+  "full_name": "Tigist Haile",
+  "phone_number": "+251922334455"
+}
+```
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Feedback submitted successfully.",
+  "data": {
+    "id": 14,
+    "feedback_for_organization": 2,
+    "feedback_content": "The fee cashier desk was closed without notice during official operating hours.",
+    "feedback_type": "complaint",
+    "tracking_number": "5482910482",
+    "full_name": "Tigist Haile",
+    "phone_number": "+251922334455",
+    "created_at": "2026-10-26T14:30:00+00:00",
+    "updated_at": "2026-10-26T14:30:00+00:00"
+  },
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/feedbacks`
+List feedback submissions scoped to the authenticated user's organization hierarchy.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `feedback.view_own` or `feedback.view_descendants`
+- **Data Scoping Rules**:
+  - **Super Admin**: Views all feedback across the platform.
+  - **Sub-City Admin (with `feedback.view_descendants`)**: Views feedback for Sub-City + all child Woredas and Bureaus.
+  - **Bureau Admin / Staff (with `feedback.view_own`)**: Views feedback submitted strictly to own organization.
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Feedback retrieved successfully.",
+  "data": [
+    {
+      "id": 14,
+      "feedback_for_organization": 2,
+      "feedback_content": "The fee cashier desk was closed without notice during official operating hours.",
+      "feedback_type": "complaint",
+      "tracking_number": "5482910482",
+      "full_name": "Tigist Haile",
+      "phone_number": "+251922334455",
+      "created_at": "2026-10-26T14:30:00+00:00",
+      "updated_at": "2026-10-26T14:30:00+00:00",
+      "organization": {
+        "id": 2,
+        "name": "Woreda 01",
+        "code": "woreda-01-bole"
+      }
+    }
+  ],
+  "errors": null
+}
+```
+
+---
+
+## 12. Dashboards & Reporting
+
+Role-aware and organization-scoped metrics and reporting queries. Scoped to the authenticated user's organization hierarchy level:
+- **Super Admin**: Unrestricted global visibility across all platform entities.
+- **Sub-City Admin**: Scoped to the Sub-City and all descendant Woredas and Bureaus.
+- **Woreda Admin**: Scoped to the Woreda and all descendant Bureaus.
+- **Bureau Admin / Staff**: Scoped strictly to own assigned organization.
+
+---
+
+### `GET /api/v1/dashboard/overview`
+Retrieve high-level KPI metrics across organizations, users, services, documents, feedback, and news.
+- **Alias**: `GET /api/v1/dashboard/stats`
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `dashboard.view`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Dashboard overview retrieved successfully.",
+  "data": {
+    "scope": {
+      "role": "sub_city_admin",
+      "organization_id": 1,
+      "organization_name": "Bole Sub-City",
+      "is_global": false,
+      "accessible_organizations_count": 15
+    },
+    "organizations": {
+      "total": 15,
+      "active": 14,
+      "inactive": 1,
+      "by_type": {
+        "sub_city": 1,
+        "woreda": 4,
+        "bureau": 10
+      }
+    },
+    "users": {
+      "total": 45,
+      "active": 43,
+      "inactive": 2,
+      "must_change_password": 3,
+      "by_role": {
+        "sub_city_admin": 2,
+        "woreda_admin": 4,
+        "bureau_admin": 10,
+        "staff": 29
+      }
+    },
+    "services": {
+      "total_catalog": 30,
+      "active_catalog": 28,
+      "master_services": 12,
+      "subservices": 18,
+      "offered_services_in_scope": 22
+    },
+    "documents": {
+      "total": 25,
+      "active": 25,
+      "mandatory_links_count": 48
+    },
+    "feedback": {
+      "total": 142,
+      "by_type": {
+        "feedback": 58,
+        "complaint": 34,
+        "satisfaction": 50
+      },
+      "recent_last_30_days": 42
+    },
+    "news": {
+      "total": 8,
+      "recent_last_30_days": 3
+    }
+  },
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/dashboard/reports/feedback`
+Detailed citizen feedback metrics, type distributions, top feedback receiving organizations, and recent entries.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `dashboard.view`
+- **Query Parameters**:
+  - `start_date` (optional, date format `YYYY-MM-DD`)
+  - `end_date` (optional, date format `YYYY-MM-DD`)
+  - `organization_id` (optional, integer, must be within caller's hierarchy scope)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Feedback report retrieved successfully.",
+  "data": {
+    "summary": {
+      "total_feedback": 142,
+      "complaints_count": 34,
+      "general_feedback_count": 58,
+      "satisfaction_count": 50,
+      "complaints_percentage": 23.9
+    },
+    "type_breakdown": [
+      { "type": "complaint", "label": "Complaints", "count": 34, "percentage": 23.9 },
+      { "type": "feedback", "label": "General Feedback", "count": 58, "percentage": 40.8 },
+      { "type": "satisfaction", "label": "Satisfaction Ratings", "count": 50, "percentage": 35.2 }
+    ],
+    "top_organizations": [
+      {
+        "organization_id": 2,
+        "organization_name": "Woreda 01",
+        "organization_code": "woreda-01-bole",
+        "count": 48
+      }
+    ],
+    "recent_feedback": [
+      {
+        "id": 105,
+        "tracking_number": "5482910482",
+        "feedback_type": "complaint",
+        "content_snippet": "Water billing counter was closed during morning hours...",
+        "full_name": "Abebe Kebede",
+        "organization": {
+          "id": 2,
+          "name": "Woreda 01",
+          "code": "woreda-01-bole"
+        },
+        "created_at": "2026-10-27T08:30:00+03:00"
+      }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/dashboard/reports/services`
+Service catalog metrics, estimated duration averages, fee distributions, and offering office coverage.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `dashboard.view`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Services report retrieved successfully.",
+  "data": {
+    "summary": {
+      "total_services": 30,
+      "master_services": 12,
+      "subservices": 18,
+      "active_services": 28,
+      "total_steps": 85,
+      "average_steps_per_service": 2.8
+    },
+    "fees_analysis": {
+      "free_services_count": 18,
+      "paid_services_count": 12,
+      "average_fee": 125.50,
+      "max_fee": 500.00,
+      "currency": "ETB"
+    },
+    "duration_analysis": {
+      "average_duration_minutes": 38.5,
+      "min_duration_minutes": 10,
+      "max_duration_minutes": 180
+    },
+    "top_offered_services": [
+      {
+        "service_id": 1,
+        "name": "Birth Certificate Issuance",
+        "code": "service-birth-certificate",
+        "offering_organizations_count": 14
+      }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/dashboard/reports/organizations`
+Hierarchical coverage, administrative level distribution, and staffing summary.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `dashboard.view`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Organizations report retrieved successfully.",
+  "data": {
+    "summary": {
+      "total_organizations": 15,
+      "active": 14,
+      "inactive": 1,
+      "suspended": 0,
+      "root_units": 1,
+      "child_units": 14
+    },
+    "type_distribution": [
+      { "type_id": 1, "name": "Sub-City", "code": "sub_city", "count": 1, "percentage": 6.7 },
+      { "type_id": 2, "name": "Woreda", "code": "woreda", "count": 4, "percentage": 26.7 },
+      { "type_id": 3, "name": "Bureau", "code": "bureau", "count": 10, "percentage": 66.7 }
+    ],
+    "top_by_users": [
+      { "id": 1, "name": "Bole Sub-City", "code": "subcity-bole", "users_count": 12 }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/dashboard/recent-activity`
+Recent administrative audit trails within the user's organization scope.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `dashboard.view`
+- **Query Parameters**:
+  - `limit` (optional, integer 1–50, default: 15)
+  - `entity_type` (optional, string, e.g. `User`, `Organization`, `Service`)
+  - `action` (optional, string, e.g. `created`, `updated`, `deleted`)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Recent activity retrieved successfully.",
+  "data": [
+    {
+      "id": 142,
+      "action": "created",
+      "entity_type": "User",
+      "entity_id": "89",
+      "actor": {
+        "id": 2,
+        "name": "Bole Admin",
+        "username": "bole.admin",
+        "email": "admin@bole.gov.et"
+      },
+      "organization": {
+        "id": 1,
+        "name": "Bole Sub-City",
+        "code": "subcity-bole"
+      },
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-10-27T08:45:12+03:00"
+    }
+  ],
+  "errors": null
+}
+```
+
+---
+
+## 13. Dynamic Sidebar Navigation
+
+Authenticated navigation discovery dynamically populated from the database (`navigation_items` and `role_navigation_items` pivot). Items returned are filtered based on the caller's assigned role and sorted strictly by `display_order`. If the authenticated user holds the Super Admin role, all active navigation items are returned.
+
+---
+
+### `GET /api/v1/navigation/sidebar`
+Retrieves authorized sidebar navigation items for the authenticated user session.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Sidebar navigation items retrieved successfully.",
+  "data": [
+    {
+      "id": 1,
+      "label": "Overview",
+      "route": "/portal",
+      "icon": "HomeIcon",
+      "display_order": 1,
+      "required_permission": "dashboard.view"
+    },
+    {
+      "id": 2,
+      "label": "Organizations",
+      "route": "/portal/organizations",
+      "icon": "BuildingOffice2Icon",
+      "display_order": 2,
+      "required_permission": "organizations.view"
+    },
+    {
+      "id": 3,
+      "label": "Staff Users",
+      "route": "/portal/users",
+      "icon": "UsersIcon",
+      "display_order": 3,
+      "required_permission": "users.view"
+    },
+    {
+      "id": 4,
+      "label": "Service Catalog",
+      "route": "/portal/services",
+      "icon": "RectangleStackIcon",
+      "display_order": 4,
+      "required_permission": "services.view"
+    },
+    {
+      "id": 5,
+      "label": "Documents",
+      "route": "/portal/documents",
+      "icon": "DocumentTextIcon",
+      "display_order": 5,
+      "required_permission": "documents.view"
+    },
+    {
+      "id": 6,
+      "label": "Citizen Feedback",
+      "route": "/portal/feedback",
+      "icon": "ChatBubbleLeftRightIcon",
+      "display_order": 6,
+      "required_permission": "feedback.view_own"
+    },
+    {
+      "id": 7,
+      "label": "Community News",
+      "route": "/portal/news",
+      "icon": "MegaphoneIcon",
+      "display_order": 7,
+      "required_permission": "news.view"
+    },
+    {
+      "id": 8,
+      "label": "Roles & Access",
+      "route": "/portal/roles",
+      "icon": "ShieldCheckIcon",
+      "display_order": 8,
+      "required_permission": "roles.view"
+    }
+  ],
+  "errors": null
+}
+```
+
+---
+
+## 14. QR Code Management & Citizen Scanning
+
+Physical QR posters and digital entrance badges bound to government organizations. Citizens scanning poster QR codes are logged for engagement metrics (scans count and timestamps) and redirected to localized service instructions.
+
+---
+
+### `GET /api/v1/qr-codes`
+List QR code posters scoped to the actor's administrative domain hierarchy.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `qr_codes.view`
+- **Query Parameters**:
+  - `page` (optional, integer, default: 1)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "QR codes retrieved successfully.",
+  "data": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": 1,
+        "organization_id": 1,
+        "code": "BOLE-MAIN-GATE",
+        "label": "Bole Sub-City Main Entrance Kiosk",
+        "target_url": "https://civiclink.gov.et/organizations/subcity-bole",
+        "scan_count": 84,
+        "status": "active",
+        "last_scanned_at": "2026-11-02T10:15:30+03:00",
+        "created_at": "2026-11-01T08:00:00+03:00",
+        "updated_at": "2026-11-02T10:15:30+03:00",
+        "organization": {
+          "id": 1,
+          "name": "Bole Sub-City Administration",
+          "code": "subcity-bole"
+        }
+      }
+    ],
+    "total": 1,
+    "per_page": 20
+  },
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/qr-codes/{qrCode}`
+Retrieve details for a single QR code poster.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `qr_codes.view`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "QR code retrieved successfully.",
+  "data": {
+    "id": 1,
+    "organization_id": 1,
+    "code": "BOLE-MAIN-GATE",
+    "label": "Bole Sub-City Main Entrance Kiosk",
+    "target_url": "https://civiclink.gov.et/organizations/subcity-bole",
+    "scan_count": 84,
+    "status": "active",
+    "last_scanned_at": "2026-11-02T10:15:30+03:00",
+    "created_at": "2026-11-01T08:00:00+03:00",
+    "updated_at": "2026-11-02T10:15:30+03:00",
+    "organization": {
+      "id": 1,
+      "name": "Bole Sub-City Administration",
+      "code": "subcity-bole"
+    }
+  },
+  "errors": null
+}
+```
+
+---
+
+### `POST /api/v1/qr-codes`
+Create a new QR poster token for an organization within the actor's administrative scope.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `qr_codes.manage`
+- **Request Body**:
+```json
+{
+  "organization_id": 2,
+  "code": "WOREDA-01-DESK",
+  "label": "Woreda 01 Public Service Hall Information Desk",
+  "target_url": "https://civiclink.gov.et/organizations/woreda-01/services",
+  "status": "active"
+}
+```
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "QR code generated successfully.",
+  "data": {
+    "id": 2,
+    "organization_id": 2,
+    "code": "WOREDA-01-DESK",
+    "label": "Woreda 01 Public Service Hall Information Desk",
+    "target_url": "https://civiclink.gov.et/organizations/woreda-01/services",
+    "scan_count": 0,
+    "status": "active",
+    "last_scanned_at": null,
+    "created_at": "2026-11-02T15:00:00+03:00",
+    "updated_at": "2026-11-02T15:00:00+03:00",
+    "organization": {
+      "id": 2,
+      "name": "Woreda 01 Administration",
+      "code": "woreda-01"
+    }
+  },
+  "errors": null
+}
+```
+
+---
+
+### `POST /api/v1/qr-codes/{code}/scan`
+Public QR poster scan logging and destination redirection resolver.
+- **Authentication**: None (Public)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Scan recorded successfully.",
+  "data": {
+    "target_url": "https://civiclink.gov.et/organizations/woreda-01/services",
+    "scan_count": 1,
+    "label": "Woreda 01 Public Service Hall Information Desk"
+  },
+  "errors": null
+}
+```
+- **Error Response — Unknown Poster (404 Not Found)**:
+```json
+{
+  "success": false,
+  "message": "QR poster not found.",
+  "data": null,
+  "errors": null
+}
+```
+
+---
+
+## 15. Civic Events & Photo Gallery
+
+Community civic events, public consultations, town halls, and health/sanitation initiatives organized by administrative units. Events support multi-image photo galleries with custom captions and sorting.
+
+---
+
+### `GET /api/v1/events`
+List civic events. When called by unauthenticated citizens, returns published upcoming events. When called by authenticated administrators, returns events scoped to their administrative domain.
+- **Authentication**: None (Public) or `auth:sanctum` + `account.active`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Events retrieved successfully.",
+  "data": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": 1,
+        "organization_id": 1,
+        "title": "Town Hall Meeting on Digital Civic Services",
+        "description": "Public consultation with Bole Sub-City residents on digitized public service workflows.",
+        "location_name": "Bole Sub-City Multi-Purpose Hall, 2nd Floor",
+        "event_date": "2026-11-15T09:00:00+03:00",
+        "end_date": "2026-11-15T13:00:00+03:00",
+        "audience": "Residents of Bole Sub-City",
+        "status": "published",
+        "created_at": "2026-11-01T09:00:00+03:00",
+        "updated_at": "2026-11-01T09:00:00+03:00",
+        "organization": {
+          "id": 1,
+          "name": "Bole Sub-City Administration",
+          "code": "subcity-bole"
+        },
+        "images": [
+          {
+            "id": 1,
+            "event_id": 1,
+            "image_url": "https://civiclink.gov.et/storage/events/townhall_banner.jpg",
+            "caption": "Town hall public announcement banner",
+            "order_column": 1
+          },
+          {
+            "id": 2,
+            "event_id": 1,
+            "image_url": "https://civiclink.gov.et/storage/events/hall_setup.jpg",
+            "caption": "Auditorium seating layout",
+            "order_column": 2
+          }
+        ]
+      }
+    ],
+    "total": 1,
+    "per_page": 15
+  },
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/events/{event}`
+Retrieve detailed information for a single civic event including its complete photo gallery.
+- **Authentication**: None (Public)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Event details retrieved successfully.",
+  "data": {
+    "id": 1,
+    "organization_id": 1,
+    "title": "Town Hall Meeting on Digital Civic Services",
+    "description": "Public consultation with Bole Sub-City residents on digitized public service workflows.",
+    "location_name": "Bole Sub-City Multi-Purpose Hall, 2nd Floor",
+    "event_date": "2026-11-15T09:00:00+03:00",
+    "end_date": "2026-11-15T13:00:00+03:00",
+    "audience": "Residents of Bole Sub-City",
+    "status": "published",
+    "organization": {
+      "id": 1,
+      "name": "Bole Sub-City Administration",
+      "code": "subcity-bole"
+    },
+    "images": [
+      {
+        "id": 1,
+        "event_id": 1,
+        "image_url": "https://civiclink.gov.et/storage/events/townhall_banner.jpg",
+        "caption": "Town hall public announcement banner",
+        "order_column": 1
+      }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `POST /api/v1/events`
+Publish a new community event with multiple gallery photos.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `events.create`
+- **Request Body**:
+```json
+{
+  "organization_id": 1,
+  "title": "Public Health & Sanitation Forum",
+  "description": "Community workshop detailing upcoming health inspection guidelines and waste disposal initiatives.",
+  "location_name": "Woreda 01 Community Center",
+  "event_date": "2026-11-20T10:00:00+03:00",
+  "end_date": "2026-11-20T15:00:00+03:00",
+  "audience": "Local business operators & community elders",
+  "status": "published",
+  "images": [
+    {
+      "image_url": "https://civiclink.gov.et/storage/events/health_forum_1.jpg",
+      "caption": "Health symposium podium",
+      "order_column": 1
+    },
+    {
+      "image_url": "https://civiclink.gov.et/storage/events/health_forum_2.jpg",
+      "caption": "Information pamphlet distribution",
+      "order_column": 2
+    }
+  ]
+}
+```
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Community event created successfully.",
+  "data": {
+    "id": 2,
+    "organization_id": 1,
+    "title": "Public Health & Sanitation Forum",
+    "description": "Community workshop detailing upcoming health inspection guidelines and waste disposal initiatives.",
+    "location_name": "Woreda 01 Community Center",
+    "event_date": "2026-11-20T10:00:00+03:00",
+    "end_date": "2026-11-20T15:00:00+03:00",
+    "audience": "Local business operators & community elders",
+    "status": "published",
+    "created_at": "2026-11-02T16:00:00+03:00",
+    "updated_at": "2026-11-02T16:00:00+03:00",
+    "organization": {
+      "id": 1,
+      "name": "Bole Sub-City Administration",
+      "code": "subcity-bole"
+    },
+    "images": [
+      {
+        "id": 3,
+        "event_id": 2,
+        "image_url": "https://civiclink.gov.et/storage/events/health_forum_1.jpg",
+        "caption": "Health symposium podium",
+        "order_column": 1
+      },
+      {
+        "id": 4,
+        "event_id": 2,
+        "image_url": "https://civiclink.gov.et/storage/events/health_forum_2.jpg",
+        "caption": "Information pamphlet distribution",
+        "order_column": 2
+      }
+    ]
+  },
+  "errors": null
+}
+```
+
+---
+
+### `DELETE /api/v1/events/{event}`
+Deletes an event and automatically cascades deletion of all associated gallery photos.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `events.delete`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Event deleted successfully.",
+  "data": null,
+  "errors": null
+}
+```
+
+---
+
+## 16. Landing Page CMS Management
+
+### `GET /api/v1/cms/landing-page`
+Publicly retrieves the complete 8-section citizen landing page configuration tree.
+- **Authentication**: None (Public)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Landing page CMS configuration retrieved successfully.",
+  "data": {
+    "announcement": {
+      "enabled": true,
+      "tag": "PUBLIC NOTICE",
+      "message": "Public services operate under standard working hours. Please prepare required documents before visiting bureaus.",
+      "linkText": "Explore the guide",
+      "linkUrl": "#guide"
+    },
+    "hero": {
+      "badge": "ETHIOPIA · CITIZEN SERVICES",
+      "titleEn": "One clear place to plan your next public service visit",
+      "titleAm": "ለሚቀጥለው የመንግሥት አገልግሎት ጉብኝትዎ የሚያስፈልግዎትን ሁሉ በአንድ ቦታ",
+      "subtitleEn": "The right information makes every visit easier.",
+      "subtitleAm": "ትክክለኛ መረጃ ጉብኝትዎን ቀላል ያደርገዋል።",
+      "primaryCtaText": "Find a service",
+      "primaryCtaUrl": "#guide",
+      "secondaryCtaText": "I've already visited",
+      "secondaryCtaUrl": "#feedback",
+      "slides": [
+        {
+          "id": 1,
+          "title": "Revenue services, made clearer.",
+          "bureau": "REVENUE BUREAU",
+          "category": "Revenue & Tax",
+          "image": "https://example.com/bureau.jpg",
+          "alt": "Local government building in Addis Ababa.",
+          "credit": "CivicLink",
+          "source": "https://example.com",
+          "tint": "#164d58"
+        }
+      ]
+    },
+    "quickSearch": {
+      "enabled": true,
+      "kicker": "START HERE",
+      "kickerNum": "01",
+      "title": "What do you need help with?",
+      "subtitle": "Choose a location and service to see your visit guide.",
+      "buttonText": "Show my guide",
+      "footnoteText": "Takes less than a minute · No account needed"
+    },
+    "serviceGuide": {
+      "enabled": true,
+      "kicker": "YOUR VISIT GUIDE",
+      "kickerNum": "02",
+      "titleLead": "A clearer path,",
+      "titleEmphasis": "step by step.",
+      "description": "Know what to bring and which room to visit, before you set off.",
+      "sampleBadgeText": "SAMPLE GUIDE",
+      "whatToBringTitle": "What to bring",
+      "expectationsNote": "Bring original documents where available.",
+      "routeHeading": "Your room-by-route",
+      "disclaimerText": "Service information can change. Confirm with your bureau if you are unsure."
+    },
+    "journey": {
+      "enabled": true,
+      "kicker": "SIMPLE FROM START TO FINISH",
+      "kickerNum": "03",
+      "title": "Three moments. One smoother journey.",
+      "steps": [
+        {
+          "step": "01 / BEFORE",
+          "title": "Prepare with confidence",
+          "detail": "Choose your service and see requirements before leaving home."
+        }
+      ]
+    },
+    "newsEvents": {
+      "enabled": true,
+      "kicker": "FROM YOUR COMMUNITY",
+      "kickerNum": "04",
+      "title": "What's happening near you.",
+      "sourceLabel": "Published by sub-city admins",
+      "showEvents": true,
+      "showNews": true,
+      "viewAllText": "View all community updates",
+      "emptyMessage": "No active announcements at this time."
+    },
+    "feedback": {
+      "enabled": true,
+      "kicker": "YOUR VOICE HELPS",
+      "kickerNum": "05",
+      "title": "Every experience can make things better.",
+      "description": "Tell us how your visit went.",
+      "pointOne": "Scan a bureau QR code.",
+      "pointTwo": "Clear guidance before your visit.",
+      "quote": "Clearer information for every visit."
+    },
+    "footer": {
+      "enabled": true,
+      "brandTagline": "Clearer information for every visit.",
+      "description": "Built for citizens, maintained by bureaus.",
+      "adminStripKicker": "FOR PUBLIC SERVICE TEAMS",
+      "adminStripTitle": "Manage information where it belongs.",
+      "adminStripDescription": "Sub-city and bureau admins keep guides up to date.",
+      "copyright": "© 2026 CivicLink Ethiopia",
+      "bottomNote": "Official citizen engagement portal.",
+      "helplinePhone": "7533"
+    }
+  },
+  "errors": null
+}
+```
+
+### `PUT /api/v1/cms/landing-page`
+Updates the landing page CMS configuration tree.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `cms.manage` (Super Admin)
+- **Request Body**: JSON configuration matching the 8 sections schema.
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Landing page CMS configuration updated successfully.",
+  "data": { ... },
+  "errors": null
+}
+```
+
+### `POST /api/v1/cms/upload-image`
+Uploads a hero or spotlight image file for CMS use.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `cms.manage` (Super Admin)
+- **Headers**: `Content-Type: multipart/form-data`
+- **Request Body**:
+  - `image` (file, required, image types: jpeg, png, jpg, webp, max: 5120 KB)
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "CMS image uploaded successfully.",
+  "data": {
+    "url": "http://localhost:8000/storage/cms/hero/20261029_192800_AbC123XyZ.jpg",
+    "filename": "20261029_192800_AbC123XyZ.jpg",
+    "path": "cms/hero/20261029_192800_AbC123XyZ.jpg"
+  },
+  "errors": null
+}
+```
+
 
 
 

@@ -7,6 +7,7 @@ namespace App\Http\Requests\Api\V1\Organizations;
 use App\Domains\Organizations\Models\Organization;
 use App\Domains\Organizations\Models\OrganizationType;
 use App\Domains\Organizations\Services\OrganizationScopeService;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -23,7 +24,7 @@ class CreateOrganizationRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -36,6 +37,7 @@ class CreateOrganizationRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
+            'logo' => ['required', 'image', 'max:2048'],
             'status' => ['nullable', 'string', 'in:active,inactive,suspended'],
         ];
     }

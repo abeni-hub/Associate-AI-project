@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace App\Domains\Organizations\Models;
 
 use App\Domains\AuditLogs\Models\AuditLog;
+use App\Domains\Events\Models\Event;
 use App\Domains\Organizations\Traits\HasOrganizationScope;
+use App\Domains\QrCodes\Models\QrCode;
 use App\Domains\Users\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Organization extends Model
@@ -29,6 +32,7 @@ class Organization extends Model
         'address',
         'phone',
         'email',
+        'logo_path',
         'status',
     ];
 
@@ -65,11 +69,27 @@ class Organization extends Model
     }
 
     /**
-     * Audit logs scoped to this organization.
+     * QR code posters registered to this organization.
      */
-    public function auditLogs(): HasMany
+    public function qrCodes(): HasMany
     {
-        return $this->hasMany(AuditLog::class, 'organization_id');
+        return $this->hasMany(QrCode::class, 'organization_id');
+    }
+
+    /**
+     * Civic events organized by this organization.
+     */
+    public function events(): HasMany
+    {
+        return $this->hasMany(Event::class, 'organization_id');
+    }
+
+    /**
+     * Audit logs scoped to this organization through its users.
+     */
+    public function auditLogs(): HasManyThrough
+    {
+        return $this->hasManyThrough(AuditLog::class, User::class, 'organization_id', 'user_id');
     }
 
     /**
@@ -98,8 +118,8 @@ class Organization extends Model
             return false;
         }
 
-        // Prevent direct circular hierarchy
-        if ($candidateParent->parent_organization_id === $this->id) {
+        // Prevent direct circular hierarchy for existing records
+        if ($this->exists && $this->id !== null && $candidateParent->parent_organization_id === $this->id) {
             return false;
         }
 

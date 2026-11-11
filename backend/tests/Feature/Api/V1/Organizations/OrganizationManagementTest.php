@@ -12,6 +12,7 @@ use Database\Seeders\OrganizationTypeSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class OrganizationManagementTest extends TestCase
@@ -106,9 +107,82 @@ class OrganizationManagementTest extends TestCase
             ])
             ->assertJsonStructure([
                 'data' => [
-                    '*' => ['id', 'name', 'code', 'level', 'can_be_root', 'allowed_parent_types'],
+                    '*' => [
+                        'id',
+                        'name' => ['eng', 'amh', 'oro'],
+                        'description' => ['eng', 'amh', 'oro'],
+                        'code',
+                        'level',
+                        'can_be_root',
+                        'allowed_parent_types',
+                    ],
                 ],
             ]);
+    }
+
+    public function test_can_create_organization_type_with_localized_fields(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->postJson('/api/v1/organization-types', [
+                'name' => 'Sector Office',
+                'name_amh' => 'የመስектор ቢሮ',
+                'name_oro' => 'Waldaa Seektarrii',
+                'code' => 'sector-office',
+                'description_amh' => 'የመስектор ቢሮ መግለጫ',
+                'description_oro' => 'Ibiiyyoo Seektarii',
+                'level' => 3,
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'name' => [
+                        'eng' => 'Sector Office',
+                        'amh' => 'የመስектор ቢሮ',
+                        'oro' => 'Waldaa Seektarrii',
+                    ],
+                    'description' => [
+                        'eng' => null,
+                        'amh' => 'የመስектор ቢሮ መግለጫ',
+                        'oro' => 'Ibiiyyoo Seektarii',
+                    ],
+                ],
+            ]);
+
+        $this->assertDatabaseHas('organization_types', [
+            'code' => 'sector-office',
+            'name_amh' => 'የመስектор ቢሮ',
+            'name_oro' => 'Waldaa Seektarrii',
+            'description_amh' => 'የመስектор ቢሮ መግለጫ',
+            'description_oro' => 'Ibiiyyoo Seektarii',
+        ]);
+    }
+
+    public function test_localized_fields_default_when_omitted(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->postJson('/api/v1/organization-types', [
+                'name' => 'Untranslated Type',
+                'code' => 'untranslated-type',
+                'level' => 3,
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'data' => [
+                    'name' => ['eng' => 'Untranslated Type', 'amh' => '', 'oro' => ''],
+                    'description' => ['eng' => null, 'amh' => null, 'oro' => null],
+                ],
+            ]);
+
+        $this->assertDatabaseHas('organization_types', [
+            'code' => 'untranslated-type',
+            'name_amh' => '',
+            'name_oro' => '',
+            'description_amh' => null,
+            'description_oro' => null,
+        ]);
     }
 
     public function test_sub_city_admin_can_only_see_organizations_in_own_hierarchy(): void
@@ -134,12 +208,13 @@ class OrganizationManagementTest extends TestCase
     public function test_super_admin_can_create_root_organization(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->postJson('/api/v1/organizations', [
+            ->post('/api/v1/organizations', [
                 'name' => 'Yeka Sub-City',
                 'code' => 'subcity-yeka',
                 'organization_type_id' => $this->subCityType->id,
                 'status' => 'active',
-            ]);
+                'logo' => UploadedFile::fake()->image('logo.png'),
+            ], ['Accept' => 'application/json']);
 
         $response->assertStatus(201)
             ->assertJson([
@@ -174,13 +249,14 @@ class OrganizationManagementTest extends TestCase
     public function test_sub_city_admin_can_create_bureau_under_own_hierarchy(): void
     {
         $response = $this->actingAs($this->subCityAdmin)
-            ->postJson('/api/v1/organizations', [
+            ->post('/api/v1/organizations', [
                 'name' => 'Vital Events Office',
                 'code' => 'bureau-vital-events-w01',
                 'organization_type_id' => $this->bureauType->id,
                 'parent_organization_id' => $this->woreda01->id,
                 'status' => 'active',
-            ]);
+                'logo' => UploadedFile::fake()->image('logo.png'),
+            ], ['Accept' => 'application/json']);
 
         $response->assertStatus(201)
             ->assertJson([
@@ -282,5 +358,78 @@ class OrganizationManagementTest extends TestCase
             'entity_type' => 'Organization',
             'entity_id' => (string) $leafOrg->id,
         ]);
+    }
+
+    public function test_organizations_index_supports_pagination_with_metadata(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->getJson('/api/v1/organizations?per_page=1&page=1');
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Organizations retrieved successfully.',
+            ])
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => ['id', 'name', 'code', 'status'],
+                ],
+                'meta' => [
+                    'current_page',
+                    'last_page',
+                    'per_page',
+                    'total',
+                    'from',
+                    'to',
+                ],
+            ]);
+
+        $this->assertCount(1, $response->json('data'));
+        $this->assertSame(1, $response->json('meta.per_page'));
+        $this->assertGreaterThanOrEqual(2, $response->json('meta.total'));
+    }
+
+    public function test_organizations_index_enforces_maximum_page_size(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->getJson('/api/v1/organizations?per_page=250');
+
+        $response->assertStatus(200);
+        $this->assertSame(100, $response->json('meta.per_page'));
+    }
+
+    public function test_organizations_index_filters_by_search_query(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->getJson('/api/v1/organizations?search=Bole');
+
+        $response->assertStatus(200);
+        $names = collect($response->json('data'))->pluck('name')->all();
+
+        $this->assertContains('Bole Sub-City', $names);
+    }
+
+    public function test_organizations_index_filters_by_status(): void
+    {
+        $inactiveOrg = Organization::create([
+            'organization_type_id' => $this->subCityType->id,
+            'name' => 'Inactive Sub-City',
+            'code' => 'subcity-inactive',
+            'status' => 'inactive',
+        ]);
+
+        $responseActive = $this->actingAs($this->superAdmin)
+            ->getJson('/api/v1/organizations?status=active');
+
+        $responseActive->assertStatus(200);
+        $activeIds = collect($responseActive->json('data'))->pluck('id')->all();
+        $this->assertNotContains($inactiveOrg->id, $activeIds);
+
+        $responseInactive = $this->actingAs($this->superAdmin)
+            ->getJson('/api/v1/organizations?status=inactive');
+
+        $responseInactive->assertStatus(200);
+        $inactiveIds = collect($responseInactive->json('data'))->pluck('id')->all();
+        $this->assertContains($inactiveOrg->id, $inactiveIds);
     }
 }

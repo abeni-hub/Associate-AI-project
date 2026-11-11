@@ -1,0 +1,21 @@
+$kind: http-request
+name: http://127.0.0.1:8000/api/v1/auth/login
+description: ""
+url: http://127.0.0.1:8000/api/v1/auth/change-password
+method: PUT
+headers:
+  Accept: application/json
+  Content-Type: application/json
+  X-XSRF-TOKEN: "{{xsrf_token}}"
+body:
+  type: json
+  content: "{\r
+    \  \"current_password\": \"CurrentPassword123!\",\r
+    \  \"new_password\": \"NewSecurePassword456!\",\r
+    \  \"new_password_confirmation\": \"NewSecurePassword456!\"\r
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{bearer_token}}"
+order: 1000
