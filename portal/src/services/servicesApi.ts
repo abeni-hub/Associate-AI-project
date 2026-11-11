@@ -62,12 +62,27 @@ export interface ServiceStep {
   service_id: number;
   step_number: number;
   title: string;
+  title_amh?: string;
+  title_oro?: string;
+  title_localized?: LocalizedString;
   instruction: string;
+  instruction_amh?: string;
+  instruction_oro?: string;
+  instruction_localized?: LocalizedString;
   room_number: string;
   floor: string;
   building: string;
+  building_amh?: string;
+  building_oro?: string;
+  building_localized?: LocalizedString | null;
   department_name: string;
+  department_name_amh?: string;
+  department_name_oro?: string;
+  department_name_localized?: LocalizedString | null;
   responsible_title: string;
+  responsible_title_amh?: string;
+  responsible_title_oro?: string;
+  responsible_title_localized?: LocalizedString | null;
   estimated_duration_minutes: number;
   is_active: boolean;
 }
@@ -137,12 +152,22 @@ export interface CreateServiceStepPayload {
   organization_id?: number | null;
   step_number: number;
   title: string;
+  title_amh?: string;
+  title_oro?: string;
   instruction: string;
+  instruction_amh?: string;
+  instruction_oro?: string;
   room_number: string;
   floor: string;
   building: string;
+  building_amh?: string;
+  building_oro?: string;
   department_name: string;
+  department_name_amh?: string;
+  department_name_oro?: string;
   responsible_title: string;
+  responsible_title_amh?: string;
+  responsible_title_oro?: string;
   estimated_duration_minutes?: number;
   is_active?: boolean;
 }
@@ -152,14 +177,70 @@ export interface UpdateServiceStepPayload {
   stepId: number;
   step_number?: number;
   title?: string;
+  title_amh?: string;
+  title_oro?: string;
   instruction?: string;
+  instruction_amh?: string;
+  instruction_oro?: string;
   room_number?: string;
   floor?: string;
   building?: string;
+  building_amh?: string;
+  building_oro?: string;
   department_name?: string;
+  department_name_amh?: string;
+  department_name_oro?: string;
   responsible_title?: string;
+  responsible_title_amh?: string;
+  responsible_title_oro?: string;
   estimated_duration_minutes?: number;
   is_active?: boolean;
+}
+
+function normalizeServiceStep(step: any): ServiceStep {
+  if (!step) return step;
+  const titleObj = typeof step.title === 'object' && step.title !== null ? step.title : null;
+  const instObj = typeof step.instruction === 'object' && step.instruction !== null ? step.instruction : null;
+  const deptObj =
+    typeof step.department_name === 'object' && step.department_name !== null
+      ? step.department_name
+      : null;
+  const bldgObj =
+    typeof step.building === 'object' && step.building !== null ? step.building : null;
+  const respObj =
+    typeof step.responsible_title === 'object' && step.responsible_title !== null
+      ? step.responsible_title
+      : null;
+
+  return {
+    ...step,
+    title: titleObj ? (titleObj.eng || titleObj.amh || titleObj.oro || '') : String(step.title || ''),
+    title_amh: titleObj?.amh || step.title_amh || '',
+    title_oro: titleObj?.oro || step.title_oro || '',
+    title_localized: titleObj || { eng: String(step.title || '') },
+    instruction: instObj
+      ? (instObj.eng || instObj.amh || instObj.oro || '')
+      : String(step.instruction || ''),
+    instruction_amh: instObj?.amh || step.instruction_amh || '',
+    instruction_oro: instObj?.oro || step.instruction_oro || '',
+    instruction_localized: instObj || { eng: String(step.instruction || '') },
+    department_name: deptObj
+      ? (deptObj.eng || deptObj.amh || deptObj.oro || '')
+      : String(step.department_name || ''),
+    department_name_amh: deptObj?.amh || step.department_name_amh || '',
+    department_name_oro: deptObj?.oro || step.department_name_oro || '',
+    department_name_localized: deptObj || (step.department_name ? { eng: String(step.department_name) } : null),
+    building: bldgObj ? (bldgObj.eng || bldgObj.amh || bldgObj.oro || '') : String(step.building || ''),
+    building_amh: bldgObj?.amh || step.building_amh || '',
+    building_oro: bldgObj?.oro || step.building_oro || '',
+    building_localized: bldgObj || (step.building ? { eng: String(step.building) } : null),
+    responsible_title: respObj
+      ? (respObj.eng || respObj.amh || respObj.oro || '')
+      : String(step.responsible_title || ''),
+    responsible_title_amh: respObj?.amh || step.responsible_title_amh || '',
+    responsible_title_oro: respObj?.oro || step.responsible_title_oro || '',
+    responsible_title_localized: respObj || (step.responsible_title ? { eng: String(step.responsible_title) } : null),
+  };
 }
 
 function normalizeServiceItem(raw: any): ServiceListItem {
@@ -196,6 +277,7 @@ function normalizeServiceItem(raw: any): ServiceListItem {
       oro: raw.description_oro || '',
     },
     parent,
+    steps: Array.isArray(raw.steps) ? raw.steps.map(normalizeServiceStep) : raw.steps,
     subservices: Array.isArray(raw.subservices)
       ? raw.subservices.map(normalizeServiceItem)
       : raw.subservices,
@@ -312,6 +394,13 @@ export const servicesApi = baseApi.injectEndpoints({
           url: `/services/${serviceId}/steps`,
           method: 'GET',
           params: orgId ? { organization_id: orgId } : undefined,
+        };
+      },
+      transformResponse: (res: ApiResponse<any[]>) => {
+        if (!res?.data || !Array.isArray(res.data)) return res;
+        return {
+          ...res,
+          data: res.data.map(normalizeServiceStep),
         };
       },
       providesTags: (_result, _error, arg) => {

@@ -115,6 +115,8 @@ class ServiceStepController extends Controller
         $serviceModel = $this->resolveService($service);
 
         $data = $request->validated();
+        $data['title_amh'] = $data['title_amh'] ?? '';
+        $data['title_oro'] = $data['title_oro'] ?? '';
 
         if (empty($data['step_number'])) {
             $maxStep = $serviceModel->steps()
@@ -145,7 +147,15 @@ class ServiceStepController extends Controller
             throw new NotFoundHttpException('Step not found for this service.');
         }
 
-        $step->update($request->validated());
+        $data = $request->validated();
+        if (array_key_exists('title_amh', $data)) {
+            $data['title_amh'] = $data['title_amh'] ?? '';
+        }
+        if (array_key_exists('title_oro', $data)) {
+            $data['title_oro'] = $data['title_oro'] ?? '';
+        }
+
+        $step->update($data);
         $step->load('organization');
 
         return ApiResponse::success(
@@ -247,12 +257,22 @@ class ServiceStepController extends Controller
                     'organization_id' => ! empty($st['organization_id']) ? (int) $st['organization_id'] : $sanitizedOrgId,
                     'step_number' => $stepCounter++,
                     'title' => $effectiveTitle,
+                    'title_amh' => ! empty($st['title_amh']) ? (string) $st['title_amh'] : (is_array($st['title'] ?? null) ? ($st['title']['amh'] ?? '') : ''),
+                    'title_oro' => ! empty($st['title_oro']) ? (string) $st['title_oro'] : (is_array($st['title'] ?? null) ? ($st['title']['oro'] ?? '') : ''),
                     'instruction' => $instruction,
+                    'instruction_amh' => ! empty($st['instruction_amh']) ? (string) $st['instruction_amh'] : (is_array($st['instruction'] ?? null) ? ($st['instruction']['amh'] ?? null) : null),
+                    'instruction_oro' => ! empty($st['instruction_oro']) ? (string) $st['instruction_oro'] : (is_array($st['instruction'] ?? null) ? ($st['instruction']['oro'] ?? null) : null),
                     'room_number' => $room !== '' ? $room : null,
                     'floor' => $floor !== '' ? $floor : null,
                     'building' => $building !== '' ? $building : null,
+                    'building_amh' => ! empty($st['building_amh']) ? (string) $st['building_amh'] : (is_array($st['building'] ?? null) ? ($st['building']['amh'] ?? null) : null),
+                    'building_oro' => ! empty($st['building_oro']) ? (string) $st['building_oro'] : (is_array($st['building'] ?? null) ? ($st['building']['oro'] ?? null) : null),
                     'department_name' => $department !== '' ? $department : null,
+                    'department_name_amh' => ! empty($st['department_name_amh']) ? (string) $st['department_name_amh'] : (is_array($st['department_name'] ?? null) ? ($st['department_name']['amh'] ?? null) : null),
+                    'department_name_oro' => ! empty($st['department_name_oro']) ? (string) $st['department_name_oro'] : (is_array($st['department_name'] ?? null) ? ($st['department_name']['oro'] ?? null) : null),
                     'responsible_title' => ! empty($st['responsible_title']) ? (string) $st['responsible_title'] : null,
+                    'responsible_title_amh' => ! empty($st['responsible_title_amh']) ? (string) $st['responsible_title_amh'] : (is_array($st['responsible_title'] ?? null) ? ($st['responsible_title']['amh'] ?? null) : null),
+                    'responsible_title_oro' => ! empty($st['responsible_title_oro']) ? (string) $st['responsible_title_oro'] : (is_array($st['responsible_title'] ?? null) ? ($st['responsible_title']['oro'] ?? null) : null),
                     'estimated_duration_minutes' => isset($st['estimated_duration_minutes']) ? (int) $st['estimated_duration_minutes'] : 15,
                     'is_active' => isset($st['is_active']) ? (bool) $st['is_active'] : true,
                 ];

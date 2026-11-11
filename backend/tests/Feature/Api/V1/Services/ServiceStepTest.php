@@ -115,9 +115,9 @@ class ServiceStepTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
             ->assertJsonCount(2, 'data')
-            ->assertJsonPath('data.0.title', 'Intake & Document Verification')
+            ->assertJsonPath('data.0.title.eng', 'Intake & Document Verification')
             ->assertJsonPath('data.0.room_number', 'Room 102')
-            ->assertJsonPath('data.1.title', 'Service Fee Payment')
+            ->assertJsonPath('data.1.title.eng', 'Service Fee Payment')
             ->assertJsonPath('data.1.room_number', 'Room 105');
     }
 
@@ -141,7 +141,7 @@ class ServiceStepTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.title', 'Biometric Verification')
+            ->assertJsonPath('data.title.eng', 'Biometric Verification')
             ->assertJsonPath('data.room_number', 'Room 204')
             ->assertJsonPath('data.floor', '2nd Floor');
     }
@@ -163,7 +163,7 @@ class ServiceStepTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.title', 'Application Review')
+            ->assertJsonPath('data.title.eng', 'Application Review')
             ->assertJsonPath('data.room_number', 'Room 101');
 
         $this->assertDatabaseHas('service_steps', [
@@ -192,7 +192,7 @@ class ServiceStepTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.title', 'Updated Stamping & Seal Room')
+            ->assertJsonPath('data.title.eng', 'Updated Stamping & Seal Room')
             ->assertJsonPath('data.room_number', 'Room 108');
 
         $this->assertDatabaseHas('service_steps', [
@@ -293,7 +293,55 @@ class ServiceStepTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
             ->assertJsonCount(1, 'data.steps')
-            ->assertJsonPath('data.steps.0.title', 'Intake Desk')
+            ->assertJsonPath('data.steps.0.title.eng', 'Intake Desk')
             ->assertJsonPath('data.steps.0.room_number', 'Room 101');
+    }
+
+    public function test_can_create_and_fetch_localized_room_step(): void
+    {
+        $response = $this->actingAs($this->admin)->postJson("/api/v1/services/{$this->service->code}/steps", [
+            'step_number' => 1,
+            'title' => 'Document Intake & Fingerprint',
+            'title_amh' => 'የሰነድ ማረጋገጫ እና የጣት አሻራ',
+            'title_oro' => 'Waraqaa Mirkaneessuu fi Asxaa Quba',
+            'instruction' => 'Submit original ID and provide biometric scans.',
+            'instruction_amh' => 'ዋናውን መታወቂያ ያቅርቡ እና የባዮሜትሪክ ቅኝት ይስጡ።',
+            'instruction_oro' => 'Waraqaa eenyummaa duraa dhiyeessaa akkasumas iskaanii baayomeetiriikii kennaa.',
+            'room_number' => 'Room 104',
+            'floor' => 'Ground Floor',
+            'building' => 'Civil Center',
+            'building_amh' => 'ዋናው የሲቪል ማዕከል',
+            'building_oro' => 'Giddugala Siiviilii Guddaa',
+            'department_name' => 'Intake Department',
+            'department_name_amh' => 'የመቀበያ ክፍል',
+            'department_name_oro' => 'Kutaa Simannaa',
+            'is_active' => true,
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'title' => [
+                        'eng' => 'Document Intake & Fingerprint',
+                        'amh' => 'የሰነድ ማረጋገጫ እና የጣት አሻራ',
+                        'oro' => 'Waraqaa Mirkaneessuu fi Asxaa Quba',
+                    ],
+                    'instruction' => [
+                        'eng' => 'Submit original ID and provide biometric scans.',
+                        'amh' => 'ዋናውን መታወቂያ ያቅርቡ እና የባዮሜትሪክ ቅኝት ይስጡ።',
+                        'oro' => 'Waraqaa eenyummaa duraa dhiyeessaa akkasumas iskaanii baayomeetiriikii kennaa.',
+                    ],
+                    'room_number' => 'Room 104',
+                ],
+            ]);
+
+        $this->assertDatabaseHas('service_steps', [
+            'service_id' => $this->service->id,
+            'title' => 'Document Intake & Fingerprint',
+            'title_amh' => 'የሰነድ ማረጋገጫ እና የጣት አሻራ',
+            'title_oro' => 'Waraqaa Mirkaneessuu fi Asxaa Quba',
+            'room_number' => 'Room 104',
+        ]);
     }
 }
