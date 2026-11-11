@@ -33,6 +33,8 @@ class UpdateNewsAction
                 foreach ($validatedData['contents'] as $index => $block) {
                     $news->contents()->create([
                         'content' => $block['content'],
+                        'content_amh' => $block['content_amh'] ?? '',
+                        'content_oro' => $block['content_oro'] ?? '',
                         'content_type' => $block['content_type'] ?? 'text',
                         'order' => $block['order'] ?? $index + 1,
                     ]);

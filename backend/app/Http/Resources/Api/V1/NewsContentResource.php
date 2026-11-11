@@ -19,7 +19,11 @@ class NewsContentResource extends JsonResource
         return [
             'id' => $this->id,
             'news_id' => $this->news_id,
-            'content' => $this->content,
+            'content' => [
+                'eng' => $this->content,
+                'amh' => $this->content_amh,
+                'oro' => $this->content_oro,
+            ],
             'content_type' => $this->content_type,
             'order' => (int) $this->order,
             'created_at' => $this->created_at?->toIso8601String(),
