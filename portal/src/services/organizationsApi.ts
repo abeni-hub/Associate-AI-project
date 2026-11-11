@@ -93,6 +93,25 @@ export const organizationsApi = baseApi.injectEndpoints({
         url: '/organization-types',
         method: 'GET',
       }),
+      transformResponse: (res: ApiResponse<any[]>) => {
+        if (!res?.data || !Array.isArray(res.data)) return res;
+        return {
+          ...res,
+          data: res.data.map((item) => ({
+            ...item,
+            name:
+              typeof item.name === 'object' && item.name !== null
+                ? item.name.eng || item.name.amh || item.name.oro || ''
+                : item.name,
+            description:
+              typeof item.description === 'object' && item.description !== null
+                ? item.description.eng || item.description.amh || item.description.oro || ''
+                : item.description,
+            name_localized: typeof item.name === 'object' ? item.name : { eng: item.name },
+            description_localized: typeof item.description === 'object' ? item.description : { eng: item.description },
+          })),
+        };
+      },
       providesTags: ['Organization'],
     }),
 

@@ -1,11 +1,23 @@
 import { baseApi } from './baseApi';
 import type { ApiResponse, PaginatedResponse, PaginationQueryParams } from '../types/api.types';
 
+export interface LocalizedString {
+  eng: string;
+  amh?: string;
+  oro?: string;
+}
+
 export interface ServiceListItem {
   id: number;
   name: string;
+  name_amh?: string;
+  name_oro?: string;
+  name_localized?: LocalizedString;
   code: string;
   description: string;
+  description_amh?: string;
+  description_oro?: string;
+  description_localized?: LocalizedString;
   fee_amount: number;
   fee_currency: string;
   fee_notes?: string;
@@ -13,8 +25,9 @@ export interface ServiceListItem {
   estimated_duration_minutes: number;
   is_active: boolean;
   is_master: boolean;
+  organization_id?: number | null;
   parent_id?: number | null;
-  parent?: { id: number; name: string; code: string } | null;
+  parent?: { id: number; name: string; code: string; name_localized?: LocalizedString } | null;
   subservices_count?: number;
   required_documents_count?: number;
   offering_organizations_count?: number;
@@ -74,9 +87,13 @@ export interface ServiceFilterParams extends PaginationQueryParams {
 
 export interface CreateServicePayload {
   name: string;
+  name_amh?: string;
+  name_oro?: string;
   code: string;
   parent_id?: number | null;
   description: string;
+  description_amh?: string;
+  description_oro?: string;
   eligibility_criteria?: string;
   fee_amount?: number;
   fee_currency?: string;
@@ -94,9 +111,13 @@ export interface CreateServicePayload {
 export interface UpdateServicePayload {
   id: number;
   name?: string;
+  name_amh?: string;
+  name_oro?: string;
   code?: string;
   parent_id?: number | null;
   description?: string;
+  description_amh?: string;
+  description_oro?: string;
   eligibility_criteria?: string;
   fee_amount?: number;
   fee_currency?: string;
@@ -141,6 +162,46 @@ export interface UpdateServiceStepPayload {
   is_active?: boolean;
 }
 
+function normalizeServiceItem(raw: any): ServiceListItem {
+  if (!raw) return raw;
+  const nameObj = typeof raw.name === 'object' && raw.name !== null ? raw.name : null;
+  const descObj = typeof raw.description === 'object' && raw.description !== null ? raw.description : null;
+
+  const parentNameObj =
+    raw.parent && typeof raw.parent.name === 'object' && raw.parent.name !== null
+      ? raw.parent.name
+      : null;
+  const parent = raw.parent
+    ? {
+        ...raw.parent,
+        name: parentNameObj
+          ? (parentNameObj.eng || parentNameObj.amh || parentNameObj.oro || '')
+          : String(raw.parent.name || ''),
+        name_localized: parentNameObj || { eng: String(raw.parent.name || '') },
+      }
+    : null;
+
+  return {
+    ...raw,
+    name: nameObj ? (nameObj.eng || nameObj.amh || nameObj.oro || '') : String(raw.name || ''),
+    name_amh: nameObj?.amh || raw.name_amh || '',
+    name_oro: nameObj?.oro || raw.name_oro || '',
+    name_localized: nameObj || { eng: String(raw.name || ''), amh: raw.name_amh || '', oro: raw.name_oro || '' },
+    description: descObj ? (descObj.eng || descObj.amh || descObj.oro || '') : String(raw.description || ''),
+    description_amh: descObj?.amh || raw.description_amh || '',
+    description_oro: descObj?.oro || raw.description_oro || '',
+    description_localized: descObj || {
+      eng: String(raw.description || ''),
+      amh: raw.description_amh || '',
+      oro: raw.description_oro || '',
+    },
+    parent,
+    subservices: Array.isArray(raw.subservices)
+      ? raw.subservices.map(normalizeServiceItem)
+      : raw.subservices,
+  };
+}
+
 /**
  * Government Services RTK Query API
  *
@@ -158,6 +219,13 @@ export const servicesApi = baseApi.injectEndpoints({
           ...(params || {}),
         },
       }),
+      transformResponse: (res: PaginatedResponse<any>) => {
+        if (!res?.data || !Array.isArray(res.data)) return res;
+        return {
+          ...res,
+          data: res.data.map(normalizeServiceItem),
+        };
+      },
       providesTags: (result) =>
         result?.data
           ? [
@@ -172,6 +240,13 @@ export const servicesApi = baseApi.injectEndpoints({
         url: `/services/${idOrCode}`,
         method: 'GET',
       }),
+      transformResponse: (res: ApiResponse<any>) => {
+        if (!res?.data) return res;
+        return {
+          ...res,
+          data: normalizeServiceItem(res.data),
+        };
+      },
       providesTags: (_result, _error, idOrCode) => [{ type: 'Service', id: idOrCode }],
     }),
 
@@ -333,7 +408,7 @@ export const servicesApi = baseApi.injectEndpoints({
     }),
 
     syncServiceDocuments: builder.mutation<
-      ApiResponse<ServiceItemDetail>,
+      ApiResponse<ServiceDetail>,
       {
         serviceId: number | string;
         documents: Array<{

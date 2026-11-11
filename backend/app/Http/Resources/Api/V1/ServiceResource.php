@@ -18,9 +18,17 @@ class ServiceResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
+            'name' => [
+                'eng' => $this->name,
+                'amh' => $this->name_amh ?? '',
+                'oro' => $this->name_oro ?? '',
+            ],
             'code' => $this->code,
-            'description' => $this->description,
+            'description' => [
+                'eng' => $this->description,
+                'amh' => $this->description_amh,
+                'oro' => $this->description_oro,
+            ],
             'eligibility_criteria' => $this->eligibility_criteria,
             'estimated_duration_minutes' => $this->estimated_duration_minutes,
             'fee_amount' => (float) $this->fee_amount,
@@ -32,7 +40,11 @@ class ServiceResource extends JsonResource
             'is_master' => $this->isMaster(),
             'parent' => $this->relationLoaded('parent') && $this->parent ? [
                 'id' => $this->parent->id,
-                'name' => $this->parent->name,
+                'name' => [
+                    'eng' => $this->parent->name,
+                    'amh' => $this->parent->name_amh ?? '',
+                    'oro' => $this->parent->name_oro ?? '',
+                ],
                 'code' => $this->parent->code,
             ] : null,
             'organization' => $this->relationLoaded('organization') && $this->organization ? [

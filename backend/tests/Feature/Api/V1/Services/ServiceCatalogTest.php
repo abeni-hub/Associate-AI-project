@@ -134,7 +134,11 @@ class ServiceCatalogTest extends TestCase
             ->assertJson([
                 'success' => true,
                 'data' => [
-                    'name' => 'Birth Certificate Issuance',
+                    'name' => [
+                        'eng' => 'Birth Certificate Issuance',
+                        'amh' => '',
+                        'oro' => '',
+                    ],
                     'code' => 'birth-certificate',
                     'fee_amount' => 50,
                     'required_documents' => [
