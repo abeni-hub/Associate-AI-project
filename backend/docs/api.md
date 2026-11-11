@@ -721,9 +721,17 @@ Public citizen service detail profile (lookup supported by numeric ID or string 
   "message": "Service retrieved successfully.",
   "data": {
     "id": 2,
-    "name": "Birth Certificate Issuance",
+    "name": {
+      "eng": "Birth Certificate Issuance",
+      "amh": "የልደት ምስክር ወረቀት አሰጣጥ",
+      "oro": "Waraqaa Ragaa Dhalootaa Kennuu"
+    },
     "code": "birth-certificate",
-    "description": "Official civil registration of newborn births.",
+    "description": {
+      "eng": "Official civil registration of newborn births.",
+      "amh": "የአራስ ልጆች ህጋዊ የልደት ምዝገባ።",
+      "oro": "Galmee seera qabeessa dhaloota daa'immanii."
+    },
     "eligibility_criteria": "Child must be born within the sub-city jurisdiction.",
     "estimated_duration_minutes": 45,
     "fee_amount": 50,
@@ -733,7 +741,11 @@ Public citizen service detail profile (lookup supported by numeric ID or string 
     "is_master": false,
     "parent": {
       "id": 1,
-      "name": "Vital Events Registration",
+      "name": {
+        "eng": "Vital Events Registration",
+        "amh": "የወሳኝ ኩነቶች ምዝገባ",
+        "oro": "Galmee Taateewwan Murteessoo"
+      },
       "code": "vital-events"
     },
     "required_documents": [
@@ -769,9 +781,13 @@ Create a new master service or subservice.
 ```json
 {
   "name": "Marriage Certificate Registration",
+  "name_amh": "የጋብቻ ምስክር ወረቀት ምዝገባ",
+  "name_oro": "Galmee Waraqaa Ragaa Gaa'elaa",
   "code": "marriage-certificate",
   "parent_id": 1,
   "description": "Registration of formal marriage contracts.",
+  "description_amh": "ህጋዊ የጋብቻ ውል ምዝገባ።",
+  "description_oro": "Galmee waliigaltee gaa'elaa seera qabeessaa.",
   "fee_amount": 100.00,
   "fee_currency": "ETB",
   "estimated_duration_minutes": 60,
@@ -786,6 +802,8 @@ Create a new master service or subservice.
 Update service details.
 - **Authentication**: `auth:sanctum` + `account.active`
 - **Permission Required**: `services.update`
+- **Request Body**: Accepts any mutable fields from `POST /api/v1/services`, including `name_amh`, `name_oro`, `description_amh`, and `description_oro`.
+- **Response (200 OK)**: Returns updated `ServiceResource`.
 
 ---
 
@@ -907,13 +925,33 @@ Retrieve the ordered step-by-step navigation instructions for a service.
       "service_id": 2,
       "organization_id": null,
       "step_number": 1,
-      "title": "Intake & Document Verification",
-      "instruction": "Present original hospital birth notification and both parents Kebele ID cards to the intake officer.",
+      "title": {
+        "eng": "Intake & Document Verification",
+        "amh": "ሰነድ ማረጋገጫና መቀበያ",
+        "oro": "Simannaa fi Qorannoo Sanadaa"
+      },
+      "instruction": {
+        "eng": "Present original hospital birth notification and both parents Kebele ID cards to the intake officer.",
+        "amh": "የሆስፒታል የልደት ማስታወቂያ እና የሁለቱንም ወላጆች የቀበሌ መታወቂያ ካርድ ለባለሙያው ያቅርቡ።",
+        "oro": "Waraqaa beeksisa dhalootaa hospitaalaa fi waraqaa eenyummaa gandaa warra lachuu ogeessa simannaatti dhiyeessaa."
+      },
       "room_number": "Room 102",
       "floor": "Ground Floor",
-      "building": "Main Public Service Block",
-      "department_name": "Civil Registration Desk",
-      "responsible_title": "Intake Officer",
+      "building": {
+        "eng": "Main Public Service Block",
+        "amh": "ዋናው የህዝብ አገልግሎት ህንፃ",
+        "oro": "Gamoo Tajaajila Hawaasaa Guddaa"
+      },
+      "department_name": {
+        "eng": "Civil Registration Desk",
+        "amh": "የፍትሐ ብሔር ምዝገባ ክፍል",
+        "oro": "Kutaa Galmee Taateewwan Murteessoo"
+      },
+      "responsible_title": {
+        "eng": "Intake Officer",
+        "amh": "የሰነድ ተቀባይ ባለሙያ",
+        "oro": "Ogeessa Simannaa"
+      },
       "estimated_duration_minutes": 15,
       "is_active": true,
       "organization": null,
@@ -924,13 +962,33 @@ Retrieve the ordered step-by-step navigation instructions for a service.
       "service_id": 2,
       "organization_id": null,
       "step_number": 2,
-      "title": "Service Fee Payment",
-      "instruction": "Pay 50 ETB government service fee and obtain the official digital revenue receipt.",
+      "title": {
+        "eng": "Service Fee Payment",
+        "amh": "የአገልግሎት ክፍያ መፈጸሚያ",
+        "oro": "Kaffaltii Tajaajilaa"
+      },
+      "instruction": {
+        "eng": "Pay 50 ETB government service fee and obtain the official digital revenue receipt.",
+        "amh": "የ 50 የኢትዮጵያ ብር የአገልግሎት ክፍያ ይክፈሉ እና ዲጂታል ደረሰኝ ይቀበሉ።",
+        "oro": "Kaffaltii tajaajila mootummaa Qarshii 50 kaffaluun nagahee galii dijitaalaa fudhadhaa."
+      },
       "room_number": "Counter 3",
       "floor": "Ground Floor",
-      "building": "Main Public Service Block",
-      "department_name": "Revenue & Cashier Desk",
-      "responsible_title": "Cashier",
+      "building": {
+        "eng": "Main Public Service Block",
+        "amh": "ዋናው የህዝብ አገልግሎት ህንፃ",
+        "oro": "Gamoo Tajaajila Hawaasaa Guddaa"
+      },
+      "department_name": {
+        "eng": "Revenue & Cashier Desk",
+        "amh": "የገቢዎችና ገንዘብ ተቀባይ ክፍል",
+        "oro": "Kutaa Galii fi Kaffaltii"
+      },
+      "responsible_title": {
+        "eng": "Cashier",
+        "amh": "ገንዘብ ተቀባይ",
+        "oro": "Qabduu Maallaqaa"
+      },
       "estimated_duration_minutes": 10,
       "is_active": true,
       "organization": null,
@@ -960,12 +1018,22 @@ Create a new room instruction step for a service.
   "organization_id": null,
   "step_number": 1,
   "title": "Document Verification Desk",
+  "title_amh": "የሰነድ ማረጋገጫ ጠረጴዛ",
+  "title_oro": "Deseekii Mirkaneessa Sanadaa",
   "instruction": "Present application form and verified identification.",
+  "instruction_amh": "የማመልከቻ ቅጹንና የተረጋገጠ መታወቂያ ያቅርቡ።",
+  "instruction_oro": "Uunka iyyannoo fi waraqaa eenyummaa mirkanaa'e dhiyeessaa.",
   "room_number": "Room 104",
   "floor": "Ground Floor",
   "building": "Main Administration Block",
+  "building_amh": "ዋናው አስተዳደር ህንፃ",
+  "building_oro": "Gamoo Bulchiinsa Guddaa",
   "department_name": "Customer Care Unit",
+  "department_name_amh": "የደንበኞች አገልግሎት ክፍል",
+  "department_name_oro": "Kutaa Tajaajila Maamiltootaa",
   "responsible_title": "Intake Specialist",
+  "responsible_title_amh": "የቅበላ ባለሙያ",
+  "responsible_title_oro": "Ogeessa Simannaa",
   "estimated_duration_minutes": 15,
   "is_active": true
 }
@@ -974,10 +1042,20 @@ Create a new room instruction step for a service.
 
 ---
 
+### `POST /api/v1/services/{service_id_or_code}/steps/sync`
+Synchronize the full sequence of room instruction steps in batch.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `service_steps.manage`
+- **Request Body**: Accepts `organization_id` and an array of `steps` with fields supported in step creation (`title_amh`, `instruction_amh`, `building_amh`, `department_name_amh`, `responsible_title_amh`, or nested multilingual objects).
+- **Response (200 OK)**: Returns synchronized array of `ServiceStepResource`.
+
+---
+
 ### `PUT /api/v1/services/{service_id_or_code}/steps/{step_id}`
 Update an existing step's room, title, duration, or instructions.
 - **Authentication**: `auth:sanctum` + `account.active`
 - **Permission Required**: `service_steps.manage`
+- **Request Body**: Accepts any mutable fields from `POST /api/v1/services/{service_id_or_code}/steps`, including localized fields (`title_amh`, `title_oro`, `instruction_amh`, `instruction_oro`, `department_name_amh`, `department_name_oro`, `building_amh`, `building_oro`, `responsible_title_amh`, `responsible_title_oro`).
 - **Response (200 OK)**: Returns updated `ServiceStepResource`.
 
 ---
@@ -1235,14 +1313,14 @@ Delete a news article and its associated content blocks.
 
 ## 11. Citizen Feedback
 
-Public submission of citizen feedback, complaints, and satisfaction ratings with automatic 10-digit tracking numbers, alongside organization-scoped administrative review.
+Public submission of citizen feedback, complaints, and satisfaction ratings with automatic 10-digit tracking numbers, alongside organization-scoped administrative review and official responses.
 
 ---
 
 ### `POST /api/v1/feedbacks`
 Submit citizen feedback, complaint, or satisfaction rating directed to a government organization.
 - **Authentication**: None (Public)
-- **Rate Limit**: 10 submissions per minute per client IP (`throttle:10,1`)
+- **Rate Limit**: 10 submissions per minute per client IP (`throttle:feedback-submit`)
 - **Feedback Types**:
   - `complaint`: Generates a random, unique 10-digit tracking number (`tracking_number`) for tracking.
   - `feedback`: General feedback or recommendation.
@@ -1252,9 +1330,12 @@ Submit citizen feedback, complaint, or satisfaction rating directed to a governm
 {
   "feedback_for_organization": 1,
   "feedback_content": "The intake officer at Room 102 was courteous and processed our documents in under 15 minutes.",
+  "feedback_content_amh": "በክፍል 102 የነበረው ሰራተኛ በትህትና አስተናግዶን ሰነዳችንን በ15 ደቂቃ ውስጥ አጠናቀቀ።",
+  "feedback_content_oro": "Hojjetaan kutaa 102 keessaa kabajaan nu keessummeessee sanada keenya daqiiqaa 15 keessatti xumure.",
   "feedback_type": "satisfaction",
   "full_name": "Abebe Bikila",
-  "phone_number": "+251911223344"
+  "phone_number": "+251911223344",
+  "email": "abebe@example.com"
 }
 ```
 - **Complaint Request Body Example (with Tracking Number)**:
@@ -1262,6 +1343,8 @@ Submit citizen feedback, complaint, or satisfaction rating directed to a governm
 {
   "feedback_for_organization": 2,
   "feedback_content": "The fee cashier desk was closed without notice during official operating hours.",
+  "feedback_content_amh": "የክፍያ መቀበያ መስኮቱ በስራ ሰዓት ያለቅድመ ማስታወቂያ ተዘግቶ ነበር።",
+  "feedback_content_oro": "Foddaan kaffaltii sa'aatii hojii keessatti beeksisa malee cufamee ture.",
   "feedback_type": "complaint",
   "full_name": "Tigist Haile",
   "phone_number": "+251922334455"
@@ -1275,13 +1358,55 @@ Submit citizen feedback, complaint, or satisfaction rating directed to a governm
   "data": {
     "id": 14,
     "feedback_for_organization": 2,
-    "feedback_content": "The fee cashier desk was closed without notice during official operating hours.",
+    "feedback_content": {
+      "eng": "The fee cashier desk was closed without notice during official operating hours.",
+      "amh": "የክፍያ መቀበያ መስኮቱ በስራ ሰዓት ያለቅድመ ማስታወቂያ ተዘግቶ ነበር።",
+      "oro": "Foddaan kaffaltii sa'aatii hojii keessatti beeksisa malee cufamee ture."
+    },
     "feedback_type": "complaint",
     "tracking_number": "5482910482",
+    "status": "submitted",
     "full_name": "Tigist Haile",
     "phone_number": "+251922334455",
+    "email": null,
     "created_at": "2026-10-26T14:30:00+00:00",
     "updated_at": "2026-10-26T14:30:00+00:00"
+  },
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/feedbacks/track/{tracking_number}`
+Public lookup for citizens to track the status and official response to their submitted complaint.
+- **Authentication**: None (Public)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Feedback retrieved successfully.",
+  "data": {
+    "id": 14,
+    "feedback_for_organization": 2,
+    "feedback_content": {
+      "eng": "The fee cashier desk was closed without notice during official operating hours.",
+      "amh": "የክፍያ መቀበያ መስኮቱ በስራ ሰዓት ያለቅድመ ማስታወቂያ ተዘግቶ ነበር።",
+      "oro": "Foddaan kaffaltii sa'aatii hojii keessatti beeksisa malee cufamee ture."
+    },
+    "feedback_type": "complaint",
+    "tracking_number": "5482910482",
+    "status": "resolved",
+    "full_name": "Tigist Haile",
+    "phone_number": "+251922334455",
+    "email": null,
+    "response": {
+      "eng": "The cashier desk has reopened and staff schedule adjusted to prevent delays.",
+      "amh": "የገንዘብ ተቀባዩ መስኮት እንደገና የተከፈተ ሲሆን መዘግየትን ለመከላከል የሰራተኞች የፈረቃ መርሃ ግብር ተስተካክሏል።",
+      "oro": "Foddaan kaffaltii deebi'ee banamee jira, tursiisa ittisuufis sagantaan jijjiirraa hojjettootaa sirreeffameera."
+    },
+    "created_at": "2026-10-26T14:30:00+00:00",
+    "updated_at": "2026-10-26T15:10:00+00:00"
   },
   "errors": null
 }
@@ -1293,6 +1418,11 @@ Submit citizen feedback, complaint, or satisfaction rating directed to a governm
 List feedback submissions scoped to the authenticated user's organization hierarchy.
 - **Authentication**: `auth:sanctum` + `account.active`
 - **Permission Required**: `feedback.view_own` or `feedback.view_descendants`
+- **Query Parameters**:
+  - `status`: Filter by status (`submitted`, `in_review`, `resolved`, `rejected`).
+  - `type`: Filter by feedback type (`feedback`, `complaint`, `satisfaction`).
+  - `organization_id`: Filter by organization within caller scope.
+  - `per_page`: Pagination limit (default 15).
 - **Data Scoping Rules**:
   - **Super Admin**: Views all feedback across the platform.
   - **Sub-City Admin (with `feedback.view_descendants`)**: Views feedback for Sub-City + all child Woredas and Bureaus.
@@ -1306,20 +1436,79 @@ List feedback submissions scoped to the authenticated user's organization hierar
     {
       "id": 14,
       "feedback_for_organization": 2,
-      "feedback_content": "The fee cashier desk was closed without notice during official operating hours.",
+      "feedback_content": {
+        "eng": "The fee cashier desk was closed without notice during official operating hours.",
+        "amh": "የክፍያ መቀበያ መስኮቱ በስራ ሰዓት ያለቅድመ ማስታወቂያ ተዘግቶ ነበር።",
+        "oro": "Foddaan kaffaltii sa'aatii hojii keessatti beeksisa malee cufamee ture."
+      },
       "feedback_type": "complaint",
       "tracking_number": "5482910482",
+      "status": "resolved",
       "full_name": "Tigist Haile",
       "phone_number": "+251922334455",
-      "created_at": "2026-10-26T14:30:00+00:00",
-      "updated_at": "2026-10-26T14:30:00+00:00",
+      "email": null,
       "organization": {
         "id": 2,
         "name": "Woreda 01",
         "code": "woreda-01-bole"
-      }
+      },
+      "response": {
+        "eng": "The cashier desk has reopened and staff schedule adjusted to prevent delays.",
+        "amh": "የገንዘብ ተቀባዩ መስኮት እንደገና የተከፈተ ሲሆን መዘግየትን ለመከላከል የሰራተኞች የፈረቃ መርሃ ግብር ተስተካክሏል።",
+        "oro": "Foddaan kaffaltii deebi'ee banamee jira, tursiisa ittisuufis sagantaan jijjiirraa hojjettootaa sirreeffameera."
+      },
+      "created_at": "2026-10-26T14:30:00+00:00",
+      "updated_at": "2026-10-26T15:10:00+00:00"
     }
   ],
+  "errors": null
+}
+```
+
+---
+
+### `GET /api/v1/feedbacks/{id}`
+Retrieve a single feedback record with full detail.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `feedback.view_own` or `feedback.view_descendants`
+- **Response (200 OK)**: Returns `FeedbackResource`.
+
+---
+
+### `POST /api/v1/feedbacks/{id}/respond`
+Submit an official administrative response to a feedback or complaint item. Automatically transitions the feedback status to `resolved`.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `feedback.update_status`
+- **Request Body**:
+```json
+{
+  "response": "The cashier desk has reopened and staff schedule adjusted to prevent delays.",
+  "response_amh": "የገንዘብ ተቀባዩ መስኮት እንደገና የተከፈተ ሲሆን መዘግየትን ለመከላከል የሰራተኞች የፈረቃ መርሃ ግብር ተስተካክሏል።",
+  "response_oro": "Foddaan kaffaltii deebi'ee banamee jira, tursiisa ittisuufis sagantaan jijjiirraa hojjettootaa sirreeffameera."
+}
+```
+- **Response (200 OK)**: Returns updated `FeedbackResource` with populated `response` object.
+
+---
+
+### `PUT /api/v1/feedbacks/{id}`
+Update feedback status, reassignment, or details.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `feedback.update_status`
+- **Response (200 OK)**: Returns updated `FeedbackResource`.
+
+---
+
+### `DELETE /api/v1/feedbacks/{id}`
+Delete a feedback record.
+- **Authentication**: `auth:sanctum` + `account.active`
+- **Permission Required**: `feedback.update_status`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Feedback deleted successfully.",
+  "data": null,
   "errors": null
 }
 ```
