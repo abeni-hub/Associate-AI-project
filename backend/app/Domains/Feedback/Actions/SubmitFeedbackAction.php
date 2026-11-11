@@ -19,6 +19,8 @@ class SubmitFeedbackAction
             $payload = [
                 'feedback_for_organization' => $data->feedbackForOrganization,
                 'feedback_content' => $data->feedbackContent,
+                'feedback_content_amh' => $data->feedbackContentAmh,
+                'feedback_content_oro' => $data->feedbackContentOro,
                 'feedback_type' => $data->feedbackType,
                 'full_name' => $data->fullName,
                 'phone_number' => $data->phoneNumber,

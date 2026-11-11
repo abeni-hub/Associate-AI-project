@@ -1,6 +1,12 @@
 import { baseApi } from './baseApi';
 import type { ApiResponse, PaginatedResponse, PaginationQueryParams } from '../types/api.types';
 
+export interface LocalizedString {
+  eng: string;
+  amh?: string;
+  oro?: string;
+}
+
 export interface CitizenFeedback {
   id: string | number;
   type?: 'Complaint' | 'Satisfaction' | 'Suggestion';
@@ -17,6 +23,9 @@ export interface CitizenFeedback {
   // Exact fields from api.md Section 11
   feedback_for_organization?: number;
   feedback_content?: string;
+  feedback_content_amh?: string;
+  feedback_content_oro?: string;
+  feedback_content_localized?: LocalizedString;
   feedback_type?: 'complaint' | 'feedback' | 'satisfaction';
   tracking_number?: string;
   full_name?: string;
@@ -28,7 +37,36 @@ export interface CitizenFeedback {
     code: string;
   };
   response?: string;
+  response_amh?: string;
+  response_oro?: string;
+  response_localized?: LocalizedString | null;
   resolved_at?: string;
+}
+
+function normalizeFeedback(raw: any): CitizenFeedback {
+  if (!raw) return raw;
+  const contentObj =
+    typeof raw.feedback_content === 'object' && raw.feedback_content !== null
+      ? raw.feedback_content
+      : null;
+  const respObj =
+    typeof raw.response === 'object' && raw.response !== null ? raw.response : null;
+
+  return {
+    ...raw,
+    feedback_content: contentObj
+      ? (contentObj.eng || contentObj.amh || contentObj.oro || '')
+      : String(raw.feedback_content || ''),
+    feedback_content_amh: contentObj?.amh || raw.feedback_content_amh || '',
+    feedback_content_oro: contentObj?.oro || raw.feedback_content_oro || '',
+    feedback_content_localized: contentObj || { eng: String(raw.feedback_content || '') },
+    response: respObj
+      ? (respObj.eng || respObj.amh || respObj.oro || '')
+      : (raw.response != null ? String(raw.response) : undefined),
+    response_amh: respObj?.amh || raw.response_amh || '',
+    response_oro: respObj?.oro || raw.response_oro || '',
+    response_localized: respObj || (raw.response != null ? { eng: String(raw.response) } : null),
+  };
 }
 
 export interface FeedbackFilterParams extends PaginationQueryParams {
@@ -59,6 +97,13 @@ export const feedbackApi = baseApi.injectEndpoints({
         method: 'GET',
         params: params || undefined,
       }),
+      transformResponse: (res: PaginatedResponse<any>) => {
+        if (!res?.data || !Array.isArray(res.data)) return res;
+        return {
+          ...res,
+          data: res.data.map(normalizeFeedback),
+        };
+      },
       providesTags: (result) =>
         result?.data
           ? [
@@ -73,6 +118,13 @@ export const feedbackApi = baseApi.injectEndpoints({
         url: `/feedbacks/${id}`,
         method: 'GET',
       }),
+      transformResponse: (res: ApiResponse<any>) => {
+        if (!res?.data) return res;
+        return {
+          ...res,
+          data: normalizeFeedback(res.data),
+        };
+      },
       providesTags: (_result, _error, id) => [{ type: 'Feedback', id }],
     }),
 

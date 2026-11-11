@@ -26,6 +26,8 @@ class RespondFeedbackRequest extends FormRequest
     {
         return [
             'response' => ['required', 'string', 'max:5000'],
+            'response_amh' => ['nullable', 'string', 'max:5000'],
+            'response_oro' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }

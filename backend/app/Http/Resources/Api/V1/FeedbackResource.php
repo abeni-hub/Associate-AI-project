@@ -19,7 +19,11 @@ class FeedbackResource extends JsonResource
         return [
             'id' => $this->id,
             'feedback_for_organization' => $this->feedback_for_organization,
-            'feedback_content' => $this->feedback_content,
+            'feedback_content' => [
+                'eng' => $this->feedback_content,
+                'amh' => $this->feedback_content_amh ?? '',
+                'oro' => $this->feedback_content_oro ?? '',
+            ],
             'feedback_type' => $this->feedback_type,
             'tracking_number' => $this->tracking_number,
             'status' => $this->status ?? (! empty($this->response) ? 'resolved' : 'submitted'),
@@ -31,7 +35,11 @@ class FeedbackResource extends JsonResource
                 'name' => $this->organization->name,
                 'code' => $this->organization->code,
             ] : null),
-            'response' => $this->when(! is_null($this->response ?? null), $this->response ?? null),
+            'response' => $this->when(! is_null($this->response ?? null), fn () => [
+                'eng' => $this->response,
+                'amh' => $this->response_amh,
+                'oro' => $this->response_oro,
+            ]),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
