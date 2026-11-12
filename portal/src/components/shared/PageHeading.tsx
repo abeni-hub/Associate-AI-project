@@ -35,13 +35,13 @@ export const PageHeading: React.FC<PageHeadingProps> = ({
       </div>
       <div className="heading-actions">
         {secondary && (
-          <button className="button secondary" onClick={onSecondary}>
+          <button className="outline-button" onClick={onSecondary}>
             <Icon name="download" size={16} />
             {secondary}
           </button>
         )}
         {action && (
-          <button className="button primary" onClick={onAction}>
+          <button className="primary-button" onClick={onAction}>
             <Icon name="plus" size={16} />
             {action}
           </button>

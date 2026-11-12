@@ -1,6 +1,8 @@
 import React from 'react';
 import Icon from '../ui/Icon.jsx';
 import TypePill from '../ui/TypePill.jsx';
+import { useLanguage } from '../../i18n/i18nContext';
+import { getLocalizedText } from '../../i18n/utils/getLocalized';
 import type { FeedbackItem } from '../../types/portal.types';
 
 export interface FeedbackFocusListProps {
@@ -14,6 +16,7 @@ export const FeedbackFocusList: React.FC<FeedbackFocusListProps> = ({
   onFeedback,
   onNavigate,
 }) => {
+  const { language, t } = useLanguage();
   return (
     <article className="panel recent-panel feedback-focus-panel">
       <div className="panel-heading">
@@ -24,7 +27,7 @@ export const FeedbackFocusList: React.FC<FeedbackFocusListProps> = ({
         </div>
         {onNavigate && (
           <button className="panel-link" onClick={() => onNavigate('feedback')}>
-            View feedback inbox <Icon name="arrow" size={15} />
+            {t('overview.viewFeedbackInbox', 'View feedback inbox')} <Icon name="arrow" size={15} />
           </button>
         )}
       </div>
@@ -54,11 +57,11 @@ export const FeedbackFocusList: React.FC<FeedbackFocusListProps> = ({
                   <b>{item.id}</b>
                   <TypePill type={displayType} />
                 </span>
-                <p>{item.message || 'No submission details provided.'}</p>
+                <p>{getLocalizedText(item.message as any, language) || (typeof item.message === 'string' ? item.message : '') || 'No submission details provided.'}</p>
                 <span className="focus-meta">
                   <span>
                     <Icon name="building" size={13} />
-                    {item.bureau || 'General Bureau'}
+                    {getLocalizedText(item.bureau as any, language) || (typeof item.bureau === 'string' ? item.bureau : 'General Bureau')}
                   </span>
                   <span>
                     <Icon name="clock" size={13} />

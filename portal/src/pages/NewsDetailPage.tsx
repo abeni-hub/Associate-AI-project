@@ -4,6 +4,8 @@ import { Icon } from '../components/shared/Icon';
 import { StatusPill } from '../components/shared/StatusPill';
 import { NewsModal } from '../components/news/NewsModal';
 import { usePortal } from '../context';
+import { useLanguage } from '../i18n/i18nContext';
+import { getLocalizedText } from '../i18n/utils/getLocalized';
 import type { PostItem } from '../types/portal.types';
 
 import {
@@ -38,7 +40,7 @@ function formatDate(value?: string, language = 'en') {
 export const NewsDetailPage: React.FC = () => {
   const { id } = useParams();
   const portal = usePortal();
-  const [language, setLanguage] = useState<'en' | 'am'>('en');
+  const { language } = useLanguage();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const { data: apiArticle, isLoading: isNewsLoading, refetch: refetchNews } = useGetNewsByIdQuery(id!, { skip: !id });
@@ -65,19 +67,19 @@ export const NewsDetailPage: React.FC = () => {
 
       return {
         id: art.id,
-        title: art.news_title,
+        title: getLocalizedText((art.news_title || art.title) as any, language) || 'Public Notice',
         titleAm: '',
         type: 'news' as const,
         date: art.created_at ? art.created_at.split('T')[0] : 'Recent',
         status: 'Published' as const,
         isPublished: true,
-        subCity: art.organization?.name || 'City Administration',
+        subCity: getLocalizedText(art.organization?.name as any, language) || (typeof art.organization?.name === 'string' ? art.organization.name : 'City Administration'),
         category: 'Public notice',
         coverImage: imageBlocks[0]?.content,
         images: imageBlocks.map((b: any) => b.content),
-        summary: textBlocks[0]?.content || '',
-        excerpt: textBlocks[0]?.content || '',
-        content: textBlocks.map((c: any) => c.content).join('\n\n') || '',
+        summary: getLocalizedText(textBlocks[0]?.content as any, language) || (typeof textBlocks[0]?.content === 'string' ? textBlocks[0]?.content : ''),
+        excerpt: getLocalizedText(textBlocks[0]?.content as any, language) || (typeof textBlocks[0]?.content === 'string' ? textBlocks[0]?.content : ''),
+        content: textBlocks.map((c: any) => typeof c.content === 'string' ? c.content : getLocalizedText(c.content, language)).join('\n\n') || '',
         views: 0,
       };
     }
@@ -86,7 +88,7 @@ export const NewsDetailPage: React.FC = () => {
       const evt = apiEvent.data;
       return {
         id: evt.id,
-        title: evt.title,
+        title: getLocalizedText(evt.title as any, language) || 'Public Event',
         titleAm: '',
         type: 'event' as const,
         date: evt.event_date ? evt.event_date.split('T')[0] : 'Upcoming',
@@ -94,13 +96,13 @@ export const NewsDetailPage: React.FC = () => {
         endDate: evt.end_date ? evt.end_date.split('T')[0] : undefined,
         status: evt.status === 'published' ? ('Published' as const) : ('Draft' as const),
         isPublished: evt.status === 'published',
-        subCity: evt.organization?.name || 'City Administration',
+        subCity: getLocalizedText(evt.organization?.name as any, language) || (typeof evt.organization?.name === 'string' ? evt.organization.name : 'City Administration'),
         category: 'Public event',
         coverImage: evt.images?.[0]?.image_url,
         images: evt.images?.map((img: any) => img.image_url) || [],
-        summary: evt.description?.slice(0, 160) || '',
-        excerpt: evt.description?.slice(0, 160) || '',
-        content: evt.description || '',
+        summary: typeof evt.description === 'string' ? evt.description.slice(0, 160) : getLocalizedText(evt.description as any, language).slice(0, 160) || '',
+        excerpt: typeof evt.description === 'string' ? evt.description.slice(0, 160) : getLocalizedText(evt.description as any, language).slice(0, 160) || '',
+        content: typeof evt.description === 'string' ? evt.description : getLocalizedText(evt.description as any, language) || '',
         location: {
           venue: evt.location_name,
           subCity: evt.organization?.name,

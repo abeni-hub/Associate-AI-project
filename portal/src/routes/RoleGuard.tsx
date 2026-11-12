@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { usePortal } from '../context';
+import { useLanguage } from '../i18n/i18nContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useGetSidebarNavigationQuery } from '../services/navigationApi';
 import { tokenStorage } from '../utils/tokenStorage';
@@ -59,6 +60,7 @@ export const getFirstAuthorizedPath = (
  */
 export const AccessDeniedScreen: React.FC = () => {
   const portal = usePortal();
+  const { t } = useLanguage();
   return (
     <div className="panel" style={{ maxWidth: '540px', margin: '4rem auto', padding: '2.5rem 2rem', textAlign: 'center' }}>
       <div style={{ display: 'inline-flex', padding: '16px', background: '#fee2e2', color: '#dc2626', borderRadius: '50%', marginBottom: '1.25rem' }}>
@@ -75,7 +77,7 @@ export const AccessDeniedScreen: React.FC = () => {
         className="button primary"
         onClick={() => portal.signOut()}
       >
-        Sign out
+        {t('nav.signOut', 'Sign out')}
       </button>
     </div>
   );

@@ -3,14 +3,14 @@ import Icon from '../ui/Icon.jsx';
 import type { DashboardRecentActivityItem, FeedbackReportData } from '../../services/dashboardApi';
 
 export interface ActivityChartProps {
-  period: string;
+  period?: string;
   totalCount?: number;
   recentActivities?: DashboardRecentActivityItem[];
   feedbackReport?: FeedbackReportData;
 }
 
 export const ActivityChart: React.FC<ActivityChartProps> = ({
-  period,
+  period = 'this week',
   totalCount,
   recentActivities = [],
   feedbackReport,
@@ -95,7 +95,7 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
       <div className="chart-summary">
         <div>
           <span className="chart-total">{totalDisplay}</span>
-          <span className="chart-period">interactions {period.toLowerCase()}</span>
+          <span className="chart-period">interactions {(period || 'this week').toLowerCase()}</span>
         </div>
         <span className="chart-change" style={{ color: hasData ? '#164a54' : '#64748b' }}>
           <Icon name="activity" size={13} />{' '}

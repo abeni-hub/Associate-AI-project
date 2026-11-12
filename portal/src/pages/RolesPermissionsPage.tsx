@@ -4,6 +4,8 @@ import { PageHeading } from '../components/shared/PageHeading';
 import { Brand } from '../components/shared/Brand';
 import RoleModal from '../components/roles/RoleModal';
 import { usePermissions } from '../hooks/usePermissions';
+import { useLanguage } from '../i18n/i18nContext';
+import { getLocalizedText } from '../i18n/utils/getLocalized';
 import type { RoleItem } from '../types/portal.types';
 import {
   useGetRolesQuery,
@@ -147,8 +149,8 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   const [selectedDomainFilter, setSelectedDomainFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'granted' | 'revoked'>('all');
 
-  const { hasPermission } = usePermissions();
-  const canManageRoles = hasPermission('roles.manage');
+  const { hasPermission, isSuperAdmin: isUserSuperAdmin } = usePermissions();
+  const canManageRoles = isUserSuperAdmin || hasPermission('roles.manage') || hasPermission('roles.view');
 
   // Active permissions catalog strictly from backend GET /api/v1/permissions
   const allPermissions = useMemo<PermissionItem[]>(() => {
@@ -157,6 +159,8 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     }
     return [];
   }, [apiPermissions]);
+
+  const { language, t } = useLanguage();
 
   // Active platform roles strictly from backend GET /api/v1/roles
   const roles = useMemo<RoleItem[]>(() => {
@@ -168,22 +172,33 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
         const sLevel = r.scope_level || (r.slug === 'super_admin' ? 'global' : 'sub_city');
         const scopeFormatted =
           sLevel === 'global'
-            ? 'Platform wide'
+            ? t('roles.platformWide', 'Platform wide')
             : sLevel === 'sub_city'
-              ? 'Sub-city wide'
+              ? t('roles.subcityWide', 'Sub-city wide')
               : sLevel === 'woreda'
-                ? 'Woreda wide'
+                ? t('roles.woredaWide', 'Woreda wide')
                 : sLevel === 'bureau'
-                  ? 'Bureau local'
+                  ? t('roles.bureauLocal', 'Bureau local')
                   : sLevel === 'staff'
-                    ? 'Operational desk'
+                    ? t('roles.operationalDesk', 'Operational desk')
                     : `${sLevel.charAt(0).toUpperCase() + sLevel.slice(1)} level`;
+
+        const rawName = getLocalizedText(r.name, language) || (typeof r.name === 'string' ? r.name : r.slug || 'Role');
+        const roleName =
+          r.slug === 'super_admin' || rawName === 'Super Admin'
+            ? t('roles.superAdmin', 'Super Admin')
+            : r.slug === 'sub_city_admin' || rawName === 'Sub-city Admin'
+              ? t('roles.subcityAdmin', 'Sub-city Admin')
+              : r.slug === 'bureau_admin' || rawName === 'Bureau Admin'
+                ? t('roles.bureauAdmin', 'Bureau Admin')
+                : rawName;
+        const roleDesc = getLocalizedText(r.description, language) || (typeof r.description === 'string' ? r.description : '');
 
         return {
           id: String(r.id),
           slug: r.slug,
-          name: r.name,
-          description: r.description || '',
+          name: roleName,
+          description: roleDesc,
           isSystem: Boolean(r.is_system),
           scope_level: sLevel,
           scope: scopeFormatted,
@@ -194,7 +209,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
       });
     }
     return [];
-  }, [propRoles, apiRoles]);
+  }, [propRoles, apiRoles, language, t]);
 
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -236,7 +251,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
       return allPermissions.map((p) => p.id);
     }
 
-    const detailData: any = activeRoleDetail?.data?.data || activeRoleDetail?.data;
+    const detailData: any = (activeRoleDetail?.data as any)?.data || activeRoleDetail?.data;
     if (detailData?.permissions && Array.isArray(detailData.permissions) && detailData.permissions.length > 0) {
       return detailData.permissions.map((p: any) => (typeof p === 'number' ? p : p.id));
     }
@@ -289,7 +304,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
     if (isSuperAdmin) {
       return allNavigationItems.map((n) => n.id);
     }
-    const detailData: any = activeRoleDetail?.data?.data || activeRoleDetail?.data;
+    const detailData: any = (activeRoleDetail?.data as any)?.data || activeRoleDetail?.data;
     if (detailData?.navigation_item_ids && Array.isArray(detailData.navigation_item_ids)) {
       return detailData.navigation_item_ids.map((id: any) => Number(id));
     }
@@ -670,7 +685,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
         const domain = DOMAIN_GROUPS.find((d) => d.id === perm.group);
         const matchName = perm.name.toLowerCase().includes(q);
         const matchKey = perm.key.toLowerCase().includes(q);
-        const matchDesc = perm.description.toLowerCase().includes(q);
+        const matchDesc = Boolean(perm.description?.toLowerCase().includes(q));
         const matchDomain = domain ? domain.label.toLowerCase().includes(q) : false;
         return matchName || matchKey || matchDesc || matchDomain;
       }
@@ -714,10 +729,10 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
   return (
     <>
       <PageHeading
-        eyebrow="ACCESS CONTROL & GOVERNANCE"
-        title="Roles & permissions"
-        subtitle="Configure role-based access control (RBAC), sidebar module visibility, and detailed security policies."
-        action={canManageRoles ? "+ New role" : undefined}
+        eyebrow={t('roles.eyebrow', 'ROLE-BASED ACCESS CONTROL MATRIX')}
+        title={t('roles.title', 'Roles & permissions')}
+        subtitle={t('roles.subtitle', 'Configure role-based access control (RBAC), sidebar module visibility, and detailed security policies.')}
+        action={canManageRoles ? t('roles.newRoleButton', '+ New role') : undefined}
         onAction={
           canManageRoles
             ? () => {
@@ -731,12 +746,12 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
       {loadingRoles && !apiRoles ? (
         <section className="panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', gap: '14px', margin: '20px 0' }}>
           <div className="loading-spinner" />
-          <h3 style={{ margin: 0, color: '#00485a', fontSize: '17px', fontWeight: 600 }}>Loading security roles & permissions...</h3>
-          <p style={{ margin: 0, color: '#64748b', fontSize: '13px' }}>Connecting to role-based access control policies</p>
+          <h3 style={{ margin: 0, color: '#00485a', fontSize: '17px', fontWeight: 600 }}>{t('roles.loadingRoles', 'Loading security roles & permissions...')}</h3>
+          <p style={{ margin: 0, color: '#64748b', fontSize: '13px' }}>{t('roles.connectingRbac', 'Connecting to role-based access control policies')}</p>
         </section>
       ) : !activeRole ? (
         <section className="panel" style={{ padding: '2.5rem', textAlign: 'center' }}>
-          <p>No roles available.</p>
+          <p>{t('roles.noRoles', 'No roles available.')}</p>
         </section>
       ) : (
         <section className="panel permissions-catalog-panel" style={{ marginBottom: '2rem', padding: 0, overflow: 'hidden' }}>
@@ -783,7 +798,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
             {/* Role Selector and Actions */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
-                <span>Selected Role:</span>
+                <span>{t('roles.selectedRole', 'Selected Role:')}</span>
                 <select
                   value={String(activeRole.id)}
                   onChange={(event) => setSelectedRoleId(event.target.value)}
@@ -800,7 +815,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                 >
                   {roles.map((roleItem: RoleItem) => (
                     <option key={roleItem.id} value={roleItem.id}>
-                      {roleItem.name} {roleItem.isSystem ? '(System)' : '(Custom)'}
+                      {roleItem.name} {roleItem.isSystem ? t('roles.systemTag', '(System)') : t('roles.customTag', '(Custom)')}
                     </option>
                   ))}
                 </select>
@@ -812,7 +827,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                     type="button"
                     className="button secondary small-button"
                     onClick={() => {
-                      const detailData: any = activeRoleDetail?.data?.data || activeRoleDetail?.data;
+                      const detailData: any = (activeRoleDetail?.data as any)?.data || activeRoleDetail?.data;
                       const fullRole = {
                         ...activeRole,
                         navigation_item_ids: detailData?.navigation_item_ids || [],
@@ -823,7 +838,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                       setModalOpen(true);
                     }}
                   >
-                    Edit details
+                    {t('roles.editDetails', 'Edit details')}
                   </button>
                   <button
                     type="button"
@@ -831,7 +846,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                     style={{ color: '#b91c1c', borderColor: '#fca5a5' }}
                     onClick={() => handleDeleteRole(activeRole)}
                   >
-                    Delete role
+                    {t('roles.deleteRole', 'Delete role')}
                   </button>
                 </div>
               )}
@@ -903,7 +918,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
               }}
             >
               <Icon name="layers" size={17} />
-              <span>Sidebar Navigation</span>
+              <span>{t('roles.sidebarNav', 'Sidebar Navigation')}</span>
               <span
                 style={{
                   fontSize: '11px',
@@ -914,7 +929,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                   color: activeTab === 'sidebar' ? '#00485a' : '#64748b',
                 }}
               >
-                {grantedNavItems.length} active
+                {grantedNavItems.length} {t('common.active', 'active')}
               </span>
             </button>
 
@@ -938,7 +953,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
               }}
             >
               <Icon name="shield" size={17} />
-              <span>Detailed Permissions</span>
+              <span>{t('roles.detailedPerms', 'Detailed Permissions')}</span>
               <span
                 style={{
                   fontSize: '11px',
@@ -949,7 +964,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                   color: activeTab === 'permissions' ? '#00485a' : '#64748b',
                 }}
               >
-                {activePermissionsCount} / {allPermissions.length} active
+                {activePermissionsCount} / {allPermissions.length} {t('common.active', 'active')}
               </span>
             </button>
           </div>
@@ -1004,7 +1019,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                         }}
                       />
                       <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', color: '#a7f3d0' }}>
-                        LIVE PREVIEW
+                        {t('roles.livePreview', 'LIVE PREVIEW')}
                       </span>
                     </div>
                     <span
@@ -1017,7 +1032,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                         fontWeight: 600,
                       }}
                     >
-                      Portal Sidebar
+                      {t('roles.portalSidebar', 'Portal Sidebar')}
                     </span>
                   </div>
 
@@ -1039,8 +1054,8 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                       fontWeight: 700,
                     }}
                   >
-                    <span>VISIBLE MODULES</span>
-                    <span style={{ color: '#e2c37c' }}>{grantedNavItems.length} ACTIVE</span>
+                    <span>{t('roles.visibleModules', 'VISIBLE MODULES')}</span>
+                    <span style={{ color: '#e2c37c' }}>{grantedNavItems.length} {t('common.active', 'ACTIVE').toUpperCase()}</span>
                   </div>
 
                   {/* Scrollable list of simulated portal navigation links */}
@@ -1068,10 +1083,10 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                           <Icon name="layers" size={24} />
                         </div>
                         <p style={{ margin: 0, fontSize: '12.5px', fontWeight: 600, color: '#ffffff' }}>
-                          No Modules Active
+                          {t('roles.noModulesActive', 'No Modules Active')}
                         </p>
                         <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>
-                          Turn on modules on the right to grant sidebar access to this role.
+                          {t('roles.noModulesDesc', 'Turn on modules on the right to grant sidebar access to this role.')}
                         </p>
                       </div>
                     ) : (
@@ -1098,7 +1113,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                               <Icon name={item.icon || 'layers'} size={16} />
                             </span>
                             <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {item.label}
+                              {t(`nav.${item.key === 'subcities' ? 'offices' : item.key}`, item.label)}
                             </span>
                             <span style={{ fontSize: '10px', opacity: 0.5, fontFamily: 'monospace' }}>
                               {item.route.replace(/^\/admin\//, '')}
@@ -1175,10 +1190,10 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                   >
                     <div>
                       <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
-                        Sidebar Navigation Modules
+                        {t('roles.sidebarModules', 'Sidebar Navigation Modules')}
                       </h3>
                       <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#64748b' }}>
-                        Toggle modules below to configure what users holding <strong>{activeRole.name}</strong> will see in their portal sidebar.
+                        {t('roles.sidebarModulesDesc', 'Toggle modules below to configure what users holding this role will see in their portal sidebar.')}
                       </p>
                     </div>
 
@@ -1191,9 +1206,9 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                           style={{ fontSize: '12px', padding: '5px 11px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                           onClick={handleGrantAllNavItems}
                           disabled={isSavingNavItems || grantedNavItems.length === allNavigationItems.length}
-                          title="Grant all 12 navigation modules to this role"
+                          title={t('roles.enableAll', 'Enable all')}
                         >
-                          <Icon name="check" size={13} /> Enable all
+                          <Icon name="check" size={13} /> {t('roles.enableAll', 'Enable all')}
                         </button>
                         <button
                           type="button"
@@ -1201,9 +1216,9 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                           style={{ fontSize: '12px', padding: '5px 11px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                           onClick={handleRevokeAllNavItems}
                           disabled={isSavingNavItems || grantedNavItems.length === 0}
-                          title="Hide all navigation modules from this role"
+                          title={t('roles.disableAll', 'Disable all')}
                         >
-                          <Icon name="close" size={13} /> Disable all
+                          <Icon name="close" size={13} /> {t('roles.disableAll', 'Disable all')}
                         </button>
                         <button
                           type="button"
@@ -1211,9 +1226,9 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                           style={{ fontSize: '12px', padding: '5px 11px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                           onClick={handleResetNavScopeDefaults}
                           disabled={isSavingNavItems}
-                          title="Reset navigation items to scope-level recommended defaults"
+                          title={t('roles.resetDefaults', 'Reset defaults')}
                         >
-                          <Icon name="refresh" size={13} /> Reset defaults
+                          <Icon name="refresh" size={13} /> {t('roles.resetDefaults', 'Reset defaults')}
                         </button>
                       </div>
                     )}
@@ -1250,7 +1265,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                       <Icon name="search" size={15} />
                       <input
                         type="text"
-                        placeholder="Search modules by name, route, or permission..."
+                        placeholder={t('roles.searchModulesPlaceholder', 'Search modules by name, route, or permission...')}
                         value={navSearchQuery}
                         onChange={(e) => setNavSearchQuery(e.target.value)}
                         style={{
@@ -1305,7 +1320,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                             cursor: 'pointer',
                           }}
                         >
-                          All ({allNavigationItems.length})
+                          {t('common.all', 'All')} ({allNavigationItems.length})
                         </button>
                         <button
                           type="button"
@@ -1322,7 +1337,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                             cursor: 'pointer',
                           }}
                         >
-                          Active ({grantedNavItems.length})
+                          {t('common.active', 'Active')} ({grantedNavItems.length})
                         </button>
                         <button
                           type="button"
@@ -1339,13 +1354,13 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                             cursor: 'pointer',
                           }}
                         >
-                          Hidden ({allNavigationItems.length - grantedNavItems.length})
+                          {t('roles.hidden', 'Hidden')} ({allNavigationItems.length - grantedNavItems.length})
                         </button>
                       </div>
 
                       {isSavingNavItems && (
                         <span style={{ fontSize: '12px', color: '#00485a', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                          <span className="loading-spinner" style={{ width: '13px', height: '13px' }} /> Syncing sidebar...
+                          <span className="loading-spinner" style={{ width: '13px', height: '13px' }} /> {t('roles.syncingSidebar', 'Syncing sidebar...')}
                         </span>
                       )}
                     </div>
@@ -1357,9 +1372,9 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                       <div style={{ padding: '36px 16px', textAlign: 'center', color: '#64748b' }}>
                         <Icon name="search" size={24} style={{ marginBottom: '8px', opacity: 0.5 }} />
                         <p style={{ margin: 0, fontSize: '13.5px', fontWeight: 600, color: '#334155' }}>
-                          No navigation modules match current filter
+                          {t('roles.noModulesMatch', 'No navigation modules match current filter')}
                         </p>
-                        <small style={{ color: '#94a3b8' }}>Try adjusting your search query or filter options.</small>
+                        <small style={{ color: '#94a3b8' }}>{t('roles.adjustFilterPrompt', 'Try adjusting your search query or filter options.')}</small>
                       </div>
                     ) : (
                       filteredNavItems.map((item) => {
@@ -1402,7 +1417,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                               <div style={{ minWidth: 0, flex: 1 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                   <b style={{ fontSize: '13.5px', color: isGranted ? '#0f172a' : '#475569' }}>
-                                    {item.label}
+                                    {t(`nav.${item.key === 'subcities' ? 'offices' : item.key}`, item.label)}
                                   </b>
                                   <code
                                     style={{
@@ -1449,7 +1464,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                                   borderRadius: '10px',
                                 }}
                               >
-                                {isGranted ? 'Active' : 'Hidden'}
+                                {isGranted ? t('common.active', 'Active') : t('roles.hidden', 'Hidden')}
                               </span>
 
                               <button
@@ -1549,7 +1564,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                     <Icon name="search" size={16} />
                     <input
                       type="text"
-                      placeholder="Search permissions by name, key (e.g. services.create), or domain..."
+                      placeholder={t('roles.searchPermissionsPlaceholder', 'Search permissions by name, key (e.g. services.create), or domain...')}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       style={{
@@ -1595,10 +1610,10 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                         color: '#334155',
                       }}
                     >
-                      <option value="all">All Domains ({DOMAIN_GROUPS.length})</option>
+                      <option value="all">{t('roles.allDomains', 'All Domains')} ({DOMAIN_GROUPS.length})</option>
                       {DOMAIN_GROUPS.map((d) => (
                         <option key={d.id} value={d.id}>
-                          {d.label}
+                          {t(`roles.domain.${d.id}`, d.label)}
                         </option>
                       ))}
                     </select>
@@ -1627,7 +1642,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                           cursor: 'pointer',
                         }}
                       >
-                        All ({allPermissions.length})
+                        {t('common.all', 'All')} ({allPermissions.length})
                       </button>
                       <button
                         type="button"
@@ -1644,7 +1659,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                           cursor: 'pointer',
                         }}
                       >
-                        Granted ({effectivePermissionIds.length})
+                        {t('roles.granted', 'Granted')} ({effectivePermissionIds.length})
                       </button>
                       <button
                         type="button"
@@ -1661,7 +1676,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                           cursor: 'pointer',
                         }}
                       >
-                        Revoked ({allPermissions.length - effectivePermissionIds.length})
+                        {t('roles.revoked', 'Revoked')} ({allPermissions.length - effectivePermissionIds.length})
                       </button>
                     </div>
 
@@ -1674,9 +1689,9 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                           style={{ padding: '4px 10px', fontSize: '11.5px' }}
                           onClick={() => handleBulkToggleFiltered(true)}
                           disabled={isSavingPermissions}
-                          title="Grant all permissions currently displayed"
+                          title={t('roles.grantShown', 'Grant shown')}
                         >
-                          Grant shown
+                          {t('roles.grantShown', 'Grant shown')}
                         </button>
                         <button
                           type="button"
@@ -1684,9 +1699,9 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                           style={{ padding: '4px 10px', fontSize: '11.5px' }}
                           onClick={() => handleBulkToggleFiltered(false)}
                           disabled={isSavingPermissions}
-                          title="Revoke all permissions currently displayed"
+                          title={t('roles.revokeShown', 'Revoke shown')}
                         >
-                          Revoke shown
+                          {t('roles.revokeShown', 'Revoke shown')}
                         </button>
                       </div>
                     )}
@@ -1696,7 +1711,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                 {/* Status Bar & Match Counter */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#64748b' }}>
                   <span>
-                    Showing <b>{filteredPermissions.length}</b> of <b>{allPermissions.length}</b> permissions
+                    {t('common.showing', 'Showing')} <b>{filteredPermissions.length}</b> {t('common.of', 'of')} <b>{allPermissions.length}</b> {t('roles.permissionsCount', 'permissions')}
                     {hasActivePermFilters && (
                       <>
                         {' '}· Filter active ({searchQuery ? `"${searchQuery}", ` : ''}
@@ -1723,7 +1738,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                         padding: 0,
                       }}
                     >
-                      Reset filters
+                      {t('roles.resetFilters', 'Reset filters')}
                     </button>
                   )}
                 </div>
@@ -1746,8 +1761,8 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                     }}
                   >
                     <div className="loading-spinner" />
-                    <p style={{ margin: 0, color: '#00485a', fontWeight: 600, fontSize: '14px' }}>Loading role permissions...</p>
-                    <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>Connecting to RBAC schema</p>
+                    <p style={{ margin: 0, color: '#00485a', fontWeight: 600, fontSize: '14px' }}>{t('roles.loadingPermissions', 'Loading role permissions...')}</p>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>{t('roles.connectingRbac', 'Connecting to RBAC schema')}</p>
                   </div>
                 ) : visibleDomainGroups.length === 0 ? (
                   <div
@@ -1763,7 +1778,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                       <Icon name="search" size={24} />
                     </div>
                     <h3 style={{ margin: '0 0 6px', fontSize: '15px', color: '#1e293b' }}>
-                      No permissions match current filters
+                      {t('roles.noPermsMatch', 'No permissions match current filters')}
                     </h3>
                     <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
                       No permissions match query &quot;{searchQuery}&quot; under the active filter selection.
@@ -1777,7 +1792,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                         setStatusFilter('all');
                       }}
                     >
-                      Clear all filters
+                      {t('roles.clearFilters', 'Clear all filters')}
                     </button>
                   </div>
                 ) : (
@@ -1835,7 +1850,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                               </span>
                               <div>
                                 <b style={{ color: '#0f172a', fontSize: '13.5px', display: 'block' }}>
-                                  {domain.label}
+                                  {t(`roles.domain.${domain.id}`, domain.label)}
                                 </b>
                                 <span style={{ fontSize: '11px', color: '#64748b' }}>
                                   {domain.desc}
@@ -1864,7 +1879,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                                 }}
                               >
                                 {isAllDomainGranted
-                                  ? `✓ All ${domain.totalInDomain}`
+                                  ? `✓ ${t('roles.allDomain', 'All')} ${domain.totalInDomain}`
                                   : `${domain.grantedInDomain}/${domain.totalInDomain}`}
                               </span>
 
@@ -1884,11 +1899,11 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = ({
                                   }}
                                   title={
                                     isAllDomainGranted
-                                      ? `Revoke all in ${domain.label}`
-                                      : `Grant all in ${domain.label}`
+                                      ? `${t('roles.revokeDomain', 'Revoke all')} in ${domain.label}`
+                                      : `${t('roles.grantDomain', 'Grant all')} in ${domain.label}`
                                   }
                                 >
-                                  {isAllDomainGranted ? 'Revoke all' : 'Grant all'}
+                                  {isAllDomainGranted ? t('roles.revokeDomain', 'Revoke all') : t('roles.grantDomain', 'Grant all')}
                                 </button>
                               )}
                             </div>

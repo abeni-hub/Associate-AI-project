@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../shared/Icon';
 import { SearchSelect, type SearchSelectOption } from '../shared/SearchSelect';
+import { getLocalizedText } from '../../i18n/utils/getLocalized';
+import { useLanguage } from '../../i18n/i18nContext';
 import { useGetRolesQuery } from '../../services/rolesApi';
 import { useGetOrganizationsQuery } from '../../services/organizationsApi';
 
@@ -27,6 +29,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   onSave,
   isLoading = false,
 }) => {
+  const { t } = useLanguage();
   const { data: apiRoles } = useGetRolesQuery(undefined, { skip: !isOpen });
   const { data: apiOrgs } = useGetOrganizationsQuery(undefined, { skip: !isOpen });
 
@@ -94,14 +97,19 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         badgeTone: 'gold',
         secondary: 'Platform-wide authority without organizational boundary (Super Admin).',
       },
-      ...orgsList.map((org: any) => ({
-        value: org.id,
-        label: org.name,
-        code: org.code,
-        badge: org.type?.name || (org.organization_type_id === 1 ? 'Sub-City' : org.organization_type_id === 2 ? 'Woreda' : 'Bureau'),
-        badgeTone: (org.type?.level === 1 || org.organization_type_id === 1) ? 'sage' : (org.type?.level === 2 || org.organization_type_id === 2) ? 'blue' : 'gold',
-        secondary: org.address || `${org.code} jurisdictional office`,
-      })),
+      ...orgsList.map((org: any) => {
+        const orgName = typeof org.name === 'string' ? org.name : getLocalizedText(org.name, 'en') || 'Office';
+        const typeName = typeof org.type?.name === 'string' ? org.type.name : getLocalizedText(org.type?.name, 'en') || (org.organization_type_id === 1 ? 'Sub-City' : org.organization_type_id === 2 ? 'Woreda' : 'Bureau');
+        const orgAddress = typeof org.address === 'string' ? org.address : getLocalizedText(org.address, 'en') || `${org.code} jurisdictional office`;
+        return {
+          value: org.id,
+          label: orgName,
+          code: org.code,
+          badge: typeName,
+          badgeTone: (org.type?.level === 1 || org.organization_type_id === 1) ? 'sage' : (org.type?.level === 2 || org.organization_type_id === 2) ? 'blue' : 'gold',
+          secondary: orgAddress,
+        };
+      }),
     ];
   }, [propOrganizations, apiOrgs]);
 
@@ -140,11 +148,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
     return allowed.map((r: any) => ({
       value: r.id,
-      label: r.name,
+      label: typeof r.name === 'string' ? r.name : getLocalizedText(r.name, 'en') || r.slug || 'Role',
       code: r.slug,
       badge: r.slug === 'super_admin' ? 'global' : r.slug === 'sub_city_admin' ? 'sub_city' : r.slug === 'woreda_admin' ? 'woreda' : 'bureau',
       badgeTone: r.slug === 'super_admin' ? 'gold' : r.slug === 'sub_city_admin' ? 'sage' : r.slug === 'woreda_admin' ? 'blue' : 'gray',
-      secondary: r.description,
+      secondary: typeof r.description === 'string' ? r.description : getLocalizedText(r.description, 'en') || '',
     }));
   }, [organizationId, selectedOrg, propRoles, apiRoles]);
 
@@ -382,10 +390,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             <span />
             <div style={{ display: 'flex', gap: '8px' }}>
               <button type="button" className="button secondary" onClick={onClose} disabled={isLoading}>
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </button>
               <button type="submit" className="button primary" disabled={isLoading}>
-                {isLoading ? 'Saving...' : (account ? 'Save changes' : 'Create account')} <Icon name="arrow" size={15} />
+                {isLoading ? t('common.saving', 'Saving...') : (account ? t('common.saveChanges', 'Save changes') : t('accounts.addAccount', 'Create account'))} <Icon name="arrow" size={15} />
               </button>
             </div>
           </div>

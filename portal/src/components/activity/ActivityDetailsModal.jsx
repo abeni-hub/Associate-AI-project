@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Icon from '../ui/Icon.jsx'
+import { useLanguage } from '../../i18n/i18nContext'
 
 function ActivityDetailsModal({ event, onClose }) {
+  const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState('diff')
   const [copiedReq, setCopiedReq] = useState(false)
   const [copiedRes, setCopiedRes] = useState(false)
@@ -488,7 +490,7 @@ function ActivityDetailsModal({ event, onClose }) {
             <Icon name="shield" size={13} /> This audit record is immutable and cryptographically bound to the CivicLink municipal ledger.
           </span>
           <button type="button" className="button secondary" onClick={onClose}>
-            Close details
+            {t('common.close', 'Close')}
           </button>
         </div>
       </div>

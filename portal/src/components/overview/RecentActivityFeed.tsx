@@ -1,5 +1,7 @@
 import React from 'react';
 import Icon from '../ui/Icon.jsx';
+import { useLanguage } from '../../i18n/i18nContext';
+import { getLocalizedText } from '../../i18n/utils/getLocalized';
 import type { DashboardRecentActivityItem } from '../../services/dashboardApi';
 
 interface RecentActivityFeedProps {
@@ -13,6 +15,7 @@ export const RecentActivityFeed: React.FC<RecentActivityFeedProps> = ({
   isLoading,
   onNavigate,
 }) => {
+  const { language, t } = useLanguage();
   const getActionBadgeClass = (action: string) => {
     switch (action?.toLowerCase()) {
       case 'created':
@@ -71,7 +74,7 @@ export const RecentActivityFeed: React.FC<RecentActivityFeedProps> = ({
         </div>
         {onNavigate && (
           <button className="panel-link" onClick={() => onNavigate('activity')}>
-            View full audit logs <Icon name="arrow" size={15} />
+            {t('overview.fullAuditLog', 'Full audit log')} <Icon name="arrow" size={15} />
           </button>
         )}
       </div>
@@ -107,7 +110,7 @@ export const RecentActivityFeed: React.FC<RecentActivityFeedProps> = ({
                   </span>
                 </span>
                 <p>
-                  {act.actor?.email} in <strong>{act.organization?.name || 'Municipal Unit'}</strong>
+                  {act.actor?.email} in <strong>{getLocalizedText(act.organization?.name as any, language) || (typeof act.organization?.name === 'string' ? act.organization?.name : 'Municipal Unit')}</strong>
                 </p>
                 <span className="focus-meta">
                   <span>

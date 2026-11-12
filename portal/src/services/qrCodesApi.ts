@@ -12,6 +12,7 @@ export interface QrCodeItem {
   last_scanned_at: string | null;
   created_at: string;
   updated_at: string;
+  image_url?: string | null;
   organization?: {
     id: number;
     name: string;

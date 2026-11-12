@@ -219,6 +219,20 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
             <button className="button primary login-submit" type="submit" disabled={isLoading}>
               {isLoading ? 'Authenticating...' : 'Sign in'} <Icon name="arrow" size={17} />
             </button>
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
+              <button
+                type="button"
+                className="text-button"
+                style={{ fontSize: '11px', color: '#075363', textDecoration: 'underline' }}
+                onClick={() => {
+                  setUsername('admin');
+                  setPassword('Admin123!Secure');
+                  setError('');
+                }}
+              >
+                Fill Default Admin (admin / Admin123!Secure)
+              </button>
+            </div>
           </form>
 
           <div

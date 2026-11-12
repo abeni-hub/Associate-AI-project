@@ -1,28 +1,27 @@
 import React from 'react';
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
-import { AppLayout } from '../components/layout/AppLayout';
+import { AppLayout } from '../layouts/AppLayout';
 import { RoleGuard, getFirstAuthorizedPath, AccessDeniedScreen } from './RoleGuard';
 import { usePermissions } from '../hooks/usePermissions';
 import { useGetSidebarNavigationQuery } from '../services/navigationApi';
 import { tokenStorage } from '../utils/tokenStorage';
 import {
-  AccountsPage,
-  ActivityPage,
+  OverviewPage,
+  ServicesPage,
   FeedbackPage,
-  LandingPageCms,
-  LoginPage,
+  OfficesPage,
+  DocumentsPage,
+  RoutesPage,
+  QRPage,
   NewsPage,
   NewsDetailPage,
-  OfficePage,
-  OfficesPage,
-  OverviewPage,
-  QRPage,
+  AccountsPage,
   RolesPermissionsPage,
-  RoutesPage,
-  ServicesPage,
   LevelsPage,
-  DocumentsPage,
-} from '../pages';
+  LandingPageCms,
+  ActivityPage,
+} from '../features';
+import { LoginPage, OfficePage } from '../pages';
 
 const RootIndexRedirect: React.FC = () => {
   const { isSuperAdmin, hasPermission } = usePermissions();
@@ -176,7 +175,7 @@ export const AppRoutes: React.FC = () => {
           }
         />
 
-        {/* Bureau / Operations routes */}
+        {/* Bureau / Operations room routes - commented out
         <Route
           path="routes"
           element={
@@ -185,6 +184,7 @@ export const AppRoutes: React.FC = () => {
             </RoleGuard>
           }
         />
+        */}
         <Route
           path="qr"
           element={

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import Icon from '../ui/Icon.jsx';
+import { useLanguage } from '../../i18n/i18nContext';
 import type { FeedbackReportData, DashboardFeedbackOverview } from '../../services/dashboardApi';
 
 export interface SatisfactionPanelProps {
@@ -13,6 +14,7 @@ export const SatisfactionPanel: React.FC<SatisfactionPanelProps> = ({
   feedbackReport,
   feedbackOverview,
 }) => {
+  const { t } = useLanguage();
   const summary = feedbackReport?.summary;
   const breakdown = feedbackReport?.type_breakdown;
 
@@ -97,7 +99,7 @@ export const SatisfactionPanel: React.FC<SatisfactionPanelProps> = ({
         ))}
       </div>
       <button className="panel-link" onClick={() => onNavigate('feedback')}>
-        Explore citizen feedback <Icon name="arrow" size={15} />
+        {t('overview.exploreFeedback', 'Explore citizen feedback')} <Icon name="arrow" size={15} />
       </button>
     </article>
   );

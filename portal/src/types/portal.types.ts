@@ -76,12 +76,14 @@ export interface RoleItem {
   name: string;
   description: string;
   scope: string;
+  scope_level?: string;
   userCount: number;
   isSystem: boolean;
   permissionsCount?: number;
   permissionIds?: number[];
-  permissions: Record<string, string[]>;
+  permissions?: Record<string, string[]> | any[];
   navigationItems?: string[];
+  navigation_item_ids?: number[];
   dashboard_pages?: string[];
 }
 

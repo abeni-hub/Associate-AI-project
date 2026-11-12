@@ -4,6 +4,7 @@ import { Icon } from '../shared/Icon';
 import { SearchSelect, type SearchSelectOption } from '../shared/SearchSelect';
 import { useGetOrganizationsQuery } from '../../services/organizationsApi';
 import { useUploadCmsImageMutation } from '../../services/cmsApi';
+import { useLanguage } from '../../i18n/i18nContext';
 import { usePortal } from '../../context';
 import { useGetMeQuery } from '../../services/authApi';
 import { tokenStorage } from '../../utils/tokenStorage';
@@ -33,6 +34,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
   onSave,
   isLoading = false,
 }) => {
+  const { t } = useLanguage();
   const portal = usePortal();
   const { data: meResponse } = useGetMeQuery(undefined, { skip: !isOpen });
   const sessionUser = tokenStorage.getSessionUser<any>();
@@ -1107,10 +1109,10 @@ export const NewsModal: React.FC<NewsModalProps> = ({
             <span />
             <div style={{ display: 'flex', gap: '8px' }}>
               <button type="button" className="button secondary" onClick={onClose} disabled={isLoading}>
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </button>
               <button type="submit" className="button primary" disabled={isLoading}>
-                {isLoading ? 'Saving...' : (item ? 'Save changes' : 'Publish update')} <Icon name="arrow" size={15} />
+                {isLoading ? t('common.saving', 'Saving...') : (item ? t('common.saveChanges', 'Save changes') : t('news.publishUpdate', 'Publish update'))} <Icon name="arrow" size={15} />
               </button>
             </div>
           </div>

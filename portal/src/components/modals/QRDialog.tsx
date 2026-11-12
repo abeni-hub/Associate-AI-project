@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { usePortal } from '../../context';
+import { useLanguage } from '../../i18n/i18nContext';
 import { Icon } from '../shared/Icon';
 import { QRPattern } from '../shared/QRPattern';
 import type { QRModalConfig } from '../../types/portal.types';
@@ -18,6 +19,7 @@ export const QRDialog: React.FC<QRDialogProps> = ({
   onClose,
   onGenerate: propOnGenerate,
 }) => {
+  const { t } = useLanguage();
   const portal = usePortal();
   const existingQr = modal?.qr;
   const userOrg = portal.session?.user?.organization;
@@ -194,7 +196,7 @@ export const QRDialog: React.FC<QRDialogProps> = ({
             className="button secondary"
             onClick={onClose}
           >
-            Close
+            {t('common.close', 'Close')}
           </button>
           <button
             type="button"
@@ -204,7 +206,7 @@ export const QRDialog: React.FC<QRDialogProps> = ({
               onClose();
             }}
           >
-            <Icon name="download" size={15} /> Print poster
+            <Icon name="download" size={15} /> {t('qr.printPoster', 'Print poster')}
           </button>
         </div>
       </div>
@@ -373,14 +375,14 @@ export const QRDialog: React.FC<QRDialogProps> = ({
             onClick={onClose}
             disabled={isCreating}
           >
-            Cancel
+            {t('common.cancel', 'Cancel')}
           </button>
           <button
             type="submit"
             className="button primary"
             disabled={isCreating}
           >
-            {isCreating ? 'Generating poster...' : 'Generate QR code'}{' '}
+            {isCreating ? t('qr.generating', 'Generating poster...') : t('qr.generateQr', 'Generate QR code')}{' '}
             <Icon name="arrow" size={15} />
           </button>
         </div>

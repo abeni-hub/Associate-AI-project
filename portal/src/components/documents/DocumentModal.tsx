@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../shared/Icon';
+import { getLocalizedText } from '../../i18n/utils/getLocalized';
+import { useLanguage } from '../../i18n/i18nContext';
 import type { DocumentItem } from '../../services/documentsApi';
 
 export interface DocumentModalProps {
@@ -35,6 +37,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
   onSave,
   isLoading = false,
 }) => {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [nameAmh, setNameAmh] = useState('');
   const [nameOro, setNameOro] = useState('');
@@ -50,13 +53,20 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (doc) {
-        setName(doc.name || '');
-        setNameAmh(doc.name_amh || doc.name_localized?.amh || '');
-        setNameOro(doc.name_oro || doc.name_localized?.oro || '');
+        const initialNameEn = typeof doc.name === 'string' ? doc.name : getLocalizedText(doc.name as any, 'en');
+        const initialNameAm = doc.name_amh || doc.name_localized?.amh || getLocalizedText(doc.name as any, 'am') || '';
+        const initialNameOm = doc.name_oro || doc.name_localized?.oro || getLocalizedText(doc.name as any, 'om') || '';
+        const initialDescEn = typeof doc.description === 'string' ? doc.description : getLocalizedText(doc.description as any, 'en');
+        const initialDescAm = doc.description_amh || doc.description_localized?.amh || getLocalizedText(doc.description as any, 'am') || '';
+        const initialDescOm = doc.description_oro || doc.description_localized?.oro || getLocalizedText(doc.description as any, 'om') || '';
+
+        setName(initialNameEn);
+        setNameAmh(initialNameAm);
+        setNameOro(initialNameOm);
         setCode(doc.code || '');
-        setDescription(doc.description || '');
-        setDescriptionAmh(doc.description_amh || doc.description_localized?.amh || '');
-        setDescriptionOro(doc.description_oro || doc.description_localized?.oro || '');
+        setDescription(initialDescEn);
+        setDescriptionAmh(initialDescAm);
+        setDescriptionOro(initialDescOm);
         setSampleFileUrl(doc.sample_file_url || '');
         setIsActive(doc.is_active !== false);
         setIsCustomCode(true);
@@ -283,10 +293,10 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
 
           <div className="modal-footer" style={{ padding: '1rem 1.5rem' }}>
             <button type="button" className="button secondary" onClick={onClose} disabled={isLoading}>
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </button>
             <button type="submit" className="button primary" disabled={isLoading}>
-              {isLoading ? 'Saving...' : doc ? 'Save changes' : 'Create document'}
+              {isLoading ? t('common.saving', 'Saving...') : doc ? t('common.saveChanges', 'Save changes') : t('documents.addDocument', 'Create document')}
             </button>
           </div>
         </form>

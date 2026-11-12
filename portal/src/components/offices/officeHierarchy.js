@@ -12,6 +12,13 @@ export function getOfficeSubcityId(office, offices) {
   return null
 }
 
+function safeText(val) {
+  if (!val) return ''
+  if (typeof val === 'string') return val
+  if (typeof val === 'object') return val.eng || val.amh || val.oro || val.en || ''
+  return String(val)
+}
+
 export function getOfficeParentSummary(office, offices, officeTypes) {
   if (!office) return ''
 
@@ -19,8 +26,11 @@ export function getOfficeParentSummary(office, offices, officeTypes) {
   if (parentType) {
     const subcityId = getOfficeSubcityId(office, offices)
     const subcity = offices.find((entry) => entry.id === subcityId && entry.typeId === 1)
-    return subcity ? `${parentType.name} · ${subcity.name}` : parentType.name
+    const pName = safeText(parentType.name)
+    const sName = safeText(subcity?.name)
+    return subcity ? `${pName} · ${sName}` : pName
   }
 
-  return offices.find((entry) => entry.id === office.parentId)?.name || ''
+  const pOrg = offices.find((entry) => entry.id === office.parentId)
+  return safeText(pOrg?.name) || ''
 }

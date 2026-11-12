@@ -1,4 +1,5 @@
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, loadEnv } from 'vite'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,7 +13,7 @@ export default defineConfig(({ mode }) => {
   const target = (env.VITE_BACKEND_URL || env.BACKEND_URL || BACKEND_URL).replace(/\/api\/?$/, '');
 
   return {
-    plugins: [react()],
+    plugins: [react(), tailwindcss()],
     resolve: {
       dedupe: ['react', 'react-dom'],
       alias: {

@@ -4,7 +4,7 @@
  * When deploying or changing the backend URL for the Portal App,
  * edit DEFAULT_BACKEND_URL here (or set VITE_BACKEND_URL in .env).
  */
-export const DEFAULT_BACKEND_URL = 'https://civillink.jobaleengineering.com';
+export const DEFAULT_BACKEND_URL = 'http://127.0.0.1:8000';
 
 // Resolves backend base URL (e.g. "https://civillink.jobaleengineering.com")
 export const BACKEND_URL = (() => {
