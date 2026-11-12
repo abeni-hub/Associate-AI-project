@@ -5,6 +5,7 @@ import { QRPattern } from '../shared/QRPattern';
 import type { QRModalConfig } from '../../types/portal.types';
 import { useCreateQrCodeMutation } from '../../services/qrCodesApi';
 import { useGetOrganizationsQuery, type OrganizationItem } from '../../services/organizationsApi';
+import { getClientBaseUrl } from '../../config/apiConfig';
 
 export interface QRDialogProps {
   modal?: QRModalConfig;
@@ -39,7 +40,8 @@ export const QRDialog: React.FC<QRDialogProps> = ({
   }, [organizations, effectiveOrgId, userOrg]);
 
   const buildDefaultTargetUrl = (org?: OrganizationItem | null) => {
-    if (!org) return `${window.location.origin}/#feedback?type=complaint`;
+    const clientBase = getClientBaseUrl();
+    if (!org) return `${clientBase}/#feedback?type=complaint`;
     const params = new URLSearchParams({
       type: 'complaint',
       org: org.code || String(org.id),
@@ -49,7 +51,7 @@ export const QRDialog: React.FC<QRDialogProps> = ({
     if (subCityName) {
       params.set('sub_city', subCityName);
     }
-    return `${window.location.origin}/#feedback?${params.toString()}`;
+    return `${clientBase}/#feedback?${params.toString()}`;
   };
 
   const [label, setLabel] = useState(existingQr?.label || 'Public Service Reception Desk');
