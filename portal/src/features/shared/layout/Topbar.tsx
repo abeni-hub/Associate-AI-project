@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Icon } from '../components/Icon';
-import { usePortal } from '../hooks/usePortal';
-import type { RoleKey } from '../../../types/portal.types';
+import { Icon } from '../shared/Icon';
+import { ROLE } from '../../data/portalData.js';
+import { usePortal } from '../../context';
+import { useLanguage } from '../../i18n/i18nContext';
+import type { RoleKey } from '../../types/portal.types';
 
 export interface TopbarProps {
   role?: RoleKey | string;
@@ -14,6 +16,7 @@ export const Topbar: React.FC<TopbarProps> = ({
   onMenu: propOnMenu,
   onLogout: propOnLogout,
 }) => {
+  const { t } = useLanguage();
   const portal = usePortal();
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -77,7 +80,7 @@ export const Topbar: React.FC<TopbarProps> = ({
                   onLogout();
                 }}
               >
-                <Icon name="logout" size={15} /> Sign out
+                <Icon name="logout" size={15} /> {t('nav.signOut', 'Sign out')}
               </button>
             </div>
           )}

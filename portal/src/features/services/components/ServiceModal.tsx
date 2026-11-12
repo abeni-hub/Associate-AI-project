@@ -307,27 +307,59 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="modal-overlay" onClick={onClose}>
+    <div
+      className="modal-overlay modal-fullscreen-overlay"
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 10000,
+        width: '100vw',
+        height: '100vh',
+        background: '#f8faf9',
+        padding: 0,
+        margin: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
       <section
-        className="modal-card modal-form"
+        className="modal-card modal-form modal-fullscreen"
         role="dialog"
         aria-modal="true"
         aria-label={service ? 'Edit service standard' : 'Create service standard'}
         onClick={(e) => e.stopPropagation()}
         style={{
-          maxWidth: '720px',
-          width: '95%',
-          maxHeight: '92vh',
+          width: '100vw',
+          height: '100vh',
+          maxWidth: '100vw',
+          maxHeight: '100vh',
+          borderRadius: 0,
+          border: 'none',
+          margin: 0,
+          padding: 0,
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: '10px',
           overflow: 'hidden',
-          boxShadow: '0 20px 60px rgba(0, 57, 70, 0.2)',
+          boxShadow: 'none',
+          background: '#ffffff',
         }}
       >
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
           {/* Header */}
-          <div className="modal-header" style={{ padding: '1.25rem 1.75rem', background: '#00485a', color: '#ffffff' }}>
+          <div
+            className="modal-header"
+            style={{
+              padding: '1.1rem 2.5rem',
+              background: '#00485a',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexShrink: 0,
+            }}
+          >
             <div>
               <span
                 style={{
@@ -340,10 +372,10 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
               >
                 {isMaster ? '🏛 MASTER SERVICE CATALOG' : '📄 CITIZEN SUBSERVICE UNIT'}
               </span>
-              <h2 style={{ color: '#ffffff', margin: '4px 0 2px', fontSize: '20px', fontWeight: 800 }}>
+              <h2 style={{ color: '#ffffff', margin: '4px 0 2px', fontSize: '22px', fontWeight: 800 }}>
                 {service ? (isMaster ? 'Edit Master Category' : 'Edit Subservice') : (isMaster ? 'Create Master Category' : 'Create Citizen Subservice')}
               </h2>
-              <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '13px', margin: 0 }}>
+              <p style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '13px', margin: 0 }}>
                 {isMaster
                   ? 'Define top-level government service domain holding citizen subservices.'
                   : 'Define citizen turnaround time, fees, required documents, and delivery branch locations.'}
@@ -354,21 +386,35 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
               className="modal-close"
               onClick={onClose}
               aria-label="Close dialog"
-              style={{ color: '#ffffff', background: 'rgba(255, 255, 255, 0.1)' }}
+              style={{
+                color: '#ffffff',
+                background: 'rgba(255, 255, 255, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                borderRadius: '6px',
+                padding: '8px 16px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
             >
-              <Icon name="close" />
+              <Icon name="close" size={16} />
+              <span>Close (Esc)</span>
             </button>
           </div>
 
           {/* Level Switcher (Master vs Subservice) */}
           <div
             style={{
-              padding: '1rem 1.75rem',
+              padding: '0.85rem 2.5rem',
               background: '#f4f8f6',
               borderBottom: '1px solid #dce8e3',
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '12px',
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '16px',
+              flexShrink: 0,
             }}
           >
             <div
@@ -456,7 +502,7 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
               style={{
                 display: 'flex',
                 gap: '2px',
-                padding: '0 1.75rem',
+                padding: '0 2.5rem',
                 background: '#ffffff',
                 borderBottom: '1px solid #e2ece7',
               }}
@@ -465,20 +511,20 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                 type="button"
                 onClick={() => setActiveTab('info')}
                 style={{
-                  padding: '12px 16px',
+                  padding: '12px 18px',
                   border: 0,
                   borderBottom: `3px solid ${activeTab === 'info' ? '#00485a' : 'transparent'}`,
                   background: 'transparent',
                   color: activeTab === 'info' ? '#00485a' : '#64748b',
                   fontWeight: activeTab === 'info' ? 700 : 500,
-                  fontSize: '13px',
+                  fontSize: '13.5px',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
                 }}
               >
-                <Icon name="info" size={14} />
+                <Icon name="info" size={15} />
                 1. Basic Specifications
               </button>
 
@@ -486,20 +532,20 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                 type="button"
                 onClick={() => setActiveTab('documents')}
                 style={{
-                  padding: '12px 16px',
+                  padding: '12px 18px',
                   border: 0,
                   borderBottom: `3px solid ${activeTab === 'documents' ? '#00485a' : 'transparent'}`,
                   background: 'transparent',
                   color: activeTab === 'documents' ? '#00485a' : '#64748b',
                   fontWeight: activeTab === 'documents' ? 700 : 500,
-                  fontSize: '13px',
+                  fontSize: '13.5px',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
                 }}
               >
-                <Icon name="file" size={14} />
+                <Icon name="file" size={15} />
                 2. Required Documents ({selectedDocsCount})
               </button>
 
@@ -507,20 +553,20 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                 type="button"
                 onClick={() => setActiveTab('branches')}
                 style={{
-                  padding: '12px 16px',
+                  padding: '12px 18px',
                   border: 0,
                   borderBottom: `3px solid ${activeTab === 'branches' ? '#00485a' : 'transparent'}`,
                   background: 'transparent',
                   color: activeTab === 'branches' ? '#00485a' : '#64748b',
                   fontWeight: activeTab === 'branches' ? 700 : 500,
-                  fontSize: '13px',
+                  fontSize: '13.5px',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
                 }}
               >
-                <Icon name="building" size={14} />
+                <Icon name="building" size={15} />
                 3. Delivery Branches ({selectedOrgsCount})
               </button>
             </div>
@@ -530,7 +576,7 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
           {errorMsg && (
             <div
               style={{
-                margin: '1rem 1.75rem 0',
+                margin: '1rem 2.5rem 0',
                 padding: '10px 14px',
                 borderRadius: '6px',
                 background: '#fef2f2',
@@ -549,564 +595,614 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
           )}
 
           {/* Modal Content Scroll Area */}
-          <div style={{ padding: '1.25rem 1.75rem', overflowY: 'auto', flex: 1 }}>
-            {/* TAB 1: BASIC INFORMATION (Always for Master, or when activeTab === 'info') */}
-            {(isMaster || activeTab === 'info') && (
-              <div className="modal-form-grid" style={{ gap: '14px' }}>
-                {/* If Subservice: Parent Master Category */}
-                {!isMaster && (
+          <div style={{ padding: '1.75rem 2.5rem', overflowY: 'auto', flex: 1, background: '#f8faf9' }}>
+            <div style={{ maxWidth: '1240px', margin: '0 auto', width: '100%' }}>
+              {/* TAB 1: BASIC INFORMATION (Always for Master, or when activeTab === 'info') */}
+              {(isMaster || activeTab === 'info') && (
+                <div
+                  className="modal-form-grid"
+                  style={{
+                    gap: '16px',
+                    background: '#ffffff',
+                    padding: '24px',
+                    borderRadius: '8px',
+                    border: '1px solid #dce8e3',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                  }}
+                >
+                  {/* If Subservice: Parent Master Category */}
+                  {!isMaster && (
+                    <label className="modal-field full">
+                      <span style={{ fontWeight: 700, color: '#003946' }}>
+                        Parent Master Category <i>*</i>
+                      </span>
+                      <select
+                        required={!isMaster}
+                        value={parentId ?? ''}
+                        onChange={(e) => setParentId(e.target.value ? Number(e.target.value) : null)}
+                        style={{
+                          width: '100%',
+                          padding: '9px 12px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '13.5px',
+                          fontWeight: 600,
+                          background: '#ffffff',
+                        }}
+                      >
+                        <option value="">Select Parent Master Service Category...</option>
+                        {masterServices.map((ms: any) => (
+                          <option key={ms.id} value={ms.id}>
+                            🏛 {ms.name} ({ms.code})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+
+                  {/* Service Name */}
                   <label className="modal-field full">
                     <span style={{ fontWeight: 700, color: '#003946' }}>
-                      Parent Master Category <i>*</i>
+                      {isMaster ? 'Master Domain Name' : 'Citizen Subservice Name'} <i>*</i>
+                    </span>
+                    <input
+                      required
+                      placeholder={
+                        isMaster
+                          ? 'e.g. Civil Status & Vital Records, Revenues & Taxation Services'
+                          : 'e.g. Birth Registration & Certificate Issuance, e-TIN Registration'
+                      }
+                      value={name}
+                      onChange={(e) => handleNameChange(e.target.value)}
+                      style={{ fontSize: '14px', padding: '9px 12px' }}
+                    />
+                  </label>
+
+                {/* Code slug — auto-generated from name */}
+                <input type="hidden" value={code} readOnly />
+
+                  {/* Governing Organization / Bureau */}
+                  <label className="modal-field">
+                    <span style={{ fontWeight: 700, color: '#003946' }}>
+                      Governing Organization / Bureau <i>*</i>
                     </span>
                     <select
-                      required={!isMaster}
-                      value={parentId ?? ''}
-                      onChange={(e) => setParentId(e.target.value ? Number(e.target.value) : null)}
+                      required
+                      value={primaryOrgId ?? ''}
+                      onChange={(e) => setPrimaryOrgId(e.target.value ? Number(e.target.value) : null)}
                       style={{
                         width: '100%',
                         padding: '9px 12px',
                         borderRadius: '6px',
                         border: '1px solid #cbd5e1',
-                        fontSize: '13.5px',
-                        fontWeight: 600,
+                        fontSize: '13px',
                         background: '#ffffff',
+                        fontWeight: 500,
                       }}
                     >
-                      <option value="">Select Parent Master Service Category...</option>
-                      {masterServices.map((ms: any) => (
-                        <option key={ms.id} value={ms.id}>
-                          🏛 {ms.name} ({ms.code})
-                        </option>
-                      ))}
+                      <option value="">Select Governing Organization (Required)...</option>
+                      <optgroup label="🏛 Municipal Sub-cities & Local Offices">
+                        {subcityHierarchy.map((sub: any) => (
+                          <React.Fragment key={sub.id}>
+                            <option value={sub.id} style={{ fontWeight: 700 }}>
+                              🏛 {sub.name}
+                            </option>
+                            {sub.children?.map((child: any) => (
+                              <option key={child.id} value={child.id}>
+                                &nbsp;&nbsp;&nbsp;&nbsp;↳ {child.name} ({sub.name})
+                              </option>
+                            ))}
+                          </React.Fragment>
+                        ))}
+                      </optgroup>
+                      <optgroup label="🏢 Central Bureaus & Sector Agencies">
+                        {bureauHierarchy.map((bur: any) => (
+                          <React.Fragment key={bur.id}>
+                            <option value={bur.id} style={{ fontWeight: 700 }}>
+                              🏢 {bur.name}
+                            </option>
+                            {bur.children?.map((child: any) => (
+                              <option key={child.id} value={child.id}>
+                                &nbsp;&nbsp;&nbsp;&nbsp;↳ {child.name}
+                              </option>
+                            ))}
+                          </React.Fragment>
+                        ))}
+                      </optgroup>
                     </select>
                   </label>
-                )}
 
-                {/* Service Name */}
-                <label className="modal-field full">
-                  <span style={{ fontWeight: 700, color: '#003946' }}>
-                    {isMaster ? 'Master Domain Name' : 'Citizen Subservice Name'} <i>*</i>
-                  </span>
-                  <input
-                    required
-                    placeholder={
-                      isMaster
-                        ? 'e.g. Civil Status & Vital Records, Revenues & Taxation Services'
-                        : 'e.g. Birth Registration & Certificate Issuance, e-TIN Registration'
-                    }
-                    value={name}
-                    onChange={(e) => handleNameChange(e.target.value)}
-                    style={{ fontSize: '14px', padding: '9px 12px' }}
-                  />
-                </label>
+                  {/* Subservice operational specs: Duration & Fee */}
+                  {!isMaster && (
+                    <>
+                      <label className="modal-field">
+                        <span style={{ fontWeight: 700, color: '#003946' }}>
+                          Target Turnaround (Minutes)
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="30"
+                          value={estimatedDuration}
+                          onChange={(e) => setEstimatedDuration(e.target.value)}
+                        />
+                      </label>
 
-                {/* Code slug — auto-generated from name */}
-                <input type="hidden" value={code} readOnly />
+                      <label className="modal-field">
+                        <span style={{ fontWeight: 700, color: '#003946' }}>
+                          Standard Citizen Fee (ETB)
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="0.00 (Free service)"
+                          value={feeAmount}
+                          onChange={(e) => setFeeAmount(e.target.value)}
+                        />
+                      </label>
+                    </>
+                  )}
 
-                {/* Governing Organization / Bureau */}
-                <label className="modal-field">
-                  <span style={{ fontWeight: 700, color: '#003946' }}>
-                    Governing Organization / Bureau <i>*</i>
-                  </span>
-                  <select
-                    required
-                    value={primaryOrgId ?? ''}
-                    onChange={(e) => setPrimaryOrgId(e.target.value ? Number(e.target.value) : null)}
+                  {/* Active Switch */}
+                  <label
+                    className="modal-field full"
                     style={{
-                      width: '100%',
-                      padding: '9px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '12px 14px',
                       borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '13px',
-                      background: '#ffffff',
-                      fontWeight: 500,
+                      background: '#f8faf9',
+                      border: '1px solid #dce8e3',
+                      marginTop: '4px',
+                      cursor: 'pointer',
                     }}
                   >
-                    <option value="">Select Governing Organization (Required)...</option>
-                    <optgroup label="🏛 Municipal Sub-cities & Local Offices">
-                      {subcityHierarchy.map((sub: any) => (
-                        <React.Fragment key={sub.id}>
-                          <option value={sub.id} style={{ fontWeight: 700 }}>
-                            🏛 {sub.name}
-                          </option>
-                          {sub.children?.map((child: any) => (
-                            <option key={child.id} value={child.id}>
-                              &nbsp;&nbsp;&nbsp;&nbsp;↳ {child.name} ({sub.name})
-                            </option>
-                          ))}
-                        </React.Fragment>
-                      ))}
-                    </optgroup>
-                    <optgroup label="🏢 Central Bureaus & Sector Agencies">
-                      {bureauHierarchy.map((bur: any) => (
-                        <React.Fragment key={bur.id}>
-                          <option value={bur.id} style={{ fontWeight: 700 }}>
-                            🏢 {bur.name}
-                          </option>
-                          {bur.children?.map((child: any) => (
-                            <option key={child.id} value={child.id}>
-                              &nbsp;&nbsp;&nbsp;&nbsp;↳ {child.name}
-                            </option>
-                          ))}
-                        </React.Fragment>
-                      ))}
-                    </optgroup>
-                  </select>
-                </label>
+                    <input
+                      type="checkbox"
+                      checked={isActive}
+                      onChange={(e) => setIsActive(e.target.checked)}
+                      style={{ width: '18px', height: '18px', accentColor: '#00485a' }}
+                    />
+                    <div>
+                      <b style={{ display: 'block', fontSize: '13px', color: '#003946' }}>
+                        Publish & Activate this service
+                      </b>
+                      <small style={{ color: '#688075', fontSize: '11.5px' }}>
+                        Active services are visible to citizens and listed in government office directories.
+                      </small>
+                    </div>
+                  </label>
 
-                {/* Subservice operational specs: Duration & Fee */}
-                {!isMaster && (
-                  <>
-                    <label className="modal-field">
-                      <span style={{ fontWeight: 700, color: '#003946' }}>
-                        Target Turnaround (Minutes)
-                      </span>
-                      <input
-                        type="number"
-                        min={0}
-                        placeholder="30"
-                        value={estimatedDuration}
-                        onChange={(e) => setEstimatedDuration(e.target.value)}
-                      />
-                    </label>
+                  {/* Citizen Overview Description */}
+                  <label className="modal-field full">
+                    <span style={{ fontWeight: 700, color: '#003946' }}>
+                      Citizen Overview & Eligibility Description
+                    </span>
+                    <textarea
+                      rows={3}
+                      placeholder="Describe what this public service provides, who is eligible, and output expectations..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      style={{ fontSize: '13.5px', padding: '9px 12px', lineHeight: 1.5 }}
+                    />
+                  </label>
+                </div>
+              )}
 
-                    <label className="modal-field">
-                      <span style={{ fontWeight: 700, color: '#003946' }}>
-                        Standard Citizen Fee (ETB)
-                      </span>
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        placeholder="0.00 (Free service)"
-                        value={feeAmount}
-                        onChange={(e) => setFeeAmount(e.target.value)}
-                      />
-                    </label>
-                  </>
-                )}
-
-                {/* Active Switch */}
-                <label
-                  className="modal-field full"
+              {/* TAB 2: REQUIRED DOCUMENTS (Subservice only) */}
+              {!isMaster && activeTab === 'documents' && (
+                <div
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '10px 14px',
-                    borderRadius: '6px',
-                    background: '#f8faf9',
+                    background: '#ffffff',
+                    padding: '24px',
+                    borderRadius: '8px',
                     border: '1px solid #dce8e3',
-                    marginTop: '4px',
-                    cursor: 'pointer',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={isActive}
-                    onChange={(e) => setIsActive(e.target.checked)}
-                    style={{ width: '18px', height: '18px', accentColor: '#00485a' }}
-                  />
-                  <div>
-                    <b style={{ display: 'block', fontSize: '13px', color: '#003946' }}>
-                      Publish & Activate this service
-                    </b>
-                    <small style={{ color: '#688075', fontSize: '11.5px' }}>
-                      Active services are visible to citizens and listed in government office directories.
-                    </small>
-                  </div>
-                </label>
-
-                {/* Citizen Overview Description */}
-                <label className="modal-field full">
-                  <span style={{ fontWeight: 700, color: '#003946' }}>
-                    Citizen Overview & Eligibility Description
-                  </span>
-                  <textarea
-                    rows={3}
-                    placeholder="Describe what this public service provides, who is eligible, and output expectations..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    style={{ fontSize: '13.5px', padding: '9px 12px', lineHeight: 1.5 }}
-                  />
-                </label>
-              </div>
-            )}
-
-            {/* TAB 2: REQUIRED DOCUMENTS (Subservice only) */}
-            {!isMaster && activeTab === 'documents' && (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div>
-                    <b style={{ display: 'block', color: '#003946', fontSize: '14px' }}>
-                      Document Prerequisites
-                    </b>
-                    <small style={{ color: '#64748b', fontSize: '12px' }}>
-                      Select documents that citizens must present or upload to obtain this service.
-                    </small>
-                  </div>
-                  <span
-                    style={{
-                      padding: '3px 10px',
-                      borderRadius: '12px',
-                      background: selectedDocsCount > 0 ? '#dcfce7' : '#f1f5f9',
-                      color: selectedDocsCount > 0 ? '#15803d' : '#64748b',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {selectedDocsCount} Attached
-                  </span>
-                </div>
-
-                {/* Search document catalog */}
-                <div style={{ marginBottom: '12px' }}>
-                  <input
-                    type="search"
-                    placeholder="Search documents by name or code..."
-                    value={docSearch}
-                    onChange={(e) => setDocSearch(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      fontSize: '13px',
-                    }}
-                  />
-                </div>
-
-                <div className="service-doc-checklist" style={{ maxHeight: '320px', overflowY: 'auto' }}>
-                  {isLoadingDocs ? (
-                    <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
-                      Loading documents catalog...
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <div>
+                      <b style={{ display: 'block', color: '#003946', fontSize: '15px' }}>
+                        Document Prerequisites
+                      </b>
+                      <small style={{ color: '#64748b', fontSize: '13px' }}>
+                        Select documents that citizens must present or upload to obtain this service.
+                      </small>
                     </div>
-                  ) : filteredCatalogDocs.length === 0 ? (
-                    <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
-                      No documents match your search.
-                    </div>
-                  ) : (
-                    filteredCatalogDocs.map((doc) => {
-                      const isSelected = Boolean(selectedDocs[doc.id]);
-                      const meta = selectedDocs[doc.id];
-
-                      return (
-                        <div
-                          key={doc.id}
-                          className={`service-doc-item${isSelected ? ' selected' : ''}`}
-                          style={{
-                            padding: '10px 12px',
-                            border: `1px solid ${isSelected ? '#86efac' : '#e2e8f0'}`,
-                            background: isSelected ? '#f0fdf4' : '#ffffff',
-                            borderRadius: '6px',
-                            marginBottom: '8px',
-                          }}
-                        >
-                          <div
-                            className="service-doc-main-row"
-                            onClick={() => handleToggleDoc(doc.id)}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => handleToggleDoc(doc.id)}
-                                onClick={(e) => e.stopPropagation()}
-                                style={{ width: '16px', height: '16px', accentColor: '#00485a' }}
-                              />
-                              <div>
-                                <b style={{ fontSize: '13.5px', color: '#0f172a' }}>{doc.name}</b>
-                                <span
-                                  style={{
-                                    marginLeft: '8px',
-                                    fontFamily: 'monospace',
-                                    fontSize: '11px',
-                                    color: '#475569',
-                                    background: '#f1f5f9',
-                                    padding: '1px 5px',
-                                    borderRadius: '3px',
-                                  }}
-                                >
-                                  {doc.code}
-                                </span>
-                              </div>
-                            </div>
-
-                            <span style={{ fontSize: '12px', fontWeight: 700, color: isSelected ? '#16a34a' : '#64748b' }}>
-                              {isSelected ? '✓ Attached' : '+ Attach'}
-                            </span>
-                          </div>
-
-                          {isSelected && (
-                            <div
-                              style={{
-                                marginTop: '10px',
-                                paddingTop: '8px',
-                                borderTop: '1px dashed #bbf7d0',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '12px',
-                              }}
-                            >
-                              <label
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '6px',
-                                  cursor: 'pointer',
-                                  fontSize: '12px',
-                                  whiteSpace: 'nowrap',
-                                }}
-                                onClick={(e) => handleToggleMandatory(doc.id, e)}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={meta.is_mandatory}
-                                  onChange={() => {}}
-                                  style={{ accentColor: '#00485a' }}
-                                />
-                                <span style={{ fontWeight: 700, color: meta.is_mandatory ? '#b91c1c' : '#475569' }}>
-                                  {meta.is_mandatory ? 'Mandatory (Required)' : 'Optional'}
-                                </span>
-                              </label>
-
-                              <input
-                                type="text"
-                                placeholder="Instructions (e.g. Original document + 2 photocopies)..."
-                                value={meta.notes}
-                                onChange={(e) => handleNoteChange(doc.id, e.target.value)}
-                                onClick={(e) => e.stopPropagation()}
-                                style={{
-                                  flex: 1,
-                                  height: '28px',
-                                  padding: '0 8px',
-                                  fontSize: '12px',
-                                  borderRadius: '4px',
-                                  border: '1px solid #cbd5e1',
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* TAB 3: DELIVERY BRANCHES & OFFICES (Subservice only) */}
-            {!isMaster && activeTab === 'branches' && (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div>
-                    <b style={{ display: 'block', color: '#003946', fontSize: '14px' }}>
-                      Offering Offices & Sub-cities
-                    </b>
-                    <small style={{ color: '#64748b', fontSize: '12px' }}>
-                      Select which municipal offices and sub-cities provide this service to citizens.
-                    </small>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const subIds = subcities.map((o: any) => o.id);
-                        setSelectedOfferingOrgs((prev) => Array.from(new Set([...prev, ...subIds])));
-                      }}
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: '4px',
-                        border: '1px solid #cbd5e1',
-                        background: '#ffffff',
-                        fontSize: '11.5px',
-                        fontWeight: 600,
-                        color: '#00485a',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      + All Sub-cities
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedOfferingOrgs([])}
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: '4px',
-                        border: '1px solid #cbd5e1',
-                        background: '#ffffff',
-                        fontSize: '11.5px',
-                        color: '#64748b',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Clear
-                    </button>
                     <span
                       style={{
-                        padding: '3px 10px',
+                        padding: '4px 12px',
                         borderRadius: '12px',
-                        background: selectedOrgsCount > 0 ? '#dcfce7' : '#f1f5f9',
-                        color: selectedOrgsCount > 0 ? '#15803d' : '#64748b',
+                        background: selectedDocsCount > 0 ? '#dcfce7' : '#f1f5f9',
+                        color: selectedDocsCount > 0 ? '#15803d' : '#64748b',
                         fontSize: '12px',
                         fontWeight: 700,
                       }}
                     >
-                      {selectedOrgsCount} Branches
+                      {selectedDocsCount} Attached
                     </span>
                   </div>
-                </div>
 
-                {/* Sub-cities Group with Child Offices */}
-                <div style={{ marginBottom: '16px' }}>
-                  <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
-                    🏛 Municipal Sub-cities & Local Offices ({subcityHierarchy.length})
-                  </span>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {subcityHierarchy.map((sub: any) => {
-                      const isSubChecked = selectedOfferingOrgs.includes(sub.id);
-                      return (
-                        <div
-                          key={sub.id}
-                          style={{
-                            padding: '10px 12px',
-                            borderRadius: '6px',
-                            background: isSubChecked ? '#f0fdf4' : '#f8faf9',
-                            border: `1px solid ${isSubChecked ? '#86efac' : '#e2e8f0'}`,
-                          }}
-                        >
-                          <label
+                  {/* Search document catalog */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <input
+                      type="search"
+                      placeholder="Search documents by name or code..."
+                      value={docSearch}
+                      onChange={(e) => setDocSearch(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '13.5px',
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    className="service-doc-checklist"
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+                      gap: '12px',
+                      alignItems: 'start',
+                    }}
+                  >
+                    {isLoadingDocs ? (
+                      <div style={{ gridColumn: '1 / -1', padding: '36px', textAlign: 'center', color: '#64748b' }}>
+                        Loading documents catalog...
+                      </div>
+                    ) : filteredCatalogDocs.length === 0 ? (
+                      <div style={{ gridColumn: '1 / -1', padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
+                        No documents match your search.
+                      </div>
+                    ) : (
+                      filteredCatalogDocs.map((doc) => {
+                        const isSelected = Boolean(selectedDocs[doc.id]);
+                        const meta = selectedDocs[doc.id];
+
+                        return (
+                          <div
+                            key={doc.id}
+                            className={`service-doc-item${isSelected ? ' selected' : ''}`}
                             style={{
+                              padding: '12px 14px',
+                              border: `1.5px solid ${isSelected ? '#86efac' : '#e2e8f0'}`,
+                              background: isSelected ? '#f0fdf4' : '#ffffff',
+                              borderRadius: '8px',
+                              boxShadow: isSelected ? '0 2px 6px rgba(22, 163, 74, 0.08)' : '0 1px 3px rgba(0,0,0,0.02)',
                               display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              cursor: 'pointer',
-                              fontWeight: 700,
-                              fontSize: '13px',
-                              color: isSubChecked ? '#15803d' : '#003946',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between',
+                              minHeight: isSelected ? '108px' : 'auto',
+                              transition: 'all 0.15s ease',
                             }}
                           >
-                            <input
-                              type="checkbox"
-                              checked={isSubChecked}
-                              onChange={() => {
-                                setSelectedOfferingOrgs((prev) =>
-                                  prev.includes(sub.id) ? prev.filter((id) => id !== sub.id) : [...prev, sub.id]
-                                );
-                              }}
-                              style={{ accentColor: '#00485a' }}
-                            />
-                            <span>🏛 {sub.name}</span>
-                          </label>
-
-                          {sub.children && sub.children.length > 0 && (
-                            <div style={{ marginLeft: '24px', marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                              {sub.children.map((child: any) => {
-                                const isChildChecked = selectedOfferingOrgs.includes(child.id);
-                                return (
-                                  <label
-                                    key={child.id}
+                            <div
+                              className="service-doc-main-row"
+                              onClick={() => handleToggleDoc(doc.id)}
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleToggleDoc(doc.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{ width: '16px', height: '16px', accentColor: '#00485a' }}
+                                />
+                                <div>
+                                  <b style={{ fontSize: '13.5px', color: '#0f172a' }}>{doc.name}</b>
+                                  <span
                                     style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '6px',
-                                      padding: '4px 8px',
-                                      borderRadius: '4px',
-                                      background: isChildChecked ? '#dcfce7' : '#ffffff',
-                                      border: `1px solid ${isChildChecked ? '#86efac' : '#cbd5e1'}`,
-                                      cursor: 'pointer',
-                                      fontSize: '12px',
-                                      fontWeight: isChildChecked ? 700 : 500,
-                                      color: isChildChecked ? '#15803d' : '#334155',
+                                      marginLeft: '8px',
+                                      fontFamily: 'monospace',
+                                      fontSize: '11px',
+                                      color: '#475569',
+                                      background: '#f1f5f9',
+                                      padding: '1px 5px',
+                                      borderRadius: '3px',
                                     }}
                                   >
-                                    <input
-                                      type="checkbox"
-                                      checked={isChildChecked}
-                                      onChange={() => {
-                                        setSelectedOfferingOrgs((prev) =>
-                                          prev.includes(child.id) ? prev.filter((id) => id !== child.id) : [...prev, child.id]
-                                        );
-                                      }}
-                                      style={{ accentColor: '#00485a' }}
-                                    />
-                                    <span>↳ {child.name}</span>
-                                  </label>
-                                );
-                              })}
+                                    {doc.code}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <span style={{ fontSize: '12px', fontWeight: 700, color: isSelected ? '#16a34a' : '#64748b' }}>
+                                {isSelected ? '✓ Attached' : '+ Attach'}
+                              </span>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
+
+                            {isSelected && (
+                              <div
+                                style={{
+                                  marginTop: '10px',
+                                  paddingTop: '8px',
+                                  borderTop: '1px dashed #bbf7d0',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '12px',
+                                }}
+                              >
+                                <label
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                  onClick={(e) => handleToggleMandatory(doc.id, e)}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={meta.is_mandatory}
+                                    onChange={() => {}}
+                                    style={{ accentColor: '#00485a' }}
+                                  />
+                                  <span style={{ fontWeight: 700, color: meta.is_mandatory ? '#b91c1c' : '#475569' }}>
+                                    {meta.is_mandatory ? 'Mandatory' : 'Optional'}
+                                  </span>
+                                </label>
+
+                                <input
+                                  type="text"
+                                  placeholder="Instructions (e.g. Original + 2 photocopies)..."
+                                  value={meta.notes}
+                                  onChange={(e) => handleNoteChange(doc.id, e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{
+                                    flex: 1,
+                                    height: '28px',
+                                    padding: '0 8px',
+                                    fontSize: '12px',
+                                    borderRadius: '4px',
+                                    border: '1px solid #cbd5e1',
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
+              )}
 
-                {/* Central Bureaus Group */}
-                {bureaus.length > 0 && (
-                  <div>
-                    <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
-                      🏢 Central Bureaus & Agencies ({bureaus.length})
+              {/* TAB 3: DELIVERY BRANCHES & OFFICES (Subservice only) */}
+              {!isMaster && activeTab === 'branches' && (
+                <div
+                  style={{
+                    background: '#ffffff',
+                    padding: '24px',
+                    borderRadius: '8px',
+                    border: '1px solid #dce8e3',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <div>
+                      <b style={{ display: 'block', color: '#003946', fontSize: '15px' }}>
+                        Offering Offices & Sub-cities
+                      </b>
+                      <small style={{ color: '#64748b', fontSize: '13px' }}>
+                        Select which municipal offices and sub-cities provide this service to citizens.
+                      </small>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const subIds = subcities.map((o: any) => o.id);
+                          setSelectedOfferingOrgs((prev) => Array.from(new Set([...prev, ...subIds])));
+                        }}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          color: '#00485a',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        + All Sub-cities
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOfferingOrgs([])}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          fontSize: '12px',
+                          color: '#64748b',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Clear
+                      </button>
+                      <span
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          background: selectedOrgsCount > 0 ? '#dcfce7' : '#f1f5f9',
+                          color: selectedOrgsCount > 0 ? '#15803d' : '#64748b',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {selectedOrgsCount} Branches
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Sub-cities Group with Child Offices in a responsive grid */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <span style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '10px' }}>
+                      🏛 Municipal Sub-cities & Local Offices ({subcityHierarchy.length})
                     </span>
                     <div
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                        gap: '8px',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+                        gap: '12px',
+                        alignItems: 'start',
                       }}
                     >
-                      {bureaus.map((org: any) => {
-                        const isChecked = selectedOfferingOrgs.includes(org.id);
+                      {subcityHierarchy.map((sub: any) => {
+                        const isSubChecked = selectedOfferingOrgs.includes(sub.id);
                         return (
-                          <label
-                            key={org.id}
+                          <div
+                            key={sub.id}
                             style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              padding: '8px 10px',
-                              borderRadius: '6px',
-                              background: isChecked ? '#f0fdf4' : '#ffffff',
-                              border: `1px solid ${isChecked ? '#86efac' : '#e2e8f0'}`,
-                              cursor: 'pointer',
-                              fontSize: '12.5px',
-                              fontWeight: isChecked ? 700 : 500,
-                              color: isChecked ? '#15803d' : '#334155',
+                              padding: '12px 14px',
+                              borderRadius: '8px',
+                              background: isSubChecked ? '#f0fdf4' : '#f8faf9',
+                              border: `1.5px solid ${isSubChecked ? '#86efac' : '#e2e8f0'}`,
+                              boxShadow: isSubChecked ? '0 2px 6px rgba(22, 163, 74, 0.08)' : 'none',
                             }}
                           >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => {
-                                setSelectedOfferingOrgs((prev) =>
-                                  prev.includes(org.id) ? prev.filter((id) => id !== org.id) : [...prev, org.id]
-                                );
+                            <label
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 700,
+                                fontSize: '13.5px',
+                                color: isSubChecked ? '#15803d' : '#003946',
                               }}
-                              style={{ accentColor: '#00485a' }}
-                            />
-                            <span>{org.name}</span>
-                          </label>
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSubChecked}
+                                onChange={() => {
+                                  setSelectedOfferingOrgs((prev) =>
+                                    prev.includes(sub.id) ? prev.filter((id) => id !== sub.id) : [...prev, sub.id]
+                                  );
+                                }}
+                                style={{ width: '16px', height: '16px', accentColor: '#00485a' }}
+                              />
+                              <span>🏛 {sub.name}</span>
+                            </label>
+
+                            {sub.children && sub.children.length > 0 && (
+                              <div style={{ marginLeft: '24px', marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {sub.children.map((child: any) => {
+                                  const isChildChecked = selectedOfferingOrgs.includes(child.id);
+                                  return (
+                                    <label
+                                      key={child.id}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        background: isChildChecked ? '#dcfce7' : '#ffffff',
+                                        border: `1px solid ${isChildChecked ? '#86efac' : '#cbd5e1'}`,
+                                        cursor: 'pointer',
+                                        fontSize: '12px',
+                                        fontWeight: isChildChecked ? 700 : 500,
+                                        color: isChildChecked ? '#15803d' : '#334155',
+                                      }}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={isChildChecked}
+                                        onChange={() => {
+                                          setSelectedOfferingOrgs((prev) =>
+                                            prev.includes(child.id) ? prev.filter((id) => id !== child.id) : [...prev, child.id]
+                                          );
+                                        }}
+                                        style={{ accentColor: '#00485a' }}
+                                      />
+                                      <span>↳ {child.name}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         );
                       })}
                     </div>
                   </div>
-                )}
-              </div>
-            )}
+
+                  {/* Central Bureaus Group */}
+                  {bureaus.length > 0 && (
+                    <div>
+                      <span style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '10px' }}>
+                        🏢 Central Bureaus & Agencies ({bureaus.length})
+                      </span>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                          gap: '10px',
+                        }}
+                      >
+                        {bureaus.map((org: any) => {
+                          const isChecked = selectedOfferingOrgs.includes(org.id);
+                          return (
+                            <label
+                              key={org.id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '10px 12px',
+                                borderRadius: '6px',
+                                background: isChecked ? '#f0fdf4' : '#ffffff',
+                                border: `1px solid ${isChecked ? '#86efac' : '#e2e8f0'}`,
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: isChecked ? 700 : 500,
+                                color: isChecked ? '#15803d' : '#334155',
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  setSelectedOfferingOrgs((prev) =>
+                                    prev.includes(org.id) ? prev.filter((id) => id !== org.id) : [...prev, org.id]
+                                  );
+                                }}
+                                style={{ accentColor: '#00485a' }}
+                              />
+                              <span>{org.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Footer */}
           <div
             className="modal-footer"
             style={{
-              padding: '1rem 1.75rem',
-              background: '#f8fafc',
-              borderTop: '1px solid #e2e8f0',
+              padding: '1.1rem 2.5rem',
+              background: '#ffffff',
+              borderTop: '1px solid #dce8e3',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              flexShrink: 0,
             }}
           >
             <span style={{ fontSize: '12px', color: '#64748b' }}>

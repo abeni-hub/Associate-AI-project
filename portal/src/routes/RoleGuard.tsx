@@ -1,6 +1,9 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { usePortal, usePermissions, useGetSidebarNavigationQuery, Icon } from '../features/shared';
+import { usePortal } from '../context';
+import { useLanguage } from '../i18n/i18nContext';
+import { usePermissions } from '../hooks/usePermissions';
+import { useGetSidebarNavigationQuery } from '../services/navigationApi';
 import { tokenStorage } from '../utils/tokenStorage';
 import type { RoleKey } from '../types/portal.types';
 import styles from './roleGuard.module.css';
@@ -57,6 +60,7 @@ export const getFirstAuthorizedPath = (
  */
 export const AccessDeniedScreen: React.FC = () => {
   const portal = usePortal();
+  const { t } = useLanguage();
   return (
     <div className={styles.accessDeniedPanel}>
       <div className={styles.shieldIconWrapper}>
@@ -67,8 +71,12 @@ export const AccessDeniedScreen: React.FC = () => {
         Your role ({portal.authUser?.role?.name || portal.role}) does not have permission to access
         this page, or this administrative module has been restricted.
       </p>
-      <button type="button" className="button primary" onClick={() => portal.signOut()}>
-        Sign out
+      <button
+        type="button"
+        className="button primary"
+        onClick={() => portal.signOut()}
+      >
+        {t('nav.signOut', 'Sign out')}
       </button>
     </div>
   );

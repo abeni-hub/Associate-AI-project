@@ -1,0 +1,31 @@
+:root {
+  color-scheme: light;
+  --background: #f6f8f7;
+  --foreground: #16383d;
+  --card: #ffffff;
+  --card-foreground: #16383d;
+  --primary: #075363;
+  --primary-hover: #063f4a;
+  --primary-foreground: #ffffff;
+  --secondary: #edf4f2;
+  --secondary-foreground: #244c50;
+  --muted: #eff3f2;
+  --muted-foreground: #728582;
+  --accent: #eef5f3;
+  --accent-foreground: #075363;
+  --border: #dce7e3;
+  --input: #d6e1de;
+  --ring: #6da89d;
+  --radius: 0.7rem;
+
+  /* Portal Sidebar & Theme */
+  --sidebar: #064552;
+  --sidebar-foreground: #d8e9e9;
+  --sidebar-accent: #145b67;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #28606a;
+  --sidebar-ring: #91c9ba;
+  --gold-accent: #efbd58;
+  --gold-brand: #f6c66c;
+}
+

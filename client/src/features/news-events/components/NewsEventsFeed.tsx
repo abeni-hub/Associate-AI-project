@@ -30,14 +30,15 @@ export default function NewsEventsFeed({
   onResetFilters,
 }: NewsEventsFeedProps) {
   const isAm = language === 'am'
+  const displayTotal = typeof totalCount === 'number' ? totalCount : (items?.length || 0)
 
   return (
     <main className="nep-feed-container">
       <div className="nep-feed-meta">
         <span>
           {isAm
-            ? `የሚታዩት፡ ${items.length} ከ ${totalCount} ወቅታዊ መረጃዎች`
-            : `Showing ${items.length} of ${totalCount} civic updates`
+            ? `የሚታዩት፡ ${items.length} ከ ${displayTotal} ወቅታዊ መረጃዎች`
+            : `Showing ${items.length} of ${displayTotal} civic updates`
           }
         </span>
         <span>

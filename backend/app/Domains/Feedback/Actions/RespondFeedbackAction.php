@@ -12,11 +12,17 @@ class RespondFeedbackAction
     /**
      * Record an official response to a feedback record within a database transaction.
      */
-    public function execute(Feedback $feedback, string $responseText): Feedback
-    {
-        return DB::transaction(function () use ($feedback, $responseText) {
+    public function execute(
+        Feedback $feedback,
+        string $responseText,
+        ?string $responseTextAmh = null,
+        ?string $responseTextOro = null
+    ): Feedback {
+        return DB::transaction(function () use ($feedback, $responseText, $responseTextAmh, $responseTextOro) {
             $feedback->update([
                 'response' => $responseText,
+                'response_amh' => $responseTextAmh,
+                'response_oro' => $responseTextOro,
                 'status' => 'resolved',
                 'resolved_at' => now(),
             ]);

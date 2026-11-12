@@ -32,6 +32,8 @@ class UpdateDocumentRequest extends FormRequest
 
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'name_amh' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'name_oro' => ['sometimes', 'nullable', 'string', 'max:255'],
             'code' => [
                 'sometimes',
                 'required',
@@ -41,6 +43,8 @@ class UpdateDocumentRequest extends FormRequest
                 'regex:/^[a-z0-9\-]+$/',
             ],
             'description' => ['nullable', 'string'],
+            'description_amh' => ['nullable', 'string'],
+            'description_oro' => ['nullable', 'string'],
             'sample_file_url' => ['nullable', 'url', 'max:500'],
             'is_active' => ['nullable', 'boolean'],
         ];

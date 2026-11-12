@@ -366,7 +366,9 @@ class FeedbackIndexTest extends TestCase
                 'success' => true,
                 'data' => [
                     'id' => $woredaFeedback->id,
-                    'feedback_content' => 'Reviewed and verified by Sub-City supervisor.',
+                    'feedback_content' => [
+                        'eng' => 'Reviewed and verified by Sub-City supervisor.',
+                    ],
                 ],
             ]);
 
@@ -390,7 +392,9 @@ class FeedbackIndexTest extends TestCase
                 'success' => true,
                 'data' => [
                     'id' => $woredaFeedback->id,
-                    'feedback_content' => 'Updated by own organization admin.',
+                    'feedback_content' => [
+                        'eng' => 'Updated by own organization admin.',
+                    ],
                 ],
             ]);
     }
@@ -409,7 +413,9 @@ class FeedbackIndexTest extends TestCase
                 'success' => true,
                 'data' => [
                     'id' => $kirkosFeedback->id,
-                    'feedback_content' => 'Updated by Super Admin.',
+                    'feedback_content' => [
+                        'eng' => 'Updated by Super Admin.',
+                    ],
                 ],
             ]);
     }
@@ -461,7 +467,9 @@ class FeedbackIndexTest extends TestCase
                 'message' => 'Feedback response recorded successfully.',
                 'data' => [
                     'id' => $woredaFeedback->id,
-                    'response' => 'The matter was investigated and solved by the Sub-City directorate.',
+                    'response' => [
+                        'eng' => 'The matter was investigated and solved by the Sub-City directorate.',
+                    ],
                 ],
             ]);
     }
@@ -481,7 +489,9 @@ class FeedbackIndexTest extends TestCase
                 'message' => 'Feedback response recorded successfully.',
                 'data' => [
                     'id' => $kirkosFeedback->id,
-                    'response' => 'Super Admin official response.',
+                    'response' => [
+                        'eng' => 'Super Admin official response.',
+                    ],
                 ],
             ]);
     }
@@ -501,7 +511,9 @@ class FeedbackIndexTest extends TestCase
                 'message' => 'Feedback response recorded successfully.',
                 'data' => [
                     'id' => $woredaFeedback->id,
-                    'response' => 'Direct resolution from Woreda officer.',
+                    'response' => [
+                        'eng' => 'Direct resolution from Woreda officer.',
+                    ],
                 ],
             ]);
     }
@@ -602,7 +614,9 @@ class FeedbackIndexTest extends TestCase
                 'message' => 'Feedback submitted successfully.',
                 'data' => [
                     'feedback_for_organization' => $this->boleSubCity->id,
-                    'feedback_content' => 'The customer service counter at the main hall was very helpful.',
+                    'feedback_content' => [
+                        'eng' => 'The customer service counter at the main hall was very helpful.',
+                    ],
                     'feedback_type' => 'feedback',
                     'full_name' => 'Almaz Ayana',
                     'phone_number' => '+251911000111',
@@ -871,6 +885,62 @@ class FeedbackIndexTest extends TestCase
         // Kirkos log MUST NOT be visible to Bole Sub-City Admin
         $kirkosLog = $logs->firstWhere('entity_id', (string) $kirkosFeedback->id);
         $this->assertNull($kirkosLog);
+    }
+
+    public function test_can_submit_and_respond_with_amharic_and_oromo_localization(): void
+    {
+        $submitResponse = $this->postJson('/api/v1/feedbacks', [
+            'feedback_for_organization' => $this->boleSubCity->id,
+            'feedback_content' => 'The queue at counter 3 was very slow.',
+            'feedback_content_amh' => 'በመስኮት 3 ላይ ያለው ሰልፍ በጣም አዝጋሚ ነበር።',
+            'feedback_content_oro' => 'Tajaajilli foddaa 3 irratti kennamu hedduu suuta ture.',
+            'feedback_type' => 'complaint',
+            'full_name' => 'Tolosa Feyisa',
+            'phone_number' => '+251922334455',
+        ]);
+
+        $submitResponse->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'feedback_content' => [
+                        'eng' => 'The queue at counter 3 was very slow.',
+                        'amh' => 'በመስኮት 3 ላይ ያለው ሰልፍ በጣም አዝጋሚ ነበር።',
+                        'oro' => 'Tajaajilli foddaa 3 irratti kennamu hedduu suuta ture.',
+                    ],
+                ],
+            ]);
+
+        $feedbackId = $submitResponse->json('data.id');
+
+        $respondResponse = $this->actingAs($this->subCityAdmin)
+            ->postJson("/api/v1/feedbacks/{$feedbackId}/respond", [
+                'response' => 'Additional service windows have been opened.',
+                'response_amh' => 'ተጨማሪ የአገልግሎት መስኮቶች እንዲከፈቱ ተደርጓል።',
+                'response_oro' => 'Foddaaleen tajaajilaa dabalataa akka banaman ta\'eera.',
+            ]);
+
+        $respondResponse->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'response' => [
+                        'eng' => 'Additional service windows have been opened.',
+                        'amh' => 'ተጨማሪ የአገልግሎት መስኮቶች እንዲከፈቱ ተደርጓል።',
+                        'oro' => 'Foddaaleen tajaajilaa dabalataa akka banaman ta\'eera.',
+                    ],
+                ],
+            ]);
+
+        $this->assertDatabaseHas('feedbacks', [
+            'id' => $feedbackId,
+            'feedback_content' => 'The queue at counter 3 was very slow.',
+            'feedback_content_amh' => 'በመስኮት 3 ላይ ያለው ሰልፍ በጣም አዝጋሚ ነበር።',
+            'feedback_content_oro' => 'Tajaajilli foddaa 3 irratti kennamu hedduu suuta ture.',
+            'response' => 'Additional service windows have been opened.',
+            'response_amh' => 'ተጨማሪ የአገልግሎት መስኮቶች እንዲከፈቱ ተደርጓል።',
+            'response_oro' => 'Foddaaleen tajaajilaa dabalataa akka banaman ta\'eera.',
+        ]);
     }
 
     private function createFeedback(Organization $organization, string $type): Feedback

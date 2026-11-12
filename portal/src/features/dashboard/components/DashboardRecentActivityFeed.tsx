@@ -1,14 +1,16 @@
 import React from 'react';
-import { Icon } from '../../shared';
-import type { DashboardRecentActivityFeedProps } from '../types/dashboard.types';
-import styles from '../styles/recentActivityFeed.module.css';
+import Icon from '../ui/Icon.jsx';
+import { useLanguage } from '../../i18n/i18nContext';
+import { getLocalizedText } from '../../i18n/utils/getLocalized';
+import type { DashboardRecentActivityItem } from '../../services/dashboardApi';
 
 export const DashboardRecentActivityFeed: React.FC<DashboardRecentActivityFeedProps> = ({
   activities = [],
   isLoading,
   onNavigate,
 }) => {
-  const getActionClass = (action: string) => {
+  const { language, t } = useLanguage();
+  const getActionBadgeClass = (action: string) => {
     switch (action?.toLowerCase()) {
       case 'created':
       case 'registered':
@@ -63,8 +65,8 @@ export const DashboardRecentActivityFeed: React.FC<DashboardRecentActivityFeedPr
           <p className={styles.intro}>Live administrative actions across your organization hierarchy.</p>
         </div>
         {onNavigate && (
-          <button className={styles.panelLink} onClick={() => onNavigate('activity')} type="button">
-            View full audit logs <Icon name="arrow" size={15} />
+          <button className="panel-link" onClick={() => onNavigate('activity')}>
+            {t('overview.fullAuditLog', 'Full audit log')} <Icon name="arrow" size={15} />
           </button>
         )}
       </div>
@@ -100,7 +102,7 @@ export const DashboardRecentActivityFeed: React.FC<DashboardRecentActivityFeedPr
                   </span>
                 </div>
                 <p>
-                  {act.actor?.email} in <strong>{act.organization?.name || 'Municipal Unit'}</strong>
+                  {act.actor?.email} in <strong>{getLocalizedText(act.organization?.name as any, language) || (typeof act.organization?.name === 'string' ? act.organization?.name : 'Municipal Unit')}</strong>
                 </p>
                 <div className={styles.activityMeta}>
                   <span>

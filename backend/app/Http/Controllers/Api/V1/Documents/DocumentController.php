@@ -39,8 +39,12 @@ class DocumentController extends Controller
             $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
             $query->where(function ($q) use ($search, $like) {
                 $q->where('name', $like, "%{$search}%")
+                    ->orWhere('name_amh', $like, "%{$search}%")
+                    ->orWhere('name_oro', $like, "%{$search}%")
                     ->orWhere('code', $like, "%{$search}%")
-                    ->orWhere('description', $like, "%{$search}%");
+                    ->orWhere('description', $like, "%{$search}%")
+                    ->orWhere('description_amh', $like, "%{$search}%")
+                    ->orWhere('description_oro', $like, "%{$search}%");
             });
         }
 

@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../../shared';
-import { useGetOrganizationTypesQuery } from '../../organizations';
-import { useGetNavigationItemsQuery, useGetPermissionsQuery } from '../api/rolesApi';
+import Icon from '../ui/Icon.jsx';
+import { useLanguage } from '../../i18n/i18nContext';
+import { useGetOrganizationTypesQuery } from '../../services/organizationsApi';
+import { useGetNavigationItemsQuery, useGetPermissionsQuery } from '../../services/rolesApi';
 
 const DEFAULT_SCOPE_TIERS = [
   {
@@ -74,6 +75,7 @@ const NAV_ITEM_TO_PERMS = {
 };
 
 function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
+  const { t } = useLanguage();
   const isEditing = Boolean(role?.id);
   const [activeTab, setActiveTab] = useState('details');
 
@@ -494,7 +496,7 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
                 onClick={handleResetScopeDefaults}
                 style={{ border: 'none', background: 'none', color: '#00485a', fontSize: '12px', fontWeight: 600, cursor: 'pointer', padding: 0 }}
               >
-                Reset defaults
+                {t('roles.resetDefaults', 'Reset defaults')}
               </button>
               <span style={{ color: '#cbd5e1' }}>·</span>
               <button
@@ -502,7 +504,7 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
                 onClick={handleSelectAllNav}
                 style={{ border: 'none', background: 'none', color: '#0369a1', fontSize: '12px', fontWeight: 600, cursor: 'pointer', padding: 0 }}
               >
-                Select all
+                {t('roles.enableAll', 'Select all')}
               </button>
               <span style={{ color: '#cbd5e1' }}>·</span>
               <button
@@ -510,7 +512,7 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
                 onClick={handleClearAllNav}
                 style={{ border: 'none', background: 'none', color: '#64748b', fontSize: '12px', fontWeight: 600, cursor: 'pointer', padding: 0 }}
               >
-                Clear all
+                {t('roles.disableAll', 'Clear all')}
               </button>
             </div>
           </div>
@@ -544,7 +546,7 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
                       <b style={{ fontSize: '13px', color: isChecked ? '#00485a' : '#1e293b' }}>
-                        {item.name}
+                        {t(`nav.${item.key === 'subcities' ? 'offices' : item.key}`, item.name)}
                       </b>
                     </div>
                     <span style={{ fontSize: '11px', color: '#64748b', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -590,14 +592,14 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
 
         <div style={{ display: 'flex', gap: '10px' }}>
           <button type="button" className="button secondary" onClick={onClose} disabled={isLoading}>
-            Cancel
+            {t('common.cancel', 'Cancel')}
           </button>
           <button type="submit" className="button primary" disabled={isLoading}>
             {isLoading
-              ? 'Saving...'
+              ? t('common.saving', 'Saving...')
               : isEditing
-              ? 'Save Changes'
-              : 'Create Role'}
+              ? t('common.saveChanges', 'Save Changes')
+              : t('roles.createRole', 'Create Role')}
           </button>
         </div>
       </div>

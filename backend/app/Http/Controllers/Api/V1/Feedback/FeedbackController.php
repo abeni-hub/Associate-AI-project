@@ -68,6 +68,11 @@ class FeedbackController extends Controller
             $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
             $query->where(function ($q) use ($search, $like) {
                 $q->where('feedback_content', $like, "%{$search}%")
+                    ->orWhere('feedback_content_amh', $like, "%{$search}%")
+                    ->orWhere('feedback_content_oro', $like, "%{$search}%")
+                    ->orWhere('response', $like, "%{$search}%")
+                    ->orWhere('response_amh', $like, "%{$search}%")
+                    ->orWhere('response_oro', $like, "%{$search}%")
                     ->orWhere('full_name', $like, "%{$search}%")
                     ->orWhere('tracking_number', $like, "%{$search}%");
             });
@@ -178,14 +183,20 @@ class FeedbackController extends Controller
         $responded = DB::transaction(function () use ($feedback, $request, $user) {
             $oldValues = $feedback->toArray();
             $responseText = (string) $request->validated('response');
-            $responded = $this->respondAction->execute($feedback, $responseText);
+            $responseTextAmh = $request->validated('response_amh');
+            $responseTextOro = $request->validated('response_oro');
+            $responded = $this->respondAction->execute($feedback, $responseText, $responseTextAmh, $responseTextOro);
 
             $this->auditLogAction->execute(
                 action: 'responded',
                 entity: $responded,
                 actor: $user,
                 oldValues: $oldValues,
-                newValues: array_merge($responded->toArray(), ['response' => $responseText]),
+                newValues: array_merge($responded->toArray(), [
+                    'response' => $responseText,
+                    'response_amh' => $responseTextAmh,
+                    'response_oro' => $responseTextOro,
+                ]),
                 request: $request
             );
 

@@ -2,7 +2,34 @@ import { baseApi } from '../../../app/baseApi';
 import type { ApiResponse, PaginatedResponse, PaginationQueryParams } from '../../../types/api.types';
 import type { CreateQrCodePayload, QrCodeItem } from '../types/qrCodes.types';
 
-export const qrCodesFeatureApi = baseApi.injectEndpoints({
+export interface QrCodeItem {
+  id: number;
+  organization_id: number;
+  code: string;
+  label: string;
+  target_url: string;
+  scan_count: number;
+  status: 'active' | 'inactive';
+  last_scanned_at: string | null;
+  created_at: string;
+  updated_at: string;
+  image_url?: string | null;
+  organization?: {
+    id: number;
+    name: string;
+    code: string;
+  };
+}
+
+export interface CreateQrCodePayload {
+  organization_id: number;
+  code: string;
+  label: string;
+  target_url: string;
+  status?: 'active' | 'inactive';
+}
+
+export const qrCodesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getQrCodes: builder.query<PaginatedResponse<QrCodeItem>, PaginationQueryParams | void>({
       query: (params) => ({

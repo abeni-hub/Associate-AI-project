@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../../shared';
-import type { OrganizationTypeItem } from '../api/organizationsApi';
+import { Icon } from '../shared/Icon';
+import { getLocalizedText } from '../../i18n/utils/getLocalized';
+import { useLanguage } from '../../i18n/i18nContext';
+import type { OrganizationTypeItem } from '../../services/organizationsApi';
 
 export interface LevelModalProps {
   level?: OrganizationTypeItem | null;
@@ -31,6 +33,7 @@ export const LevelModal: React.FC<LevelModalProps> = ({
   onSave,
   isLoading = false,
 }) => {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [rank, setRank] = useState<number | string>(1);
@@ -41,11 +44,13 @@ export const LevelModal: React.FC<LevelModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (level) {
-        setName(level.name || '');
+        const initialName = typeof level.name === 'string' ? level.name : getLocalizedText(level.name as any, 'en');
+        const initialDesc = typeof level.description === 'string' ? level.description : getLocalizedText(level.description as any, 'en');
+        setName(initialName);
         setCode(level.code || '');
         setRank(level.level ?? 1);
         setIsActive(level.is_active !== false);
-        setDescription(level.description || '');
+        setDescription(initialDesc);
       } else {
         setName('');
         setCode('');
@@ -201,10 +206,10 @@ export const LevelModal: React.FC<LevelModalProps> = ({
             <span />
             <div style={{ display: 'flex', gap: '8px' }}>
               <button type="button" className="button secondary" onClick={onClose} disabled={isLoading}>
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </button>
               <button type="submit" className="button primary" disabled={isLoading}>
-                {isLoading ? 'Saving...' : (level ? 'Save changes' : 'Create level')} <Icon name="arrow" size={15} />
+                {isLoading ? t('common.saving', 'Saving...') : (level ? t('common.saveChanges', 'Save changes') : t('levels.addLevel', 'Create level'))} <Icon name="arrow" size={15} />
               </button>
             </div>
           </div>

@@ -27,12 +27,17 @@ class Phase3SeedersTest extends TestCase
         $expectedRoutes = [
             '/admin/overview',
             '/admin/subcities',
+            '/admin/levels',
             '/admin/accounts',
-            '/admin/feedback',
+            '/admin/roles',
             '/admin/services',
+            '/admin/documents',
             '/admin/routes',
+            '/admin/feedback',
             '/admin/qr',
+            '/admin/news',
             '/admin/cms',
+            '/admin/activity',
         ];
 
         foreach ($expectedRoutes as $route) {
@@ -42,7 +47,7 @@ class Phase3SeedersTest extends TestCase
             ]);
         }
 
-        $this->assertSame(8, NavigationItem::count());
+        $this->assertSame(13, NavigationItem::count());
     }
 
     public function test_role_navigation_items_mapping_and_role_differentiation(): void
@@ -51,21 +56,23 @@ class Phase3SeedersTest extends TestCase
         $subCityAdmin = Role::where('slug', 'sub_city_admin')->firstOrFail();
         $staff = Role::where('slug', 'staff')->firstOrFail();
 
-        // Super Admin has all 8 navigation items
-        $this->assertCount(8, $superAdmin->navigationItems);
+        // Super Admin has all 13 navigation items
+        $this->assertCount(13, $superAdmin->navigationItems);
 
-        // Sub-City Admin has 7 items (all except CMS)
+        // Sub-City Admin has 9 items
         $subCityRoutes = $subCityAdmin->navigationItems->pluck('route')->toArray();
-        $this->assertCount(7, $subCityRoutes);
+        $this->assertCount(9, $subCityRoutes);
         $this->assertContains('/admin/subcities', $subCityRoutes);
         $this->assertContains('/admin/accounts', $subCityRoutes);
+        $this->assertContains('/admin/documents', $subCityRoutes);
         $this->assertNotContains('/admin/cms', $subCityRoutes);
 
-        // Staff has 4 items (Overview, Feedback, Services, Routes)
+        // Staff has 5 items (Overview, Feedback, Services, Documents, Routes)
         $staffRoutes = $staff->navigationItems->pluck('route')->toArray();
-        $this->assertCount(4, $staffRoutes);
+        $this->assertCount(5, $staffRoutes);
         $this->assertContains('/admin/overview', $staffRoutes);
         $this->assertContains('/admin/services', $staffRoutes);
+        $this->assertContains('/admin/documents', $staffRoutes);
         $this->assertNotContains('/admin/subcities', $staffRoutes);
         $this->assertNotContains('/admin/accounts', $staffRoutes);
         $this->assertNotContains('/admin/cms', $staffRoutes);

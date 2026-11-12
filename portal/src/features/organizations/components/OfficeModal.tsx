@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../../shared';
-import { SearchSelect, type SearchSelectOption } from '../../shared';
-import type { OfficeType } from '../../../types/portal.types';
+import { Icon } from '../shared/Icon';
+import { SearchSelect, type SearchSelectOption } from '../shared/SearchSelect';
+import type { OfficeType } from '../../types/portal.types';
+import { getLocalizedText } from '../../i18n/utils/getLocalized';
+import { useLanguage } from '../../i18n/i18nContext';
 import {
   useGetOrganizationsQuery,
   useGetOrganizationTypesQuery,
@@ -42,6 +44,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
   onSave,
   isLoading = false,
 }) => {
+  const { t } = useLanguage();
   const { data: apiOrgTypes } = useGetOrganizationTypesQuery(undefined, { skip: !isOpen });
   const { data: apiOrgs } = useGetOrganizationsQuery(undefined, { skip: !isOpen });
 
@@ -80,8 +83,11 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
   // Sync form fields when opening or switching office
   useEffect(() => {
     if (isOpen) {
-      setName(office?.name || '');
-      setCode(office?.code || (office?.name ? slugify(office.name) : ''));
+      const initialName = typeof office?.name === 'string' ? office.name : getLocalizedText(office?.name, 'en');
+      const initialAddress = typeof office?.address === 'string' ? office.address : getLocalizedText(office?.address, 'en');
+      const initialDesc = typeof office?.description === 'string' ? office.description : getLocalizedText(office?.description, 'en');
+      setName(initialName);
+      setCode(office?.code || (initialName ? slugify(initialName) : ''));
       const initialType = Number(
         office?.organization_type_id ||
           office?.typeId ||
@@ -90,10 +96,10 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
       );
       setTypeId(initialType);
       setParentId(office?.parent_organization_id ?? office?.parentId ?? null);
-      setAddress(office?.address || '');
+      setAddress(initialAddress);
       setPhone(office?.phone || '');
       setEmail(office?.email || '');
-      setDescription(office?.description || '');
+      setDescription(initialDesc);
       setStatus(office?.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active');
       setLogo(null);
       setErrorMsg(null);
@@ -114,11 +120,11 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
   const classificationOptions: SearchSelectOption[] = useMemo(() => {
     return allTypes.map((t: any) => ({
       value: t.id,
-      label: t.name,
+      label: typeof t.name === 'string' ? t.name : getLocalizedText(t.name, 'en') || t.code || 'Tier',
       code: t.code,
       badge: `Level ${t.level ?? 1}`,
       badgeTone: t.level === 1 ? 'sage' : t.level === 2 ? 'blue' : 'gold',
-      secondary: t.description || (t.can_be_root || t.level === 1 ? 'Root platform tier' : 'Requires parent organization'),
+      secondary: (typeof t.description === 'string' ? t.description : getLocalizedText(t.description, 'en')) || (t.can_be_root || t.level === 1 ? 'Root platform tier' : 'Requires parent organization'),
     }));
   }, [allTypes]);
 
@@ -146,9 +152,11 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
       const found = typeMap.get(tId);
       if (found?.level != null) return Number(found.level);
     }
-    const typeName = (org.typeName || org.type?.name || org.typeCode || org.type?.code || '').toLowerCase();
+    const orgTypeNameStr = typeof org.typeName === 'string' ? org.typeName : getLocalizedText(org.typeName || org.type?.name, 'en') || org.typeCode || org.type?.code || '';
+    const typeName = orgTypeNameStr.toLowerCase();
     for (const t of allTypes) {
-      if (t.name?.toLowerCase() === typeName || t.code?.toLowerCase() === typeName) {
+      const tNameStr = typeof t.name === 'string' ? t.name : getLocalizedText(t.name, 'en') || '';
+      if (tNameStr.toLowerCase() === typeName || (t.code && t.code.toLowerCase() === typeName)) {
         return Number(t.level);
       }
     }
@@ -206,6 +214,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
     });
 
     if (eligible.length === 0) {
+      const selTypeName = typeof selectedType?.name === 'string' ? selectedType.name : getLocalizedText(selectedType?.name, 'en') || 'child office';
       return [
         {
           value: 0,
@@ -214,7 +223,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
           disabled: true,
           badge: 'Notice',
           badgeTone: 'gray',
-          secondary: `A supervising ${parentTierName} office must be created first before a ${selectedType?.name || 'child office'} can be registered.`,
+          secondary: `A supervising ${parentTierName} office must be created first before a ${selTypeName} can be registered.`,
         },
       ];
     }
@@ -222,14 +231,16 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
     return eligible.map((org) => {
       const orgType = org.type || typeMap.get(Number(org.organization_type_id || org.typeId));
       const orgLevel = getOrgLevel(org);
-      const typeName = org.typeName || orgType?.name || parentTierName;
+      const typeName = typeof org.typeName === 'string' ? org.typeName : getLocalizedText(org.typeName || orgType?.name, 'en') || parentTierName;
+      const orgName = typeof org.name === 'string' ? org.name : getLocalizedText(org.name, 'en') || 'Office';
+      const orgAddress = typeof org.address === 'string' ? org.address : getLocalizedText(org.address, 'en') || '';
       return {
         value: org.id,
-        label: org.name,
+        label: orgName,
         code: org.code,
         badge: typeName,
         badgeTone: orgLevel === 1 ? 'sage' : orgLevel === 2 ? 'blue' : 'gold',
-        secondary: org.address ? `${typeName}: ${org.address}` : `${org.code || ''} (${typeName})`,
+        secondary: orgAddress ? `${typeName}: ${orgAddress}` : `${org.code || ''} (${typeName})`,
       };
     });
   }, [propOffices, apiOrgs, isRootType, currentLevel, selectedType, office, typeMap, targetParentLevel, parentTierName]);
@@ -513,10 +524,10 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
             <span />
             <div style={{ display: 'flex', gap: '8px' }}>
               <button type="button" className="button secondary" onClick={onClose} disabled={isLoading}>
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </button>
               <button type="submit" className="button primary" disabled={isLoading}>
-                {isLoading ? 'Saving...' : (office ? 'Save changes' : 'Create office')} <Icon name="arrow" size={15} />
+                {isLoading ? t('common.saving', 'Saving...') : (office ? t('common.saveChanges', 'Save changes') : t('offices.addOffice', 'Create office'))} <Icon name="arrow" size={15} />
               </button>
             </div>
           </div>

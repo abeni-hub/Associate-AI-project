@@ -1,14 +1,16 @@
 import React from 'react';
-import { Icon } from '../../shared';
-import { TypePill } from '../../shared';
-import type { DashboardFeedbackFocusListProps } from '../types/dashboard.types';
-import styles from '../styles/feedbackFocusList.module.css';
+import Icon from '../ui/Icon.jsx';
+import TypePill from '../ui/TypePill.jsx';
+import { useLanguage } from '../../i18n/i18nContext';
+import { getLocalizedText } from '../../i18n/utils/getLocalized';
+import type { FeedbackItem } from '../../types/portal.types';
 
 export const DashboardFeedbackFocusList: React.FC<DashboardFeedbackFocusListProps> = ({
   items = [],
   onFeedback,
   onNavigate,
 }) => {
+  const { language, t } = useLanguage();
   return (
     <article className={styles.panel}>
       <div className={styles.panelHeading}>
@@ -18,8 +20,8 @@ export const DashboardFeedbackFocusList: React.FC<DashboardFeedbackFocusListProp
           <p className={styles.intro}>Open citizen inquiries & complaints prioritized for review.</p>
         </div>
         {onNavigate && (
-          <button className={styles.panelLink} onClick={() => onNavigate('feedback')} type="button">
-            View feedback inbox <Icon name="arrow" size={15} />
+          <button className="panel-link" onClick={() => onNavigate('feedback')}>
+            {t('overview.viewFeedbackInbox', 'View feedback inbox')} <Icon name="arrow" size={15} />
           </button>
         )}
       </div>
@@ -64,11 +66,11 @@ export const DashboardFeedbackFocusList: React.FC<DashboardFeedbackFocusListProp
                   <b>{item.id}</b>
                   <TypePill type={displayType} />
                 </span>
-                <p>{item.message || 'No submission details provided.'}</p>
-                <span className={styles.focusMeta}>
+                <p>{getLocalizedText(item.message as any, language) || (typeof item.message === 'string' ? item.message : '') || 'No submission details provided.'}</p>
+                <span className="focus-meta">
                   <span>
                     <Icon name="building" size={13} />
-                    {item.bureau || 'General Bureau'}
+                    {getLocalizedText(item.bureau as any, language) || (typeof item.bureau === 'string' ? item.bureau : 'General Bureau')}
                   </span>
                   <span>
                     <Icon name="clock" size={13} />

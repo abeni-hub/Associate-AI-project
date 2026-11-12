@@ -4,9 +4,11 @@ export interface IconProps {
   name: string;
   size?: number;
   strokeWidth?: number;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
-export const Icon: React.FC<IconProps> = ({ name, size = 18, strokeWidth = 1.8 }) => {
+export const Icon: React.FC<IconProps> = ({ name, size = 18, strokeWidth = 1.8, className, style }) => {
   const common = {
     fill: 'none',
     stroke: 'currentColor',
@@ -287,7 +289,7 @@ export const Icon: React.FC<IconProps> = ({ name, size = 18, strokeWidth = 1.8 }
   if (!paths[name]) return null;
 
   return (
-    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" {...common}>
+    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" className={className} style={style} {...common}>
       {paths[name]}
     </svg>
   );

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../../shared';
-import type { DocumentItem } from '../api/documentsApi';
+import { Icon } from '../shared/Icon';
+import { getLocalizedText } from '../../i18n/utils/getLocalized';
+import { useLanguage } from '../../i18n/i18nContext';
+import type { DocumentItem } from '../../services/documentsApi';
 
 export interface DocumentModalProps {
   document?: DocumentItem | null;
@@ -10,8 +12,12 @@ export interface DocumentModalProps {
   onSave: (payload: {
     id?: number;
     name: string;
+    name_amh?: string;
+    name_oro?: string;
     code: string;
     description?: string;
+    description_amh?: string;
+    description_oro?: string;
     sample_file_url?: string;
     is_active: boolean;
   }) => Promise<void> | void;
@@ -31,9 +37,14 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
   onSave,
   isLoading = false,
 }) => {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
+  const [nameAmh, setNameAmh] = useState('');
+  const [nameOro, setNameOro] = useState('');
   const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
+  const [descriptionAmh, setDescriptionAmh] = useState('');
+  const [descriptionOro, setDescriptionOro] = useState('');
   const [sampleFileUrl, setSampleFileUrl] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [isCustomCode, setIsCustomCode] = useState(false);
@@ -42,16 +53,31 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (doc) {
-        setName(doc.name || '');
+        const initialNameEn = typeof doc.name === 'string' ? doc.name : getLocalizedText(doc.name as any, 'en');
+        const initialNameAm = doc.name_amh || doc.name_localized?.amh || getLocalizedText(doc.name as any, 'am') || '';
+        const initialNameOm = doc.name_oro || doc.name_localized?.oro || getLocalizedText(doc.name as any, 'om') || '';
+        const initialDescEn = typeof doc.description === 'string' ? doc.description : getLocalizedText(doc.description as any, 'en');
+        const initialDescAm = doc.description_amh || doc.description_localized?.amh || getLocalizedText(doc.description as any, 'am') || '';
+        const initialDescOm = doc.description_oro || doc.description_localized?.oro || getLocalizedText(doc.description as any, 'om') || '';
+
+        setName(initialNameEn);
+        setNameAmh(initialNameAm);
+        setNameOro(initialNameOm);
         setCode(doc.code || '');
-        setDescription(doc.description || '');
+        setDescription(initialDescEn);
+        setDescriptionAmh(initialDescAm);
+        setDescriptionOro(initialDescOm);
         setSampleFileUrl(doc.sample_file_url || '');
         setIsActive(doc.is_active !== false);
         setIsCustomCode(true);
       } else {
         setName('');
+        setNameAmh('');
+        setNameOro('');
         setCode('');
         setDescription('');
+        setDescriptionAmh('');
+        setDescriptionOro('');
         setSampleFileUrl('');
         setIsActive(true);
         setIsCustomCode(false);
@@ -100,8 +126,12 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
       await onSave({
         ...(doc ? { id: doc.id } : {}),
         name: name.trim(),
+        name_amh: nameAmh.trim() || undefined,
+        name_oro: nameOro.trim() || undefined,
         code: cleanCode,
         description: description.trim() || undefined,
+        description_amh: descriptionAmh.trim() || undefined,
+        description_oro: descriptionOro.trim() || undefined,
         sample_file_url: sampleFileUrl.trim() || undefined,
         is_active: isActive,
       });
@@ -156,9 +186,9 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           )}
 
           <div className="modal-form-grid" style={{ padding: '1.25rem 1.5rem' }}>
-            {/* Document Name */}
+            {/* Document Name (English) */}
             <label className="modal-field full">
-              <span>Document name <i>*</i></span>
+              <span>Document name (English) <i>*</i></span>
               <input
                 required
                 placeholder="e.g. Kebele Resident ID, Renewed Trade License, Birth Certificate"
@@ -167,17 +197,59 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
               />
             </label>
 
+            {/* Document Name (Amharic) */}
+            <label className="modal-field full">
+              <span>Document name (Amharic - አማርኛ)</span>
+              <input
+                placeholder="ለምሳሌ፡ የቀበሌ ነዋሪነት መታወቂያ"
+                value={nameAmh}
+                onChange={(e) => setNameAmh(e.target.value)}
+              />
+            </label>
+
+            {/* Document Name (Afaan Oromoo) */}
+            <label className="modal-field full">
+              <span>Document name (Afaan Oromoo)</span>
+              <input
+                placeholder="Fkf: Waraqaa Eenyummaa Jiraattummaa Gandaa"
+                value={nameOro}
+                onChange={(e) => setNameOro(e.target.value)}
+              />
+            </label>
+
             {/* Document code slug — auto-generated from name */}
             <input type="hidden" value={code} readOnly />
 
-            {/* Description */}
+            {/* Description (English) */}
             <label className="modal-field full">
-              <span>Description & Issuing Criteria</span>
+              <span>Description & Issuing Criteria (English)</span>
               <textarea
-                rows={3}
+                rows={2}
                 placeholder="Explain what this document is, issuing authority requirements, acceptable format (original, copy, or certified slip)..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+              />
+            </label>
+
+            {/* Description (Amharic) */}
+            <label className="modal-field full">
+              <span>Description (Amharic - አማርኛ)</span>
+              <textarea
+                rows={2}
+                placeholder="የሰነዱን መግለጫ እና የማስረጃ መስፈርቶችን በአማርኛ ያስገቡ..."
+                value={descriptionAmh}
+                onChange={(e) => setDescriptionAmh(e.target.value)}
+              />
+            </label>
+
+            {/* Description (Afaan Oromoo) */}
+            <label className="modal-field full">
+              <span>Description (Afaan Oromoo)</span>
+              <textarea
+                rows={2}
+                placeholder="Ibsa sanadaa fi ulaagaalee dhiyeessaa Afaan Oromootiin galchaa..."
+                value={descriptionOro}
+                onChange={(e) => setDescriptionOro(e.target.value)}
               />
             </label>
 
@@ -221,10 +293,10 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
 
           <div className="modal-footer" style={{ padding: '1rem 1.5rem' }}>
             <button type="button" className="button secondary" onClick={onClose} disabled={isLoading}>
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </button>
             <button type="submit" className="button primary" disabled={isLoading}>
-              {isLoading ? 'Saving...' : doc ? 'Save changes' : 'Create document'}
+              {isLoading ? t('common.saving', 'Saving...') : doc ? t('common.saveChanges', 'Save changes') : t('documents.addDocument', 'Create document')}
             </button>
           </div>
         </form>

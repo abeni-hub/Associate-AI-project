@@ -27,6 +27,8 @@ class SubmitFeedbackRequest extends FormRequest
         return [
             'feedback_for_organization' => ['required', 'integer', 'exists:organizations,id'],
             'feedback_content' => ['required', 'string', 'max:5000'],
+            'feedback_content_amh' => ['nullable', 'string', 'max:5000'],
+            'feedback_content_oro' => ['nullable', 'string', 'max:5000'],
             'feedback_type' => ['required', 'in:feedback,complaint,satisfaction'],
             'full_name' => ['nullable', 'string', 'max:255'],
             'phone_number' => ['nullable', 'string', 'max:255'],

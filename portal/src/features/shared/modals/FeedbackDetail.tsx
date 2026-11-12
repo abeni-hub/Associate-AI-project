@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Icon } from '../components/Icon';
-import { usePermissions } from '../hooks/usePermissions';
-import type { FeedbackItem, FeedbackModalConfig } from '../../../types/portal.types';
+import { Icon } from '../shared/Icon';
+import { usePermissions } from '../../hooks/usePermissions';
+import { useLanguage } from '../../i18n/i18nContext';
+import { getLocalizedText } from '../../i18n/utils/getLocalized';
+import type { FeedbackItem, FeedbackModalConfig } from '../../types/portal.types';
 
 export interface FeedbackDetailProps {
   item?: FeedbackItem;
@@ -16,6 +18,7 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
   onClose,
   onUpdate: propOnUpdate,
 }) => {
+  const { language, t } = useLanguage();
   const item = propItem || modal?.item;
   const onUpdate = propOnUpdate || modal?.onUpdate || (() => {});
   const { hasPermission } = usePermissions();
@@ -90,15 +93,15 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
         >
           <span>
             <small>SERVICE</small>
-            <b>{item.service}</b>
+            <b>{getLocalizedText(item.service as any, language) || (typeof item.service === 'string' ? item.service : 'General Service')}</b>
           </span>
           <span>
             <small>BUREAU</small>
-            <b>{item.bureau}</b>
+            <b>{getLocalizedText(item.bureau as any, language) || (typeof item.bureau === 'string' ? item.bureau : 'City Bureau')}</b>
           </span>
           <span>
             <small>SUB-CITY</small>
-            <b>{item.subcity || 'Not provided'}</b>
+            <b>{getLocalizedText(item.subcity as any, language) || (typeof item.subcity === 'string' ? item.subcity : 'Not provided')}</b>
           </span>
           {item.rating && (
             <span>
@@ -144,7 +147,7 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
             </span>
           )}
         </div>
-        <blockquote>"{item.message}"</blockquote>
+        <blockquote>"{getLocalizedText(item.message as any, language) || (typeof item.message === 'string' ? item.message : '')}"</blockquote>
         <div className="detail-status-section" style={{ margin: '1rem 0' }}>
           <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '8px' }}>
             Follow-up Resolution Status
@@ -233,7 +236,7 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
             className="button secondary"
             onClick={onClose}
           >
-            Close
+            {t('common.close', 'Close')}
           </button>
           {canUpdateStatus && (
             <button
@@ -244,7 +247,7 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
                 onClose();
               }}
             >
-              Save follow-up <Icon name="check" size={15} />
+              {t('feedback.saveFollowup', 'Save follow-up')} <Icon name="check" size={15} />
             </button>
           )}
         </div>
