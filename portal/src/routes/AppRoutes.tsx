@@ -170,7 +170,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="documents"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="documents.view" pageKey="documents">
+            <RoleGuard requiredPermission="documents.view" pageKey="documents">
               <DocumentsPage />
             </RoleGuard>
           }
@@ -215,6 +215,7 @@ export const AppRoutes: React.FC = () => {
 
       {/* Admin path redirect for backwards-compatibility */}
       <Route path="/admin/:role/:page" element={<AdminRedirect />} />
+      <Route path="/admin/:page" element={<AdminRedirect />} />
       <Route path="/admin/:role" element={<Navigate to="/" replace />} />
       <Route path="/admin" element={<Navigate to="/" replace />} />
 

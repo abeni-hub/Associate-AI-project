@@ -21,13 +21,33 @@ class ServiceStepResource extends JsonResource
             'service_id' => $this->service_id,
             'organization_id' => $this->organization_id,
             'step_number' => (int) $this->step_number,
-            'title' => $this->title,
-            'instruction' => $this->instruction,
+            'title' => [
+                'eng' => $this->title,
+                'amh' => $this->title_amh ?? '',
+                'oro' => $this->title_oro ?? '',
+            ],
+            'instruction' => [
+                'eng' => $this->instruction,
+                'amh' => $this->instruction_amh ?? '',
+                'oro' => $this->instruction_oro ?? '',
+            ],
             'room_number' => $this->room_number,
             'floor' => $this->floor,
-            'building' => $this->building,
-            'department_name' => $this->department_name,
-            'responsible_title' => $this->responsible_title,
+            'building' => [
+                'eng' => $this->building,
+                'amh' => $this->building_amh,
+                'oro' => $this->building_oro,
+            ],
+            'department_name' => [
+                'eng' => $this->department_name,
+                'amh' => $this->department_name_amh,
+                'oro' => $this->department_name_oro,
+            ],
+            'responsible_title' => [
+                'eng' => $this->responsible_title,
+                'amh' => $this->responsible_title_amh,
+                'oro' => $this->responsible_title_oro,
+            ],
             'estimated_duration_minutes' => $this->estimated_duration_minutes,
             'is_active' => (bool) $this->is_active,
             'organization' => $this->organization ? [

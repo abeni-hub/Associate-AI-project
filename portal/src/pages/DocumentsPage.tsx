@@ -75,8 +75,12 @@ export const DocumentsPage: React.FC = () => {
   const handleSave = async (payload: {
     id?: number;
     name: string;
+    name_amh?: string;
+    name_oro?: string;
     code: string;
     description?: string;
+    description_amh?: string;
+    description_oro?: string;
     sample_file_url?: string;
     is_active: boolean;
   }) => {

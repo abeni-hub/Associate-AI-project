@@ -31,7 +31,7 @@ class UserResource extends JsonResource
                 'code' => $this->organization->code,
                 'type' => $this->organization->type ? [
                     'id' => $this->organization->type->id,
-                    'name' => $this->organization->type->name,
+                    'name' => ['eng' => $this->organization->type->name, 'amh' => $this->organization->type->name_amh, 'oro' => $this->organization->type->name_oro],
                     'code' => $this->organization->type->code,
                 ] : null,
             ] : null,

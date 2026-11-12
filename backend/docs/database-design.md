@@ -48,8 +48,10 @@ erDiagram
 Administrative level taxonomy definition table.
 - `id` (bigIncrements, PK)
 - `name` (string, unique): e.g. "Sub-City", "Woreda", "Bureau"
+- `name_amh`, `name_oro` (string, default ''): Amharic / Oromigna translations (not unique)
 - `code` (string, unique): e.g. "sub_city", "woreda", "bureau"
 - `description` (text, nullable)
+- `description_amh`, `description_oro` (text, nullable): localized descriptions
 - `level` (unsignedSmallInteger, default 1): Hierarchy level (1=Sub-City, 2=Woreda, 3=Bureau)
 - `can_be_root` (boolean, default false): Whether this tier can exist without a parent organization
 - `is_active` (boolean, default true)

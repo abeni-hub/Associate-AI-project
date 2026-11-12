@@ -38,12 +38,18 @@ class OrganizationTypeController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:organization_types,name'],
+            'name_amh' => ['sometimes', 'string', 'max:255'],
+            'name_oro' => ['sometimes', 'string', 'max:255'],
             'code' => ['required', 'string', 'max:100', 'unique:organization_types,code'],
             'description' => ['nullable', 'string', 'max:1000'],
+            'description_amh' => ['nullable', 'string', 'max:1000'],
+            'description_oro' => ['nullable', 'string', 'max:1000'],
             'level' => ['required', 'integer', 'min:1', 'max:20'],
             'can_be_root' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
+
+        $this->coalesceLocalizedNames($validated);
 
         $type = DB::transaction(function () use ($validated) {
             $newRank = (int) $validated['level'];
@@ -75,13 +81,19 @@ class OrganizationTypeController extends Controller
     public function update(Request $request, OrganizationType $organizationType): JsonResponse
     {
         $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255', 'unique:organization_types,name,' . $organizationType->id],
-            'code' => ['sometimes', 'string', 'max:100', 'unique:organization_types,code,' . $organizationType->id],
+            'name' => ['sometimes', 'string', 'max:255', 'unique:organization_types,name,'.$organizationType->id],
+            'name_amh' => ['sometimes', 'string', 'max:255'],
+            'name_oro' => ['sometimes', 'string', 'max:255'],
+            'code' => ['sometimes', 'string', 'max:100', 'unique:organization_types,code,'.$organizationType->id],
             'description' => ['nullable', 'string', 'max:1000'],
+            'description_amh' => ['nullable', 'string', 'max:1000'],
+            'description_oro' => ['nullable', 'string', 'max:1000'],
             'level' => ['sometimes', 'integer', 'min:1', 'max:20'],
             'can_be_root' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
+
+        $this->coalesceLocalizedNames($validated);
 
         DB::transaction(function () use ($organizationType, $validated) {
             $oldRank = (int) $organizationType->level;
@@ -152,6 +164,21 @@ class OrganizationTypeController extends Controller
             data: null,
             message: 'Organization level deleted successfully.'
         );
+    }
+
+    /**
+     * Localized names are NOT NULL columns; an explicit null must become ''.
+     * Absent keys are left untouched so update() keeps old values.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function coalesceLocalizedNames(array &$validated): void
+    {
+        foreach (['name_amh', 'name_oro'] as $key) {
+            if (array_key_exists($key, $validated)) {
+                $validated[$key] = $validated[$key] ?? '';
+            }
+        }
     }
 
     /**

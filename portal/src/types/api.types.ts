@@ -104,3 +104,9 @@ export const API_TAG_TYPES = [
 ] as const;
 
 export type ApiTagType = (typeof API_TAG_TYPES)[number];
+
+export interface LocalizedString {
+  eng: string;
+  amh?: string;
+  oro?: string;
+}

@@ -306,14 +306,24 @@ class ServiceController extends Controller
         if ($hasSearchFilter) {
             $query->where(function ($q) use ($searchInput, $like) {
                 $q->where('name', $like, "%{$searchInput}%")
+                    ->orWhere('name_amh', $like, "%{$searchInput}%")
+                    ->orWhere('name_oro', $like, "%{$searchInput}%")
                     ->orWhere('code', $like, "%{$searchInput}%")
                     ->orWhere('description', $like, "%{$searchInput}%")
-                    ->orWhereHas('parent', fn ($p) => $p->where('name', $like, "%{$searchInput}%"))
+                    ->orWhere('description_amh', $like, "%{$searchInput}%")
+                    ->orWhere('description_oro', $like, "%{$searchInput}%")
+                    ->orWhereHas('parent', fn ($p) => $p->where('name', $like, "%{$searchInput}%")
+                        ->orWhere('name_amh', $like, "%{$searchInput}%")
+                        ->orWhere('name_oro', $like, "%{$searchInput}%"))
                     ->orWhereHas('organization', fn ($o) => $o->where('name', $like, "%{$searchInput}%"))
                     ->orWhereHas('subservices', function ($sq) use ($searchInput, $like) {
                         $sq->where('name', $like, "%{$searchInput}%")
+                            ->orWhere('name_amh', $like, "%{$searchInput}%")
+                            ->orWhere('name_oro', $like, "%{$searchInput}%")
                             ->orWhere('code', $like, "%{$searchInput}%")
-                            ->orWhere('description', $like, "%{$searchInput}%");
+                            ->orWhere('description', $like, "%{$searchInput}%")
+                            ->orWhere('description_amh', $like, "%{$searchInput}%")
+                            ->orWhere('description_oro', $like, "%{$searchInput}%");
                     });
             });
         }
@@ -420,6 +430,8 @@ class ServiceController extends Controller
         $data['is_active'] = $data['is_active'] ?? true;
         $data['fee_amount'] = $data['fee_amount'] ?? 0.00;
         $data['fee_currency'] = $data['fee_currency'] ?? 'ETB';
+        $data['name_amh'] = $data['name_amh'] ?? '';
+        $data['name_oro'] = $data['name_oro'] ?? '';
 
         $service = Service::create($data);
 
@@ -481,6 +493,12 @@ class ServiceController extends Controller
     {
         $oldValues = $service->toArray();
         $data = $request->validated();
+        if (array_key_exists('name_amh', $data)) {
+            $data['name_amh'] = $data['name_amh'] ?? '';
+        }
+        if (array_key_exists('name_oro', $data)) {
+            $data['name_oro'] = $data['name_oro'] ?? '';
+        }
 
         if (array_key_exists('documents', $data)) {
             $documents = $data['documents'];

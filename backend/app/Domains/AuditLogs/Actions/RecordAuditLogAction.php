@@ -84,6 +84,9 @@ class RecordAuditLogAction
                 $sanitized[$key] = '********';
             } elseif (is_array($value)) {
                 $sanitized[$key] = $this->sanitizePayload($value);
+            } elseif (is_object($value) || is_resource($value)) {
+                // Uploads/objects are not JSON-encodable; keep the type name.
+                $sanitized[$key] = is_object($value) ? class_basename($value) : '[resource]';
             } else {
                 $sanitized[$key] = $value;
             }

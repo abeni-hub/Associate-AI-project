@@ -32,7 +32,7 @@ class OrganizationResource extends JsonResource
             'is_root' => $this->isRoot(),
             'type' => $this->relationLoaded('type') && $this->type ? [
                 'id' => $this->type->id,
-                'name' => $this->type->name,
+                'name' => ['eng' => $this->type->name, 'amh' => $this->type->name_amh, 'oro' => $this->type->name_oro],
                 'code' => $this->type->code,
                 'level' => $this->type->level,
             ] : null,

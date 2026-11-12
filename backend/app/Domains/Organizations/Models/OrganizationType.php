@@ -17,8 +17,12 @@ class OrganizationType extends Model
 
     protected $fillable = [
         'name',
+        'name_amh',
+        'name_oro',
         'code',
         'description',
+        'description_amh',
+        'description_oro',
         'level',
         'can_be_root',
         'is_active',

@@ -27,7 +27,11 @@ class UpdateFeedbackRequest extends FormRequest
         return [
             'status' => ['sometimes', 'string', 'in:submitted,open,under_review,in_progress,in_review,resolved,closed,rejected'],
             'response' => ['nullable', 'string', 'max:5000'],
+            'response_amh' => ['nullable', 'string', 'max:5000'],
+            'response_oro' => ['nullable', 'string', 'max:5000'],
             'feedback_content' => ['sometimes', 'string', 'max:5000'],
+            'feedback_content_amh' => ['nullable', 'string', 'max:5000'],
+            'feedback_content_oro' => ['nullable', 'string', 'max:5000'],
             'feedback_type' => ['sometimes', 'in:feedback,complaint,satisfaction'],
             'full_name' => ['nullable', 'string', 'max:255'],
             'phone_number' => ['nullable', 'string', 'max:255'],

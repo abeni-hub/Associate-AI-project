@@ -19,8 +19,12 @@ class Document extends Model
 
     protected $fillable = [
         'name',
+        'name_amh',
+        'name_oro',
         'code',
         'description',
+        'description_amh',
+        'description_oro',
         'sample_file_url',
         'is_active',
     ];

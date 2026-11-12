@@ -189,7 +189,11 @@ class OrganizationController extends Controller
     public function store(CreateOrganizationRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $data['logo_path'] = $request->file('logo')->store('organizations/logos', 'public');
+        if ($request->hasFile('logo')) {
+            $data['logo_path'] = $request->file('logo')->store('organizations/logos', 'public');
+        } else {
+            $data['logo_path'] = '';
+        }
         unset($data['logo']);
         $data['status'] = $data['status'] ?? 'active';
 
@@ -226,7 +230,13 @@ class OrganizationController extends Controller
         }
 
         $oldValues = $organization->toArray();
-        $organization->update($request->validated());
+        $data = $request->validated();
+        if ($request->hasFile('logo')) {
+            $data['logo_path'] = $request->file('logo')->store('organizations/logos', 'public');
+        }
+        unset($data['logo']);
+
+        $organization->update($data);
         $organization->load(['type', 'parent.type']);
 
         $this->auditLogAction->execute(

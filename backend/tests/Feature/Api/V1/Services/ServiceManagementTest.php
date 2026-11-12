@@ -200,4 +200,43 @@ class ServiceManagementTest extends TestCase
                 'message' => 'Cannot delete service with active subservices. Delete or reassign subservices first.',
             ]);
     }
+
+    public function test_can_create_and_update_service_with_amharic_and_oromo_localization(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->postJson('/api/v1/services', [
+                'name' => 'Driver License Renewal',
+                'name_amh' => 'የመንጃ ፈቃድ እድሳት',
+                'name_oro' => 'Haareffama Hayyama Konkolaachisummaa',
+                'code' => 'driver-license-renewal',
+                'description' => 'Renew driving license service.',
+                'description_amh' => 'የመንጃ ፍቃድ ማደስ አገልግሎት',
+                'description_oro' => 'Tajaajila hayyama konkolaachisummaa haareffachuu',
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'name' => [
+                        'eng' => 'Driver License Renewal',
+                        'amh' => 'የመንጃ ፈቃድ እድሳት',
+                        'oro' => 'Haareffama Hayyama Konkolaachisummaa',
+                    ],
+                    'description' => [
+                        'eng' => 'Renew driving license service.',
+                        'amh' => 'የመንጃ ፍቃድ ማደስ አገልግሎት',
+                        'oro' => 'Tajaajila hayyama konkolaachisummaa haareffachuu',
+                    ],
+                    'code' => 'driver-license-renewal',
+                ],
+            ]);
+
+        $this->assertDatabaseHas('services', [
+            'code' => 'driver-license-renewal',
+            'name' => 'Driver License Renewal',
+            'name_amh' => 'የመንጃ ፈቃድ እድሳት',
+            'name_oro' => 'Haareffama Hayyama Konkolaachisummaa',
+        ]);
+    }
 }

@@ -53,10 +53,14 @@ class CreateServiceRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'name_amh' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'name_oro' => ['sometimes', 'nullable', 'string', 'max:255'],
             'code' => ['required', 'string', 'max:100', 'unique:services,code', 'regex:/^[a-z0-9\-]+$/'],
             'parent_id' => ['nullable', 'integer', 'exists:services,id'],
             'organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
             'description' => ['nullable', 'string'],
+            'description_amh' => ['nullable', 'string'],
+            'description_oro' => ['nullable', 'string'],
             'eligibility_criteria' => ['nullable', 'string'],
             'estimated_duration_minutes' => ['nullable', 'integer', 'min:0'],
             'fee_amount' => ['nullable', 'numeric', 'min:0'],
