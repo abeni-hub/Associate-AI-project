@@ -1,0 +1,38 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  width: max-content;
+  padding: 3px 6px;
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.complaint {
+  background: #f7eceb;
+  color: #a56760;
+  border: 1px solid rgba(165, 103, 96, 0.2);
+}
+
+.suggestion {
+  background: var(--color-status-success-bg);
+  color: #4a7758;
+  border: 1px solid var(--color-status-success-edge);
+}
+
+.satisfaction {
+  background: var(--color-accent-100);
+  color: var(--color-accent-800);
+  border: 1px solid var(--color-accent-200);
+}
+
+.inquiry {
+  background: var(--color-primary-50);
+  color: var(--color-primary-600);
+  border: 1px solid var(--color-primary-100);
+}
+

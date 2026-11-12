@@ -1,0 +1,64 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.compactMetrics {
+  margin-bottom: 6px;
+}
+
+.tablePanel {
+  overflow: hidden;
+  margin-bottom: 15px;
+  border: 1px solid var(--border-color, #e5ede7);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-surface, #ffffff);
+}
+
+.loadingPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 12px;
+  text-align: center;
+}
+
+.loadingTitle {
+  margin: 0;
+  color: var(--primary-deep, #00485a);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.loadingSubtitle {
+  margin: 0;
+  color: var(--text-secondary, #64748b);
+  font-size: 12px;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 175px;
+  padding: 24px;
+  color: var(--text-secondary, #607970);
+  text-align: center;
+}
+
+.emptyState b {
+  color: var(--primary-deep, #355b5c);
+  font-size: 14px;
+}
+
+.emptyState p {
+  margin-top: 6px;
+  color: var(--text-tertiary, #8e9a92);
+  font-size: 13px;
+}
+

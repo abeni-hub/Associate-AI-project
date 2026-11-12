@@ -1,0 +1,146 @@
+.panel {
+  background: var(--white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  margin-top: var(--space-6);
+  overflow: hidden;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  background: var(--color-paper-alt);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-body);
+  vertical-align: middle;
+}
+
+.row {
+  cursor: pointer;
+  transition: background var(--duration-fast);
+}
+
+.row:hover {
+  background: rgba(0, 72, 90, 0.03);
+}
+
+.activeRow {
+  background: rgba(0, 72, 90, 0.05);
+}
+
+.codeText {
+  color: var(--color-primary-700);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  display: block;
+}
+
+.labelText {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+}
+
+.officeName {
+  font-weight: var(--font-weight-semibold);
+  color: var(--ink-deep);
+  display: block;
+}
+
+.officeCode {
+  display: block;
+  font-size: var(--font-size-2xs);
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.targetUrl {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-soft);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actionsCell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.actionButtonGroup {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.actionButton {
+  min-height: 30px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: var(--white);
+  color: var(--color-text-soft);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--duration-fast), color var(--duration-fast);
+}
+
+.actionButton:hover {
+  border-color: var(--color-border-strong);
+  color: var(--ink);
+}
+
+.deleteButton {
+  color: var(--color-status-danger-text);
+  border-color: var(--color-status-danger-edge);
+}
+
+.deleteButton:hover {
+  background: var(--color-status-danger-bg);
+  border-color: var(--color-status-danger-text);
+  color: var(--color-status-danger-text);
+}
+
+.emptyState {
+  padding: var(--space-12) var(--space-4);
+  text-align: center;
+  color: var(--muted);
+}
+
+.emptyTitle {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--ink-deep);
+  margin: 0 0 var(--space-1);
+}
+
+.emptyText {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  margin: 0;
+}
+

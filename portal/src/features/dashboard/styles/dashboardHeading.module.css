@@ -1,0 +1,73 @@
+.heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.titleArea {
+  display: flex;
+  flex-direction: column;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary-accent, #164a54);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.eyebrowLine {
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  background: var(--brand-accent, #cda756);
+}
+
+.title {
+  margin: 6px 0 4px;
+  color: var(--primary-deep, #143e47);
+  font-family: var(--font-heading, 'Manrope', sans-serif);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+}
+
+.titleDot {
+  color: var(--brand-accent, #cda756);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-secondary, #608288);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .actions button {
+    flex: 1;
+  }
+}
+
