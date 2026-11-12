@@ -1,5 +1,5 @@
 import { baseApi } from '../../../app/baseApi';
-import type { ApiResponse, PaginatedResponse, PaginationQueryParams } from '../types/api.types';
+import type { ApiResponse, PaginatedResponse, PaginationQueryParams } from '../../../types/api.types';
 
 export interface OrganizationTypeItem {
   id: number;

@@ -1,8 +1,15 @@
 import BrandMark from '../components/BrandMark'
 import '../styles/layout.css'
 
-export default function SiteFooter({ t, onNavigateToHomeSection, footerContent, language }) {
-  function handleSectionNavigation(event, sectionId) {
+export interface SiteFooterProps {
+  t: (key: string, fallback?: string) => string
+  onNavigateToHomeSection: (sectionId: string) => void
+  footerContent?: any
+  language?: string
+}
+
+export default function SiteFooter({ t, onNavigateToHomeSection, footerContent, language }: SiteFooterProps) {
+  function handleSectionNavigation(event: React.MouseEvent, sectionId: string) {
     event.preventDefault()
     onNavigateToHomeSection(sectionId)
   }

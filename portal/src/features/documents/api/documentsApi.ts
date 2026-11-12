@@ -1,5 +1,5 @@
-import { baseApi } from './baseApi';
-import type { ApiResponse, PaginatedResponse, PaginationQueryParams, LocalizedString } from '../types/api.types';
+import { baseApi } from '../../../app/baseApi';
+import type { ApiResponse, PaginatedResponse, PaginationQueryParams, LocalizedString } from '../../../types/api.types';
 export type { LocalizedString };
 
 export interface DocumentItem {

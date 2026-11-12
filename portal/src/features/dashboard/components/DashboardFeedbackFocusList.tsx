@@ -1,9 +1,8 @@
 import React from 'react';
-import Icon from '../ui/Icon.jsx';
-import TypePill from '../ui/TypePill.jsx';
-import { useLanguage } from '../../i18n/i18nContext';
-import { getLocalizedText } from '../../i18n/utils/getLocalized';
-import type { FeedbackItem } from '../../types/portal.types';
+import { Icon, TypePill } from '../../shared';
+import { useLanguage, getLocalizedText } from '../../shared/i18n';
+import type { DashboardFeedbackFocusListProps } from '../types/dashboard.types';
+import styles from '../styles/feedbackFocusList.module.css';
 
 export const DashboardFeedbackFocusList: React.FC<DashboardFeedbackFocusListProps> = ({
   items = [],
@@ -20,7 +19,7 @@ export const DashboardFeedbackFocusList: React.FC<DashboardFeedbackFocusListProp
           <p className={styles.intro}>Open citizen inquiries & complaints prioritized for review.</p>
         </div>
         {onNavigate && (
-          <button className="panel-link" onClick={() => onNavigate('feedback')}>
+          <button className={styles.panelLink} onClick={() => onNavigate('feedback')} type="button">
             {t('overview.viewFeedbackInbox', 'View feedback inbox')} <Icon name="arrow" size={15} />
           </button>
         )}
@@ -47,6 +46,9 @@ export const DashboardFeedbackFocusList: React.FC<DashboardFeedbackFocusListProp
                 ? styles.priorityLow
                 : '';
 
+          const displayMessage = getLocalizedText((item as any).message_localized, language) || item.message || 'No submission details provided.';
+          const displayBureau = getLocalizedText((item as any).bureau_localized, language) || item.bureau || 'General Bureau';
+
           return (
             <button
               key={item.id}
@@ -64,13 +66,13 @@ export const DashboardFeedbackFocusList: React.FC<DashboardFeedbackFocusListProp
               <span className={styles.focusCopy}>
                 <span className={styles.focusTopline}>
                   <b>{item.id}</b>
-                  <TypePill type={displayType} />
+                  <TypePill type={displayType}>{displayType}</TypePill>
                 </span>
-                <p>{getLocalizedText(item.message as any, language) || (typeof item.message === 'string' ? item.message : '') || 'No submission details provided.'}</p>
-                <span className="focus-meta">
+                <p>{displayMessage}</p>
+                <span className={styles.focusMeta}>
                   <span>
                     <Icon name="building" size={13} />
-                    {getLocalizedText(item.bureau as any, language) || (typeof item.bureau === 'string' ? item.bureau : 'General Bureau')}
+                    {displayBureau}
                   </span>
                   <span>
                     <Icon name="clock" size={13} />
@@ -93,4 +95,3 @@ export const DashboardFeedbackFocusList: React.FC<DashboardFeedbackFocusListProp
 };
 
 export default DashboardFeedbackFocusList;
-

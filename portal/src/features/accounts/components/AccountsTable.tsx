@@ -28,7 +28,7 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
         <tbody>
           {items.map((item) => {
             const targetScope =
-              item.roleScope ||
+              (item as any).roleScope ||
               (item.role?.toLowerCase().includes('super') ? 'global' : 'sub_city');
             const canManageThisAccount = isSuperAdmin || canManageScope(targetScope);
 

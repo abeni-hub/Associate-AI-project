@@ -15,7 +15,7 @@ export function isEvent(item: PostItem): boolean {
   return String(item.type).toLowerCase().includes('event');
 }
 
-export function isPublished(item: PostItem): boolean {
+function isPublished(item: any): boolean {
   return item.isPublished ?? (String(item.status || '').toLowerCase() !== 'draft');
 }
 
@@ -47,7 +47,7 @@ export const useNewsDetail = () => {
 
   const isLoading = isNewsLoading || (isEventLoading && !apiArticle?.data);
 
-  const item: PostItem | undefined = useMemo(() => {
+  const item: any = useMemo(() => {
     if (apiArticle?.data) {
       const art = apiArticle.data;
       const imageBlocks =

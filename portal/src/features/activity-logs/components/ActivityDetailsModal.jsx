@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import Icon from '../ui/Icon.jsx'
-import { useLanguage } from '../../i18n/i18nContext'
+import { Icon } from '../../shared';
+import { useLanguage } from '../../shared/i18n';
 
 function ActivityDetailsModal({ event, onClose }) {
   const { t } = useLanguage()

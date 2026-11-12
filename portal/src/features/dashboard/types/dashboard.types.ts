@@ -1,4 +1,4 @@
-import type { FeedbackItem, RoleKey } from '../../types/portal.types';
+import type { FeedbackItem, RoleKey } from '../../../types/portal.types';
 
 export type DashboardPeriod = 'This week' | 'Last week';
 

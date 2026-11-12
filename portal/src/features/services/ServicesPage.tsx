@@ -9,10 +9,8 @@ import {
   ChevronsUpDown,
   Filter,
 } from 'lucide-react';
-import { usePortal } from '../../context';
-import { usePermissions } from '../../hooks/usePermissions';
-import { useLanguage } from '../../i18n/i18nContext';
-import { getLocalizedText } from '../../i18n/utils/getLocalized';
+import { usePortal, usePermissions } from '../shared';
+import { useLanguage, getLocalizedText } from '../shared/i18n';
 import { ServiceEditorModal } from './components/ServiceEditorModal';
 import { ServiceRow } from './components/ServiceRow';
 import type { RouteStep } from '../../types/portal.types';
@@ -24,9 +22,9 @@ import {
   useSyncServiceDocumentsMutation,
   useSyncServiceOrganizationsMutation,
   useSyncServiceStepsMutation,
-} from '../../services/servicesApi';
-import type { ServiceListItem } from '../../services/servicesApi';
-import { useGetOrganizationsQuery } from '../../services/organizationsApi';
+} from './api/servicesApi';
+import type { ServiceListItem } from './api/servicesApi';
+import { useGetOrganizationsQuery } from '../organizations/api/organizationsApi';
 
 interface MasterTreeNode extends ServiceListItem {
   children: ServiceListItem[];
@@ -252,7 +250,7 @@ export const ServicesPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleAddSubservice = (master: MasterTreeNode) => {
+  const handleAddSubservice = (master: ServiceListItem) => {
     setSelectedService({
       is_master: false,
       parent_id: master.id,

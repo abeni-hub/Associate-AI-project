@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../shared/Icon';
-import { SearchSelect, type SearchSelectOption } from '../shared/SearchSelect';
-import { useGetOrganizationsQuery } from '../../services/organizationsApi';
-import { useUploadCmsImageMutation } from '../../services/cmsApi';
-import { useLanguage } from '../../i18n/i18nContext';
-import { usePortal } from '../../context';
-import { useGetMeQuery } from '../../services/authApi';
-import { tokenStorage } from '../../utils/tokenStorage';
-import { ROLE } from '../../data/portalData.js';
+import { Icon, SearchSelect, type SearchSelectOption } from '../../shared';
+import { useGetOrganizationsQuery } from '../../organizations/api/organizationsApi';
+import { useUploadCmsImageMutation } from '../../cms/api/cmsApi';
+import { useLanguage } from '../../shared/i18n';
+import { usePortal } from '../../shared';
+import { useGetMeQuery } from '../../auth/api/authApi';
+import { tokenStorage } from '../../../utils/tokenStorage';
 
 export interface ImageItem {
   id: string;

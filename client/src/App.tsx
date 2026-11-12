@@ -4,6 +4,7 @@ import { SiteFooter, SiteHeader, translate } from './features/shared'
 import { NewsEventsPage, ItemDetailPage } from './features/news-events'
 import './styles/newsEvents.css'
 import { HomePage } from './features/home'
+import { QrFeedbackPage } from './features/feedback'
 import { useGetLandingPageCmsQuery } from './features/cms'
 import type { FeedType, Language, NewsEventItem } from './types/newsEvents'
 
@@ -38,8 +39,20 @@ function App() {
     const match = hash.match(/^#\/(news|event)\/([^/?#]+)/i)
     return match ? match[2] : null
   })
-  const [currentView, setCurrentView] = useState<'home' | 'news-events' | 'detail'>(() => {
+  const [currentView, setCurrentView] = useState<'home' | 'news-events' | 'detail' | 'feedback'>(() => {
+    const path = window.location.pathname.toLowerCase()
     const hash = window.location.hash.toLowerCase()
+    if (
+      path === '/feedback' ||
+      path.startsWith('/feedback') ||
+      path.startsWith('/qr') ||
+      hash.startsWith('#/feedback') ||
+      hash.startsWith('#feedback') ||
+      hash.startsWith('#/qr') ||
+      hash.startsWith('#qr')
+    ) {
+      return 'feedback'
+    }
     if (hash.startsWith('#/news/') || hash.startsWith('#/event/')) {
       return 'detail'
     }
@@ -70,6 +83,12 @@ function App() {
   }
 
   function navigateToHomeSection(sectionId: string) {
+    if (sectionId === 'feedback') {
+      setCurrentView('feedback')
+      window.location.hash = '#feedback'
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
     setCurrentView('home')
     window.location.hash = `#${sectionId}`
     window.setTimeout(() => {
@@ -100,13 +119,21 @@ function App() {
       const hash = window.location.hash
       const lower = hash.toLowerCase()
 
-      // 1. Direct feedback or tracking route
-      if (path === '/feedback' || path.startsWith('/feedback') || lower === '#/feedback' || lower.startsWith('#feedback') || path === '/track' || lower === '#/track' || lower.startsWith('#track')) {
-        setCurrentView('home')
+      // 1. Direct feedback or QR scan route -> Dedicated Feedback & Service Guide Page
+      if (
+        path === '/feedback' ||
+        path.startsWith('/feedback') ||
+        path.startsWith('/qr') ||
+        lower === '#/feedback' ||
+        lower.startsWith('#/feedback') ||
+        lower === '#feedback' ||
+        lower.startsWith('#feedback') ||
+        lower.startsWith('#/qr') ||
+        lower.startsWith('#qr')
+      ) {
+        setCurrentView('feedback')
         setDetailItemId(null)
-        window.setTimeout(() => {
-          document.getElementById('feedback')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }, 100)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
         return
       }
 
@@ -200,17 +227,19 @@ function App() {
   }, [currentView])
 
   return (
-    <div className={`site-shell ${currentView === 'news-events' ? 'site-shell-hub' : currentView === 'detail' ? 'site-shell-detail' : ''}`} lang={language}>
-      <SiteHeader
-        currentView={currentView}
-        language={language}
-        t={t}
-        onNavigateToHome={navigateToHome}
-        onNavigateToHomeSection={navigateToHomeSection}
-        onNavigateToNews={navigateToNews}
-        onToggleLanguage={toggleLanguage}
-        onSelectLanguage={handleSelectLanguage}
-      />
+    <div className={`site-shell ${currentView === 'news-events' ? 'site-shell-hub' : currentView === 'detail' ? 'site-shell-detail' : currentView === 'feedback' ? 'site-shell-feedback' : ''}`} lang={language}>
+      {currentView !== 'feedback' && (
+        <SiteHeader
+          currentView={currentView}
+          language={language}
+          t={t}
+          onNavigateToHome={navigateToHome}
+          onNavigateToHomeSection={navigateToHomeSection}
+          onNavigateToNews={navigateToNews}
+          onToggleLanguage={toggleLanguage}
+          onSelectLanguage={handleSelectLanguage}
+        />
+      )}
 
       {currentView === 'detail' && detailItemId ? (
         <ItemDetailPage
@@ -234,6 +263,13 @@ function App() {
           initialTab={newsEventsTab}
           onNavigateToDetail={(item) => navigateToDetail(item)}
         />
+      ) : currentView === 'feedback' ? (
+        <QrFeedbackPage
+          language={language}
+          t={t}
+          onNavigateToHome={navigateToHome}
+          onSelectLanguage={handleSelectLanguage}
+        />
       ) : (
         <HomePage
           language={language}
@@ -249,12 +285,14 @@ function App() {
         />
       )}
 
-      <SiteFooter
-        t={t}
-        language={language}
-        onNavigateToHomeSection={navigateToHomeSection}
-        footerContent={cmsConfig?.footer}
-      />
+      {currentView !== 'feedback' && (
+        <SiteFooter
+          t={t}
+          language={language}
+          onNavigateToHomeSection={navigateToHomeSection}
+          footerContent={cmsConfig?.footer}
+        />
+      )}
     </div>
   )
 }

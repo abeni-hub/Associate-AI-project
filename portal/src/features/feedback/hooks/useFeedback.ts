@@ -61,8 +61,8 @@ export function useFeedback(overrideItems?: NormalizedFeedbackItem[]) {
 
   // Apply optimistic status overrides
   const items: NormalizedFeedbackItem[] = useMemo(() => {
-    const sourceList = overrideItems ?? apiFeedback;
-    return sourceList.map((item) => {
+    const sourceList = (overrideItems ?? (apiFeedback as any)?.data ?? []) as any[];
+    return sourceList.map((item: any) => {
       const overriddenStatus = statusOverrides[item.id];
       if (overriddenStatus) {
         return { ...item, status: overriddenStatus };

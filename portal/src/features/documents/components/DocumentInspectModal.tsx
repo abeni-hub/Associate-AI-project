@@ -34,7 +34,9 @@ export const DocumentInspectModal: React.FC<DocumentInspectModalProps> = ({
               <code style={{ background: '#edf3ef', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', color: '#315a51', fontWeight: 700 }}>
                 {doc.code}
               </code>
-              <StatusPill status={doc.is_active ? 'Active' : 'Draft'} />
+              <StatusPill status={doc.is_active ? 'Active' : 'Draft'}>
+                {doc.is_active ? 'Active' : 'Draft'}
+              </StatusPill>
             </div>
           </div>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">

@@ -1,5 +1,5 @@
 import { baseApi } from '../../../app/baseApi';
-import type { PaginatedResponse, PaginationQueryParams } from '../types/api.types';
+import type { PaginatedResponse, PaginationQueryParams } from '../../../types/api.types';
 
 export interface AuditLogItem {
   id: number;

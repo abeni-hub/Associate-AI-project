@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon';
 import type { RouteItem, RouteStep, RouteModalConfig } from '../../../types/portal.types';
-import { useGetOrganizationsQuery } from '../../organizations';
-import { useGetServiceStepsQuery } from '../../services';
+import { useGetOrganizationsQuery } from '../../organizations/api/organizationsApi';
+import { useGetServiceStepsQuery } from '../../services/api/servicesApi';
 
 export interface RouteEditorProps {
   route?: RouteItem;
@@ -180,7 +180,7 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({
 
   if (!route) return null;
 
-  const currentOrg = organizations.find((o) => o.id === selectedOrgId);
+  const currentOrg = organizations.find((o: any) => o.id === selectedOrgId);
   const isBranchCustom = selectedOrgId !== null;
 
   return (

@@ -11,12 +11,10 @@ import {
   X,
   Globe,
 } from 'lucide-react';
-import { useGetDocumentsQuery } from '../../../services/documentsApi';
-import { useGetOrganizationsQuery } from '../../../services/organizationsApi';
-import { useGetServicesQuery } from '../../../services/servicesApi';
-import { useLanguage } from '../../../i18n/i18nContext';
-import { getLocalizedText } from '../../../i18n/utils/getLocalized';
-import type { SupportedLanguage } from '../../../i18n/utils/getLocalized';
+import { useGetDocumentsQuery } from '../../documents/api/documentsApi';
+import { useGetOrganizationsQuery } from '../../organizations/api/organizationsApi';
+import { useGetServicesQuery } from '../api/servicesApi';
+import { useLanguage, getLocalizedText, type SupportedLanguage } from '../../shared/i18n';
 
 export interface ServiceEditorModalProps {
   isOpen: boolean;

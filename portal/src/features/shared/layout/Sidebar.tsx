@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon';
 import { Brand } from '../components/Brand';
 import { usePortal } from '../hooks/usePortal';
 import { usePermissions } from '../hooks/usePermissions';
+import { useLanguage } from '../i18n';
 import type { RoleKey } from '../../../types/portal.types';
 import { useGetSidebarNavigationQuery } from '../api/navigationApi';
 import { tokenStorage } from '../../../utils/tokenStorage';
@@ -16,37 +17,60 @@ const NAV_ITEM_PERMISSION_MAP: Record<string, string> = {
   accounts: 'users.view',
   roles: 'roles.view',
   cms: 'cms.manage',
-  news: 'news.view',
-  feedback: 'feedback.view_own',
   activity: 'audit_logs.view',
+  news: 'news.view',
   services: 'services.view',
   documents: 'documents.view',
   routes: 'service_steps.view',
   qr: 'qr_codes.view',
   office: 'services.view',
+  feedback: 'feedback.view_own',
+  levels: 'organizations.view',
 };
 
+const DEFAULT_NAV = [
+  { id: 'overview', route: '/overview', label: 'Overview', icon: 'chart', perm: 'dashboard.view' },
+  { id: 'services', route: '/services', label: 'Services', icon: 'layers', perm: 'services.view' },
+  { id: 'documents', route: '/documents', label: 'Required documents', icon: 'file', perm: 'documents.view' },
+  { id: 'offices', route: '/offices', label: 'Offices & directory', icon: 'building', perm: 'organizations.view' },
+  { id: 'feedback', route: '/feedback', label: 'Citizen feedback', icon: 'message', perm: 'feedback.view_own' },
+  { id: 'qr', route: '/qr', label: 'Feedback QR codes', icon: 'qr', perm: 'qr_codes.view' },
+  { id: 'news', route: '/news', label: 'News & events', icon: 'news', perm: 'news.view' },
+  { id: 'accounts', route: '/accounts', label: 'Accounts & access', icon: 'users', perm: 'users.view' },
+  { id: 'roles', route: '/roles', label: 'Roles & permissions', icon: 'shield', perm: 'roles.view' },
+  { id: 'levels', route: '/levels', label: 'Organization levels', icon: 'layers', perm: 'organizations.view' },
+  { id: 'cms', route: '/cms', label: 'Landing page CMS', icon: 'palette', perm: 'cms.manage' },
+  { id: 'activity', route: '/activity', label: 'Activity log', icon: 'activity', perm: 'audit_logs.view' },
+];
+
 export interface SidebarProps {
-  role?: RoleKey | string;
+  role?: RoleKey;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
   onNavigate?: () => void;
   onLogout?: () => void;
-  mobileOpen?: boolean;
-  setMobileOpen?: (open: boolean) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   role: propRole,
+  mobileOpen: propMobileOpen,
+  onCloseMobile,
   onNavigate: propOnNavigate,
   onLogout: propOnLogout,
-  mobileOpen: propMobileOpen,
-  setMobileOpen: propSetMobileOpen,
 }) => {
   const portal = usePortal();
   const { hasPermission } = usePermissions();
+  const { t } = useLanguage();
 
   const role = (propRole || portal.role || 'super') as RoleKey;
   const mobileOpen = propMobileOpen !== undefined ? propMobileOpen : portal.mobileOpen;
-  const setMobileOpen = propSetMobileOpen || portal.setMobileOpen;
+  const setMobileOpen = (open: boolean) => {
+    if (onCloseMobile && !open) {
+      onCloseMobile();
+    }
+    portal.setMobileOpen(open);
+  };
+
   const onNavigate =
     propOnNavigate ||
     (() => {
@@ -63,7 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navGroups = React.useMemo(() => {
     if (apiNavResponse?.data && apiNavResponse.data.length > 0) {
-      const items = apiNavResponse.data
+      const items = (apiNavResponse.data as Array<{ route: string; label: string; required_permission?: string | null }>)
         .map((item) => {
           let pathId = item.route
             .replace(/^\/admin\/?/, '')
@@ -93,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           return {
             id: pathId,
-            text: item.label,
+            text: t(`nav.${pathId}`, item.label),
             icon: iconName,
             required_permission: item.required_permission || NAV_ITEM_PERMISSION_MAP[pathId],
           };
@@ -103,20 +127,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
       return [{ label: '', items }];
     }
 
-    return [];
-  }, [apiNavResponse, hasPermission]);
+    const defaultItems = DEFAULT_NAV
+      .filter((item) => !item.perm || hasPermission(item.perm))
+      .map((item) => ({
+        id: item.id,
+        text: t(`nav.${item.id}`, item.label),
+        icon: item.icon,
+        required_permission: item.perm,
+      }));
 
-  const displayName = portal.authUser?.name || 'Administrator';
-  const displayRole = portal.authUser?.role?.name || (role === 'super' ? 'Super Admin' : role === 'subcity' ? 'Sub-City Admin' : 'Bureau Admin');
-  const initials = portal.authUser?.name
-    ? portal.authUser.name
-        .split(' ')
-        .map((part) => part[0])
-        .filter(Boolean)
-        .slice(0, 2)
-        .join('')
-        .toUpperCase()
-    : 'AD';
+    return [{ label: '', items: defaultItems }];
+  }, [apiNavResponse, hasPermission, t]);
+
+  const user = portal.session?.user || portal.authUser;
+  const displayName = user?.name || 'Administrator';
+  const displayRole = React.useMemo(() => {
+    const rawRole =
+      user?.role?.name ||
+      (role === 'super' ? 'Super Admin' : role === 'subcity' ? 'Sub-City Admin' : 'Bureau Admin');
+    const lower = String(rawRole).toLowerCase();
+    if (lower.includes('super')) return t('roles.superAdmin', 'Super Admin');
+    if (lower.includes('subcity') || lower.includes('sub-city')) return t('roles.subcityAdmin', 'Sub-city Admin');
+    if (lower.includes('bureau')) return t('roles.bureauAdmin', 'Bureau Admin');
+    return rawRole;
+  }, [user, role, t]);
+
+  const initials = displayName
+    .split(' ')
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'AD';
 
   const getDestination = (itemId: string) => `/${itemId}`;
 
@@ -133,16 +175,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className="sidebar-close"
             onClick={() => setMobileOpen(false)}
             aria-label="Close navigation"
+            type="button"
           >
             <Icon name="close" />
           </button>
         </div>
         <nav className="side-nav" aria-label="Admin navigation">
           <div className="side-nav-groups">
-            {navGroups.map((group: any) => (
-              <div className="nav-group" key={group.items[0]?.id ?? group.label}>
+            {navGroups.map((group, gIdx) => (
+              <div className="nav-group" key={group.items[0]?.id ?? gIdx}>
                 {group.label && <span className="nav-group-label">{group.label}</span>}
-                {group.items.map((item: any) => (
+                {group.items.map((item) => (
                   <NavLink
                     key={item.id}
                     to={getDestination(item.id)}
@@ -155,7 +198,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   >
                     <Icon name={item.icon} size={18} />
                     <span>{item.text}</span>
-                    {item.badge && <span className="nav-badge">{item.badge}</span>}
                   </NavLink>
                 ))}
               </div>
@@ -174,6 +216,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={onLogout}
               title="Sign out"
               aria-label="Sign out"
+              type="button"
             >
               <Icon name="logout" size={16} />
             </button>

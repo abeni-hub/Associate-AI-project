@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { usePortal } from '../../context';
-import { useLanguage } from '../../i18n/i18nContext';
-import { Icon } from '../shared/Icon';
-import { QRPattern } from '../shared/QRPattern';
-import type { QRModalConfig } from '../../types/portal.types';
-import { useCreateQrCodeMutation } from '../../services/qrCodesApi';
-import { useGetOrganizationsQuery, type OrganizationItem } from '../../services/organizationsApi';
-import { getClientBaseUrl } from '../../config/apiConfig';
+import { usePortal } from '../hooks/usePortal';
+import { useLanguage } from '../i18n';
+import { Icon } from '../components/Icon';
+import { QRPattern } from '../components/QRPattern';
+import type { QRModalConfig } from '../../../types/portal.types';
+import { useCreateQrCodeMutation } from '../../qr-codes/api/qrCodesApi';
+import { useGetOrganizationsQuery, type OrganizationItem } from '../../organizations/api/organizationsApi';
+import { getClientBaseUrl } from '../../../app/baseApi';
 
 export interface QRDialogProps {
   modal?: QRModalConfig;
@@ -62,7 +62,7 @@ export const QRDialog: React.FC<QRDialogProps> = ({
       `QR-${(activeOrg?.code || userOrg?.code || 'OFFICE').toUpperCase().replace(/[^A-Z0-9]/g, '')}-${Date.now().toString().slice(-4)}`
   );
   const [targetUrl, setTargetUrl] = useState(
-    existingQr?.target_url || buildDefaultTargetUrl(activeOrg)
+    existingQr?.target_url || buildDefaultTargetUrl(activeOrg as any)
   );
   const [status, setStatus] = useState<'active' | 'inactive'>(
     (existingQr?.status as 'active' | 'inactive') || 'active'

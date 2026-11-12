@@ -177,14 +177,6 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     'qr_codes.manage',
     'dashboard.view',
   ],
-  woreda_admin: [
-    'services.view',
-    'users.view',
-    'feedback.view_own',
-    'feedback.update_status',
-    'qr_codes.view',
-    'dashboard.view',
-  ],
   staff: [
     'services.view',
     'service_steps.view',

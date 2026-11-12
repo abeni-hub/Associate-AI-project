@@ -10,4 +10,5 @@ export * from './components/DashboardFeedbackFocusList';
 export * from './components/DashboardQuickActions';
 export * from './components/DashboardRecentActivityFeed';
 export * from './components/DashboardLoadingState';
+export { OverviewPage } from './OverviewPage';
 

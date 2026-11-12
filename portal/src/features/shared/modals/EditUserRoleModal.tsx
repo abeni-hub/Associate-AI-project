@@ -9,11 +9,11 @@ import {
   useGetPermissionsQuery,
   useUpdateRolePermissionsMutation,
   type PermissionItem,
-} from '../../roles-permissions';
-import { useUpdateUserMutation } from '../../accounts';
+} from '../../roles-permissions/api/rolesApi';
+import { useUpdateUserMutation } from '../../accounts/api/accountsApi';
 import {
   DOMAIN_GROUPS,
-} from '../../roles-permissions';
+} from '../../roles-permissions/constants';
 
 const DOMAIN_ICONS: Record<string, string> = {
   org: 'sitemap',
@@ -178,7 +178,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
 
   const roleOptions: RoleOption[] = useMemo(() => {
     if (rolesResponse?.data) {
-      return rolesResponse.data.map((r) => {
+      return (rolesResponse.data as any[]).map((r: any) => {
         const slug = r.slug.toLowerCase();
         let scope = 'Custom Role';
         let scopeTone = '#0369a1';
@@ -257,7 +257,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
     }
 
     if (roleDetailResponse?.data?.permissions && roleDetailResponse.data.permissions.length > 0) {
-      return roleDetailResponse.data.permissions.map((p) => p.id);
+      return (roleDetailResponse.data.permissions as any[]).map((p: any) => p.id);
     }
 
     if (roleDetailResponse?.data?.permission_ids && roleDetailResponse.data.permission_ids.length > 0) {

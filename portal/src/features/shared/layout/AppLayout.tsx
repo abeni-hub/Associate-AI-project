@@ -4,7 +4,6 @@ import { usePortal } from '../hooks/usePortal';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { Modal } from '../modals/Modal';
-import { Icon } from '../components/Icon';
 import { useGetMeQuery } from '../../auth';
 import { tokenStorage } from '../../../utils/tokenStorage';
 
@@ -46,20 +45,16 @@ export const AppLayout: React.FC = () => {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell portal-shell">
       <Sidebar />
       <main className="main-area">
         <Topbar />
-        <div className="main-content" key={location.pathname}>
+        <div className="main-content content" key={location.pathname}>
           <Outlet />
-          <footer className="app-footer">
+          <footer className="app-footer page-footer">
             <span>© 2026 CivicLink Ethiopia</span>
-            <span>
-              <Icon name="shield" size={13} /> Protected admin workspace
-            </span>
-            <span>
-              Help center <Icon name="external" size={12} />
-            </span>
+            <span>·</span>
+            <span>Unified Public Service Administration Platform</span>
           </footer>
         </div>
       </main>

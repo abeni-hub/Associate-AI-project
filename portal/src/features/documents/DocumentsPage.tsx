@@ -13,17 +13,16 @@ import {
   Download,
   Link2,
 } from 'lucide-react';
-import { usePermissions } from '../../hooks/usePermissions';
-import { useLanguage } from '../../i18n/i18nContext';
-import { getLocalizedText } from '../../i18n/utils/getLocalized';
-import { DocumentModal } from '../../components/documents/DocumentModal';
+import { usePermissions } from '../shared/hooks/usePermissions';
+import { useLanguage, getLocalizedText } from '../shared/i18n';
+import { DocumentModal } from './components/DocumentModal';
 import {
   useGetDocumentsQuery,
   useCreateDocumentMutation,
   useUpdateDocumentMutation,
   useDeleteDocumentMutation,
   type DocumentItem,
-} from '../../services/documentsApi';
+} from './api/documentsApi';
 
 export const DocumentsPage: React.FC = () => {
   const { language, t } = useLanguage();

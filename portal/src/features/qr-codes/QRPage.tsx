@@ -48,18 +48,19 @@ export const QRPage: React.FC<QRPageProps> = ({
 
       <section className={styles.panel}>
         <QRToolbar
-          searchQuery={searchQuery}
+          search={searchQuery}
           officeFilter={officeFilter}
           statusFilter={statusFilter}
           organizations={organizations}
           onSearchChange={handleSearchChange}
           onOfficeFilterChange={handleOfficeFilterChange}
           onStatusFilterChange={handleStatusFilterChange}
+          canManage={canManageQrCodes}
+          onAddPoster={handleGenerate}
         />
 
         <QRTable
           items={items}
-          isLoading={isLoading}
           selectedId={selectedId}
           canManage={canManageQrCodes}
           onSelect={handleSelect}

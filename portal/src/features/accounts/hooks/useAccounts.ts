@@ -54,7 +54,7 @@ export const useAccounts = (props?: AccountsPageProps) => {
         name: u.name,
         username: u.username,
         email: u.email,
-        phone: u.phone,
+        phone: u.phone || undefined,
         role: u.role?.name || 'Staff',
         role_id: u.role?.id,
         roleId: u.role?.id,

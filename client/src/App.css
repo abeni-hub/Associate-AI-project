@@ -10,6 +10,7 @@
 @import './features/home/styles/serviceGuide.css';
 @import './features/home/styles/journey.css';
 @import './features/home/styles/feedback.css';
+@import './features/feedback/styles/qrFeedback.css';
 @import './features/home/styles/complaintTracker.css';
 @import './features/home/styles/adminStrip.css';
 

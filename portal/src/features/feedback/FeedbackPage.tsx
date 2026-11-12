@@ -21,15 +21,14 @@ import {
   ThumbsUp,
   HelpCircle,
 } from 'lucide-react';
-import { useLanguage } from '../../i18n/i18nContext';
-import { getLocalizedText } from '../../i18n/utils/getLocalized';
+import { useLanguage, getLocalizedText } from '../shared/i18n';
 import {
   useGetFeedbackListQuery,
   useUpdateFeedbackStatusMutation,
   useRespondToFeedbackMutation,
   useDeleteFeedbackMutation,
-} from '../../services/feedbackApi';
-import type { CitizenFeedback } from '../../services/feedbackApi';
+  type CitizenFeedback,
+} from './api/feedbackApi';
 
 function normalizeFeedbackStatus(rawStatus?: string, hasResponse?: boolean): 'Open' | 'In review' | 'Resolved' | 'Closed' {
   const s = String(rawStatus || '').toLowerCase().trim();

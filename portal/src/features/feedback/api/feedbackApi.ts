@@ -1,115 +1,186 @@
 import { baseApi } from '../../../app/baseApi';
-import type { ApiResponse, PaginatedResponse } from '../../../types/api.types';
-import type {
-  FeedbackFilterParams,
-  FeedbackStatus,
-  FeedbackType,
-  NormalizedFeedbackItem,
-  RawCitizenFeedback,
-  UpdateFeedbackStatusPayload,
-} from '../types/feedback.types';
+import type { ApiResponse, PaginatedResponse, PaginationQueryParams, LocalizedString } from '../../../types/api.types';
+export type { LocalizedString };
 
-export function normalizeFeedbackStatus(
-  rawStatus?: string,
-  hasResponse?: boolean
-): FeedbackStatus {
+export interface CitizenFeedback {
+  id: string | number;
+  type?: 'Complaint' | 'Satisfaction' | 'Suggestion';
+  rating?: number | null;
+  service?: string;
+  bureau?: string;
+  subcity?: string;
+  message?: string;
+  status?: 'Open' | 'In review' | 'Resolved' | 'Closed';
+  priority?: 'Low' | 'Normal' | 'High';
+  created_at?: string;
+  updated_at?: string;
+
+  // Exact fields from api.md Section 11
+  feedback_for_organization?: number;
+  feedback_content?: string;
+  feedback_content_amh?: string;
+  feedback_content_oro?: string;
+  feedback_content_localized?: LocalizedString;
+  feedback_type?: 'complaint' | 'feedback' | 'satisfaction';
+  tracking_number?: string;
+  full_name?: string;
+  phone_number?: string;
+  email?: string;
+  organization?: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  response?: string;
+  response_amh?: string;
+  response_oro?: string;
+  response_localized?: LocalizedString | null;
+  resolved_at?: string;
+}
+
+export function normalizeFeedbackStatus(rawStatus?: string, hasResponse?: boolean): 'Open' | 'In review' | 'Resolved' | 'Closed' {
   const s = String(rawStatus || '').toLowerCase().trim();
   if (s === 'resolved' || (hasResponse && !s)) return 'Resolved';
   if (s === 'closed' || s === 'rejected') return 'Closed';
-  if (
-    s === 'under_review' ||
-    s === 'in_progress' ||
-    s === 'in_review' ||
-    s === 'in review'
-  ) {
+  if (s === 'under_review' || s === 'in_progress' || s === 'in_review' || s === 'in review') {
     return 'In review';
   }
   return 'Open';
 }
 
-export function transformRawFeedback(f: RawCitizenFeedback): NormalizedFeedbackItem {
-  const isComplaint =
-    f.feedback_type === 'complaint' ||
-    String((f as { type?: string }).type).toLowerCase() === 'complaint';
-  const isSatisfaction =
-    f.feedback_type === 'satisfaction' ||
-    String((f as { type?: string }).type).toLowerCase() === 'satisfaction';
+export function normalizeFeedback(raw: any): CitizenFeedback {
+  if (!raw) return raw;
 
-  const type: FeedbackType = isComplaint
-    ? 'Complaint'
-    : isSatisfaction
-      ? 'Satisfaction'
-      : 'Suggestion';
+  const contentObj = (raw.feedback_content_localized && typeof raw.feedback_content_localized === 'object')
+    ? raw.feedback_content_localized
+    : (raw.content_localized && typeof raw.content_localized === 'object')
+      ? raw.content_localized
+      : null;
 
-  const status = normalizeFeedbackStatus(f.status, Boolean(f.response));
-  const displayId = f.tracking_number ? `#${f.tracking_number}` : `FB-${f.id}`;
-  const numericId = typeof f.id === 'number' ? f.id : Number(f.id) || undefined;
+  const respObj = (raw.response_localized && typeof raw.response_localized === 'object')
+    ? raw.response_localized
+    : null;
 
   return {
-    id: displayId,
-    numericId,
-    trackingNumber: f.tracking_number,
-    type,
-    service: f.service || 'Civil Registration',
-    bureau: f.organization?.name || f.bureau || 'General Bureau',
-    subcity: f.organization?.code || f.subcity || 'City Administration',
-    message: f.feedback_content || (f as { message?: string }).message || '',
-    rating: f.rating ?? (isSatisfaction ? 5 : isComplaint ? 2 : 4),
-    time: f.created_at
-      ? new Date(f.created_at).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        })
-      : 'Today',
-    status,
-    priority: isComplaint ? 'High' : f.priority || 'Normal',
-    fullName: f.full_name,
-    phoneNumber: f.phone_number,
-    email: f.email,
-    response: f.response,
+    ...raw,
+    feedback_content: contentObj
+      ? (contentObj.eng || contentObj.amh || contentObj.oro || '')
+      : String(raw.feedback_content || ''),
+    feedback_content_amh: contentObj?.amh || raw.feedback_content_amh || '',
+    feedback_content_oro: contentObj?.oro || raw.feedback_content_oro || '',
+    feedback_content_localized: contentObj || { eng: String(raw.feedback_content || '') },
+    response: respObj
+      ? (respObj.eng || respObj.amh || respObj.oro || '')
+      : (raw.response != null ? String(raw.response) : undefined),
+    response_amh: respObj?.amh || raw.response_amh || '',
+    response_oro: respObj?.oro || raw.response_oro || '',
+    response_localized: respObj || (raw.response != null ? { eng: String(raw.response) } : null),
   };
 }
 
-export const feedbackFeatureApi = baseApi.injectEndpoints({
+export interface FeedbackFilterParams extends PaginationQueryParams {
+  type?: string;
+  status?: string;
+  bureau_id?: number;
+  subcity_id?: number;
+}
+
+export interface CreateFeedbackRequest {
+  feedback_for_organization: number;
+  feedback_content: string;
+  feedback_type: 'complaint' | 'feedback' | 'satisfaction';
+  full_name?: string;
+  phone_number?: string;
+  email?: string;
+}
+
+/**
+ * Citizen Feedback RTK Query API
+ * Adheres to backend/docs/api.md Section 11
+ */
+export const feedbackApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getFeedbackList: builder.query<
-      NormalizedFeedbackItem[],
-      FeedbackFilterParams | void
-    >({
+    getFeedbackList: builder.query<PaginatedResponse<CitizenFeedback>, FeedbackFilterParams | void>({
       query: (params) => ({
         url: '/feedbacks',
         method: 'GET',
         params: params || undefined,
       }),
-      transformResponse: (response: PaginatedResponse<RawCitizenFeedback>) => {
-        if (!response?.data || !Array.isArray(response.data)) {
-          return [];
-        }
-        return response.data.map(transformRawFeedback);
+      transformResponse: (res: PaginatedResponse<any>) => {
+        if (!res?.data || !Array.isArray(res.data)) return res;
+        return {
+          ...res,
+          data: res.data.map(normalizeFeedback),
+        };
       },
       providesTags: (result) =>
-        result
+        result?.data
           ? [
-              ...result.map(({ id }) => ({ type: 'Feedback' as const, id })),
+              ...result.data.map(({ id }) => ({ type: 'Feedback' as const, id })),
               { type: 'Feedback', id: 'LIST' },
             ]
           : [{ type: 'Feedback', id: 'LIST' }],
     }),
 
-    getFeedbackById: builder.query<NormalizedFeedbackItem, string | number>({
+    getFeedbackById: builder.query<ApiResponse<CitizenFeedback>, string | number>({
       query: (id) => ({
         url: `/feedbacks/${id}`,
         method: 'GET',
       }),
-      transformResponse: (response: ApiResponse<RawCitizenFeedback>) =>
-        transformRawFeedback(response.data),
+      transformResponse: (res: ApiResponse<any>) => {
+        if (!res?.data) return res;
+        return {
+          ...res,
+          data: normalizeFeedback(res.data),
+        };
+      },
       providesTags: (_result, _error, id) => [{ type: 'Feedback', id }],
     }),
 
-    updateFeedbackStatus: builder.mutation<
-      ApiResponse<RawCitizenFeedback>,
-      UpdateFeedbackStatusPayload
-    >({
+    createFeedback: builder.mutation<ApiResponse<CitizenFeedback>, CreateFeedbackRequest>({
+      query: (body) => ({
+        url: '/feedbacks',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'Feedback', id: 'LIST' }, 'Feedback'],
+    }),
+
+    updateFeedback: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; [key: string]: any }>({
+      query: ({ id, ...body }) => ({
+        url: `/feedbacks/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Feedback', id },
+        { type: 'Feedback', id: 'LIST' },
+        'Feedback',
+      ],
+    }),
+
+    respondToFeedback: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; response: string }>({
+      query: ({ id, response }) => ({
+        url: `/feedbacks/${id}/respond`,
+        method: 'POST',
+        body: { response },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Feedback', id },
+        { type: 'Feedback', id: 'LIST' },
+        'Feedback',
+      ],
+    }),
+
+    deleteFeedback: builder.mutation<ApiResponse<null>, string | number>({
+      query: (id) => ({
+        url: `/feedbacks/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'Feedback', id: 'LIST' }, 'Feedback'],
+    }),
+
+    updateFeedbackStatus: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; status?: string; response?: string }>({
       query: ({ id, status, response }) => ({
         url: `/feedbacks/${id}`,
         method: 'PUT',
@@ -121,6 +192,7 @@ export const feedbackFeatureApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Feedback', id },
         { type: 'Feedback', id: 'LIST' },
+        'Feedback',
       ],
     }),
   }),
@@ -130,6 +202,11 @@ export const feedbackFeatureApi = baseApi.injectEndpoints({
 export const {
   useGetFeedbackListQuery,
   useGetFeedbackByIdQuery,
+  useCreateFeedbackMutation,
+  useUpdateFeedbackMutation,
+  useRespondToFeedbackMutation,
+  useDeleteFeedbackMutation,
   useUpdateFeedbackStatusMutation,
-} = feedbackFeatureApi;
+} = feedbackApi;
 
+export default feedbackApi;

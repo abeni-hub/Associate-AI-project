@@ -1,7 +1,60 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { API_TAG_TYPES } from '../types/api.types';
 import { getCookie, tokenStorage } from '../utils/tokenStorage';
-import { getBaseApiUrl } from '../config/apiConfig.js';
+
+export const DEFAULT_BACKEND_URL = 'http://127.0.0.1:8000';
+
+export const BACKEND_URL: string = (() => {
+  const proc = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined;
+  const envBackend =
+    (proc && (proc.env?.VITE_BACKEND_URL || proc.env?.BACKEND_URL)) ||
+    (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_BACKEND_URL || import.meta.env?.BACKEND_URL));
+
+  if (typeof envBackend === 'string' && envBackend.trim().length > 0) {
+    return envBackend.trim().replace(/\/+$/, '');
+  }
+
+  return DEFAULT_BACKEND_URL;
+})();
+
+export const API_BASE_URL = `${BACKEND_URL}/api/v1`;
+
+export function getBaseApiUrl(isDev = false): string {
+  if (isDev) {
+    return '/api/v1';
+  }
+
+  const proc = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined;
+  const envApi =
+    (proc && proc.env?.VITE_API_BASE_URL) ||
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL);
+
+  if (typeof envApi === 'string' && envApi.trim().length > 0) {
+    const url = envApi.trim().replace(/\/+$/, '');
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      if (url.endsWith('/api')) return `${url}/v1`;
+      if (!url.endsWith('/api/v1')) return `${url}/api/v1`;
+      return url;
+    }
+  }
+
+  return API_BASE_URL;
+}
+
+export const DEFAULT_CLIENT_URL = 'https://client.pharmasoft-et.com';
+
+export function getClientBaseUrl(): string {
+  const proc = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined;
+  const envClient =
+    (proc && (proc.env?.VITE_CLIENT_URL || proc.env?.CLIENT_URL)) ||
+    (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_CLIENT_URL || import.meta.env?.CLIENT_URL));
+
+  if (typeof envClient === 'string' && envClient.trim().length > 0) {
+    return envClient.trim().replace(/\/+$/, '');
+  }
+
+  return DEFAULT_CLIENT_URL;
+}
 
 const getBaseUrl = (): string => getBaseApiUrl(import.meta.env.DEV);
 
@@ -45,4 +98,3 @@ export const baseApi = createApi({
   tagTypes: API_TAG_TYPES,
   endpoints: () => ({}),
 });
-

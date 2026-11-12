@@ -141,7 +141,7 @@ export const useRolesPermissions = (props: UseRolesPermissionsProps = {}) => {
     if (isSuperAdmin) {
       return allPermissions.map((p) => p.id);
     }
-    const detailData: any = activeRoleDetail?.data?.data || activeRoleDetail?.data;
+    const detailData: any = (activeRoleDetail as any)?.data?.data || (activeRoleDetail as any)?.data || activeRoleDetail;
     if (detailData?.permissions && Array.isArray(detailData.permissions) && detailData.permissions.length > 0) {
       return detailData.permissions.map((p: any) => (typeof p === 'number' ? p : p.id));
     }
@@ -190,7 +190,7 @@ export const useRolesPermissions = (props: UseRolesPermissionsProps = {}) => {
     if (isSuperAdmin) {
       return allNavigationItems.map((n) => n.id);
     }
-    const detailData: any = activeRoleDetail?.data?.data || activeRoleDetail?.data;
+    const detailData: any = (activeRoleDetail as any)?.data?.data || (activeRoleDetail as any)?.data || activeRoleDetail;
     if (detailData?.navigation_item_ids && Array.isArray(detailData.navigation_item_ids)) {
       return detailData.navigation_item_ids.map((id: any) => Number(id));
     }

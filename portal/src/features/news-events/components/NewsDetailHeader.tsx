@@ -35,10 +35,10 @@ export const NewsDetailHeader: React.FC<NewsDetailHeaderProps> = ({
           {event && (
             <div className="news-detail-event-float-badge">
               <span className="float-badge-month">
-                {new Date(item.eventDate || item.date).toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
+                {new Date((item as any).eventDate || item.date || Date.now()).toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
               </span>
               <span className="float-badge-day">
-                {new Date(item.eventDate || item.date).getDate() || '1'}
+                {new Date((item as any).eventDate || item.date || Date.now()).getDate() || '1'}
               </span>
             </div>
           )}

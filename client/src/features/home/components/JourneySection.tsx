@@ -85,7 +85,7 @@ export default function JourneySection({ t, onGoToFeedback, journey, language }:
           <p>{t((language === 'am' && journey?.titleAm) || journey?.title || 'From the moment you start planning to the moment you share your experience, everything you need is easy to find.')}</p>
         </div>
         <div className="journey-cards scroll-reveal-group">
-          {cards.map((card) => <JourneyCard key={card.index} card={card} t={t} onGoToFeedback={onGoToFeedback} />)}
+          {cards.map((card: any) => <JourneyCard key={card.index} card={card} t={t} onGoToFeedback={onGoToFeedback} />)}
         </div>
         <div className="qr-note scroll-reveal">
           <span className="qr-note-icon"><Icon name="qr" size={24} /></span>

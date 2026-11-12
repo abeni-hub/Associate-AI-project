@@ -229,7 +229,9 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
 
                     {/* Status */}
                     <td>
-                      <StatusPill status={doc.is_active ? 'Active' : 'Draft'} />
+                      <StatusPill status={doc.is_active ? 'Active' : 'Draft'}>
+                        {doc.is_active ? 'Active' : 'Draft'}
+                      </StatusPill>
                     </td>
 
                     {/* Actions */}

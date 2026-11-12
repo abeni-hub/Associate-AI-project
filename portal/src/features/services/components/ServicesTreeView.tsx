@@ -70,7 +70,7 @@ export const ServicesTreeView: React.FC<ServicesTreeViewProps> = ({
                     )}
                     <StatusPill>{master.is_active ? 'Active' : 'Inactive'}</StatusPill>
                   </div>
-                  <h3 className="master-node-title">{master.title}</h3>
+                  <h3 className="master-node-title">{master.name}</h3>
                   {master.description && (
                     <p
                       style={{
@@ -127,7 +127,7 @@ export const ServicesTreeView: React.FC<ServicesTreeViewProps> = ({
                     <button
                       className="button secondary small-button"
                       style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
-                      onClick={() => handleDelete(master.id, master.title)}
+                      onClick={() => handleDelete(master.id, master.name)}
                       title="Delete master service"
                     >
                       <Icon name="trash" size={13} />
@@ -176,7 +176,7 @@ export const ServicesTreeView: React.FC<ServicesTreeViewProps> = ({
                               >
                                 {subservice.code}
                               </span>
-                              <h4 className="tree-subservice-title">{subservice.title}</h4>
+                              <h4 className="tree-subservice-title">{subservice.name}</h4>
                               <StatusPill>{subservice.is_active ? 'Active' : 'Inactive'}</StatusPill>
                             </div>
                             <p className="tree-subservice-desc">
@@ -252,7 +252,7 @@ export const ServicesTreeView: React.FC<ServicesTreeViewProps> = ({
                               <button
                                 className="button secondary small-button"
                                 style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
-                                onClick={() => handleDelete(subservice.id, subservice.title)}
+                                onClick={() => handleDelete(subservice.id, subservice.name)}
                                 title="Delete subservice"
                               >
                                 <Icon name="trash" size={13} />

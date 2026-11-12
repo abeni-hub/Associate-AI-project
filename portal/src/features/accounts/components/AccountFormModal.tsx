@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../shared/Icon';
-import { SearchSelect, type SearchSelectOption } from '../shared/SearchSelect';
-import { getLocalizedText } from '../../i18n/utils/getLocalized';
-import { useLanguage } from '../../i18n/i18nContext';
-import { useGetRolesQuery } from '../../services/rolesApi';
-import { useGetOrganizationsQuery } from '../../services/organizationsApi';
+import { Icon, SearchSelect, type SearchSelectOption } from '../../shared';
+import { useLanguage, getLocalizedText } from '../../shared/i18n';
+import { useGetRolesQuery } from '../../roles-permissions/api/rolesApi';
+import { useGetOrganizationsQuery } from '../../organizations/api/organizationsApi';
+import styles from '../styles/accountModal.module.css';
 
 export interface AccountModalProps {
   account?: any;
@@ -17,13 +16,15 @@ export interface AccountModalProps {
   isLoading?: boolean;
 }
 
+export type AccountFormModalProps = AccountModalProps;
+
 const slugifyUsername = (text: string) =>
   text
     .toLowerCase()
     .replace(/[^a-z0-9._-]+/g, '.')
     .replace(/(^\.|\.$)/g, '');
 
-export const AccountFormModal: React.FC<AccountFormModalProps> = ({
+export const AccountFormModal: React.FC<AccountModalProps> = ({
   account,
   isOpen,
   onClose,
@@ -96,7 +97,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
           label: orgName,
           code: org.code,
           badge: typeName,
-          badgeTone: (org.type?.level === 1 || org.organization_type_id === 1) ? 'sage' : (org.type?.level === 2 || org.organization_type_id === 2) ? 'blue' : 'gold',
+          badgeTone: ((org.type?.level === 1 || org.organization_type_id === 1) ? 'sage' : (org.type?.level === 2 || org.organization_type_id === 2) ? 'blue' : 'gold') as 'sage' | 'blue' | 'gold',
           secondary: orgAddress,
         };
       }),
@@ -105,8 +106,8 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
 
   const selectedOrg = useMemo(() => {
     if (organizationId === null || organizationId === 0) return null;
-    const orgsList = apiOrgs?.data || [];
-    return orgsList.find((o) => o.id === Number(organizationId)) || null;
+    const orgsList = (apiOrgs?.data as any[]) || [];
+    return orgsList.find((o: any) => o.id === Number(organizationId)) || null;
   }, [organizationId, apiOrgs]);
 
   const filteredRoleOptions: SearchSelectOption[] = useMemo(() => {
@@ -114,32 +115,32 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
       return [];
     }
 
-    const rawRoles = apiRoles?.data || [];
+    const rawRoles = (apiRoles?.data as any[]) || [];
     let allowed = rawRoles;
 
     if (Number(organizationId) === 0) {
-      allowed = rawRoles.filter((r) => r.slug === 'super_admin' || r.id === 1);
+      allowed = rawRoles.filter((r: any) => r.slug === 'super_admin' || r.id === 1);
     } else {
       const orgTypeId = selectedOrg?.type?.id || selectedOrg?.organization_type_id;
 
       if (orgTypeId === 1) {
         allowed = rawRoles.filter(
-          (r) => r.slug === 'sub_city_admin' || r.slug === 'staff' || (!r.is_system && r.slug !== 'super_admin')
+          (r: any) => r.slug === 'sub_city_admin' || r.slug === 'staff' || (!r.is_system && r.slug !== 'super_admin')
         );
       } else if (orgTypeId === 2) {
         allowed = rawRoles.filter(
-          (r) => r.slug === 'woreda_admin' || r.slug === 'staff' || (!r.is_system && r.slug !== 'super_admin')
+          (r: any) => r.slug === 'woreda_admin' || r.slug === 'staff' || (!r.is_system && r.slug !== 'super_admin')
         );
       } else if (orgTypeId === 3) {
         allowed = rawRoles.filter(
-          (r) => r.slug === 'bureau_admin' || r.slug === 'staff' || (!r.is_system && r.slug !== 'super_admin')
+          (r: any) => r.slug === 'bureau_admin' || r.slug === 'staff' || (!r.is_system && r.slug !== 'super_admin')
         );
       } else {
-        allowed = rawRoles.filter((r) => r.slug !== 'super_admin');
+        allowed = rawRoles.filter((r: any) => r.slug !== 'super_admin');
       }
     }
 
-    return allowed.map((r) => ({
+    return allowed.map((r: any) => ({
       value: r.id,
       label: typeof r.name === 'string' ? r.name : getLocalizedText(r.name, 'en') || r.slug || 'Role',
       code: r.slug,
@@ -159,25 +160,25 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
     setOrganizationId(nextOrgId);
     setErrorMsg(null);
 
-    const rawRoles = apiRoles?.data || [];
+    const rawRoles = (apiRoles?.data as any[]) || [];
 
     if (nextOrgId === 0) {
-      const superRole = rawRoles.find((r) => r.slug === 'super_admin') || { id: 1 };
+      const superRole = rawRoles.find((r: any) => r.slug === 'super_admin') || { id: 1 };
       setRoleId(superRole.id);
     } else if (nextOrgId !== null) {
-      const orgsList = apiOrgs?.data || [];
-      const targetOrg = orgsList.find((o) => o.id === nextOrgId);
+      const orgsList = (apiOrgs?.data as any[]) || [];
+      const targetOrg = orgsList.find((o: any) => o.id === nextOrgId);
       if (targetOrg?.organization_type_id === 1) {
-        const role = rawRoles.find((r) => r.slug === 'sub_city_admin') || { id: 2 };
+        const role = rawRoles.find((r: any) => r.slug === 'sub_city_admin') || { id: 2 };
         setRoleId(role.id);
       } else if (targetOrg?.organization_type_id === 2) {
-        const role = rawRoles.find((r) => r.slug === 'woreda_admin') || { id: 3 };
+        const role = rawRoles.find((r: any) => r.slug === 'woreda_admin') || { id: 3 };
         setRoleId(role.id);
       } else if (targetOrg?.organization_type_id === 3) {
-        const role = rawRoles.find((r) => r.slug === 'bureau_admin') || { id: 4 };
+        const role = rawRoles.find((r: any) => r.slug === 'bureau_admin') || { id: 4 };
         setRoleId(role.id);
       } else {
-        const defaultRole = rawRoles.find((r) => r.slug !== 'super_admin') || { id: 5 };
+        const defaultRole = rawRoles.find((r: any) => r.slug !== 'super_admin') || { id: 5 };
         setRoleId(defaultRole.id);
       }
     } else {
@@ -217,7 +218,9 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
       status,
     };
 
-    onSave(payload);
+    if (onSave) {
+      onSave(payload);
+    }
   };
 
   if (!isOpen) return null;
@@ -376,5 +379,6 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
   );
 };
 
+export const AccountModal = AccountFormModal;
 export default AccountFormModal;
 

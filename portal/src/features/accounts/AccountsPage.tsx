@@ -11,17 +11,16 @@ import {
   Mail,
   Phone,
 } from 'lucide-react';
-import { usePermissions } from '../../hooks/usePermissions';
-import { useLanguage } from '../../i18n/i18nContext';
-import { getLocalizedText } from '../../i18n/utils/getLocalized';
-import { AccountModal } from '../../components/accounts/AccountModal';
+import { usePermissions } from '../shared/hooks/usePermissions';
+import { useLanguage, getLocalizedText } from '../shared/i18n';
+import { AccountModal } from './components/AccountFormModal';
 import type { AccountItem } from '../../types/portal.types';
 import {
   useGetUsersQuery,
   useCreateUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
-} from '../../services/usersApi';
+} from './api/accountsApi';
 
 export const AccountsPage: React.FC = () => {
   const { language, t } = useLanguage();
@@ -42,10 +41,11 @@ export const AccountsPage: React.FC = () => {
   const [createUserTrigger, { isLoading: isCreatingUser }] = useCreateUserMutation();
   const [updateUserTrigger, { isLoading: isUpdatingUser }] = useUpdateUserMutation();
   const [deleteUserTrigger] = useDeleteUserMutation();
+  const isSavingUser = isCreatingUser || isUpdatingUser;
 
   const items: AccountItem[] = useMemo(() => {
     if (usersResponse?.data) {
-      return usersResponse.data.map((u) => ({
+      return (usersResponse.data as any[]).map((u) => ({
         id: u.id,
         name: u.name,
         username: u.username,

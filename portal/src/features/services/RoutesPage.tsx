@@ -98,7 +98,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
           organizationId:
             selectedOrgFilter !== 'all'
               ? Number(selectedOrgFilter)
-              : s.organization_id || null,
+              : s.organization_id || undefined,
           status: s.is_active ? (liveSteps.length > 0 ? 'Active' : 'Draft') : 'Disabled',
           updated: s.created_at ? new Date(s.created_at).toLocaleDateString() : 'Live from API',
           steps: liveSteps,

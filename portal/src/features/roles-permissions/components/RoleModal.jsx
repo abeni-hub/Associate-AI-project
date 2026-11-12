@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import Icon from '../ui/Icon.jsx';
-import { useLanguage } from '../../i18n/i18nContext';
-import { useGetOrganizationTypesQuery } from '../../services/organizationsApi';
-import { useGetNavigationItemsQuery, useGetPermissionsQuery } from '../../services/rolesApi';
+import { Icon } from '../../shared';
+import { useLanguage } from '../../shared/i18n';
+import { useGetOrganizationTypesQuery } from '../../organizations/api/organizationsApi';
+import { useGetNavigationItemsQuery, useGetPermissionsQuery } from '../api/rolesApi';
 
 const DEFAULT_SCOPE_TIERS = [
   {

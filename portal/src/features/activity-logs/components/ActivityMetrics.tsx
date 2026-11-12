@@ -47,7 +47,7 @@ export const ActivityMetrics: React.FC<ActivityMetricsProps> = ({
         label="Active system actors"
         value={isPending ? '...' : stats.actorsCount}
         note="Unique administrative operators"
-        tone="indigo"
+        tone="blue"
       />
     </section>
   );

@@ -1,5 +1,5 @@
 import { baseApi } from '../../../app/baseApi';
-import type { ApiResponse } from '../types/api.types';
+import type { ApiResponse } from '../../../types/api.types';
 
 export interface PermissionItem {
   id: number;

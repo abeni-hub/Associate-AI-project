@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Icon } from '../shared/Icon';
-import { usePermissions } from '../../hooks/usePermissions';
-import { useLanguage } from '../../i18n/i18nContext';
-import { getLocalizedText } from '../../i18n/utils/getLocalized';
-import type { FeedbackItem, FeedbackModalConfig } from '../../types/portal.types';
+import { Icon } from '../components/Icon';
+import { usePermissions } from '../hooks/usePermissions';
+import { useLanguage, getLocalizedText } from '../i18n';
+import type { FeedbackItem, FeedbackModalConfig } from '../../../types/portal.types';
 
 export interface FeedbackDetailProps {
   item?: FeedbackItem;

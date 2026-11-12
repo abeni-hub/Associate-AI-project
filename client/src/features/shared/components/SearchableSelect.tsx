@@ -166,12 +166,12 @@ export default function SearchableSelect({
     return ''
   }, [value, normalizedOptions, allOption, t])
 
-  const handleSelect = (val) => {
+  const handleSelect = (val: any) => {
     onChange(val)
     setIsOpen(false)
   }
 
-  const handleClear = (e) => {
+  const handleClear = (e: any) => {
     e.stopPropagation()
     if (allOption) {
       onChange(allOption.value)

@@ -1,8 +1,8 @@
 import React from 'react';
-import Icon from '../ui/Icon.jsx';
-import { useLanguage } from '../../i18n/i18nContext';
-import { getLocalizedText } from '../../i18n/utils/getLocalized';
-import type { DashboardRecentActivityItem } from '../../services/dashboardApi';
+import { Icon } from '../../shared';
+import { useLanguage, getLocalizedText } from '../../shared/i18n';
+import type { DashboardRecentActivityFeedProps } from '../types/dashboard.types';
+import styles from '../styles/recentActivityFeed.module.css';
 
 export const DashboardRecentActivityFeed: React.FC<DashboardRecentActivityFeedProps> = ({
   activities = [],
@@ -10,7 +10,8 @@ export const DashboardRecentActivityFeed: React.FC<DashboardRecentActivityFeedPr
   onNavigate,
 }) => {
   const { language, t } = useLanguage();
-  const getActionBadgeClass = (action: string) => {
+
+  const getActionClass = (action: string) => {
     switch (action?.toLowerCase()) {
       case 'created':
       case 'registered':
@@ -65,8 +66,8 @@ export const DashboardRecentActivityFeed: React.FC<DashboardRecentActivityFeedPr
           <p className={styles.intro}>Live administrative actions across your organization hierarchy.</p>
         </div>
         {onNavigate && (
-          <button className="panel-link" onClick={() => onNavigate('activity')}>
-            {t('overview.fullAuditLog', 'Full audit log')} <Icon name="arrow" size={15} />
+          <button className={styles.panelLink} onClick={() => onNavigate('activity')} type="button">
+            {t('overview.viewFullAuditLogs', 'View full audit logs')} <Icon name="arrow" size={15} />
           </button>
         )}
       </div>
@@ -86,44 +87,46 @@ export const DashboardRecentActivityFeed: React.FC<DashboardRecentActivityFeedPr
         )}
 
         {!isLoading &&
-          activities.slice(0, 5).map((act) => (
-            <div key={act.id} className={styles.activityItem}>
-              <span className={styles.activityIcon}>
-                <Icon name={getEntityIcon(act.entity_type)} size={16} />
-              </span>
-              <div className={styles.activityCopy}>
-                <div className={styles.activityTopline}>
-                  <b>{act.actor?.name || 'Administrator'}</b>
-                  <span className={`${styles.statusPill} ${getActionClass(act.action)}`}>
-                    {act.action}
-                  </span>
-                  <span className={styles.entityIndicator}>
-                    {act.entity_type} #{act.entity_id}
-                  </span>
-                </div>
-                <p>
-                  {act.actor?.email} in <strong>{getLocalizedText(act.organization?.name as any, language) || (typeof act.organization?.name === 'string' ? act.organization?.name : 'Municipal Unit')}</strong>
-                </p>
-                <div className={styles.activityMeta}>
-                  <span>
-                    <Icon name="building" size={13} /> {act.organization?.code || 'admin'}
-                  </span>
-                  <span>
-                    <Icon name="clock" size={13} /> {formatActivityTime(act.created_at)}
-                  </span>
-                  {act.ip_address && (
-                    <span>
-                      <Icon name="shield" size={13} /> {act.ip_address}
+          activities.slice(0, 5).map((act) => {
+            const orgName = getLocalizedText((act.organization as any)?.name_localized, language) || act.organization?.name || 'Municipal Unit';
+            return (
+              <div key={act.id} className={styles.activityItem}>
+                <span className={styles.activityIcon}>
+                  <Icon name={getEntityIcon(act.entity_type)} size={16} />
+                </span>
+                <div className={styles.activityCopy}>
+                  <div className={styles.activityTopline}>
+                    <b>{act.actor?.name || 'Administrator'}</b>
+                    <span className={`${styles.statusPill} ${getActionClass(act.action)}`}>
+                      {act.action}
                     </span>
-                  )}
+                    <span className={styles.entityIndicator}>
+                      {act.entity_type} #{act.entity_id}
+                    </span>
+                  </div>
+                  <p>
+                    {act.actor?.email} in <strong>{orgName}</strong>
+                  </p>
+                  <div className={styles.activityMeta}>
+                    <span>
+                      <Icon name="building" size={13} /> {act.organization?.code || 'admin'}
+                    </span>
+                    <span>
+                      <Icon name="clock" size={13} /> {formatActivityTime(act.created_at)}
+                    </span>
+                    {act.ip_address && (
+                      <span>
+                        <Icon name="shield" size={13} /> {act.ip_address}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
       </div>
     </article>
   );
 };
 
 export default DashboardRecentActivityFeed;
-

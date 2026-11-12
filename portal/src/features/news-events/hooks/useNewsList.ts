@@ -115,7 +115,6 @@ export const useNewsList = (options: UseNewsListOptions = {}) => {
           summary: summaryText,
           excerpt: summaryText,
           content: fullContent,
-          views: 0,
           organization_id: art.organization_id,
           organization: art.organization,
           contents: art.contents,
@@ -156,7 +155,6 @@ export const useNewsList = (options: UseNewsListOptions = {}) => {
               ? evt.description.slice(0, 160) + '...'
               : evt.description || 'Public Municipal Event',
           content: evt.description,
-          views: 0,
           organization_id: evt.organization_id,
           organization: evt.organization,
           location: {

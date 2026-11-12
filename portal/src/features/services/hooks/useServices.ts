@@ -35,7 +35,8 @@ export const useServices = ({
   onTogglePublish: propOnTogglePublish,
 }: UseServicesProps = {}) => {
   const portal = usePortal();
-  const { hasPermission, isSuperAdmin, authUser } = usePermissions();
+  const { hasPermission, isSuperAdmin } = usePermissions();
+  const authUser = portal.authUser;
 
   const [serviceFilter, setServiceFilter] = useState<'All services' | 'Published' | 'Drafts'>('All services');
   const [viewMode, setViewMode] = useState<'tree' | 'table'>('tree');
@@ -140,10 +141,10 @@ export const useServices = ({
       is_master: false,
       title: '',
       title_am: '',
-      category: masterItem.title || 'General Public Service',
+      category: (masterItem as any).title || masterItem.name || 'General Public Service',
       requirements: [],
       steps: [],
-      organizations: masterItem.organizations || [],
+      organizations: (masterItem as any).organizations || [],
     });
     setIsModalOpen(true);
   };
@@ -181,8 +182,8 @@ export const useServices = ({
       try {
         await updateServiceTrigger({
           id,
-          body: { is_active: !target.is_active },
-        }).unwrap();
+          is_active: !target.is_active,
+        } as any).unwrap();
         await refetch();
       } catch (err: any) {
         alert(err?.data?.message || err?.message || 'Failed to update publication status.');
@@ -288,8 +289,8 @@ export const useServices = ({
       .map((master) => {
         const matchesMasterText =
           !q ||
-          master.title.toLowerCase().includes(q) ||
-          (master.title_am && master.title_am.toLowerCase().includes(q)) ||
+          master.name.toLowerCase().includes(q) ||
+          ((master as any).title_am && (master as any).title_am.toLowerCase().includes(q)) ||
           (master.code && master.code.toLowerCase().includes(q)) ||
           (master.description && master.description.toLowerCase().includes(q));
 
@@ -299,8 +300,8 @@ export const useServices = ({
 
           if (!q) return true;
           return (
-            sub.title.toLowerCase().includes(q) ||
-            (sub.title_am && sub.title_am.toLowerCase().includes(q)) ||
+            sub.name.toLowerCase().includes(q) ||
+            ((sub as any).title_am && (sub as any).title_am.toLowerCase().includes(q)) ||
             (sub.code && sub.code.toLowerCase().includes(q)) ||
             (sub.description && sub.description.toLowerCase().includes(q))
           );
@@ -343,13 +344,13 @@ export const useServices = ({
 
     return list.map((raw) => ({
       id: raw.id,
-      name: raw.title,
-      nameAm: raw.title_am,
-      bureau: raw.organizations?.[0]?.name || (raw.is_master ? 'Master Category' : 'General Public Service'),
+      name: (raw as any).title || raw.name,
+      nameAm: (raw as any).title_am || raw.name_amh || '',
+      bureau: (raw as any).organizations?.[0]?.name || raw.organization?.name || (raw.is_master ? 'Master Category' : 'General Public Service'),
       category: raw.is_master ? 'Master Service' : 'Citizen Subservice',
       completion: raw.is_active ? 100 : 45,
       status: raw.is_active ? 'Published' : 'Draft',
-      updated: raw.updated_at ? new Date(raw.updated_at).toLocaleDateString() : 'Recently',
+      updated: (raw as any).updated_at ? new Date((raw as any).updated_at).toLocaleDateString() : 'Recently',
       raw,
     }));
   }, [propItems, apiServices, serviceFilter]);
@@ -358,10 +359,10 @@ export const useServices = ({
     if (!search.trim()) return items;
     const q = search.toLowerCase();
     return items.filter(
-      (item) =>
+      (item: any) =>
         item.name.toLowerCase().includes(q) ||
         (item.nameAm && item.nameAm.toLowerCase().includes(q)) ||
-        item.bureau.toLowerCase().includes(q)
+        (item.bureau && item.bureau.toLowerCase().includes(q))
     );
   }, [items, search]);
 
@@ -374,27 +375,25 @@ export const useServices = ({
       if (isEditing) {
         const res = await updateServiceTrigger({
           id: selectedService.id,
-          body: {
-            title: formData.title,
-            title_am: formData.title_am,
-            code: formData.code,
-            description: formData.description,
-            is_master: formData.is_master,
-            parent_id: formData.parent_id,
-            is_active: formData.is_active,
-          },
-        }).unwrap();
+          name: formData.title || formData.name,
+          name_amh: formData.title_am || formData.name_amh,
+          code: formData.code,
+          description: formData.description,
+          is_master: formData.is_master,
+          parent_id: formData.parent_id,
+          is_active: formData.is_active,
+        } as any).unwrap();
         savedService = res.data;
       } else {
         const res = await createServiceTrigger({
-          title: formData.title,
-          title_am: formData.title_am,
+          name: formData.title || formData.name,
+          name_amh: formData.title_am || formData.name_amh,
           code: formData.code,
           description: formData.description,
           is_master: formData.is_master,
           parent_id: formData.parent_id,
           is_active: formData.is_active ?? true,
-        }).unwrap();
+        } as any).unwrap();
         savedService = res.data;
       }
 
@@ -413,8 +412,8 @@ export const useServices = ({
       if (Array.isArray(formData.organization_ids)) {
         await syncOrgsTrigger({
           serviceId: targetId,
-          organization_ids: formData.organization_ids,
-        }).unwrap();
+          organizations: formData.organization_ids.map((orgId: number) => ({ organization_id: orgId })),
+        } as any).unwrap();
       }
 
       if (Array.isArray(formData.steps) && formData.steps.length > 0) {

@@ -1,33 +1,6 @@
 import { baseApi } from '../../../app/baseApi';
 import type { ApiResponse, PaginatedResponse, PaginationQueryParams } from '../../../types/api.types';
-import type { CreateQrCodePayload, QrCodeItem } from '../types/qrCodes.types';
-
-export interface QrCodeItem {
-  id: number;
-  organization_id: number;
-  code: string;
-  label: string;
-  target_url: string;
-  scan_count: number;
-  status: 'active' | 'inactive';
-  last_scanned_at: string | null;
-  created_at: string;
-  updated_at: string;
-  image_url?: string | null;
-  organization?: {
-    id: number;
-    name: string;
-    code: string;
-  };
-}
-
-export interface CreateQrCodePayload {
-  organization_id: number;
-  code: string;
-  label: string;
-  target_url: string;
-  status?: 'active' | 'inactive';
-}
+import type { QrCodeItem, CreateQrCodePayload } from '../types/qrCodes.types';
 
 export const qrCodesApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -40,8 +13,8 @@ export const qrCodesApi = baseApi.injectEndpoints({
       providesTags: (result) => {
         const list = Array.isArray(result?.data)
           ? result.data
-          : Array.isArray((result?.data as { data?: QrCodeItem[] })?.data)
-            ? (result?.data as { data: QrCodeItem[] }).data
+          : Array.isArray((result?.data as unknown as { data?: QrCodeItem[] })?.data)
+            ? (result?.data as unknown as { data: QrCodeItem[] }).data
             : [];
         return [
           ...list.map(({ id }: { id: number }) => ({ type: 'QrCode' as const, id })),
@@ -83,5 +56,5 @@ export const {
   useGetQrCodeByIdQuery,
   useCreateQrCodeMutation,
   useDeleteQrCodeMutation,
-} = qrCodesFeatureApi;
+} = qrCodesApi;
 

@@ -198,7 +198,7 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
 
   const configuredSlides = cmsConfig?.hero?.slides;
   const slides = configuredSlides?.length
-    ? configuredSlides.map((slide, index) => {
+    ? configuredSlides.map((slide: any, index: number) => {
         const fallback = heroSlides[index % heroSlides.length];
         return {
           ...fallback,
@@ -550,7 +550,7 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
           selectedCategory={selectedCategory}
           onSelectCategory={changeCategory}
           activeServiceList={activeServiceList}
-          onSubmit={handleFindService}
+          onSubmit={handleFindService as any}
           subCityOptions={subCityOptions}
           bureauOptions={bureauOptions}
           bureauGroups={bureauGroups}
@@ -573,7 +573,7 @@ export default function HomePage({ language, t, onNavigateToHub, onSelectItem, c
         <HomeNewsSection
           language={language}
           t={t}
-          onNavigateToHub={onNavigateToHub}
+          onNavigateToHub={onNavigateToHub as any}
           onSelectItem={onSelectItem}
           newsEventsContent={cmsConfig?.newsEvents}
         />

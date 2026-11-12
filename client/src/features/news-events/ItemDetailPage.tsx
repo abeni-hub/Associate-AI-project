@@ -147,8 +147,8 @@ export default function ItemDetailPage({
     <article className="nep-detail-page item-detail-page">
       <DetailBreadcrumbs
         isAm={isAm}
-        onBackToHub={onBackToHub}
-        onBackToHome={onBackToHome}
+        onBackToHub={onBackToHub || (() => {})}
+        onBackToHome={onBackToHome || (() => {})}
         title={title}
       />
 
@@ -162,10 +162,10 @@ export default function ItemDetailPage({
               isAm={isAm}
               item={item}
               title={title}
-              summary={summary}
-              category={category}
-              bureau={bureau}
-              subCity={subCity}
+              summary={summary || ''}
+              category={category || ''}
+              bureau={bureau || ''}
+              subCity={subCity || ''}
               language={language}
               copied={copied}
               onCopyLink={handleShare}
@@ -176,8 +176,8 @@ export default function ItemDetailPage({
                 <DetailArticleContent
                   isAm={isAm}
                   item={item}
-                  content={content}
-                  bureau={bureau}
+                  content={content || ''}
+                  bureau={bureau || ''}
                 />
               </main>
 
@@ -188,10 +188,10 @@ export default function ItemDetailPage({
                     language={language}
                     rsvpName={rsvpName}
                     rsvpPhone={rsvpPhone}
-                    rsvpStatus={rsvpStatus}
+                    rsvpStatus={rsvpStatus || ''}
                     onRsvpNameChange={(e: ChangeEvent<HTMLInputElement>) => setRsvpName(e.target.value)}
                     onRsvpPhoneChange={(e: ChangeEvent<HTMLInputElement>) => setRsvpPhone(e.target.value)}
-                    onSubmitRsvp={handleRsvpSubmit}
+                    onSubmitRsvp={handleRsvpSubmit as any}
                   />
                 </aside>
               )}
@@ -204,7 +204,7 @@ export default function ItemDetailPage({
             isAm={isAm}
             item={item}
             related={related}
-            onBackToHub={onBackToHub}
+            onBackToHub={onBackToHub || (() => {})}
             onNavigateToDetail={onNavigateToDetail}
           />
         )}

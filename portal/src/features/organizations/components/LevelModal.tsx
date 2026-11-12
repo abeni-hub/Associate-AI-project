@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../shared/Icon';
-import { getLocalizedText } from '../../i18n/utils/getLocalized';
-import { useLanguage } from '../../i18n/i18nContext';
-import type { OrganizationTypeItem } from '../../services/organizationsApi';
+import { Icon } from '../../shared';
+import { useLanguage, getLocalizedText } from '../../shared/i18n';
+import type { OrganizationTypeItem } from '../api/organizationsApi';
 
 export interface LevelModalProps {
   level?: OrganizationTypeItem | null;

@@ -1,9 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { usePortal } from '../context';
-import { useLanguage } from '../i18n/i18nContext';
-import { usePermissions } from '../hooks/usePermissions';
-import { useGetSidebarNavigationQuery } from '../services/navigationApi';
+import { usePortal, usePermissions, useGetSidebarNavigationQuery, Icon } from '../features/shared';
+import { useLanguage } from '../features/shared/i18n';
 import { tokenStorage } from '../utils/tokenStorage';
 import type { RoleKey } from '../types/portal.types';
 import styles from './roleGuard.module.css';
@@ -139,7 +137,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
 
   if (apiNavResponse?.data && Array.isArray(apiNavResponse.data)) {
     const authorizedKeys = new Set<string>();
-    apiNavResponse.data.forEach((item) => {
+    (apiNavResponse.data as any[]).forEach((item: any) => {
       const key = item.route.replace(/^\/admin\/?/, '').replace(/^\//, '').split('/')[0].toLowerCase();
       authorizedKeys.add(key);
       if (key === 'organizations' || key === 'subcities') {

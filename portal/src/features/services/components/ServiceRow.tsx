@@ -15,9 +15,8 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
-import { useLanguage } from '../../../i18n/i18nContext';
-import { getLocalizedText } from '../../../i18n/utils/getLocalized';
-import type { ServiceListItem } from '../../../services/servicesApi';
+import { useLanguage, getLocalizedText } from '../../shared/i18n';
+import type { ServiceListItem } from '../api/servicesApi';
 
 export interface ServiceRowProps {
   service: ServiceListItem;
@@ -158,8 +157,8 @@ export const ServiceRow: React.FC<ServiceRowProps> = ({
         {/* Subservices List inside Accordion */}
         {isExpanded && (
           <div className="border-t border-slate-100 bg-slate-50/40 p-3 sm:p-4 space-y-2.5">
-            {service.children && service.children.length > 0 ? (
-              service.children.map((child: any) => (
+            {((service as any).children || service.subservices) && ((service as any).children || service.subservices).length > 0 ? (
+              ((service as any).children || service.subservices).map((child: any) => (
                 <ServiceRow
                   key={child.id}
                   service={child}

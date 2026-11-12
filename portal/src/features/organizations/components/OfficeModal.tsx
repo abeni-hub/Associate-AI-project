@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../shared/Icon';
-import { SearchSelect, type SearchSelectOption } from '../shared/SearchSelect';
-import type { OfficeType } from '../../types/portal.types';
-import { getLocalizedText } from '../../i18n/utils/getLocalized';
-import { useLanguage } from '../../i18n/i18nContext';
+import { Icon, SearchSelect, type SearchSelectOption } from '../../shared';
+import type { OfficeType } from '../../../types/portal.types';
+import { useLanguage, getLocalizedText } from '../../shared/i18n';
 import {
   useGetOrganizationsQuery,
   useGetOrganizationTypesQuery,

@@ -139,9 +139,9 @@ export const useActivityLogs = () => {
           statusCode,
           status: log.status || (isSuccess ? 'success' : 'failed'),
           statusTone,
-          method: log.method || (actionType === 'CREATE' ? 'POST' : actionType === 'DELETE' ? 'DELETE' : 'PUT'),
-          endpoint: log.url || `/api/v1/${(log.entity_type || 'records').toLowerCase()}`,
-          durationMs: log.duration_ms || 45,
+          method: (log as any).method || (actionType === 'CREATE' ? 'POST' : actionType === 'DELETE' ? 'DELETE' : 'PUT'),
+          endpoint: (log as any).url || `/api/v1/${(log.entity_type || 'records').toLowerCase()}`,
+          durationMs: (log as any).duration_ms || 45,
           errorMessage: log.error_message || null,
           network: {
             ip: log.ip_address || '127.0.0.1',
@@ -149,7 +149,7 @@ export const useActivityLogs = () => {
             channel: 'Sanctum Web SPA',
             location: 'Addis Ababa, ET',
           },
-          hasTelemetry: Boolean(log.request_payload || log.response_payload || log.duration_ms || log.ip_address),
+          hasTelemetry: Boolean(log.request_payload || log.response_payload || (log as any).duration_ms || log.ip_address),
           requestPayload: log.request_payload || null,
           responsePayload: log.response_payload || null,
         };
