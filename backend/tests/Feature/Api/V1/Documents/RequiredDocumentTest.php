@@ -103,11 +103,105 @@ class RequiredDocumentTest extends TestCase
             ->assertJson([
                 'success' => true,
                 'data' => [
-                    'name' => 'Official Marriage Certificate',
+                    'name' => [
+                        'eng' => 'Official Marriage Certificate',
+                    ],
                 ],
             ]);
 
         $this->assertDatabaseHas('documents', ['name' => 'Official Marriage Certificate']);
+    }
+
+    public function test_super_admin_can_create_and_update_document_with_localization(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->postJson('/api/v1/documents', [
+                'name' => 'Kebele Resident ID Card',
+                'name_amh' => 'የቀበሌ ነዋሪነት መታወቂያ ካርድ',
+                'name_oro' => 'Waraqaa Eenyummaa Jiraattummaa Gandaa',
+                'code' => 'kebele-resident-id',
+                'description' => 'Official municipal residency identification.',
+                'description_amh' => 'ህጋዊ የማዘጋጃ ቤት የቀበሌ ነዋሪነት መታወቂያ።',
+                'description_oro' => 'Waraqaa eenyummaa jiraattummaa gandaa seera qabeessa.',
+                'sample_file_url' => 'https://government.et/samples/kebele-id.pdf',
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'name' => [
+                        'eng' => 'Kebele Resident ID Card',
+                        'amh' => 'የቀበሌ ነዋሪነት መታወቂያ ካርድ',
+                        'oro' => 'Waraqaa Eenyummaa Jiraattummaa Gandaa',
+                    ],
+                    'code' => 'kebele-resident-id',
+                    'description' => [
+                        'eng' => 'Official municipal residency identification.',
+                        'amh' => 'ህጋዊ የማዘጋጃ ቤት የቀበሌ ነዋሪነት መታወቂያ።',
+                        'oro' => 'Waraqaa eenyummaa jiraattummaa gandaa seera qabeessa.',
+                    ],
+                ],
+            ]);
+
+        $docId = $response->json('data.id');
+
+        $this->assertDatabaseHas('documents', [
+            'id' => $docId,
+            'name' => 'Kebele Resident ID Card',
+            'name_amh' => 'የቀበሌ ነዋሪነት መታወቂያ ካርድ',
+            'name_oro' => 'Waraqaa Eenyummaa Jiraattummaa Gandaa',
+        ]);
+
+        $updateResponse = $this->actingAs($this->superAdmin)
+            ->putJson("/api/v1/documents/{$docId}", [
+                'name_amh' => 'የዘመነ የቀበሌ ነዋሪነት መታወቂያ ካርድ',
+                'description_oro' => 'Waraqaa eenyummaa jiraattummaa haaraa.',
+            ]);
+
+        $updateResponse->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'name' => [
+                        'eng' => 'Kebele Resident ID Card',
+                        'amh' => 'የዘመነ የቀበሌ ነዋሪነት መታወቂያ ካርድ',
+                        'oro' => 'Waraqaa Eenyummaa Jiraattummaa Gandaa',
+                    ],
+                    'description' => [
+                        'oro' => 'Waraqaa eenyummaa jiraattummaa haaraa.',
+                    ],
+                ],
+            ]);
+
+        $this->assertDatabaseHas('documents', [
+            'id' => $docId,
+            'name_amh' => 'የዘመነ የቀበሌ ነዋሪነት መታወቂያ ካርድ',
+            'description_oro' => 'Waraqaa eenyummaa jiraattummaa haaraa.',
+        ]);
+    }
+
+    public function test_can_search_documents_by_amharic_and_oromoo_terms(): void
+    {
+        Document::create([
+            'name' => 'Trade License',
+            'name_amh' => 'የንግድ ስራ ፈቃድ',
+            'name_oro' => 'Eeyyama Hojii Daldalaa',
+            'code' => 'trade-license',
+            'description' => 'Renewed commercial trade certificate.',
+            'description_amh' => 'የታደሰ የንግድ ስራ ፈቃድ ምስክር ወረቀት።',
+            'description_oro' => 'Waraqaa ragaa eeyyama hojii daldalaa haarome.',
+        ]);
+
+        $amhSearch = $this->getJson('/api/v1/documents?search=ንግድ');
+        $amhSearch->assertStatus(200)
+            ->assertJsonPath('data.0.code', 'trade-license')
+            ->assertJsonPath('data.0.name.amh', 'የንግድ ስራ ፈቃድ');
+
+        $oroSearch = $this->getJson('/api/v1/documents?search=Daldalaa');
+        $oroSearch->assertStatus(200)
+            ->assertJsonPath('data.0.code', 'trade-license')
+            ->assertJsonPath('data.0.name.oro', 'Eeyyama Hojii Daldalaa');
     }
 
     public function test_staff_cannot_create_document(): void

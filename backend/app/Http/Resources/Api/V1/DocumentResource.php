@@ -18,9 +18,17 @@ class DocumentResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
+            'name' => [
+                'eng' => $this->name,
+                'amh' => $this->name_amh ?? '',
+                'oro' => $this->name_oro ?? '',
+            ],
             'code' => $this->code,
-            'description' => $this->description,
+            'description' => [
+                'eng' => $this->description,
+                'amh' => $this->description_amh,
+                'oro' => $this->description_oro,
+            ],
             'sample_file_url' => $this->sample_file_url,
             'is_active' => (bool) $this->is_active,
             'is_mandatory' => $this->whenPivotLoaded('service_documents', fn () => (bool) $this->pivot->is_mandatory),

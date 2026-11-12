@@ -1,11 +1,6 @@
 import { baseApi } from './baseApi';
-import type { ApiResponse, PaginatedResponse, PaginationQueryParams } from '../types/api.types';
-
-export interface LocalizedString {
-  eng: string;
-  amh?: string;
-  oro?: string;
-}
+import type { ApiResponse, PaginatedResponse, PaginationQueryParams, LocalizedString } from '../types/api.types';
+export type { LocalizedString };
 
 export interface CitizenFeedback {
   id: string | number;

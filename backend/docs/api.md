@@ -751,8 +751,19 @@ Public citizen service detail profile (lookup supported by numeric ID or string 
     "required_documents": [
       {
         "id": 1,
-        "name": "Kebele Resident ID Card",
+        "name": {
+          "eng": "Kebele Resident ID Card",
+          "amh": "የቀበሌ ነዋሪነት መታወቂያ ካርድ",
+          "oro": "Waraqaa Eenyummaa Jiraattummaa Gandaa"
+        },
         "code": "kebele-id",
+        "description": {
+          "eng": "Valid municipal Kebele identification card or verified Fayda National ID.",
+          "amh": "ህጋዊ የማዘጋጃ ቤት የቀበሌ መታወቂያ ካርድ ወይም የተረጋገጠ የፋይዳ ብሔራዊ መታወቂያ።",
+          "oro": "Waraqaa eenyummaa gandaa seera qabeessa yookiin eenyummaa bioolessaa Faayidaa mirkanaa'e."
+        },
+        "sample_file_url": null,
+        "is_active": true,
         "is_mandatory": true,
         "order_column": 1,
         "notes": "Original and one photocopy required."
@@ -856,33 +867,102 @@ Assign offering organizations to the service.
 
 ## 8. Required Documents
 
+Central catalog of prerequisite citizen documentation, certificates, blueprints, and forms required by municipal services. Supports English, Amharic, and Afaan Oromoo translations (`eng`, `amh`, `oro`).
+
+---
+
 ### `GET /api/v1/documents`
 List required documents in the central library.
-- **Authentication**: None (Public)
+- **Authentication**: None (Public citizens view active documents; administrators with `documents.manage` view all).
 - **Query Parameters**:
-  - `search`: Keyword search by name, code, or description.
-  - `is_active`: Filter by status.
+  - `search`: Keyword search across English, Amharic, or Afaan Oromoo names/descriptions, or code slug.
+  - `is_active`: Filter by status (`true` / `false`).
   - `per_page`: Pagination limit (default 20).
-- **Response (200 OK)**: Paginated envelope.
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Documents retrieved successfully.",
+  "data": [
+    {
+      "id": 1,
+      "name": {
+        "eng": "Resident ID Card / Fayda Digital ID",
+        "amh": "የነዋሪነት መታወቂያ ካርድ / የፋይዳ ዲጂታል መታወቂያ",
+        "oro": "Waraqaa Eenyummaa Jiraataa / Eenyummaa Dijitaalaa Faayidaa"
+      },
+      "code": "DOC-RES-ID",
+      "description": {
+        "eng": "Valid municipal Kebele identification card or verified Fayda National ID.",
+        "amh": "ህጋዊ የማዘጋጃ ቤት የቀበሌ መታወቂያ ካርድ ወይም የተረጋገጠ የፋይዳ ብሔራዊ መታወቂያ።",
+        "oro": "Waraqaa eenyummaa gandaa seera qabeessa yookiin eenyummaa bioolessaa Faayidaa mirkanaa'e."
+      },
+      "sample_file_url": null,
+      "is_active": true,
+      "services_count": 8,
+      "created_at": "2026-10-25T20:30:00+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "last_page": 1,
+    "per_page": 20,
+    "to": 1,
+    "total": 1
+  },
+  "errors": null
+}
+```
 
 ---
 
 ### `GET /api/v1/documents/{id_or_code}`
-View single document details and services that require it.
+View single document details and services that require it. Lookup supported by numeric ID or string code slug (e.g. `/documents/DOC-RES-ID`).
 - **Authentication**: None (Public)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Document retrieved successfully.",
+  "data": {
+    "id": 1,
+    "name": {
+      "eng": "Resident ID Card / Fayda Digital ID",
+      "amh": "የነዋሪነት መታወቂያ ካርድ / የፋይዳ ዲጂታል መታወቂያ",
+      "oro": "Waraqaa Eenyummaa Jiraataa / Eenyummaa Dijitaalaa Faayidaa"
+    },
+    "code": "DOC-RES-ID",
+    "description": {
+      "eng": "Valid municipal Kebele identification card or verified Fayda National ID.",
+      "amh": "ህጋዊ የማዘጋጃ ቤት የቀበሌ መታወቂያ ካርድ ወይም የተረጋገጠ የፋይዳ ብሔራዊ መታወቂያ።",
+      "oro": "Waraqaa eenyummaa gandaa seera qabeessa yookiin eenyummaa bioolessaa Faayidaa mirkanaa'e."
+    },
+    "sample_file_url": null,
+    "is_active": true,
+    "services_count": 8,
+    "created_at": "2026-10-25T20:30:00+00:00"
+  },
+  "errors": null
+}
+```
 
 ---
 
 ### `POST /api/v1/documents`
-Create a new required document definition.
+Create a new required document definition in the catalog.
 - **Authentication**: `auth:sanctum` + `account.active`
 - **Permission Required**: `documents.manage`
 - **Request Body**:
 ```json
 {
   "name": "Hospital Birth Notification Slip",
+  "name_amh": "ህጋዊ የልደት ማስታወቂያ ወረቀት",
+  "name_oro": "Waraqaa Beeksisa Dhalootaa Seera Qabeessa",
   "code": "hospital-birth-slip",
   "description": "Signed delivery notification slip from licensed hospital or health center.",
+  "description_amh": "እውቅና ባለው ሆስፒታል ወይም ጤና ጣቢያ የተሰጠ ማህተም የተደረገበት የልደት ማስታወቂያ።",
+  "description_oro": "Beeksisa dhalootaa chaappaan irratti rukutame kan hospitaala yookiin buufata fayyaa beekamtii qabuun kenname.",
   "sample_file_url": "https://government.et/samples/birth-notification.pdf",
   "is_active": true
 }
@@ -895,6 +975,8 @@ Create a new required document definition.
 Update document definition.
 - **Authentication**: `auth:sanctum` + `account.active`
 - **Permission Required**: `documents.manage`
+- **Request Body**: Accepts any mutable fields from `POST /api/v1/documents`, including `name_amh`, `name_oro`, `description_amh`, and `description_oro`.
+- **Response (200 OK)**: Returns updated `DocumentResource`.
 
 ---
 
@@ -902,6 +984,15 @@ Update document definition.
 Soft-delete document definition.
 - **Authentication**: `auth:sanctum` + `account.active`
 - **Permission Required**: `documents.manage`
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Document deleted successfully.",
+  "data": null,
+  "errors": null
+}
+```
 
 ---
 

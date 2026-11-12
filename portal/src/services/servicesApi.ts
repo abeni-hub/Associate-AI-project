@@ -1,11 +1,6 @@
 import { baseApi } from './baseApi';
-import type { ApiResponse, PaginatedResponse, PaginationQueryParams } from '../types/api.types';
-
-export interface LocalizedString {
-  eng: string;
-  amh?: string;
-  oro?: string;
-}
+import type { ApiResponse, PaginatedResponse, PaginationQueryParams, LocalizedString } from '../types/api.types';
+export type { LocalizedString };
 
 export interface ServiceListItem {
   id: number;
@@ -277,6 +272,23 @@ function normalizeServiceItem(raw: any): ServiceListItem {
       oro: raw.description_oro || '',
     },
     parent,
+    required_documents: Array.isArray(raw.required_documents)
+      ? raw.required_documents.map((doc: any) => {
+          const docNameObj = typeof doc.name === 'object' && doc.name !== null ? doc.name : null;
+          const docDescObj = typeof doc.description === 'object' && doc.description !== null ? doc.description : null;
+          return {
+            ...doc,
+            name: docNameObj ? (docNameObj.eng || docNameObj.amh || docNameObj.oro || '') : String(doc.name || ''),
+            name_amh: docNameObj?.amh || doc.name_amh || '',
+            name_oro: docNameObj?.oro || doc.name_oro || '',
+            name_localized: docNameObj || { eng: String(doc.name || '') },
+            description: docDescObj ? (docDescObj.eng || docDescObj.amh || docDescObj.oro || '') : (doc.description ? String(doc.description) : undefined),
+            description_amh: docDescObj?.amh || doc.description_amh || '',
+            description_oro: docDescObj?.oro || doc.description_oro || '',
+            description_localized: docDescObj || (doc.description ? { eng: String(doc.description) } : undefined),
+          };
+        })
+      : raw.required_documents,
     steps: Array.isArray(raw.steps) ? raw.steps.map(normalizeServiceStep) : raw.steps,
     subservices: Array.isArray(raw.subservices)
       ? raw.subservices.map(normalizeServiceItem)
