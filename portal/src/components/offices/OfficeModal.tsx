@@ -55,6 +55,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
   const [email, setEmail] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  const [logo, setLogo] = useState<File | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Dynamic organization types lookup
@@ -94,6 +95,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
       setEmail(office?.email || '');
       setDescription(office?.description || '');
       setStatus(office?.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active');
+      setLogo(null);
       setErrorMsg(null);
     }
   }, [isOpen, office, allTypes, rootType]);
@@ -260,6 +262,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return setErrorMsg('Office name is required.');
+    if (!office?.id && !logo) return setErrorMsg('Office logo image is required.');
     const cleanCode = code.toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-').replace(/(^-+|-+$)/g, '');
     if (!cleanCode) return setErrorMsg('Office code identifier is required.');
     if (!isRootType && (!parentId || Number(parentId) <= 0)) {
@@ -287,6 +290,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
       phone: phone.trim() || null,
       email: cleanEmail || null,
       status,
+      ...(logo ? { logo } : {}),
     };
 
     try {
@@ -356,16 +360,21 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
               />
             </label>
 
-            {/* Code */}
-            <label className="modal-field full">
-              <span>Unique code slug <i>*</i></span>
-              <input
-                required
-                placeholder="e.g. subcity-bole or woreda-01"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-              />
-            </label>
+            {/* Logo */}
+            {!office && (
+              <label className="modal-field full">
+                <span>Office logo <i>*</i></span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  required
+                  onChange={(e) => setLogo(e.target.files?.[0] || null)}
+                />
+              </label>
+            )}
+
+            {/* Unique code slug — auto-generated from name */}
+            <input type="hidden" value={code} readOnly />
 
             {/* Type */}
             <div className="modal-field full">

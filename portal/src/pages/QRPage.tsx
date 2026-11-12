@@ -12,6 +12,7 @@ import {
   type QrCodeItem,
 } from '../services/qrCodesApi';
 import { useGetOrganizationsQuery } from '../services/organizationsApi';
+import { getClientBaseUrl } from '../config/apiConfig';
 
 export interface QRPageProps {
   onGenerate?: () => void;
@@ -78,7 +79,7 @@ export const QRPage: React.FC<QRPageProps> = ({
     return filtered[0] || qrList[0] || null;
   }, [filtered, qrList, selectedId]);
 
-  const targetUrl = activeQr?.target_url || `${window.location.origin}/#feedback`;
+  const targetUrl = activeQr?.target_url || `${getClientBaseUrl()}/#feedback`;
 
   // Metrics
   const activeCount = qrList.filter((q) => q.status === 'active').length;

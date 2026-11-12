@@ -56,6 +56,7 @@ export interface OfficeItem {
   typeCode?: string;
   name: string;
   code?: string;
+  logo?: string | null;
   parentId: number | null;
   admin?: string;
   email?: string;

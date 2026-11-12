@@ -37,6 +37,7 @@ class CreateOrganizationRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
+            'logo' => ['required', 'image', 'max:2048'],
             'status' => ['nullable', 'string', 'in:active,inactive,suspended'],
         ];
     }

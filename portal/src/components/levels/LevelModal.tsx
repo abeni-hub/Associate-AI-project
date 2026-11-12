@@ -145,16 +145,8 @@ export const LevelModal: React.FC<LevelModalProps> = ({
               />
             </label>
 
-            {/* Code */}
-            <label className="modal-field">
-              <span>Code slug <i>*</i></span>
-              <input
-                required
-                placeholder="e.g. sub_city, woreda, bureau"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-              />
-            </label>
+            {/* Code slug — auto-generated from name */}
+            <input type="hidden" value={code} readOnly />
 
             {/* Hierarchy Level Rank */}
             <label className="modal-field">

@@ -1,0 +1,234 @@
+/* ==========================================================================
+   News & Events Feature: Shared News/Event Card Component Styles
+   ========================================================================== */
+
+.ne-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--ne-white, #ffffff);
+  border: 1px solid var(--ne-slate-200, #e2e8f0);
+  border-radius: var(--ne-radius-md, 8px);
+  overflow: hidden;
+  box-shadow: var(--ne-shadow-sm, 0 2px 8px rgba(0, 48, 60, 0.06));
+  transition: var(--ne-transition, all 0.25s cubic-bezier(0.16, 1, 0.3, 1));
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ne-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--ne-shadow-md, 0 8px 24px rgba(0, 48, 60, 0.1));
+  border-color: rgba(0, 72, 90, 0.25);
+}
+
+.ne-card:focus-visible {
+  outline: 3px solid var(--ne-gold-500, #d6a854);
+  outline-offset: 4px;
+}
+
+/* Card Media Header */
+.ne-card-media {
+  position: relative;
+  width: 100%;
+  height: 190px;
+  overflow: hidden;
+  background: var(--ne-slate-100, #f1f5f9);
+}
+
+.ne-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ne-card:hover .ne-card-img {
+  transform: scale(1.06);
+}
+
+.ne-card-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 36, 45, 0.6) 100%);
+  pointer-events: none;
+}
+
+/* Card Badges Over Media */
+.ne-card-badges {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ne-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+
+.ne-pill-category {
+  background: rgba(0, 54, 66, 0.88);
+  color: #f7eddb;
+  border: 1px solid rgba(214, 168, 84, 0.4);
+}
+
+.ne-pill-event-status {
+  background: rgba(214, 168, 84, 0.95);
+  color: #003642;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.ne-pill-event-virtual {
+  background: rgba(26, 111, 132, 0.9);
+  color: #fff;
+}
+
+/* Event Date Block (Calendar Pill) */
+.ne-date-box {
+  position: absolute;
+  bottom: 12px;
+  left: 14px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  border-radius: 10px;
+  padding: 6px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  line-height: 1;
+}
+
+.ne-date-box .month {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ne-teal-800, #003a48);
+}
+
+.ne-date-box .day {
+  font-size: 19px;
+  font-weight: 900;
+  color: var(--ne-slate-900, #0f172a);
+  margin-top: 2px;
+}
+
+/* Card Body */
+.ne-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 18px 20px 20px;
+  gap: 10px;
+}
+
+.ne-card-subinfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ne-slate-500, #64748b);
+  font-weight: 600;
+  flex-wrap: wrap;
+}
+
+.ne-card-subinfo svg {
+  color: var(--ne-teal-700, #004d60);
+  flex-shrink: 0;
+}
+
+.ne-card-title {
+  margin: 0;
+  font-family: 'Manrope', 'Noto Sans Ethiopic', sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--ne-teal-900, #002832);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.2s ease;
+}
+
+.ne-card:hover .ne-card-title {
+  color: var(--ne-teal-600, #006077);
+}
+
+.ne-card-summary {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ne-slate-700, #334155);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+/* Card Meta Footer */
+.ne-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  margin-top: auto;
+  border-top: 1px solid var(--ne-slate-100, #f1f5f9);
+  font-size: 11.5px;
+  color: var(--ne-slate-500, #64748b);
+}
+
+.ne-card-author,
+.ne-card-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ne-card-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--ne-slate-200, #e2e8f0);
+}
+
+.ne-card-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ne-teal-800, #003a48);
+  font-weight: 700;
+  font-size: 11.5px;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.ne-card:hover .ne-card-action {
+  color: var(--ne-gold-600, #b58d4a);
+}
+
+.ne-card:hover .ne-card-action svg {
+  transform: translateX(3px);
+}
+
