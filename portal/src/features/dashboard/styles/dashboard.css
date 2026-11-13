@@ -5,16 +5,60 @@
 .panel-heading h2, .table-toolbar h2 { margin: 5px 0 0; color: #21474e; font: 700 17px/1.3 'Manrope', 'Segoe UI', sans-serif; letter-spacing: -.035em; }
 .select-like { min-height: 30px; display: inline-flex; align-items: center; gap: 7px; padding: 0 9px; border: 1px solid #e3e9e3; border-radius: 4px; background: #fff; color: #6d8078; font-size: 12.5px; cursor: pointer; }
 .select-like svg { transform: rotate(0); }
-.metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-bottom: 16px; }
-.metric-card { min-height: 124px; padding: 13px 15px 12px; border: 1px solid #e2eae4; border-radius: 6px; background: rgba(255,255,255,.82); box-shadow: 0 3px 12px rgba(0,53,62,.02); }
-.metric-top { display: flex; align-items: center; justify-content: space-between; }
-.metric-icon { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 5px; }
-.metric-icon.teal { background: #edf5f4; color: #4a7f82; }.metric-icon.sage { background: #edf3ed; color: #699276; }.metric-icon.gold { background: #f7f1e4; color: #ae8846; }.metric-icon.blue { background: #edf1f4; color: #60809a; }
-.metric-menu { color: #b1bcb5; }
-.metric-value { margin-top: 10px; color: #154650; font: 700 26px/1 'Manrope', sans-serif; letter-spacing: -.06em; }
-.metric-label { margin-top: 3px; color: #62766d; font-size: 13px; font-weight: 600; }
-.metric-foot { margin-top: 8px; color: #8a9890; font-size: 12.5px; }
-.trend-up { color: #548b70; font-weight: 600; }.trend-up > span { font-size: 15px; }.trend-neutral { color: #89958e; }
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+@media (max-width: 1024px) {
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+@media (max-width: 600px) {
+  .metric-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.compact-metrics {
+  margin-bottom: 16px;
+}
+
+.metric-card {
+  min-height: 136px;
+  padding: 18px 20px 16px;
+  border: 1px solid rgba(0, 50, 60, 0.08);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 36, 46, 0.03), 0 4px 16px -2px rgba(0, 36, 46, 0.02);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease;
+}
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -4px rgba(0, 48, 59, 0.08), 0 3px 8px -2px rgba(0, 48, 59, 0.03);
+  border-color: rgba(0, 72, 90, 0.18);
+}
+.metric-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.metric-icon { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 10px; flex-shrink: 0; }
+.metric-icon.teal { background: rgba(0, 72, 90, 0.07); color: #00485a; border: 1px solid rgba(0, 72, 90, 0.12); }
+.metric-icon.sage { background: rgba(29, 115, 61, 0.08); color: #1d733d; border: 1px solid rgba(29, 115, 61, 0.14); }
+.metric-icon.gold { background: rgba(181, 141, 60, 0.1); color: #966014; border: 1px solid rgba(181, 141, 60, 0.18); }
+.metric-icon.blue { background: rgba(14, 91, 110, 0.08); color: #0e5b6e; border: 1px solid rgba(14, 91, 110, 0.14); }
+.metric-menu { color: #8c9ea2; }
+.metric-value { margin-top: 14px; color: #00242e; font: 700 28px/1.1 'Manrope', -apple-system, sans-serif; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.metric-label { margin-top: 4px; color: #556e75; font-size: 13px; font-weight: 500; letter-spacing: -0.01em; }
+.metric-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(0, 50, 60, 0.05); color: #7b9095; font-size: 12px; }
+.trend-up { color: #1d733d; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+.trend-neutral { color: #7b9095; }
 .dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(265px, .9fr); gap: 14px; margin-bottom: 14px; }
 .activity-panel, .satisfaction-panel, .recent-panel, .quick-panel { min-width: 0; padding: 17px 18px 14px; }
 .activity-panel { min-height: 286px; }

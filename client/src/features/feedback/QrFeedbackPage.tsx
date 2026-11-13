@@ -12,19 +12,52 @@ export interface QrFeedbackPageProps {
   onSelectLanguage?: (lang: string) => void;
 }
 
-const positiveTags = [
-  'Fast service',
-  'Helpful staff',
-  'Clear instructions',
-  'Clean office',
+type UserIntent = 'complaint' | 'suggestion' | 'satisfaction' | 'info';
+
+const defaultSubCities = [
+  'Bole',
+  'Kirkos',
+  'Yeka',
+  'Arada',
+  'Nifas Silk-Lafto',
+  'Gullele',
+  'Lideta',
+  'Akaki-Kality',
+  'Kolfe-Keranio',
+  'Addis Ketema',
+  'Lemi-Kura',
 ];
 
-const issueTags = [
+const defaultOffices = [
+  { id: 'trade', name: 'Trade & Industry Office', code: 'TRADE', subtext: 'Business licensing & commercial registry' },
+  { id: 'vital', name: 'Vital Events & Civil Registration', code: 'VITAL', subtext: 'Birth, marriage & ID services' },
+  { id: 'revenues', name: 'Revenues & Tax Office', code: 'REV', subtext: 'Tax assessments & clearance' },
+  { id: 'land', name: 'Land Administration & Building', code: 'LAND', subtext: 'Title deeds, maps & permits' },
+  { id: 'general', name: 'Public Service Reception Desk', code: 'PUBLIC', subtext: 'General inquiries & public support' },
+];
+
+const complaintTags = [
   'Long wait / delay',
   'Staff was absent',
   'Asked for extra papers',
   'System was offline',
   'Disrespectful staff',
+  'Demanded improper fee',
+];
+
+const suggestionTags = [
+  'Mobile / digital service options',
+  'Clearer signs and directions',
+  'More counter staff at peak hours',
+  'Better waiting area and seating',
+  'Faster document verification',
+];
+
+const satisfactionTags = [
+  'Fast service',
+  'Helpful staff',
+  'Clear instructions',
+  'Clean office',
 ];
 
 export default function QrFeedbackPage({
@@ -33,29 +66,46 @@ export default function QrFeedbackPage({
   onNavigateToHome,
   onSelectLanguage,
 }: QrFeedbackPageProps) {
-  // 1. Navigation & Mode State
-  const [activeIntent, setActiveIntent] = useState<'feedback' | 'services'>('feedback');
-  const [feedbackType, setFeedbackType] = useState<'satisfaction' | 'complaint' | 'feedback'>('satisfaction');
+  // Step State (1: Intent, 2: Sub-City, 3: Office, 4: Service, 5: Action Destination)
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [intent, setIntent] = useState<UserIntent | null>(null);
+  const [selectedSubCity, setSelectedSubCity] = useState<string>('');
+  const [selectedOfficeId, setSelectedOfficeId] = useState<string>('');
   const [selectedServiceId, setSelectedServiceId] = useState<string>('');
+
+  // Form Fields
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [starRating, setStarRating] = useState<number>(5);
   const [message, setMessage] = useState<string>('');
   const [fullName, setFullName] = useState<string>('');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
-  const [showOfficePicker, setShowOfficePicker] = useState<boolean>(false);
-  const [copiedTracking, setCopiedTracking] = useState<boolean>(false);
-  const [trackingNumber, setTrackingNumber] = useState<string | null>(null);
-  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [attachedImage, setAttachedImage] = useState<{
+    file: File;
+    dataUrl: string;
+    name: string;
+    size: string;
+  } | null>(null);
 
-  // Status Tracking search state
+  // Submission result
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [trackingNumber, setTrackingNumber] = useState<string | null>(null);
+  const [copiedTracking, setCopiedTracking] = useState<boolean>(false);
+
+  // Status tracking modal / search
+  const [showTracker, setShowTracker] = useState<boolean>(false);
   const [searchTrackingInput, setSearchTrackingInput] = useState<string>('');
   const [trackedRecord, setTrackedRecord] = useState<any>(null);
   const [trackError, setTrackError] = useState<string | null>(null);
 
-  // 2. Data APIs
+  // Detected QR details
+  const [qrDetectedOffice, setQrDetectedOffice] = useState<{ subCity?: string; bureauId?: string; name?: string } | null>(null);
+  const qrScannedRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // RTK Query hooks
   const [submitFeedbackMutation, { isLoading: isSubmitting }] = useSubmitFeedbackMutation();
   const [triggerTrack, { isLoading: isTrackingLoading }] = useLazyTrackFeedbackQuery();
-  const { data: orgsData, isLoading: isOrgsLoading } = useGetOrganizationsQuery({ per_page: 100 });
+  const { data: orgsData } = useGetOrganizationsQuery({ per_page: 100 });
 
   const allOrganizations = useMemo(() => {
     if (!orgsData?.data) return [];
@@ -64,23 +114,20 @@ export default function QrFeedbackPage({
     return [];
   }, [orgsData]);
 
-  // Sub-cities and child bureaus
-  const subCities = useMemo(() => {
-    return allOrganizations.filter(
+  // Sub-city list
+  const liveSubCities = useMemo(() => {
+    const list = allOrganizations.filter(
       (o: any) =>
         o.parent_organization_id === null &&
         (o.type?.code === 'sub_city' ||
           o.name?.toLowerCase().includes('sub-city') ||
           o.name?.toLowerCase().includes('subcity'))
     );
+    if (list.length > 0) return list.map((sc: any) => sc.name.replace(/ Sub-city/i, ''));
+    return defaultSubCities;
   }, [allOrganizations]);
 
-  // Selected Office state
-  const [selectedSubCityName, setSelectedSubCityName] = useState<string>('');
-  const [selectedBureauId, setSelectedBureauId] = useState<string>('');
-  const qrScannedRef = useRef(false);
-
-  // 3. Parse URL Search Parameters (supporting QR scanning patterns)
+  // Parse QR query params on mount
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     let hashSearch = '';
@@ -92,110 +139,111 @@ export default function QrFeedbackPage({
 
     const orgParam = getParam('org') || getParam('bureau') || getParam('office');
     const subCityParam = getParam('sub_city') || getParam('subcity') || getParam('city');
-    const serviceParam = getParam('service') || getParam('sub_service');
+    const serviceParam = getParam('service');
     const typeParam = getParam('type');
     const qrCode = getParam('code');
 
-    // Record QR scan in backend if code is provided
+    // Ping scan counter
     if (qrCode && !qrScannedRef.current) {
       qrScannedRef.current = true;
       fetch(`/api/v1/qr-codes/${encodeURIComponent(qrCode)}/scan`, {
         method: 'POST',
         headers: { Accept: 'application/json' },
-      }).catch(() => {
-        // scan logging is best-effort
-      });
+      }).catch(() => {});
     }
 
     if (typeParam) {
       const lower = typeParam.toLowerCase();
-      if (lower === 'complaint') setFeedbackType('complaint');
-      else if (lower === 'satisfaction' || lower === 'rating') setFeedbackType('satisfaction');
-      else setFeedbackType('feedback');
+      if (lower === 'complaint') setIntent('complaint');
+      else if (lower === 'suggestion') setIntent('suggestion');
+      else if (lower === 'satisfaction' || lower === 'rating') setIntent('satisfaction');
+    }
+
+    if (allOrganizations.length > 0 && orgParam) {
+      const match = allOrganizations.find(
+        (o: any) =>
+          String(o.id) === String(orgParam) ||
+          String(o.code).toLowerCase() === String(orgParam).toLowerCase() ||
+          o.name.toLowerCase().includes(String(orgParam).toLowerCase())
+      );
+      if (match) {
+        let sc = subCityParam || '';
+        if (!sc && match.parent_organization_id) {
+          const parent = allOrganizations.find((p: any) => p.id === match.parent_organization_id);
+          if (parent) sc = parent.name.replace(/ Sub-city/i, '');
+        }
+        setQrDetectedOffice({
+          subCity: sc || 'Bole',
+          bureauId: String(match.id),
+          name: match.name,
+        });
+      }
+    } else if (subCityParam) {
+      setQrDetectedOffice({
+        subCity: subCityParam,
+      });
     }
 
     if (serviceParam) {
       setSelectedServiceId(serviceParam);
     }
-
-    if (allOrganizations.length > 0) {
-      let matchedOrg: any = null;
-      if (orgParam) {
-        matchedOrg = allOrganizations.find(
-          (o: any) =>
-            String(o.id) === String(orgParam) ||
-            String(o.code).toLowerCase() === String(orgParam).toLowerCase() ||
-            o.name.toLowerCase().includes(String(orgParam).toLowerCase())
-        );
-      }
-
-      if (matchedOrg) {
-        setSelectedBureauId(String(matchedOrg.id));
-        if (matchedOrg.parent_organization_id) {
-          const parent = allOrganizations.find((p: any) => p.id === matchedOrg.parent_organization_id);
-          if (parent) setSelectedSubCityName(parent.name);
-        } else if (matchedOrg.name.toLowerCase().includes('sub-city')) {
-          setSelectedSubCityName(matchedOrg.name);
-        }
-      } else if (subCityParam) {
-        const matchedSub = allOrganizations.find(
-          (o: any) =>
-            String(o.id) === String(subCityParam) ||
-            o.name.toLowerCase().includes(String(subCityParam).toLowerCase())
-        );
-        if (matchedSub) {
-          setSelectedSubCityName(matchedSub.name);
-        }
-      }
-    }
   }, [allOrganizations]);
 
-  // Resolved active office
-  const activeOffice = useMemo(() => {
-    if (selectedBureauId) {
-      const b = allOrganizations.find((o: any) => String(o.id) === String(selectedBureauId));
-      if (b) return b;
-    }
-    // Fallback to first available bureau or default
-    return (
-      allOrganizations.find(
-        (o: any) => o.parent_organization_id !== null || o.type?.code === 'bureau'
-      ) ||
-      allOrganizations[0] || {
-        id: 1,
-        name: 'Public Service Desk',
-        code: 'PSD-01',
-      }
+  // Offices for the chosen Sub-City
+  const officesList = useMemo(() => {
+    if (!selectedSubCity) return defaultOffices;
+    const matchedSub = allOrganizations.find(
+      (o: any) =>
+        o.name.toLowerCase().includes(selectedSubCity.toLowerCase()) &&
+        (o.parent_organization_id === null || o.type?.code === 'sub_city')
     );
-  }, [allOrganizations, selectedBureauId]);
 
-  // Effective Sub-City
-  const displaySubCity = useMemo(() => {
-    if (selectedSubCityName) return selectedSubCityName;
-    if (activeOffice?.parent) return activeOffice.parent.name;
-    if (activeOffice?.parent_organization_id) {
-      const p = allOrganizations.find((o: any) => o.id === activeOffice.parent_organization_id);
-      if (p) return p.name;
+    if (matchedSub) {
+      const children = allOrganizations.filter((o: any) => o.parent_organization_id === matchedSub.id);
+      if (children.length > 0) {
+        return children.map((c: any) => ({
+          id: String(c.id),
+          name: c.name,
+          code: c.code || '',
+          subtext: `Under ${selectedSubCity}`,
+        }));
+      }
     }
-    return 'Addis Ababa';
-  }, [selectedSubCityName, activeOffice, allOrganizations]);
 
-  // Bureaus under chosen sub-city
-  const availableBureausForPicker = useMemo(() => {
-    if (!selectedSubCityName) return allOrganizations;
-    const sub = subCities.find((s: any) => s.name === selectedSubCityName);
-    if (!sub) return allOrganizations;
-    const children = allOrganizations.filter((o: any) => o.parent_organization_id === sub.id);
-    return children.length > 0 ? children : allOrganizations;
-  }, [allOrganizations, selectedSubCityName, subCities]);
+    const central = allOrganizations.filter(
+      (o: any) => o.type?.code === 'bureau' || o.name.toLowerCase().includes('bureau')
+    );
+    if (central.length > 0) {
+      return central.map((c: any) => ({
+        id: String(c.id),
+        name: c.name,
+        code: c.code || '',
+        subtext: `Municipal bureau · ${selectedSubCity}`,
+      }));
+    }
 
-  // 4. Fetch Services for this active office
-  const { data: servicesData, isLoading: isServicesLoading } = useGetServicesQuery({
-    per_page: 50,
-    organization_id: activeOffice?.id || undefined,
-  });
+    return defaultOffices.map((off) => ({
+      ...off,
+      subtext: `${selectedSubCity} branch`,
+    }));
+  }, [allOrganizations, selectedSubCity]);
 
-  const availableServices = useMemo(() => {
+  // Active office object
+  const activeOfficeObj = useMemo(() => {
+    if (!selectedOfficeId) return officesList[0] || defaultOffices[0];
+    return officesList.find((o) => String(o.id) === String(selectedOfficeId)) || officesList[0];
+  }, [officesList, selectedOfficeId]);
+
+  // Services query for chosen office
+  const { data: servicesData, isLoading: isServicesLoading } = useGetServicesQuery(
+    {
+      per_page: 50,
+      organization_id: activeOfficeObj?.id ? Number(activeOfficeObj.id) || undefined : undefined,
+    },
+    { skip: currentStep < 4 }
+  );
+
+  const servicesList = useMemo(() => {
     const list: any[] = [];
     const raw = servicesData?.data || [];
     if (Array.isArray(raw) && raw.length > 0) {
@@ -208,7 +256,7 @@ export default function QrFeedbackPage({
               category: s.name,
               duration: sub.estimated_duration_minutes || s.estimated_duration_minutes || 30,
               fee: sub.fee_amount ? `${sub.fee_amount} ETB` : 'Free',
-              counter: sub.steps?.[0]?.counter_window || sub.steps?.[0]?.room_number || 'Window 2',
+              counter: sub.steps?.[0]?.counter_window || sub.steps?.[0]?.room_number || 'Window 2 · Ground Floor',
               requirements: sub.requiredDocuments?.map((d: any) => d.name) || [
                 'Valid Kebele / Resident ID Card',
                 '2 Passport Sized Photographs',
@@ -222,7 +270,7 @@ export default function QrFeedbackPage({
             category: s.category || 'General Service',
             duration: s.estimated_duration_minutes || 30,
             fee: s.fee_amount ? `${s.fee_amount} ETB` : 'Free',
-            counter: s.steps?.[0]?.counter_window || s.steps?.[0]?.room_number || 'Window 1',
+            counter: s.steps?.[0]?.counter_window || s.steps?.[0]?.room_number || 'Window 1 · Ground Floor',
             requirements: s.requiredDocuments?.map((d: any) => d.name) || [
               'Valid Kebele / Resident ID Card',
               'Official Request Form',
@@ -232,7 +280,6 @@ export default function QrFeedbackPage({
       });
     }
 
-    // Default graceful fallback services if empty
     if (list.length === 0) {
       return [
         {
@@ -241,7 +288,7 @@ export default function QrFeedbackPage({
           category: 'Commercial Registration',
           duration: 30,
           fee: '250 ETB',
-          counter: 'Counter 3 · Ground Floor',
+          counter: 'Window 3 · Ground Floor',
           requirements: ['Previous Trade License', 'TIN Certificate', 'Valid Resident ID'],
         },
         {
@@ -276,12 +323,74 @@ export default function QrFeedbackPage({
     return list;
   }, [servicesData]);
 
-  // Auto-select first service if none selected
-  useEffect(() => {
-    if (!selectedServiceId && availableServices.length > 0) {
-      setSelectedServiceId(availableServices[0].id);
+  // Active service object
+  const activeServiceObj = useMemo(() => {
+    if (!selectedServiceId) return servicesList[0];
+    return servicesList.find((s) => s.id === selectedServiceId) || servicesList[0];
+  }, [servicesList, selectedServiceId]);
+
+  // Step 1: Choose Intent
+  function handleSelectIntent(chosen: UserIntent) {
+    setIntent(chosen);
+    setSelectedTags([]);
+    if (qrDetectedOffice?.subCity && !selectedSubCity) {
+      setSelectedSubCity(qrDetectedOffice.subCity);
     }
-  }, [availableServices, selectedServiceId]);
+    setCurrentStep(2);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Step 2: Choose Sub-City
+  function handleSelectSubCity(sc: string) {
+    setSelectedSubCity(sc);
+    if (qrDetectedOffice?.bureauId && !selectedOfficeId) {
+      setSelectedOfficeId(qrDetectedOffice.bureauId);
+    }
+    setCurrentStep(3);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Step 3: Choose Office
+  function handleSelectOffice(offId: string) {
+    setSelectedOfficeId(offId);
+    setCurrentStep(4);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Step 4: Choose Service
+  function handleSelectService(srvId: string) {
+    setSelectedServiceId(srvId);
+    setCurrentStep(5);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Fast-track from QR detection
+  function handleFastTrack() {
+    if (qrDetectedOffice?.subCity) setSelectedSubCity(qrDetectedOffice.subCity);
+    if (qrDetectedOffice?.bureauId) setSelectedOfficeId(qrDetectedOffice.bureauId);
+    setCurrentStep(4);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Navigation handlers
+  function handleBack() {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function handleStartOver() {
+    setCurrentStep(1);
+    setIntent(null);
+    setIsSuccess(false);
+    setMessage('');
+    setFullName('');
+    setPhoneNumber('');
+    setAttachedImage(null);
+    setSelectedTags([]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   // Toggle tag helper
   function handleToggleTag(tag: string) {
@@ -290,39 +399,83 @@ export default function QrFeedbackPage({
     );
   }
 
-  // Handle Submit
+  // File upload handler
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const sizeKb = Math.round(file.size / 1024);
+    const sizeFormatted = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setAttachedImage({
+        file,
+        dataUrl: String(event.target?.result || ''),
+        name: file.name,
+        size: sizeFormatted,
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handleRemoveImage() {
+    setAttachedImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }
+
+  // Submit Feedback
   async function handleSubmitFeedback(e: React.FormEvent) {
     e.preventDefault();
 
-    const selectedServiceObj = availableServices.find((s) => s.id === selectedServiceId);
-    const serviceName = selectedServiceObj ? selectedServiceObj.name : 'General Visit';
+    const serviceName = activeServiceObj ? activeServiceObj.name : 'General Visit';
+    const officeName = activeOfficeObj ? activeOfficeObj.name : 'Public Service Desk';
 
-    // Build context tags
     const contextPrefix: string[] = [];
-    contextPrefix.push(`Office: ${activeOffice?.name || 'Public Desk'} (${displaySubCity})`);
+    contextPrefix.push(`Sub-city: ${selectedSubCity}`);
+    contextPrefix.push(`Office: ${officeName}`);
     contextPrefix.push(`Service: ${serviceName}`);
-    if (feedbackType === 'satisfaction' && starRating) {
+    if (intent === 'satisfaction' && starRating) {
       contextPrefix.push(`Rating: ${starRating}/5 Stars`);
     }
     if (selectedTags.length > 0) {
       contextPrefix.push(`Aspects: ${selectedTags.join(', ')}`);
     }
+    if (attachedImage) {
+      contextPrefix.push(`Attached: ${attachedImage.name} (${attachedImage.size})`);
+    }
 
-    const compiledContent = `[${contextPrefix.join(' · ')}]\n\n${message.trim() || 'Citizen submitted direct service feedback via office QR poster.'}`;
+    const defaultContent =
+      intent === 'complaint'
+        ? 'Citizen submitted a public service complaint.'
+        : intent === 'suggestion'
+          ? 'Citizen submitted a public service improvement suggestion.'
+          : 'Citizen submitted a service satisfaction rating.';
+
+    const compiledContent = `[${contextPrefix.join(' · ')}]\n\n${message.trim() || defaultContent}`;
+
+    // Map intent to backend feedback_type enum
+    const normalizedType =
+      intent === 'complaint'
+        ? 'complaint'
+        : intent === 'satisfaction'
+          ? 'satisfaction'
+          : 'feedback'; // 'feedback' represents suggestion / general
 
     let trackNum: string | null = null;
     try {
       const response = await submitFeedbackMutation({
-        feedback_for_organization: activeOffice?.id || 1,
+        feedback_for_organization: Number(activeOfficeObj?.id) || 1,
         feedback_content: compiledContent,
-        feedback_type: feedbackType,
+        feedback_type: normalizedType,
         full_name: fullName.trim() || undefined,
         phone_number: phoneNumber.trim() || undefined,
       }).unwrap();
 
       trackNum = response?.data?.tracking_number;
     } catch {
-      // Offline fallback
       trackNum = createFeedbackTrackingNumber();
     }
 
@@ -335,7 +488,6 @@ export default function QrFeedbackPage({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // Handle Copy Tracking
   function handleCopyTracking() {
     if (trackingNumber) {
       navigator.clipboard.writeText(trackingNumber);
@@ -344,7 +496,6 @@ export default function QrFeedbackPage({
     }
   }
 
-  // Handle Search Track
   async function handleSearchTrack(e: React.FormEvent) {
     e.preventDefault();
     if (!searchTrackingInput.trim()) return;
@@ -362,6 +513,14 @@ export default function QrFeedbackPage({
       setTrackError('Could not locate record with this code. Check the format (e.g. TRK-...)');
     }
   }
+
+  // Active tags for step 5
+  const activeTags =
+    intent === 'complaint'
+      ? complaintTags
+      : intent === 'suggestion'
+        ? suggestionTags
+        : satisfactionTags;
 
   return (
     <div className="qr-feedback-shell" id="feedback">
@@ -384,7 +543,6 @@ export default function QrFeedbackPage({
           </a>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* Quick 1-tap Language Switcher */}
             <div className="qr-lang-bar" aria-label={t('Select language')}>
               <button
                 type="button"
@@ -423,457 +581,649 @@ export default function QrFeedbackPage({
       </header>
 
       <main className="qr-feedback-main">
-        {/* 2. Verified Office Location Banner */}
-        <section className="qr-location-banner">
-          <div className="qr-location-header">
-            <div className="qr-location-meta">
-              <div className="qr-location-icon">
-                <Icon name="building" size={24} />
-              </div>
-              <div className="qr-location-text">
-                <span className="qr-location-eyebrow">
-                  <Icon name="check" size={13} /> {t('Verified Office QR')}
-                </span>
-                <h1>{activeOffice?.name || t('Public Service Desk')}</h1>
-                <p>
-                  📍 {displaySubCity} {displaySubCity.includes('Sub-city') ? '' : t('Sub-city')} · {t('Where you received service')}
-                </p>
-              </div>
-            </div>
+        {/* Navigation Toolbar (Back, Progress, Step Indicator) */}
+        <div className="qr-wizard-nav">
+          {currentStep > 1 ? (
+            <button type="button" className="qr-step-back-btn" onClick={handleBack}>
+              ← {t('Back')}
+            </button>
+          ) : (
+            <span />
+          )}
 
+          <span className="qr-step-indicator">
+            {t(`Step ${currentStep} of 5`)}
+          </span>
+
+          {currentStep > 1 && (
             <button
               type="button"
-              className="qr-change-btn"
-              onClick={() => setShowOfficePicker((open) => !open)}
+              onClick={handleStartOver}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                fontSize: '12px',
+                color: '#64748b',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
             >
-              {showOfficePicker ? t('Done') : t('Change office')}
+              {t('Start Over')}
+            </button>
+          )}
+        </div>
+
+        {/* Progress Bar */}
+        <div className="qr-progress-track">
+          <div className="qr-progress-fill" style={{ width: `${currentStep * 20}%` }} />
+        </div>
+
+        {/* Optional Fast-Track QR Detected Banner */}
+        {qrDetectedOffice?.name && currentStep < 4 && (
+          <div className="qr-fast-track-box qr-fade-in">
+            <div className="qr-fast-track-text">
+              <Icon name="pin" size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+              <b>{t('Detected from your QR code:')}</b> {qrDetectedOffice.name} ({qrDetectedOffice.subCity})
+            </div>
+            <button type="button" className="qr-fast-track-btn" onClick={handleFastTrack}>
+              {t('Use this office')} →
             </button>
           </div>
+        )}
 
-          {/* Collapsible office switcher */}
-          {showOfficePicker && (
-            <div className="qr-office-picker">
-              <div className="qr-picker-group">
-                <label>{t('Sub-city')}</label>
-                <select
-                  className="qr-picker-select"
-                  value={selectedSubCityName}
-                  onChange={(e) => {
-                    setSelectedSubCityName(e.target.value);
-                  }}
-                >
-                  <option value="">{t('All Sub-cities')}</option>
-                  {subCities.map((sc: any) => (
-                    <option key={sc.id} value={sc.name}>
-                      {sc.name}
-                    </option>
-                  ))}
-                </select>
+        <div className="qr-content-card qr-fade-in" key={currentStep}>
+          {/* ===============================================================
+              STEP 1: What do you need?
+              4 Separate Choices: Complaint, Suggestion, Satisfaction, Info
+             =============================================================== */}
+          {currentStep === 1 && (
+            <div>
+              <div className="qr-step-heading-wrap">
+                <h2>{t('What do you need help with?')}</h2>
+                <p>{t('Choose one option to proceed:')}</p>
               </div>
 
-              <div className="qr-picker-group">
-                <label>{t('City office / bureau')}</label>
-                <select
-                  className="qr-picker-select"
-                  value={selectedBureauId}
-                  onChange={(e) => setSelectedBureauId(e.target.value)}
-                  disabled={isOrgsLoading}
+              <div className="qr-intent-grid-4">
+                {/* 1. Complaint */}
+                <button
+                  type="button"
+                  className="qr-intent-card qr-intent-card-complaint"
+                  onClick={() => handleSelectIntent('complaint')}
                 >
-                  {availableBureausForPicker.map((b: any) => (
-                    <option key={b.id} value={String(b.id)}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
+                  <div className="qr-intent-icon-wrap" style={{ background: '#ffe4e6', color: '#e11d48' }}>
+                    <span style={{ fontSize: '24px', lineHeight: 1 }}>🙁</span>
+                  </div>
+                  <div className="qr-intent-copy">
+                    <strong>{t('File a Complaint')}</strong>
+                    <small>{t('Report a problem, delay, or unfair treatment')}</small>
+                  </div>
+                </button>
+
+                {/* 2. Suggestion */}
+                <button
+                  type="button"
+                  className="qr-intent-card qr-intent-card-suggestion"
+                  onClick={() => handleSelectIntent('suggestion')}
+                >
+                  <div className="qr-intent-icon-wrap" style={{ background: '#ffedd5', color: '#ea580c' }}>
+                    <span style={{ fontSize: '24px', lineHeight: 1 }}>💡</span>
+                  </div>
+                  <div className="qr-intent-copy">
+                    <strong>{t('Give a Suggestion')}</strong>
+                    <small>{t('Share an idea to improve public service delivery')}</small>
+                  </div>
+                </button>
+
+                {/* 3. Satisfaction */}
+                <button
+                  type="button"
+                  className="qr-intent-card qr-intent-card-satisfaction"
+                  onClick={() => handleSelectIntent('satisfaction')}
+                >
+                  <div className="qr-intent-icon-wrap" style={{ background: '#dcfce7', color: '#16a34a' }}>
+                    <span style={{ fontSize: '24px', lineHeight: 1 }}>😊</span>
+                  </div>
+                  <div className="qr-intent-copy">
+                    <strong>{t('Rate Satisfaction')}</strong>
+                    <small>{t('Share how satisfied you are with your visit')}</small>
+                  </div>
+                </button>
+
+                {/* 4. Information */}
+                <button
+                  type="button"
+                  className="qr-intent-card qr-intent-card-info"
+                  onClick={() => handleSelectIntent('info')}
+                >
+                  <div className="qr-intent-icon-wrap" style={{ background: '#e0f2fe', color: '#0284c7' }}>
+                    <Icon name="file" size={24} />
+                  </div>
+                  <div className="qr-intent-copy">
+                    <strong>{t('I want service information')}</strong>
+                    <small>{t('Find requirements, where to go, and steps')}</small>
+                  </div>
+                </button>
+              </div>
+
+              {/* Status Tracking shortcut */}
+              <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowTracker((v) => !v)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    fontSize: '13px',
+                    color: '#00485a',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  <Icon name="search" size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                  {t('Check previous submission status')}
+                </button>
               </div>
             </div>
           )}
-        </section>
 
-        {/* 3. Primary Intent Segmentation ("What do you want to do?") */}
-        <div className="qr-intent-container">
-          <div className="qr-intent-heading">
-            <Icon name="route" size={16} />
-            <span>{t('What do you need help with?')}</span>
-          </div>
-
-          <div className="qr-intent-grid">
-            <button
-              type="button"
-              className={`qr-intent-card ${activeIntent === 'feedback' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveIntent('feedback');
-                setIsSuccess(false);
-              }}
-            >
-              <div className="qr-intent-icon-wrap">
-                <Icon name="heart" size={24} />
-              </div>
-              <div className="qr-intent-copy">
-                <strong>{t('Give Feedback')}</strong>
-                <small>{t('Tell us how your visit went')}</small>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              className={`qr-intent-card ${activeIntent === 'services' ? 'active' : ''}`}
-              onClick={() => setActiveIntent('services')}
-            >
-              <div className="qr-intent-icon-wrap">
-                <Icon name="file" size={24} />
-              </div>
-              <div className="qr-intent-copy">
-                <strong>{t('Services & Where to Go')}</strong>
-                <small>{t('Counter, requirements & time')}</small>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* 4. Active Intent Screen */}
-        <div className="qr-content-card">
-          {activeIntent === 'feedback' ? (
-            !isSuccess ? (
-              <form onSubmit={handleSubmitFeedback}>
-                {/* Step 1: Big Reaction Emotional Cards */}
-                <h2 className="qr-section-prompt">{t('How was your experience today?')}</h2>
-                <div className="qr-reaction-grid">
-                  <button
-                    type="button"
-                    className={`qr-reaction-card good ${feedbackType === 'satisfaction' ? 'active' : ''}`}
-                    onClick={() => {
-                      setFeedbackType('satisfaction');
-                      setSelectedTags([]);
-                    }}
-                  >
-                    <span className="qr-reaction-emoji">😊</span>
-                    <strong>{t('Good Experience')}</strong>
-                    <small>{t('Satisfied with service')}</small>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`qr-reaction-card complaint ${feedbackType === 'complaint' ? 'active' : ''}`}
-                    onClick={() => {
-                      setFeedbackType('complaint');
-                      setSelectedTags([]);
-                    }}
-                  >
-                    <span className="qr-reaction-emoji">🙁</span>
-                    <strong>{t('Had a Problem')}</strong>
-                    <small>{t('Delay, issue, or unfair treatment')}</small>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`qr-reaction-card suggestion ${feedbackType === 'feedback' ? 'active' : ''}`}
-                    onClick={() => {
-                      setFeedbackType('feedback');
-                      setSelectedTags([]);
-                    }}
-                  >
-                    <span className="qr-reaction-emoji">💡</span>
-                    <strong>{t('Suggestion')}</strong>
-                    <small>{t('Idea to make service better')}</small>
-                  </button>
+          {/* ===============================================================
+              STEP 2: Which Sub-City?
+             =============================================================== */}
+          {currentStep === 2 && (
+            <div>
+              <div className="qr-step-heading-wrap">
+                <h2>
+                  {intent === 'complaint'
+                    ? t('Which sub-city did the issue happen?')
+                    : intent === 'suggestion'
+                      ? t('Which sub-city is this suggestion for?')
+                      : intent === 'satisfaction'
+                        ? t('Which sub-city did you visit?')
+                        : t('Which sub-city do you want information about?')}
+                </h2>
+                <p>{t('Select the sub-city where you received or want service:')}</p>
+                <div className="qr-context-pill">
+                  {intent === 'complaint'
+                    ? t('File a Complaint')
+                    : intent === 'suggestion'
+                      ? t('Give a Suggestion')
+                      : intent === 'satisfaction'
+                        ? t('Rate Satisfaction')
+                        : t('Services & Where to Go')}
                 </div>
+              </div>
 
-                {/* Step 2: Service Selection Pills */}
-                <h3 className="qr-section-prompt" style={{ fontSize: '14px', marginBottom: '10px' }}>
-                  {t('Which service did you take?')}
-                </h3>
-                <div className="qr-services-chip-wrap">
-                  {availableServices.map((srv) => (
-                    <button
-                      key={srv.id}
-                      type="button"
-                      className={`qr-service-chip ${selectedServiceId === srv.id ? 'active' : ''}`}
-                      onClick={() => setSelectedServiceId(srv.id)}
-                    >
-                      <Icon name="check" size={13} />
-                      <span>{t(srv.name)}</span>
-                    </button>
-                  ))}
+              <div className="qr-subcity-grid">
+                {liveSubCities.map((sc) => (
+                  <button
+                    key={sc}
+                    type="button"
+                    className={`qr-subcity-btn ${selectedSubCity === sc ? 'active' : ''}`}
+                    onClick={() => handleSelectSubCity(sc)}
+                  >
+                    <Icon name="pin" size={16} />
+                    <span>{t(sc)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ===============================================================
+              STEP 3: Which Office of that Sub-City?
+             =============================================================== */}
+          {currentStep === 3 && (
+            <div>
+              <div className="qr-step-heading-wrap">
+                <h2>{t('Which office of this sub-city?')}</h2>
+                <p>{t('Select the office or department you visited:')}</p>
+                <div className="qr-context-pill">
+                  📍 {selectedSubCity} {t('Sub-city')}
                 </div>
+              </div>
 
-                {/* Step 3: Quick 1-Tap Reasons (Zero Typing Required) */}
-                <div className="qr-tags-container">
-                  <div className="qr-tags-label">
-                    <Icon name="shield" size={14} />
-                    <span>{t('Tap what describes your visit best:')}</span>
-                  </div>
-                  <div className="qr-tags-grid">
-                    {(feedbackType === 'satisfaction' ? positiveTags : issueTags).map((tagKey) => {
-                      const isSelected = selectedTags.includes(tagKey);
-                      return (
-                        <button
-                          key={tagKey}
-                          type="button"
-                          className={`qr-tag-pill ${isSelected ? 'active' : ''}`}
-                          onClick={() => handleToggleTag(tagKey)}
-                        >
-                          {isSelected ? '✓ ' : '+ '}
-                          {t(tagKey)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Step 4: Star Rating for Satisfaction */}
-                {feedbackType === 'satisfaction' && (
-                  <div className="qr-star-rating">
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#92400e' }}>
-                      {t('Rate overall satisfaction:')}
-                    </span>
-                    <div className="qr-star-row">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          className={`qr-star-btn ${star <= starRating ? 'active' : ''}`}
-                          onClick={() => setStarRating(star)}
-                          aria-label={`${star} ${t('stars')}`}
-                        >
-                          ★
-                        </button>
-                      ))}
+              <div className="qr-office-list">
+                {officesList.map((office) => (
+                  <button
+                    key={office.id}
+                    type="button"
+                    className={`qr-office-card-btn ${selectedOfficeId === String(office.id) ? 'active' : ''}`}
+                    onClick={() => handleSelectOffice(String(office.id))}
+                  >
+                    <div className="qr-office-info-wrap">
+                      <div className="qr-office-icon">
+                        <Icon name="building" size={20} />
+                      </div>
+                      <div className="qr-office-text">
+                        <strong>{t(office.name)}</strong>
+                        <small>{office.subtext}</small>
+                      </div>
                     </div>
-                  </div>
-                )}
-
-                {/* Step 5: Optional Details */}
-                <div className="qr-form-group">
-                  <label className="qr-form-label" htmlFor="qr-feedback-notes">
-                    {t('Write details in your words (optional)')}
-                  </label>
-                  <textarea
-                    id="qr-feedback-notes"
-                    className="qr-form-textarea"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder={t('Tell us what happened...')}
-                  />
-                </div>
-
-                {/* Step 6: Optional Contact for SMS Tracking */}
-                <div className="qr-form-group">
-                  <label className="qr-form-label" htmlFor="qr-feedback-phone">
-                    {t('Phone number for SMS tracking (optional)')}
-                  </label>
-                  <input
-                    id="qr-feedback-phone"
-                    type="tel"
-                    className="qr-form-input"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="+251 91 100 0000"
-                  />
-                  <small className="qr-form-hint">
-                    <Icon name="shield" size={12} /> {t('Your contact information is only used for official case follow-up and SMS notifications.')}
-                  </small>
-                </div>
-
-                {/* Step 7: Submit Button */}
-                <button
-                  type="submit"
-                  className="qr-submit-btn"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <span>{t('Submitting...')}</span>
-                  ) : (
-                    <>
-                      <Icon name="arrow" size={18} />
-                      <span>{t('Send Feedback Now')}</span>
-                    </>
-                  )}
-                </button>
-              </form>
-            ) : (
-              /* Success / Receipt Screen */
-              <div className="qr-success-card">
-                <div className="qr-success-icon-wrap">
-                  <Icon name="check" size={36} />
-                </div>
-                <h2>{t('Thank you! Your feedback has been received.')}</h2>
-                <p>
-                  {t(
-                    'Your feedback was routed directly to the office administration. Use this tracking code anytime to check the resolution.'
-                  )}
-                </p>
-
-                <div className="qr-tracking-box">
-                  <span>{t('Your Official Tracking Number:')}</span>
-                  <div className="qr-tracking-number">{trackingNumber}</div>
-                  <button
-                    type="button"
-                    className="qr-copy-btn"
-                    onClick={handleCopyTracking}
-                  >
-                    <Icon name="copy" size={14} />
-                    <span>{copiedTracking ? t('Copied!') : t('Copy Tracking Code')}</span>
+                    <Icon name="arrow" size={16} />
                   </button>
-                </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-                <div className="qr-success-actions">
-                  <button
-                    type="button"
-                    className="qr-btn-secondary"
-                    onClick={() => {
-                      setIsSuccess(false);
-                      setMessage('');
-                      setSelectedTags([]);
-                    }}
-                  >
-                    {t('Submit another response')}
-                  </button>
-                  <button
-                    type="button"
-                    className="qr-btn-secondary"
-                    onClick={onNavigateToHome}
-                  >
-                    {t('Back to Full Portal')}
-                  </button>
+          {/* ===============================================================
+              STEP 4: Which Service?
+             =============================================================== */}
+          {currentStep === 4 && (
+            <div>
+              <div className="qr-step-heading-wrap">
+                <h2>{t('Which service?')}</h2>
+                <p>{t('Select the service you received or need guidance for:')}</p>
+                <div className="qr-context-pill">
+                  📍 {selectedSubCity} · {activeOfficeObj?.name}
                 </div>
               </div>
-            )
-          ) : (
-            /* Services Available & Where to Go */
-            <div className="qr-services-list">
-              <h2 className="qr-section-prompt" style={{ marginBottom: '8px' }}>
-                {t('Services Provided at this Office')}
-              </h2>
-              <p style={{ margin: '0 0 20px', fontSize: '13px', color: '#557570' }}>
-                {t('Here is what you need and which window or room to visit:')}
-              </p>
 
               {isServicesLoading ? (
                 <p style={{ textAlign: 'center', padding: '30px' }}>{t('Loading services…')}</p>
               ) : (
-                availableServices.map((service) => (
-                  <article key={service.id} className="qr-service-card">
+                <div className="qr-service-select-list">
+                  {servicesList.map((service) => (
+                    <button
+                      key={service.id}
+                      type="button"
+                      className={`qr-service-select-btn ${selectedServiceId === service.id ? 'active' : ''}`}
+                      onClick={() => handleSelectService(service.id)}
+                    >
+                      <div className="qr-service-select-text">
+                        <strong>{t(service.name)}</strong>
+                        <small>
+                          <span>📍 {service.counter}</span>
+                          <span>•</span>
+                          <span>⏱️ {service.duration} {t('minutes')}</span>
+                          <span>•</span>
+                          <span>💵 {service.fee}</span>
+                        </small>
+                      </div>
+                      <Icon name="arrow" size={16} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ===============================================================
+              STEP 5: Destination Screen (Service Info OR Feedback Space)
+             =============================================================== */}
+          {currentStep === 5 && (
+            <div>
+              {intent === 'info' ? (
+                /* Information Display */
+                <div>
+                  <div className="qr-step-heading-wrap">
+                    <h2>{t('Service Details & Where to Go')}</h2>
+                    <div className="qr-context-pill">
+                      📍 {selectedSubCity} · {activeOfficeObj?.name}
+                    </div>
+                  </div>
+
+                  <article className="qr-service-card" style={{ marginTop: '16px' }}>
                     <div className="qr-service-top">
                       <div className="qr-service-title">
-                        <h3>{t(service.name)}</h3>
-                        <p>{t(service.category)}</p>
+                        <h3 style={{ fontSize: '20px' }}>{t(activeServiceObj.name)}</h3>
+                        <p>{t(activeServiceObj.category)}</p>
                       </div>
                     </div>
 
                     <div className="qr-service-meta-row">
                       <span className="qr-service-badge qr-badge-counter">
                         <Icon name="pin" size={14} />
-                        <span>{t('Where to Go')}: <b>{service.counter}</b></span>
+                        <span>{t('Where to Go')}: <b>{activeServiceObj.counter}</b></span>
                       </span>
 
                       <span className="qr-service-badge qr-badge-time">
                         <Icon name="clock" size={14} />
-                        <span>{t('Estimated Time')}: <b>{service.duration} {t('minutes')}</b></span>
+                        <span>{t('Estimated Time')}: <b>{activeServiceObj.duration} {t('minutes')}</b></span>
                       </span>
 
                       <span className="qr-service-badge qr-badge-fee">
                         <Icon name="shield" size={14} />
-                        <span>{t('Official Fee')}: <b>{service.fee}</b></span>
+                        <span>{t('Official Fee')}: <b>{activeServiceObj.fee}</b></span>
                       </span>
                     </div>
 
-                    {service.requirements && service.requirements.length > 0 && (
+                    {activeServiceObj.requirements && activeServiceObj.requirements.length > 0 && (
                       <div className="qr-docs-section">
                         <div className="qr-docs-title">
-                          <Icon name="file" size={12} />
+                          <Icon name="file" size={13} />
                           <span>{t('Required Documents')}</span>
                         </div>
                         <ul className="qr-docs-list">
-                          {service.requirements.map((doc: string, idx: number) => (
+                          {activeServiceObj.requirements.map((doc: string, idx: number) => (
                             <li key={idx}>{t(doc)}</li>
                           ))}
                         </ul>
                       </div>
                     )}
 
-                    <div className="qr-service-actions">
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexWrap: 'wrap' }}>
                       <button
                         type="button"
-                        className="qr-select-service-btn"
+                        className="qr-submit-btn"
+                        style={{ margin: 0, flex: 1 }}
                         onClick={() => {
-                          setSelectedServiceId(service.id);
-                          setActiveIntent('feedback');
-                          setIsSuccess(false);
+                          setIntent('satisfaction');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
                       >
-                        <Icon name="heart" size={14} />
-                        <span>{t('Give feedback for this service')}</span>
+                        <Icon name="heart" size={18} />
+                        <span>{t('Give Feedback for this Service')}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="qr-btn-secondary"
+                        onClick={() => setCurrentStep(4)}
+                      >
+                        {t('Check another service')}
                       </button>
                     </div>
                   </article>
-                ))
+                </div>
+              ) : (
+                /* Space to Give Feedback (Complaint / Suggestion / Satisfaction) */
+                !isSuccess ? (
+                  <form onSubmit={handleSubmitFeedback}>
+                    <div className="qr-step-heading-wrap">
+                      <h2>
+                        {intent === 'complaint'
+                          ? t('File Your Complaint')
+                          : intent === 'suggestion'
+                            ? t('Share Your Suggestion')
+                            : t('Rate Your Visit')}
+                      </h2>
+                      <div className="qr-context-pill">
+                        📍 {selectedSubCity} · {activeOfficeObj?.name} · {t(activeServiceObj.name)}
+                      </div>
+                    </div>
+
+                    {/* Satisfaction 5-Star Rating */}
+                    {intent === 'satisfaction' && (
+                      <div className="qr-star-rating">
+                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#92400e' }}>
+                          {t('Rate overall satisfaction:')}
+                        </span>
+                        <div className="qr-star-row">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              className={`qr-star-btn ${star <= starRating ? 'active' : ''}`}
+                              onClick={() => setStarRating(star)}
+                              aria-label={`${star} ${t('stars')}`}
+                            >
+                              ★
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 1-Tap Quick Tags */}
+                    <div className="qr-tags-container">
+                      <div className="qr-tags-label">
+                        <Icon name="shield" size={14} />
+                        <span>{t('Tap what describes your visit best:')}</span>
+                      </div>
+                      <div className="qr-tags-grid">
+                        {activeTags.map((tagKey) => {
+                          const isSelected = selectedTags.includes(tagKey);
+                          return (
+                            <button
+                              key={tagKey}
+                              type="button"
+                              className={`qr-tag-pill ${isSelected ? 'active' : ''}`}
+                              onClick={() => handleToggleTag(tagKey)}
+                            >
+                              {isSelected ? '✓ ' : '+ '}
+                              {t(tagKey)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Message Box */}
+                    <div className="qr-form-group">
+                      <label className="qr-form-label" htmlFor="qr-feedback-notes">
+                        {t('Write details in your words (optional)')}
+                      </label>
+                      <textarea
+                        id="qr-feedback-notes"
+                        className="qr-form-textarea"
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        placeholder={
+                          intent === 'complaint'
+                            ? t('Describe what happened...')
+                            : intent === 'suggestion'
+                              ? t('Share your idea for improvement...')
+                              : t('Tell us what made your visit good...')
+                        }
+                      />
+                    </div>
+
+                    {/* Optional Name Field */}
+                    <div className="qr-form-group">
+                      <label className="qr-form-label" htmlFor="qr-feedback-name">
+                        {t('Your full name (optional)')}
+                      </label>
+                      <input
+                        id="qr-feedback-name"
+                        type="text"
+                        className="qr-form-input"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="e.g. Abebe Bekele"
+                      />
+                    </div>
+
+                    {/* Optional Phone Field */}
+                    <div className="qr-form-group">
+                      <label className="qr-form-label" htmlFor="qr-feedback-phone">
+                        {t('Phone number for SMS tracking (optional)')}
+                      </label>
+                      <input
+                        id="qr-feedback-phone"
+                        type="tel"
+                        className="qr-form-input"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        placeholder="+251 91 100 0000"
+                      />
+                      <small className="qr-form-hint">
+                        <Icon name="shield" size={12} /> {t('Your contact information is only used for official case follow-up and SMS notifications.')}
+                      </small>
+                    </div>
+
+                    {/* Optional Image Upload Field */}
+                    <div className="qr-form-group">
+                      <label className="qr-form-label">
+                        {t('Attach photo or document (optional)')}
+                      </label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={handleFileSelect}
+                      />
+
+                      {!attachedImage ? (
+                        <div
+                          className="qr-image-dropzone"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <div className="qr-image-dropzone-icon">
+                            <Icon name="file" size={20} />
+                          </div>
+                          <strong>{t('Click or tap to upload photo')}</strong>
+                          <small>Supports JPG, PNG up to 10MB</small>
+                        </div>
+                      ) : (
+                        <div className="qr-image-preview-card">
+                          <div className="qr-image-preview-thumb-wrap">
+                            <img
+                              src={attachedImage.dataUrl}
+                              alt={attachedImage.name}
+                              className="qr-image-preview-img"
+                            />
+                            <div className="qr-image-preview-meta">
+                              <strong>{attachedImage.name}</strong>
+                              <small>{attachedImage.size}</small>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="qr-image-remove-btn"
+                            onClick={handleRemoveImage}
+                          >
+                            <Icon name="close" size={13} />
+                            <span>{t('Remove image')}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      className="qr-submit-btn"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <span>{t('Submitting...')}</span>
+                      ) : (
+                        <>
+                          <Icon name="arrow" size={18} />
+                          <span>
+                            {intent === 'complaint'
+                              ? t('Submit Complaint')
+                              : intent === 'suggestion'
+                                ? t('Submit Suggestion')
+                                : t('Submit Rating')}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                ) : (
+                  /* Success Screen */
+                  <div className="qr-success-card">
+                    <div className="qr-success-icon-wrap">
+                      <Icon name="check" size={36} />
+                    </div>
+                    <h2>{t('Thank you! Your feedback has been received.')}</h2>
+                    <p>
+                      {t(
+                        'Your feedback was routed directly to the office administration. Use this tracking code anytime to check the resolution.'
+                      )}
+                    </p>
+
+                    <div className="qr-tracking-box">
+                      <span>{t('Your Official Tracking Number:')}</span>
+                      <div className="qr-tracking-number">{trackingNumber}</div>
+                      <button
+                        type="button"
+                        className="qr-copy-btn"
+                        onClick={handleCopyTracking}
+                      >
+                        <Icon name="copy" size={14} />
+                        <span>{copiedTracking ? t('Copied!') : t('Copy Tracking Code')}</span>
+                      </button>
+                    </div>
+
+                    <div className="qr-success-actions">
+                      <button
+                        type="button"
+                        className="qr-btn-secondary"
+                        onClick={handleStartOver}
+                      >
+                        {t('Submit another response')}
+                      </button>
+                      <button
+                        type="button"
+                        className="qr-btn-secondary"
+                        onClick={onNavigateToHome}
+                      >
+                        {t('Back to Full Portal')}
+                      </button>
+                    </div>
+                  </div>
+                )
               )}
             </div>
           )}
         </div>
 
-        {/* 5. Quick Case Tracker Panel */}
-        <section className="qr-track-panel">
-          <h4>
-            <span style={{ verticalAlign: 'middle', marginRight: '6px', display: 'inline-flex' }}>
-              <Icon name="search" size={16} />
-            </span>
-            {t('Check previous submission status')}
-          </h4>
-          <form onSubmit={handleSearchTrack} className="qr-track-input-row">
-            <input
-              type="text"
-              placeholder={t('Enter your tracking code')}
-              value={searchTrackingInput}
-              onChange={(e) => setSearchTrackingInput(e.target.value)}
-            />
-            <button type="submit" className="qr-track-btn" disabled={isTrackingLoading}>
-              {isTrackingLoading ? t('Searching...') : t('Check Status')}
-            </button>
-          </form>
+        {/* Collapsible Case Tracker */}
+        {showTracker && (
+          <section className="qr-track-panel qr-fade-in">
+            <h4>
+              <Icon name="search" size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+              {t('Check previous submission status')}
+            </h4>
+            <form onSubmit={handleSearchTrack} className="qr-track-input-row">
+              <input
+                type="text"
+                placeholder={t('Enter your tracking code')}
+                value={searchTrackingInput}
+                onChange={(e) => setSearchTrackingInput(e.target.value)}
+              />
+              <button type="submit" className="qr-track-btn" disabled={isTrackingLoading}>
+                {isTrackingLoading ? t('Searching...') : t('Check Status')}
+              </button>
+            </form>
 
-          {trackError && (
-            <p style={{ color: '#dc2626', fontSize: '13px', marginTop: '10px' }}>{trackError}</p>
-          )}
+            {trackError && (
+              <p style={{ color: '#dc2626', fontSize: '13px', marginTop: '10px' }}>{trackError}</p>
+            )}
 
-          {trackedRecord && (
-            <div className="qr-track-result">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <strong>{trackedRecord.tracking_number}</strong>
-                <span
-                  style={{
-                    background: '#ecfdf5',
-                    color: '#065f46',
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    fontWeight: 700,
-                    fontSize: '12px',
-                  }}
-                >
-                  {trackedRecord.status?.toUpperCase() || 'IN REVIEW'}
-                </span>
-              </div>
-              <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#334155' }}>
-                {trackedRecord.feedback_content}
-              </p>
-              {trackedRecord.resolution_notes && (
-                <div
-                  style={{
-                    marginTop: '8px',
-                    padding: '8px',
-                    background: '#ffffff',
-                    borderRadius: '6px',
-                    border: '1px solid #dce6e5',
-                    fontSize: '12px',
-                  }}
-                >
-                  <b>{t('Official Response')}:</b> {trackedRecord.resolution_notes}
+            {trackedRecord && (
+              <div className="qr-track-result">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <strong>{trackedRecord.tracking_number}</strong>
+                  <span
+                    style={{
+                      background: '#ecfdf5',
+                      color: '#065f46',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                    }}
+                  >
+                    {trackedRecord.status?.toUpperCase() || 'IN REVIEW'}
+                  </span>
                 </div>
-              )}
-            </div>
-          )}
-        </section>
+                <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#334155' }}>
+                  {trackedRecord.feedback_content}
+                </p>
+                {trackedRecord.resolution_notes && (
+                  <div
+                    style={{
+                      marginTop: '8px',
+                      padding: '8px',
+                      background: '#ffffff',
+                      borderRadius: '6px',
+                      border: '1px solid #dce6e5',
+                      fontSize: '12px',
+                    }}
+                  >
+                    <b>{t('Official Response')}:</b> {trackedRecord.resolution_notes}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )}
       </main>
     </div>
   );

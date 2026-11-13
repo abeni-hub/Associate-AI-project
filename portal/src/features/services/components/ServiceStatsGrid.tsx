@@ -14,8 +14,8 @@ export interface ServiceStatsGridProps {
 export const ServiceStatsGrid: React.FC<ServiceStatsGridProps> = ({ stats }) => {
   return (
     <div className="service-stats-grid">
-      <div className="service-stat-card">
-        <div className="service-stat-icon">
+      <div className="service-stat-card tone-teal">
+        <div className="service-stat-icon tone-teal">
           <Icon name="layers" size={20} />
         </div>
         <div className="service-stat-info">
@@ -23,8 +23,8 @@ export const ServiceStatsGrid: React.FC<ServiceStatsGridProps> = ({ stats }) => 
           <small>Master Categories</small>
         </div>
       </div>
-      <div className="service-stat-card">
-        <div className="service-stat-icon">
+      <div className="service-stat-card tone-blue">
+        <div className="service-stat-icon tone-blue">
           <Icon name="file" size={20} />
         </div>
         <div className="service-stat-info">
@@ -32,8 +32,8 @@ export const ServiceStatsGrid: React.FC<ServiceStatsGridProps> = ({ stats }) => 
           <small>Citizen Subservices</small>
         </div>
       </div>
-      <div className="service-stat-card">
-        <div className="service-stat-icon">
+      <div className="service-stat-card tone-gold">
+        <div className="service-stat-icon tone-gold">
           <Icon name="building" size={20} />
         </div>
         <div className="service-stat-info">
@@ -41,8 +41,8 @@ export const ServiceStatsGrid: React.FC<ServiceStatsGridProps> = ({ stats }) => 
           <small>Delivery Offices</small>
         </div>
       </div>
-      <div className="service-stat-card">
-        <div className="service-stat-icon">
+      <div className="service-stat-card tone-sage">
+        <div className="service-stat-icon tone-sage">
           <Icon name="check" size={20} />
         </div>
         <div className="service-stat-info">

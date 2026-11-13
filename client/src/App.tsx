@@ -8,6 +8,33 @@ import { QrFeedbackPage } from './features/feedback'
 import { useGetLandingPageCmsQuery } from './features/cms'
 import type { FeedType, Language, NewsEventItem } from './types/newsEvents'
 
+function isFeedbackOrQrRoute(path: string, hash: string, search: string): boolean {
+  const p = path.toLowerCase()
+  const h = hash.toLowerCase()
+  const s = new URLSearchParams(search)
+  const hs = hash.includes('?') ? new URLSearchParams(hash.split('?')[1]) : null
+
+  return (
+    p === '/feedback' ||
+    p.startsWith('/feedback') ||
+    p.startsWith('/qr') ||
+    p.startsWith('/guide') ||
+    h === '#feedback' ||
+    h.startsWith('#feedback') ||
+    h === '#/feedback' ||
+    h.startsWith('#/feedback') ||
+    h.startsWith('#/qr') ||
+    h.startsWith('#qr') ||
+    h.startsWith('#guide') ||
+    h.startsWith('#/guide') ||
+    s.has('code') ||
+    s.has('bureau') ||
+    s.has('feedback') ||
+    (s.has('org') && !h.startsWith('#find')) ||
+    (hs !== null && (hs.has('code') || hs.has('bureau') || hs.has('feedback')))
+  )
+}
+
 function App() {
   const { data: apiCmsData } = useGetLandingPageCmsQuery(undefined, {
     refetchOnMountOrArgChange: true,
@@ -40,19 +67,10 @@ function App() {
     return match ? match[2] : null
   })
   const [currentView, setCurrentView] = useState<'home' | 'news-events' | 'detail' | 'feedback'>(() => {
-    const path = window.location.pathname.toLowerCase()
-    const hash = window.location.hash.toLowerCase()
-    if (
-      path === '/feedback' ||
-      path.startsWith('/feedback') ||
-      path.startsWith('/qr') ||
-      hash.startsWith('#/feedback') ||
-      hash.startsWith('#feedback') ||
-      hash.startsWith('#/qr') ||
-      hash.startsWith('#qr')
-    ) {
+    if (isFeedbackOrQrRoute(window.location.pathname, window.location.hash, window.location.search)) {
       return 'feedback'
     }
+    const hash = window.location.hash.toLowerCase()
     if (hash.startsWith('#/news/') || hash.startsWith('#/event/')) {
       return 'detail'
     }
@@ -120,17 +138,7 @@ function App() {
       const lower = hash.toLowerCase()
 
       // 1. Direct feedback or QR scan route -> Dedicated Feedback & Service Guide Page
-      if (
-        path === '/feedback' ||
-        path.startsWith('/feedback') ||
-        path.startsWith('/qr') ||
-        lower === '#/feedback' ||
-        lower.startsWith('#/feedback') ||
-        lower === '#feedback' ||
-        lower.startsWith('#feedback') ||
-        lower.startsWith('#/qr') ||
-        lower.startsWith('#qr')
-      ) {
+      if (isFeedbackOrQrRoute(path, hash, window.location.search)) {
         setCurrentView('feedback')
         setDetailItemId(null)
         window.scrollTo({ top: 0, behavior: 'smooth' })

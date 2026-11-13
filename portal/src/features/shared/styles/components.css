@@ -164,7 +164,7 @@ button.primary svg {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 13px;
+  gap: 14px;
   margin-bottom: 24px;
 }
 
@@ -172,47 +172,59 @@ button.primary svg {
   min-height: 76px;
   display: flex;
   align-items: center;
-  gap: 13px;
-  padding: 13px 16px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  box-shadow: 0 2px 5px rgba(25, 63, 53, 0.05);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  gap: 14px;
+  padding: 16px 18px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 50, 60, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 36, 46, 0.03), 0 4px 16px -2px rgba(0, 36, 46, 0.02);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease;
 }
 .stat-card:hover {
   transform: translateY(-2px);
-  border-color: #bccdc8;
-  box-shadow: 0 8px 24px rgba(7, 83, 99, 0.1);
+  border-color: rgba(0, 72, 90, 0.18);
+  box-shadow: 0 10px 25px -5px rgba(0, 48, 59, 0.08), 0 3px 8px -2px rgba(0, 48, 59, 0.03);
 }
 
 .stat-icon {
-  width: 39px;
-  height: 39px;
-  display: grid;
-  place-items: center;
-  color: var(--primary);
-  background: var(--secondary);
-  border-radius: 9px;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00485a;
+  background: rgba(0, 72, 90, 0.07);
+  border: 1px solid rgba(0, 72, 90, 0.12);
+  border-radius: 10px;
   flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.stat-card:hover .stat-icon {
+  transform: scale(1.05);
 }
 .stat-icon svg {
-  width: 19px;
-  height: 19px;
+  width: 20px;
+  height: 20px;
 }
 
 .stat-card strong {
   display: block;
-  color: #083f49;
-  font-size: 22px;
+  color: #00242e;
+  font-size: 24px;
   line-height: 1.1;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-family-display, 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif);
 }
 .stat-card small {
   display: block;
   margin-top: 4px;
-  color: #788b85;
-  font-size: 11px;
-  font-weight: 600;
+  color: #556e75;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
