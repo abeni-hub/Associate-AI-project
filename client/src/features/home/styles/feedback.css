@@ -362,6 +362,14 @@
   border: 1px solid #cbd5e1;
   font-size: 13px;
   background: #fcfdfb;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.feedback-contact-label input:focus {
+  border-color: #00485a;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 72, 90, 0.14);
 }
 
 .feedback-select-wrap {

@@ -341,7 +341,18 @@
     "officialResponse": "Official Resolution Response",
     "respondAndResolve": "Submit Resolution",
     "searchPlaceholder": "Search by citizen name, tracking code, keywords...",
-    "emptyNotice": "No feedback inquiries found"
+    "emptyNotice": "No feedback inquiries found",
+    "statusUpdated": "Status updated successfully.",
+    "responseSent": "Official response submitted and ticket marked as resolved.",
+    "itemDeleted": "Feedback item removed.",
+    "confirmDelete": "Are you sure you want to permanently delete this feedback submission?",
+    "requireResponse": "Please enter an official response before submitting.",
+    "subCitySuffix": "Sub-city",
+    "queueNote": "Active citizen queue",
+    "awaitingReviewNote": "Awaiting review",
+    "investigatedNote": "Actively investigated",
+    "resolvedCasesNote": "resolved cases",
+    "inputLanguage": "Response Language:"
   },
   "qr": {
     "eyebrow": "PHYSICAL DESK CITIZEN ENGAGEMENT",

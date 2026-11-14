@@ -420,11 +420,42 @@ export default function QrFeedbackPage({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // Toggle tag helper
+  // Toggle tag helper & auto-fill description in form
   function handleToggleTag(tag: string) {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
+    const isSelected = selectedTags.includes(tag);
+    const nextTags = isSelected
+      ? selectedTags.filter((t) => t !== tag)
+      : [...selectedTags, tag];
+
+    setSelectedTags(nextTags);
+
+    const tagText = t(tag);
+
+    setMessage((prev) => {
+      const trimmed = prev.trim();
+
+      if (!isSelected) {
+        // Tag is selected: fill or append to description
+        if (!trimmed) {
+          return tagText;
+        }
+        if (!trimmed.includes(tagText)) {
+          return `${trimmed}. ${tagText}`;
+        }
+        return prev;
+      } else {
+        // Tag is deselected: remove from description
+        if (nextTags.length === 0) {
+          if (trimmed === tagText) {
+            return '';
+          }
+        }
+        const parts = trimmed
+          .split(/\s*[\.\,\፤\።]\s*/)
+          .filter((p) => p && p !== tagText);
+        return parts.join('. ');
+      }
+    });
   }
 
   // File upload handler

@@ -341,7 +341,18 @@
     "officialResponse": "Deebii Murtii Mootummaa",
     "respondAndResolve": "Murtii Ergi",
     "searchPlaceholder": "Maqaa lammichaan, koodii hordooffiin barbaadi...",
-    "emptyNotice": "Yaadni dhiyaate hin jiru"
+    "emptyNotice": "Yaadni dhiyaate hin jiru",
+    "statusUpdated": "Haalli isaa milkaa'inaan haaromeera.",
+    "responseSent": "Deebiin mootummaa ergameera; dhimmi isaas furmaata argateera.",
+    "itemDeleted": "Yaanni sun haqameera.",
+    "confirmDelete": "Iyyata yaada lammii kana haquuf mirkanaa'aadhaa?",
+    "requireResponse": "Maaloo erguun dura deebii mootummaa barreessaa.",
+    "subCitySuffix": "Kutaa Magaalaa",
+    "queueNote": "Dabaree lammiilee socho'aa",
+    "awaitingReviewNote": "Gamaaggama eegaa jira",
+    "investigatedNote": "Qoratamaa kan jiru",
+    "resolvedCasesNote": "dhimmoota furmaata argatan",
+    "inputLanguage": "Afaan Deebii:"
   },
   "qr": {
     "eyebrow": "HIRMAANNAA LAMMIILEEQ MINJAALAA",

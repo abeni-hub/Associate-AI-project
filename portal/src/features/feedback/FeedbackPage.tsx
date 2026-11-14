@@ -22,8 +22,9 @@ import {
   ThumbsUp,
   HelpCircle,
   Download,
+  Globe,
 } from 'lucide-react';
-import { useLanguage, getLocalizedText } from '../shared/i18n';
+import { useLanguage, getLocalizedText, type SupportedLanguage } from '../shared/i18n';
 import { FeedbackMetricsGrid } from './components/FeedbackMetricsGrid';
 import {
   useGetFeedbackListQuery,
@@ -85,17 +86,44 @@ export function parseFeedbackContent(rawContent?: string | null): ParsedFeedback
       const key = part.slice(0, colonIdx).trim().toLowerCase();
       const val = part.slice(colonIdx + 1).trim();
 
-      if (key === 'sub-city' || key === 'subcity') {
+      if (
+        key === 'sub-city' ||
+        key === 'subcity' ||
+        key === 'ክፍለ ከተማ' ||
+        key === 'kutaa magaalaa'
+      ) {
         context.subCity = val;
-      } else if (key === 'office' || key === 'department' || key === 'bureau') {
+      } else if (
+        key === 'office' ||
+        key === 'department' ||
+        key === 'bureau' ||
+        key === 'ቢሮ' ||
+        key === 'biiroo'
+      ) {
         context.office = val;
-      } else if (key === 'service') {
+      } else if (
+        key === 'service' ||
+        key === 'አገልግሎት' ||
+        key === 'tajaajila'
+      ) {
         context.service = val;
-      } else if (key === 'rating') {
+      } else if (
+        key === 'rating' ||
+        key === 'ደረጃ' ||
+        key === 'sadarkaa'
+      ) {
         context.rating = val;
-      } else if (key === 'aspects') {
+      } else if (
+        key === 'aspects' ||
+        key === 'ምክንያቶች' ||
+        key === 'dhimmoota'
+      ) {
         context.aspects = val;
-      } else if (key === 'attached') {
+      } else if (
+        key === 'attached' ||
+        key === 'አባሪ' ||
+        key === 'dabalee'
+      ) {
         context.attached = val;
       } else {
         context.otherTags.push(part);
@@ -118,7 +146,10 @@ export const FeedbackPage: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<'All' | 'complaint' | 'feedback' | 'satisfaction'>('All');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | number | null>(null);
-  const [responseText, setResponseText] = useState('');
+  const [responseLang, setResponseLang] = useState<SupportedLanguage>('en');
+  const [responseTextEn, setResponseTextEn] = useState('');
+  const [responseTextAm, setResponseTextAm] = useState('');
+  const [responseTextOm, setResponseTextOm] = useState('');
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
 
   const { data: apiFeedback, isLoading, refetch } = useGetFeedbackListQuery(undefined, {
@@ -157,7 +188,7 @@ export const FeedbackPage: React.FC = () => {
       if (!q) return true;
 
       const name = String(item.full_name || '').toLowerCase();
-      const content = (getLocalizedText(item.feedback_content as any, language) || (typeof item.message === 'string' ? item.message : '')).toLowerCase();
+      const content = (getLocalizedText(item.feedback_content_localized || item.feedback_content as any, language) || (typeof item.message === 'string' ? item.message : '')).toLowerCase();
       const tracking = String(item.tracking_number || '').toLowerCase();
       const bureau = (getLocalizedText(item.organization?.name as any, language) || (typeof item.bureau === 'string' ? item.bureau : '')).toLowerCase();
 
@@ -169,7 +200,7 @@ export const FeedbackPage: React.FC = () => {
         String(item.id).includes(q)
       );
     });
-  }, [items, search, statusFilter, typeFilter]);
+  }, [items, search, statusFilter, typeFilter, language]);
 
   // Auto-select first item if none selected or if selected was deleted
   useEffect(() => {
@@ -189,20 +220,30 @@ export const FeedbackPage: React.FC = () => {
   const activeParsed = useMemo(() => {
     if (!activeItem) return { actualMessage: '', context: { otherTags: [] } };
     const raw =
-      getLocalizedText(activeItem.feedback_content as any, language) ||
+      getLocalizedText(activeItem.feedback_content_localized || activeItem.feedback_content as any, language) ||
       (typeof activeItem.feedback_content === 'string' ? activeItem.feedback_content : '') ||
       (typeof activeItem.message === 'string' ? activeItem.message : '');
     return parseFeedbackContent(raw);
   }, [activeItem, language]);
 
-  // Keep response text pre-filled with existing response if available
+  // Keep response texts pre-filled with existing localized response if available
   useEffect(() => {
     if (activeItem) {
-      setResponseText(activeItem.response || '');
+      const respObj = activeItem.response_localized;
+      const initialEn = (typeof activeItem.response === 'string' ? activeItem.response : '') || respObj?.eng || '';
+      const initialAm = activeItem.response_amh || respObj?.amh || '';
+      const initialOm = activeItem.response_oro || respObj?.oro || '';
+
+      setResponseTextEn(initialEn);
+      setResponseTextAm(initialAm);
+      setResponseTextOm(initialOm);
+      setResponseLang(language);
     } else {
-      setResponseText('');
+      setResponseTextEn('');
+      setResponseTextAm('');
+      setResponseTextOm('');
     }
-  }, [activeItem]);
+  }, [activeItem, language]);
 
   const showFeedbackNotice = (msg: string) => {
     setActionSuccessMsg(msg);
@@ -211,13 +252,16 @@ export const FeedbackPage: React.FC = () => {
 
   const handleSetStatus = async (newStatus: 'in_review' | 'resolved' | 'closed') => {
     if (!activeItem) return;
+    const primaryResponse = responseTextEn.trim() || responseTextAm.trim() || responseTextOm.trim();
     try {
       await updateStatusTrigger({
         id: activeItem.id,
         status: newStatus,
-        response: responseText.trim() || undefined,
+        response: primaryResponse || undefined,
+        response_amh: responseTextAm.trim() || undefined,
+        response_oro: responseTextOm.trim() || undefined,
       }).unwrap();
-      showFeedbackNotice(`Status updated to ${newStatus.replace('_', ' ')}.`);
+      showFeedbackNotice(t('feedback.statusUpdated', 'Status updated successfully.'));
       await refetch();
     } catch (err: any) {
       window.alert(err?.data?.message || 'Failed to update status.');
@@ -226,17 +270,20 @@ export const FeedbackPage: React.FC = () => {
 
   const handleSendResponse = async () => {
     if (!activeItem) return;
-    if (!responseText.trim()) {
-      window.alert('Please enter an official response before submitting.');
+    const primaryResponse = responseTextEn.trim() || responseTextAm.trim() || responseTextOm.trim();
+    if (!primaryResponse) {
+      window.alert(t('feedback.requireResponse', 'Please enter an official response before submitting.'));
       return;
     }
     try {
       await updateStatusTrigger({
         id: activeItem.id,
         status: 'resolved',
-        response: responseText.trim(),
+        response: primaryResponse,
+        response_amh: responseTextAm.trim() || undefined,
+        response_oro: responseTextOm.trim() || undefined,
       }).unwrap();
-      showFeedbackNotice('Official response submitted and ticket marked as resolved.');
+      showFeedbackNotice(t('feedback.responseSent', 'Official response submitted and ticket marked as resolved.'));
       await refetch();
     } catch (err: any) {
       window.alert(err?.data?.message || 'Failed to send response.');
@@ -245,10 +292,10 @@ export const FeedbackPage: React.FC = () => {
 
   const handleDelete = async () => {
     if (!activeItem) return;
-    if (window.confirm('Are you sure you want to permanently delete this feedback submission?')) {
+    if (window.confirm(t('feedback.confirmDelete', 'Are you sure you want to permanently delete this feedback submission?'))) {
       try {
         await deleteTrigger(activeItem.id).unwrap();
-        showFeedbackNotice('Feedback item removed.');
+        showFeedbackNotice(t('feedback.itemDeleted', 'Feedback item removed.'));
         setSelectedId(null);
         await refetch();
       } catch (err: any) {
@@ -657,7 +704,7 @@ export const FeedbackPage: React.FC = () => {
                     {activeParsed.context.subCity && (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-50 border border-teal-200/70 text-xs font-semibold text-[#064552]">
                         <MapPin size={12} className="text-[#064552] flex-shrink-0" />
-                        <span>{activeParsed.context.subCity} {activeParsed.context.subCity.toLowerCase().includes('sub-city') ? '' : 'Sub-city'}</span>
+                        <span>{activeParsed.context.subCity} {activeParsed.context.subCity.toLowerCase().includes('sub-city') ? '' : t('feedback.subCitySuffix', 'Sub-city')}</span>
                       </span>
                     )}
 
@@ -697,29 +744,94 @@ export const FeedbackPage: React.FC = () => {
                 </div>
 
                 {/* Existing Official Response if Any */}
-                {activeItem.response && (
+                {(activeItem.response || activeItem.response_amh || activeItem.response_oro || activeItem.response_localized) && (
                   <div>
-                    <h4 className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <ShieldCheck size={14} className="text-emerald-600" />
-                      {t('feedback.recordedResponse', 'Official Response')}
-                    </h4>
-                    <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200 text-sm text-slate-800 leading-relaxed">
-                      {getLocalizedText(activeItem.response as any, language) || (typeof activeItem.response === 'string' ? activeItem.response : '')}
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <h4 className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <ShieldCheck size={14} className="text-emerald-600" />
+                        {t('feedback.recordedResponse', 'Official Response')}
+                      </h4>
+                      <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium">
+                        {(activeItem.response || activeItem.response_localized?.eng) && (
+                          <span className="px-1.5 py-0.5 rounded bg-slate-100 font-mono">EN</span>
+                        )}
+                        {(activeItem.response_amh || activeItem.response_localized?.amh) && (
+                          <span className="px-1.5 py-0.5 rounded bg-slate-100 font-mono">AM</span>
+                        )}
+                        {(activeItem.response_oro || activeItem.response_localized?.oro) && (
+                          <span className="px-1.5 py-0.5 rounded bg-slate-100 font-mono">OM</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200 text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">
+                      {getLocalizedText(activeItem.response_localized || (activeItem.response as any), language) ||
+                        (typeof activeItem.response === 'string' ? activeItem.response : '') ||
+                        activeItem.response_amh ||
+                        activeItem.response_oro}
                     </div>
                   </div>
                 )}
 
                 {/* Inline Official Action Form */}
                 <div className="pt-2 border-t border-slate-100 space-y-3">
-                  <label className="block text-xs font-bold text-slate-700">
-                    {t('feedback.composeResponse', 'Official Response')}
-                  </label>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <label className="block text-xs font-bold text-slate-700">
+                      {t('feedback.composeResponse', 'Official Response')}
+                    </label>
+
+                    {/* Multilingual Response Input Switcher */}
+                    <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-lg border border-slate-200/70">
+                      <Globe size={13} className="text-[#064552] ml-1.5 mr-0.5" />
+                      {(['en', 'am', 'om'] as const).map((l) => {
+                        const hasContent =
+                          l === 'en'
+                            ? Boolean(responseTextEn.trim())
+                            : l === 'am'
+                            ? Boolean(responseTextAm.trim())
+                            : Boolean(responseTextOm.trim());
+                        return (
+                          <button
+                            key={l}
+                            type="button"
+                            onClick={() => setResponseLang(l)}
+                            className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                              responseLang === l
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            <span>{l === 'en' ? 'English' : l === 'am' ? 'አማርኛ' : 'Oromoo'}</span>
+                            {hasContent && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-teal-600" title="Has response text" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
                   <textarea
                     rows={4}
-                    value={responseText}
-                    onChange={(e) => setResponseText(e.target.value)}
-                    placeholder={t('feedback.responsePlaceholder', 'Write an official response or resolution notes for the citizen...')}
+                    value={
+                      responseLang === 'en'
+                        ? responseTextEn
+                        : responseLang === 'am'
+                        ? responseTextAm
+                        : responseTextOm
+                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (responseLang === 'en') setResponseTextEn(val);
+                      else if (responseLang === 'am') setResponseTextAm(val);
+                      else setResponseTextOm(val);
+                    }}
+                    placeholder={
+                      responseLang === 'am'
+                        ? 'ይፋዊ የምርመራ ውጤት፣ የውሳኔ እርምጃዎችን ወይም ለዜጋው የሚሰጡ መመሪያዎችን እዚህ ይፃፉ...'
+                        : responseLang === 'om'
+                        ? "Bu'aa qorannoo, tarkaanfiiwwan furmaataa, yookiin qajeelfama lammiidhaaf ta'u asitti barreessaa..."
+                        : t('feedback.responsePlaceholder', 'Write an official response or resolution notes for the citizen...')
+                    }
                     className="w-full p-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#064552] focus:ring-1 focus:ring-[#064552]/20 transition-all"
                   />
 
@@ -748,7 +860,7 @@ export const FeedbackPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleSendResponse}
-                      disabled={isUpdatingStatus || !responseText.trim()}
+                      disabled={isUpdatingStatus || (!responseTextEn.trim() && !responseTextAm.trim() && !responseTextOm.trim())}
                       className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-[#064552] text-white hover:bg-[#085a6a] transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
                     >
                       <Send size={14} />

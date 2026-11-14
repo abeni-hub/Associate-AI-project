@@ -39,6 +39,12 @@
   font-size: var(--font-size-sm);
 }
 
+.input:focus,
+.input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 .input::placeholder {
   color: var(--muted);
 }

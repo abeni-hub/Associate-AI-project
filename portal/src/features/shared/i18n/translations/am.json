@@ -341,7 +341,18 @@
     "officialResponse": "ይፋዊ የውሳኔ ምላሽ",
     "respondAndResolve": "ምላሽ ሰጥተህ ጨርስ",
     "searchPlaceholder": "በዜጋው ስም፣ በመከታተያ ኮድ ወይም በቃላት ይፈልጉ...",
-    "emptyNotice": "ምንም የቀረበ አስተያየት አልተገኘም"
+    "emptyNotice": "ምንም የቀረበ አስተያየት አልተገኘም",
+    "statusUpdated": "ሁኔታው በተሳካ ሁኔታ ተቀይሯል።",
+    "responseSent": "ይፋዊ ምላሽ ተልኳል፤ ጉዳዩም እንደተፈታ ተመዝግቧል።",
+    "itemDeleted": "አስተያየቱ ተሰርዟል።",
+    "confirmDelete": "ይህን የዜጋ አስተያየት በቋሚነት መሰረዝ እንደሚፈልጉ እርግጠኛ ነዎት?",
+    "requireResponse": "እባክዎን ከማስገባትዎ በፊት ይፋዊ ምላሽ ይጻፉ።",
+    "subCitySuffix": "ክፍለ ከተማ",
+    "queueNote": "ንቁ የዜጎች ተራ",
+    "awaitingReviewNote": "ግምገማ በመጠባበቅ ላይ",
+    "investigatedNote": "በምርመራ ላይ ያለ",
+    "resolvedCasesNote": "የተፈቱ ጉዳዮች",
+    "inputLanguage": "የምላሽ ቋንቋ፦"
   },
   "qr": {
     "eyebrow": "የአገልግሎት መስኮት ኪውአር ትስስር",

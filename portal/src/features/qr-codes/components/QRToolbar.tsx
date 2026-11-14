@@ -1,6 +1,5 @@
 import React from 'react';
-import { SearchBox } from '../../shared';
-import { Icon } from '../../shared';
+import { QrCode, RotateCcw, Search, X } from 'lucide-react';
 import type { QRToolbarProps } from '../types/qrCodes.types';
 import styles from '../styles/qrToolbar.module.css';
 
@@ -12,58 +11,94 @@ export const QRToolbar: React.FC<QRToolbarProps> = ({
   statusFilter,
   onStatusFilterChange,
   organizations,
-  canManage,
-  onAddPoster,
 }) => {
+  const hasActiveFilters = Boolean(
+    search.trim() ||
+    (officeFilter && officeFilter !== 'All offices') ||
+    (statusFilter && statusFilter !== 'All statuses')
+  );
+
+  const handleResetFilters = () => {
+    onSearchChange('');
+    onOfficeFilterChange('All offices');
+    onStatusFilterChange('All statuses');
+  };
+
   return (
     <div className={styles.toolbar}>
+      {/* 1. Header with Brand Icon */}
       <div className={styles.intro}>
-        <h2 className={styles.title}>Configured QR posters</h2>
-        <p className={styles.description}>
-          Physical display tokens and scannable citizen touchpoints across jurisdictions.
-        </p>
+        <div className={styles.titleRow}>
+          <div className={styles.titleIconBadge}>
+            <QrCode size={18} strokeWidth={2.2} />
+          </div>
+          <h2 className={styles.title}>Configured QR posters</h2>
+        </div>
       </div>
 
+      {/* 2. Interactive Tools, Filter Controls & Primary Action */}
       <div className={styles.tools}>
-        <SearchBox
-          value={search}
-          onChange={onSearchChange}
-          placeholder="Search posters or codes..."
-        />
+        <div className={styles.searchBar}>
+          <Search size={15} strokeWidth={2.2} className={styles.searchIcon} />
+          <input
+            type="text"
+            className={styles.searchInput}
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search posters or codes..."
+            aria-label="Search posters or codes"
+          />
+          {search && (
+            <button
+              type="button"
+              className={styles.clearButton}
+              onClick={() => onSearchChange('')}
+              aria-label="Clear search"
+              title="Clear search"
+            >
+              <X size={11} strokeWidth={2.5} />
+            </button>
+          )}
+        </div>
 
-        <select
-          className={styles.select}
-          value={officeFilter}
-          onChange={(e) => onOfficeFilterChange(e.target.value)}
-          aria-label="Filter by office"
-        >
-          <option>All offices</option>
-          {organizations.map((org) => (
-            <option key={org.id} value={org.name}>
-              {org.name}
-            </option>
-          ))}
-        </select>
+        <div className={styles.selectWrapper}>
+          <select
+            className={styles.select}
+            value={officeFilter}
+            onChange={(e) => onOfficeFilterChange(e.target.value)}
+            aria-label="Filter by office"
+          >
+            <option value="All offices">All offices</option>
+            {organizations.map((org) => (
+              <option key={org.id} value={org.name}>
+                {org.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <select
-          className={styles.select}
-          value={statusFilter}
-          onChange={(e) => onStatusFilterChange(e.target.value)}
-          aria-label="Filter by status"
-        >
-          <option>All statuses</option>
-          <option>Active</option>
-          <option>Inactive</option>
-        </select>
+        <div className={styles.selectWrapper}>
+          <select
+            className={styles.select}
+            value={statusFilter}
+            onChange={(e) => onStatusFilterChange(e.target.value)}
+            aria-label="Filter by status"
+          >
+            <option value="All statuses">All statuses</option>
+            <option value="Active">Active only</option>
+            <option value="Inactive">Inactive only</option>
+          </select>
+        </div>
 
-        {canManage && (
+        {hasActiveFilters && (
           <button
             type="button"
-            className={styles.addButton}
-            onClick={onAddPoster}
+            className={styles.resetButton}
+            onClick={handleResetFilters}
+            title="Reset active filters"
           >
-            <Icon name="plus" size={14} />
-            <span>Add poster</span>
+            <RotateCcw size={13} strokeWidth={2.2} />
+            <span>Reset</span>
           </button>
         )}
       </div>
@@ -72,4 +107,3 @@ export const QRToolbar: React.FC<QRToolbarProps> = ({
 };
 
 export default QRToolbar;
-

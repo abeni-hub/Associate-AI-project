@@ -6,7 +6,8 @@
 .table-toolbar .toolbar-tools { width: min(100%, 820px); }
 .search-box { min-width: 220px; height: 39px; display: inline-flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid #e1e8e2; border-radius: 4px; background: #fff; color: #8a9d95; }.search-box:focus-within { border-color: #9bbab4; box-shadow: 0 0 0 3px rgba(118,166,165,.12); }
 .table-toolbar .search-box { width: 100%; max-width: 540px; min-width: 245px; flex: 1 1 360px; }
-.search-box input { min-width: 0; width: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: #34565a; font-size: 13px; }.search-box input::placeholder { color: #a0aaa4; }.search-box button { display: grid; place-items: center; padding: 2px; border: 0; background: transparent; color: #879790; cursor: pointer; }
+.search-box input { min-width: 0; width: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: #34565a; font-size: 13px; }
+.search-box input:focus, .search-box input:focus-visible { outline: 0 !important; box-shadow: none !important; }.search-box input::placeholder { color: #a0aaa4; }.search-box button { display: grid; place-items: center; padding: 2px; border: 0; background: transparent; color: #879790; cursor: pointer; }
 .filter-select { height: 39px; flex: 0 0 155px; padding: 0 25px 0 10px; border: 1px solid #e1e8e2; border-radius: 4px; background: #fff; color: #647870; font-size: 13px; cursor: pointer; }
 .service-toolbar > .search-box { width: min(100%, 540px); min-width: 230px; flex: 1 1 360px; }
 .route-toolbar > div:first-child { min-width: 0; flex: 1 1 280px; }

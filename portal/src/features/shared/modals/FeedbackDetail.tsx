@@ -146,7 +146,7 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
             </span>
           )}
         </div>
-        <blockquote>"{getLocalizedText(item.message as any, language) || (typeof item.message === 'string' ? item.message : '')}"</blockquote>
+        <blockquote>"{getLocalizedText((item as any).feedback_content_localized || (item as any).feedback_content || item.message, language) || (typeof item.message === 'string' ? item.message : '')}"</blockquote>
         <div className="detail-status-section" style={{ margin: '1rem 0' }}>
           <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '8px' }}>
             Follow-up Resolution Status
