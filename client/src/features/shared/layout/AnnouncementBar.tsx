@@ -1,7 +1,14 @@
 import Icon from '../components/Icon'
 import '../styles/layout.css'
 
-export default function AnnouncementBar({ t, onNavigateToHomeSection, announcement, language }) {
+export interface AnnouncementBarProps {
+  t: (key: string, fallback?: string) => string
+  onNavigateToHomeSection: (sectionId: string) => void
+  announcement?: any
+  language?: string
+}
+
+export default function AnnouncementBar({ t, onNavigateToHomeSection, announcement, language }: AnnouncementBarProps) {
   if (announcement?.enabled === false) return null
 
   const message = (language === 'am' && announcement?.messageAm) || announcement?.message || 'One clear place to plan your next public service visit'

@@ -185,6 +185,7 @@ export interface PostItem {
   coverImage?: string;
   images?: string[];
   organization_id?: number;
+  organization?: any;
   contents?: any[];
   author?: {
     name?: string;

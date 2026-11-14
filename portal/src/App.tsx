@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import { PortalProvider } from './context';
-import { I18nProvider } from './i18n/i18nContext';
+import { I18nProvider } from './features/shared/i18n';
 import { AppRoutes } from './routes/AppRoutes';
 import './App.css';
 
@@ -9,9 +8,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <I18nProvider>
-        <PortalProvider>
-          <AppRoutes />
-        </PortalProvider>
+        <AppRoutes />
       </I18nProvider>
     </BrowserRouter>
   );

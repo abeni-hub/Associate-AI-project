@@ -1,0 +1,224 @@
+.panel {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  padding: 29px clamp(28px, 5vw, 78px) 22px;
+  background: var(--paper);
+}
+
+.panelTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+}
+
+.secureLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.12em;
+}
+
+.languageChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.66);
+  color: var(--color-text-soft);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.content {
+  width: min(100%, 428px);
+  margin: auto;
+  padding: 34px 0 24px;
+}
+
+.mobileBrand {
+  display: none;
+  margin-bottom: var(--space-4);
+}
+
+.kicker {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 12px 0 10px;
+  color: var(--ink-deep);
+  font-family: var(--font-family-display);
+  font-size: clamp(36px, 3.1vw, 46px);
+  font-weight: 650;
+  line-height: 1.13;
+  letter-spacing: -0.065em;
+}
+
+.titleDot {
+  color: var(--gold);
+}
+
+.intro {
+  margin-bottom: 27px;
+  color: var(--muted);
+  font-size: var(--font-size-base);
+  line-height: 1.75;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  margin-bottom: var(--space-2);
+  color: #284d53;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.labelRow > .label {
+  margin-bottom: 0;
+}
+
+.forgotButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #628a8b;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.forgotButton:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.inputShell {
+  height: 47px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 13px;
+  border: 1px solid #d8e2df;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.76);
+  color: #719096;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast), background var(--duration-fast);
+}
+
+.inputShell:focus-within {
+  border-color: #6d9da0;
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(118, 166, 165, 0.13);
+}
+
+.input {
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink-deep);
+  font-size: var(--font-size-sm);
+}
+
+.input::placeholder {
+  color: #9aa9a4;
+}
+
+.eyeButton {
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border: 0;
+  background: transparent;
+  color: #839792;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+}
+
+.errorBanner {
+  margin-top: 12px;
+  padding: 9px 11px;
+  border-left: 3px solid #bd8158;
+  border-radius: var(--radius-xs);
+  background: #fbf2e9;
+  color: #89593d;
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+  animation: fadeIn var(--duration-fast) var(--ease-standard);
+}
+
+.submitButton {
+  width: 100%;
+  height: 47px;
+  justify-content: space-between;
+  margin-top: 18px;
+  padding-inline: 17px;
+  font-size: var(--font-size-sm);
+}
+
+.securityNotice {
+  margin-top: 1.75rem;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(22, 74, 84, 0.04);
+  border: 1px solid rgba(22, 74, 84, 0.1);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: var(--font-size-xs);
+  color: #415e63;
+  line-height: 1.5;
+}
+
+.securityNoticeIcon {
+  color: #164a54;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.panelFooter {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding-top: 14px;
+  border-top: 1px solid #e4eae6;
+  color: #98a49c;
+  font-size: var(--font-size-xs);
+}
+
+@media (max-width: 980px) {
+  .mobileBrand {
+    display: block;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+

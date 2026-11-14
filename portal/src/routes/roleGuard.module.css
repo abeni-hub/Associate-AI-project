@@ -1,0 +1,44 @@
+.accessDeniedPanel {
+  max-width: 540px;
+  margin: var(--space-12) auto;
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  background: var(--white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.shieldIconWrapper {
+  display: inline-flex;
+  padding: var(--space-4);
+  background: var(--color-status-danger-bg);
+  color: var(--color-status-danger-text);
+  border-radius: var(--radius-full);
+  margin-bottom: var(--space-4);
+}
+
+.title {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--ink-deep);
+  margin-bottom: var(--space-2);
+}
+
+.description {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--space-6);
+}
+
+.verifyingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+

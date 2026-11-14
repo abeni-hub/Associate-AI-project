@@ -27,13 +27,15 @@ interface IconProps {
   size?: number | string;
   strokeWidth?: number | string;
   className?: string;
+  style?: React.CSSProperties;
 }
 
-export default function Icon({ name, size = 20, strokeWidth = 1.8, className = '' }: IconProps) {
+export default function Icon({ name, size = 20, strokeWidth = 1.8, className = '', style }: IconProps) {
   return (
     <svg
       aria-hidden="true"
       className={className}
+      style={style}
       width={size}
       height={size}
       viewBox="0 0 24 24"

@@ -1,1 +1,2 @@
-export { FeedbackPage } from './FeedbackPage';
+export { FeedbackPage, default } from './FeedbackPage';
+export * from './api/feedbackApi';

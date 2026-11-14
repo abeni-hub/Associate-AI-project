@@ -1,0 +1,1245 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { Icon } from '../../shared';
+import { useGetDocumentsQuery } from '../../documents';
+import { useGetOrganizationsQuery } from '../../organizations';
+import { useGetServicesQuery } from '../api/servicesApi';
+
+export interface ServiceModalProps {
+  service?: any | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (payload: any) => Promise<void> | void;
+  isLoading?: boolean;
+}
+
+const slugify = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+interface SelectedDocMeta {
+  is_mandatory: boolean;
+  notes: string;
+  order_column: number;
+}
+
+export const ServiceModal: React.FC<ServiceModalProps> = ({
+  service,
+  isOpen,
+  onClose,
+  onSave,
+  isLoading = false,
+}) => {
+  const { data: docsResponse, isLoading: isLoadingDocs } = useGetDocumentsQuery();
+  const availableDocuments = useMemo(() => docsResponse?.data || [], [docsResponse]);
+
+  const { data: orgsResponse } = useGetOrganizationsQuery({ per_page: 100 });
+  const organizations = useMemo(() => orgsResponse?.data || [], [orgsResponse]);
+
+  const { subcities, bureaus, subcityHierarchy, bureauHierarchy } = useMemo(() => {
+    const subs: typeof organizations = [];
+    const burs: typeof organizations = [];
+    const orgMap = new Map<number, any>();
+    organizations.forEach((o: any) => orgMap.set(o.id, { ...o, children: [] }));
+
+    const subList: any[] = [];
+    const burList: any[] = [];
+    const childSet = new Set<number>();
+
+    organizations.forEach((o: any) => {
+      const parentId = o.parent_organization_id || o.parentId;
+      if (parentId && orgMap.has(parentId)) {
+        orgMap.get(parentId).children.push(orgMap.get(o.id));
+        childSet.add(o.id);
+      }
+    });
+
+    organizations.forEach((o: any) => {
+      const oName = (typeof o.name === 'string' ? o.name : (o.name?.eng || o.name?.en || '')).toLowerCase();
+      const isSub =
+        o.type?.code === 'sub_city' ||
+        oName.includes('sub-city') ||
+        oName.includes('subcity');
+      if (isSub) {
+        subs.push(o);
+      } else {
+        burs.push(o);
+      }
+
+      if (!childSet.has(o.id)) {
+        const node = orgMap.get(o.id);
+        if (isSub) {
+          subList.push(node);
+        } else {
+          burList.push(node);
+        }
+      }
+    });
+
+    return {
+      subcities: subs,
+      bureaus: burs,
+      subcityHierarchy: subList,
+      bureauHierarchy: burList,
+    };
+  }, [organizations]);
+
+  const { data: allServicesResponse } = useGetServicesQuery({ per_page: 100 });
+  const masterServices = useMemo(() => {
+    if (!allServicesResponse?.data) return [];
+    return allServicesResponse.data.filter((s: any) => s.is_master || s.parent_id === null);
+  }, [allServicesResponse]);
+
+  // Form states
+  const [activeTab, setActiveTab] = useState<'info' | 'documents' | 'branches'>('info');
+  const [name, setName] = useState('');
+  const [code, setCode] = useState('');
+  const [description, setDescription] = useState('');
+  const [feeAmount, setFeeAmount] = useState<string | number>('0');
+  const [estimatedDuration, setEstimatedDuration] = useState<string | number>('30');
+  const [isActive, setIsActive] = useState(true);
+  const [isCustomCode, setIsCustomCode] = useState(false);
+  const [isMaster, setIsMaster] = useState(true);
+  const [parentId, setParentId] = useState<number | null>(null);
+  const [primaryOrgId, setPrimaryOrgId] = useState<number | null>(null);
+  const [selectedOfferingOrgs, setSelectedOfferingOrgs] = useState<number[]>([]);
+  const [docSearch, setDocSearch] = useState('');
+  const [selectedDocs, setSelectedDocs] = useState<Record<number, SelectedDocMeta>>({});
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (service) {
+        const raw = service.raw || service;
+        setName(raw.name || service.name || '');
+        setCode(raw.code || '');
+        setDescription(raw.description || service.description || '');
+        setFeeAmount(raw.fee_amount !== undefined ? raw.fee_amount : 0);
+        setEstimatedDuration(raw.estimated_duration_minutes !== undefined ? raw.estimated_duration_minutes : 30);
+        setIsActive(raw.is_active !== undefined ? Boolean(raw.is_active) : (service.published ?? true));
+        setIsCustomCode(Boolean(raw.code));
+        setIsMaster(raw.is_master !== undefined ? Boolean(raw.is_master) : (raw.parent_id === null));
+        setParentId(raw.parent_id || null);
+        setPrimaryOrgId(raw.organization_id || raw.organization?.id || null);
+
+        const initialOrgs = raw.offering_organizations?.map((o: any) => o.id) || [];
+        setSelectedOfferingOrgs(initialOrgs);
+
+        const initialDocs: Record<number, SelectedDocMeta> = {};
+        if (raw.required_documents && Array.isArray(raw.required_documents)) {
+          raw.required_documents.forEach((d: any, idx: number) => {
+            initialDocs[d.id] = {
+              is_mandatory: d.is_mandatory ?? true,
+              notes: d.notes || '',
+              order_column: d.order_column || idx + 1,
+            };
+          });
+        }
+        setSelectedDocs(initialDocs);
+      } else {
+        setName('');
+        setCode('');
+        setDescription('');
+        setFeeAmount('0');
+        setEstimatedDuration('30');
+        setIsActive(true);
+        setIsCustomCode(false);
+        setIsMaster(true);
+        setParentId(null);
+        setPrimaryOrgId(null);
+        setSelectedOfferingOrgs([]);
+        setSelectedDocs({});
+      }
+      setActiveTab('info');
+      setDocSearch('');
+      setErrorMsg(null);
+    }
+  }, [isOpen, service]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  const handleNameChange = (val: string) => {
+    setName(val);
+    if (!isCustomCode) {
+      setCode(slugify(val));
+    }
+  };
+
+  const handleToggleDoc = (docId: number) => {
+    setSelectedDocs((prev) => {
+      const copy = { ...prev };
+      if (copy[docId]) {
+        delete copy[docId];
+      } else {
+        const currentCount = Object.keys(copy).length;
+        copy[docId] = {
+          is_mandatory: true,
+          notes: '',
+          order_column: currentCount + 1,
+        };
+      }
+      return copy;
+    });
+  };
+
+  const handleToggleMandatory = (docId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedDocs((prev) => {
+      if (!prev[docId]) return prev;
+      return {
+        ...prev,
+        [docId]: {
+          ...prev[docId],
+          is_mandatory: !prev[docId].is_mandatory,
+        },
+      };
+    });
+  };
+
+  const handleNoteChange = (docId: number, notes: string) => {
+    setSelectedDocs((prev) => {
+      if (!prev[docId]) return prev;
+      return {
+        ...prev,
+        [docId]: {
+          ...prev[docId],
+          notes,
+        },
+      };
+    });
+  };
+
+  const filteredCatalogDocs = useMemo(() => {
+    if (!docSearch.trim()) return availableDocuments;
+    const q = docSearch.toLowerCase();
+    return availableDocuments.filter(
+      (d) => {
+        const dName = (typeof d.name === 'string' ? d.name : ((d.name as any)?.eng || (d.name as any)?.en || '')).toLowerCase();
+        const dDesc = (typeof d.description === 'string' ? d.description : ((d.description as any)?.eng || (d.description as any)?.en || '')).toLowerCase();
+        return (
+          dName.includes(q) ||
+          String(d.code || '').toLowerCase().includes(q) ||
+          dDesc.includes(q)
+        );
+      }
+    );
+  }, [availableDocuments, docSearch]);
+
+  const selectedDocsCount = Object.keys(selectedDocs).length;
+  const selectedOrgsCount = selectedOfferingOrgs.length;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      setErrorMsg('Service name is required.');
+      setActiveTab('info');
+      return;
+    }
+    const cleanCode = code.trim().toLowerCase();
+    if (!cleanCode) {
+      setErrorMsg('Service code slug is required.');
+      setActiveTab('info');
+      return;
+    }
+    if (!/^[a-z0-9-]+$/.test(cleanCode)) {
+      setErrorMsg('Code must only contain lowercase letters, numbers, and hyphens (e.g. birth-registration).');
+      setActiveTab('info');
+      return;
+    }
+
+    if (!primaryOrgId) {
+      setErrorMsg('Please select a Governing Organization or Bureau for this service.');
+      setActiveTab('info');
+      return;
+    }
+
+    if (!isMaster && !parentId) {
+      setErrorMsg('Please select a Parent Master Service for this subservice.');
+      setActiveTab('info');
+      return;
+    }
+
+    const documentsPayload = isMaster
+      ? []
+      : Object.entries(selectedDocs).map(([docId, meta], index) => ({
+          document_id: Number(docId),
+          is_mandatory: meta.is_mandatory,
+          order_column: meta.order_column || index + 1,
+          notes: meta.notes ? meta.notes.trim() : undefined,
+        }));
+
+    const rawId = service ? (service.raw?.id || service.id) : undefined;
+    const finalOfferingOrgs = selectedOfferingOrgs.length > 0
+      ? selectedOfferingOrgs
+      : (primaryOrgId ? [primaryOrgId] : []);
+
+    try {
+      await onSave({
+        ...(rawId ? { id: rawId } : {}),
+        name: name.trim(),
+        code: cleanCode,
+        description: description.trim() || undefined,
+        parent_id: isMaster ? null : (parentId || null),
+        organization_id: primaryOrgId,
+        offering_organizations: finalOfferingOrgs,
+        fee_amount: isMaster ? 0 : (Number(feeAmount) || 0),
+        fee_currency: 'ETB',
+        estimated_duration_minutes: isMaster ? 0 : (Number(estimatedDuration) || 30),
+        is_active: isActive,
+        documents: documentsPayload,
+      });
+    } catch (err: any) {
+      const errDetails = err?.data?.errors
+        ? Object.entries(err.data.errors)
+            .map(([field, msgs]: [string, any]) => `${field}: ${Array.isArray(msgs) ? msgs.join(' ') : msgs}`)
+            .join(' | ')
+        : '';
+      setErrorMsg(
+        errDetails
+          ? `${err?.data?.message || 'Validation failed'}: ${errDetails}`
+          : err?.data?.message || err?.message || 'Failed to save service standard. Please verify fields.'
+      );
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div
+      className="modal-overlay modal-fullscreen-overlay"
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 10000,
+        width: '100vw',
+        height: '100vh',
+        background: '#f8faf9',
+        padding: 0,
+        margin: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      <section
+        className="modal-card modal-form modal-fullscreen"
+        role="dialog"
+        aria-modal="true"
+        aria-label={service ? 'Edit service standard' : 'Create service standard'}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100vw',
+          height: '100vh',
+          maxWidth: '100vw',
+          maxHeight: '100vh',
+          borderRadius: 0,
+          border: 'none',
+          margin: 0,
+          padding: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          boxShadow: 'none',
+          background: '#ffffff',
+        }}
+      >
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
+          {/* Header */}
+          <div
+            className="modal-header"
+            style={{
+              padding: '1.1rem 2.5rem',
+              background: '#00485a',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexShrink: 0,
+            }}
+          >
+            <div>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  letterSpacing: '0.12em',
+                  color: '#e2c37c',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {isMaster ? '🏛 MASTER SERVICE CATALOG' : '📄 CITIZEN SUBSERVICE UNIT'}
+              </span>
+              <h2 style={{ color: '#ffffff', margin: '4px 0 2px', fontSize: '22px', fontWeight: 800 }}>
+                {service ? (isMaster ? 'Edit Master Category' : 'Edit Subservice') : (isMaster ? 'Create Master Category' : 'Create Citizen Subservice')}
+              </h2>
+              <p style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '13px', margin: 0 }}>
+                {isMaster
+                  ? 'Define top-level government service domain holding citizen subservices.'
+                  : 'Define citizen turnaround time, fees, required documents, and delivery branch locations.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="modal-close"
+              onClick={onClose}
+              aria-label="Close dialog"
+              style={{
+                color: '#ffffff',
+                background: 'rgba(255, 255, 255, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                borderRadius: '6px',
+                padding: '8px 16px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              <Icon name="close" size={16} />
+              <span>Close (Esc)</span>
+            </button>
+          </div>
+
+          {/* Level Switcher (Master vs Subservice) */}
+          <div
+            style={{
+              padding: '0.85rem 2.5rem',
+              background: '#f4f8f6',
+              borderBottom: '1px solid #dce8e3',
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '16px',
+              flexShrink: 0,
+            }}
+          >
+            <div
+              onClick={() => { setIsMaster(true); setParentId(null); }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 14px',
+                borderRadius: '8px',
+                border: `2px solid ${isMaster ? '#00485a' : '#d1dfd8'}`,
+                background: isMaster ? '#ffffff' : '#f8fbf9',
+                cursor: 'pointer',
+                boxShadow: isMaster ? '0 2px 8px rgba(0, 72, 90, 0.1)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  background: isMaster ? '#00485a' : '#e5eee9',
+                  color: isMaster ? '#ffffff' : '#5a736a',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Icon name="folder" size={17} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <b style={{ display: 'block', fontSize: '13.5px', color: isMaster ? '#003946' : '#455e55' }}>
+                  Master Category
+                </b>
+                <small style={{ display: 'block', color: '#6d837a', fontSize: '11.5px', marginTop: '2px' }}>
+                  Top-level service domain
+                </small>
+              </div>
+            </div>
+
+            <div
+              onClick={() => setIsMaster(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 14px',
+                borderRadius: '8px',
+                border: `2px solid ${!isMaster ? '#00485a' : '#d1dfd8'}`,
+                background: !isMaster ? '#ffffff' : '#f8fbf9',
+                cursor: 'pointer',
+                boxShadow: !isMaster ? '0 2px 8px rgba(0, 72, 90, 0.1)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  background: !isMaster ? '#00485a' : '#e5eee9',
+                  color: !isMaster ? '#ffffff' : '#5a736a',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Icon name="file" size={17} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <b style={{ display: 'block', fontSize: '13.5px', color: !isMaster ? '#003946' : '#455e55' }}>
+                  Citizen Subservice
+                </b>
+                <small style={{ display: 'block', color: '#6d837a', fontSize: '11.5px', marginTop: '2px' }}>
+                  Actionable unit with documents & fees
+                </small>
+              </div>
+            </div>
+          </div>
+
+          {/* Subservice Navigation Tabs (Only visible when creating/editing Subservice) */}
+          {!isMaster && (
+            <div
+              style={{
+                display: 'flex',
+                gap: '2px',
+                padding: '0 2.5rem',
+                background: '#ffffff',
+                borderBottom: '1px solid #e2ece7',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setActiveTab('info')}
+                style={{
+                  padding: '12px 18px',
+                  border: 0,
+                  borderBottom: `3px solid ${activeTab === 'info' ? '#00485a' : 'transparent'}`,
+                  background: 'transparent',
+                  color: activeTab === 'info' ? '#00485a' : '#64748b',
+                  fontWeight: activeTab === 'info' ? 700 : 500,
+                  fontSize: '13.5px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Icon name="info" size={15} />
+                1. Basic Specifications
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('documents')}
+                style={{
+                  padding: '12px 18px',
+                  border: 0,
+                  borderBottom: `3px solid ${activeTab === 'documents' ? '#00485a' : 'transparent'}`,
+                  background: 'transparent',
+                  color: activeTab === 'documents' ? '#00485a' : '#64748b',
+                  fontWeight: activeTab === 'documents' ? 700 : 500,
+                  fontSize: '13.5px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Icon name="file" size={15} />
+                2. Required Documents ({selectedDocsCount})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('branches')}
+                style={{
+                  padding: '12px 18px',
+                  border: 0,
+                  borderBottom: `3px solid ${activeTab === 'branches' ? '#00485a' : 'transparent'}`,
+                  background: 'transparent',
+                  color: activeTab === 'branches' ? '#00485a' : '#64748b',
+                  fontWeight: activeTab === 'branches' ? 700 : 500,
+                  fontSize: '13.5px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Icon name="building" size={15} />
+                3. Delivery Branches ({selectedOrgsCount})
+              </button>
+            </div>
+          )}
+
+          {/* Error Banner */}
+          {errorMsg && (
+            <div
+              style={{
+                margin: '1rem 2.5rem 0',
+                padding: '10px 14px',
+                borderRadius: '6px',
+                background: '#fef2f2',
+                border: '1px solid #ef4444',
+                color: '#991b1b',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '13px',
+                fontWeight: 600,
+              }}
+            >
+              <Icon name="close" size={16} />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {/* Modal Content Scroll Area */}
+          <div style={{ padding: '1.75rem 2.5rem', overflowY: 'auto', flex: 1, background: '#f8faf9' }}>
+            <div style={{ maxWidth: '1240px', margin: '0 auto', width: '100%' }}>
+              {/* TAB 1: BASIC INFORMATION (Always for Master, or when activeTab === 'info') */}
+              {(isMaster || activeTab === 'info') && (
+                <div
+                  className="modal-form-grid"
+                  style={{
+                    gap: '16px',
+                    background: '#ffffff',
+                    padding: '24px',
+                    borderRadius: '8px',
+                    border: '1px solid #dce8e3',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                  }}
+                >
+                  {/* If Subservice: Parent Master Category */}
+                  {!isMaster && (
+                    <label className="modal-field full">
+                      <span style={{ fontWeight: 700, color: '#003946' }}>
+                        Parent Master Category <i>*</i>
+                      </span>
+                      <select
+                        required={!isMaster}
+                        value={parentId ?? ''}
+                        onChange={(e) => setParentId(e.target.value ? Number(e.target.value) : null)}
+                        style={{
+                          width: '100%',
+                          padding: '9px 12px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '13.5px',
+                          fontWeight: 600,
+                          background: '#ffffff',
+                        }}
+                      >
+                        <option value="">Select Parent Master Service Category...</option>
+                        {masterServices.map((ms: any) => (
+                          <option key={ms.id} value={ms.id}>
+                            🏛 {ms.name} ({ms.code})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+
+                  {/* Service Name */}
+                  <label className="modal-field full">
+                    <span style={{ fontWeight: 700, color: '#003946' }}>
+                      {isMaster ? 'Master Domain Name' : 'Citizen Subservice Name'} <i>*</i>
+                    </span>
+                    <input
+                      required
+                      placeholder={
+                        isMaster
+                          ? 'e.g. Civil Status & Vital Records, Revenues & Taxation Services'
+                          : 'e.g. Birth Registration & Certificate Issuance, e-TIN Registration'
+                      }
+                      value={name}
+                      onChange={(e) => handleNameChange(e.target.value)}
+                      style={{ fontSize: '14px', padding: '9px 12px' }}
+                    />
+                  </label>
+
+                {/* Code slug — auto-generated from name */}
+                <input type="hidden" value={code} readOnly />
+
+                  {/* Governing Organization / Bureau */}
+                  <label className="modal-field">
+                    <span style={{ fontWeight: 700, color: '#003946' }}>
+                      Governing Organization / Bureau <i>*</i>
+                    </span>
+                    <select
+                      required
+                      value={primaryOrgId ?? ''}
+                      onChange={(e) => setPrimaryOrgId(e.target.value ? Number(e.target.value) : null)}
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '13px',
+                        background: '#ffffff',
+                        fontWeight: 500,
+                      }}
+                    >
+                      <option value="">Select Governing Organization (Required)...</option>
+                      <optgroup label="🏛 Municipal Sub-cities & Local Offices">
+                        {subcityHierarchy.map((sub: any) => (
+                          <React.Fragment key={sub.id}>
+                            <option value={sub.id} style={{ fontWeight: 700 }}>
+                              🏛 {sub.name}
+                            </option>
+                            {sub.children?.map((child: any) => (
+                              <option key={child.id} value={child.id}>
+                                &nbsp;&nbsp;&nbsp;&nbsp;↳ {child.name} ({sub.name})
+                              </option>
+                            ))}
+                          </React.Fragment>
+                        ))}
+                      </optgroup>
+                      <optgroup label="🏢 Central Bureaus & Sector Agencies">
+                        {bureauHierarchy.map((bur: any) => (
+                          <React.Fragment key={bur.id}>
+                            <option value={bur.id} style={{ fontWeight: 700 }}>
+                              🏢 {bur.name}
+                            </option>
+                            {bur.children?.map((child: any) => (
+                              <option key={child.id} value={child.id}>
+                                &nbsp;&nbsp;&nbsp;&nbsp;↳ {child.name}
+                              </option>
+                            ))}
+                          </React.Fragment>
+                        ))}
+                      </optgroup>
+                    </select>
+                  </label>
+
+                  {/* Subservice operational specs: Duration & Fee */}
+                  {!isMaster && (
+                    <>
+                      <label className="modal-field">
+                        <span style={{ fontWeight: 700, color: '#003946' }}>
+                          Target Turnaround (Minutes)
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="30"
+                          value={estimatedDuration}
+                          onChange={(e) => setEstimatedDuration(e.target.value)}
+                        />
+                      </label>
+
+                      <label className="modal-field">
+                        <span style={{ fontWeight: 700, color: '#003946' }}>
+                          Standard Citizen Fee (ETB)
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="0.00 (Free service)"
+                          value={feeAmount}
+                          onChange={(e) => setFeeAmount(e.target.value)}
+                        />
+                      </label>
+                    </>
+                  )}
+
+                  {/* Active Switch */}
+                  <label
+                    className="modal-field full"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '12px 14px',
+                      borderRadius: '6px',
+                      background: '#f8faf9',
+                      border: '1px solid #dce8e3',
+                      marginTop: '4px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isActive}
+                      onChange={(e) => setIsActive(e.target.checked)}
+                      style={{ width: '18px', height: '18px', accentColor: '#00485a' }}
+                    />
+                    <div>
+                      <b style={{ display: 'block', fontSize: '13px', color: '#003946' }}>
+                        {t('services.editor.publishToggle', 'Publish this service')}
+                      </b>
+                      <small style={{ color: '#688075', fontSize: '11.5px' }}>
+                        {t('services.editor.publishToggleDesc', 'Citizens can see published services in the public directory.')}
+                      </small>
+                    </div>
+                  </label>
+
+                  {/* Citizen Overview Description */}
+                  <label className="modal-field full">
+                    <span style={{ fontWeight: 700, color: '#003946' }}>
+                      {t('services.editor.overviewDescription', 'Citizen Overview & Eligibility Description')}
+                    </span>
+                    <textarea
+                      rows={3}
+                      placeholder={t('services.editor.descriptionPlaceholder', 'Describe what this public service provides, who is eligible, and output expectations...')}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      style={{ fontSize: '13.5px', padding: '9px 12px', lineHeight: 1.5 }}
+                    />
+                  </label>
+                </div>
+              )}
+
+              {/* TAB 2: REQUIRED DOCUMENTS (Subservice only) */}
+              {!isMaster && activeTab === 'documents' && (
+                <div
+                  style={{
+                    background: '#ffffff',
+                    padding: '24px',
+                    borderRadius: '8px',
+                    border: '1px solid #dce8e3',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <div>
+                      <b style={{ display: 'block', color: '#003946', fontSize: '15px' }}>
+                        Document Prerequisites
+                      </b>
+                      <small style={{ color: '#64748b', fontSize: '13px' }}>
+                        Select documents that citizens must present or upload to obtain this service.
+                      </small>
+                    </div>
+                    <span
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: '12px',
+                        background: selectedDocsCount > 0 ? '#dcfce7' : '#f1f5f9',
+                        color: selectedDocsCount > 0 ? '#15803d' : '#64748b',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {selectedDocsCount} Attached
+                    </span>
+                  </div>
+
+                  {/* Search document catalog */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <input
+                      type="search"
+                      placeholder="Search documents by name or code..."
+                      value={docSearch}
+                      onChange={(e) => setDocSearch(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '13.5px',
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    className="service-doc-checklist"
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+                      gap: '12px',
+                      alignItems: 'start',
+                    }}
+                  >
+                    {isLoadingDocs ? (
+                      <div style={{ gridColumn: '1 / -1', padding: '36px', textAlign: 'center', color: '#64748b' }}>
+                        Loading documents catalog...
+                      </div>
+                    ) : filteredCatalogDocs.length === 0 ? (
+                      <div style={{ gridColumn: '1 / -1', padding: '36px', textAlign: 'center', color: '#94a3b8' }}>
+                        No documents match your search.
+                      </div>
+                    ) : (
+                      filteredCatalogDocs.map((doc) => {
+                        const isSelected = Boolean(selectedDocs[doc.id]);
+                        const meta = selectedDocs[doc.id];
+
+                        return (
+                          <div
+                            key={doc.id}
+                            className={`service-doc-item${isSelected ? ' selected' : ''}`}
+                            style={{
+                              padding: '12px 14px',
+                              border: `1.5px solid ${isSelected ? '#86efac' : '#e2e8f0'}`,
+                              background: isSelected ? '#f0fdf4' : '#ffffff',
+                              borderRadius: '8px',
+                              boxShadow: isSelected ? '0 2px 6px rgba(22, 163, 74, 0.08)' : '0 1px 3px rgba(0,0,0,0.02)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between',
+                              minHeight: isSelected ? '108px' : 'auto',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <div
+                              className="service-doc-main-row"
+                              onClick={() => handleToggleDoc(doc.id)}
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleToggleDoc(doc.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{ width: '16px', height: '16px', accentColor: '#00485a' }}
+                                />
+                                <div>
+                                  <b style={{ fontSize: '13.5px', color: '#0f172a' }}>{doc.name}</b>
+                                  <span
+                                    style={{
+                                      marginLeft: '8px',
+                                      fontFamily: 'monospace',
+                                      fontSize: '11px',
+                                      color: '#475569',
+                                      background: '#f1f5f9',
+                                      padding: '1px 5px',
+                                      borderRadius: '3px',
+                                    }}
+                                  >
+                                    {doc.code}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <span style={{ fontSize: '12px', fontWeight: 700, color: isSelected ? '#16a34a' : '#64748b' }}>
+                                {isSelected ? '✓ Attached' : '+ Attach'}
+                              </span>
+                            </div>
+
+                            {isSelected && (
+                              <div
+                                style={{
+                                  marginTop: '10px',
+                                  paddingTop: '8px',
+                                  borderTop: '1px dashed #bbf7d0',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '12px',
+                                }}
+                              >
+                                <label
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                  onClick={(e) => handleToggleMandatory(doc.id, e)}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={meta.is_mandatory}
+                                    onChange={() => {}}
+                                    style={{ accentColor: '#00485a' }}
+                                  />
+                                  <span style={{ fontWeight: 700, color: meta.is_mandatory ? '#b91c1c' : '#475569' }}>
+                                    {meta.is_mandatory ? 'Mandatory' : 'Optional'}
+                                  </span>
+                                </label>
+
+                                <input
+                                  type="text"
+                                  placeholder="Instructions (e.g. Original + 2 photocopies)..."
+                                  value={meta.notes}
+                                  onChange={(e) => handleNoteChange(doc.id, e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{
+                                    flex: 1,
+                                    height: '28px',
+                                    padding: '0 8px',
+                                    fontSize: '12px',
+                                    borderRadius: '4px',
+                                    border: '1px solid #cbd5e1',
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: DELIVERY BRANCHES & OFFICES (Subservice only) */}
+              {!isMaster && activeTab === 'branches' && (
+                <div
+                  style={{
+                    background: '#ffffff',
+                    padding: '24px',
+                    borderRadius: '8px',
+                    border: '1px solid #dce8e3',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <div>
+                      <b style={{ display: 'block', color: '#003946', fontSize: '15px' }}>
+                        Offering Offices & Sub-cities
+                      </b>
+                      <small style={{ color: '#64748b', fontSize: '13px' }}>
+                        Select which municipal offices and sub-cities provide this service to citizens.
+                      </small>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const subIds = subcities.map((o: any) => o.id);
+                          setSelectedOfferingOrgs((prev) => Array.from(new Set([...prev, ...subIds])));
+                        }}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          color: '#00485a',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        + All Sub-cities
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOfferingOrgs([])}
+                        style={{
+                          padding: '5px 12px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          fontSize: '12px',
+                          color: '#64748b',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Clear
+                      </button>
+                      <span
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          background: selectedOrgsCount > 0 ? '#dcfce7' : '#f1f5f9',
+                          color: selectedOrgsCount > 0 ? '#15803d' : '#64748b',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {selectedOrgsCount} Branches
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Sub-cities Group with Child Offices in a responsive grid */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <span style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '10px' }}>
+                      🏛 Municipal Sub-cities & Local Offices ({subcityHierarchy.length})
+                    </span>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+                        gap: '12px',
+                        alignItems: 'start',
+                      }}
+                    >
+                      {subcityHierarchy.map((sub: any) => {
+                        const isSubChecked = selectedOfferingOrgs.includes(sub.id);
+                        return (
+                          <div
+                            key={sub.id}
+                            style={{
+                              padding: '12px 14px',
+                              borderRadius: '8px',
+                              background: isSubChecked ? '#f0fdf4' : '#f8faf9',
+                              border: `1.5px solid ${isSubChecked ? '#86efac' : '#e2e8f0'}`,
+                              boxShadow: isSubChecked ? '0 2px 6px rgba(22, 163, 74, 0.08)' : 'none',
+                            }}
+                          >
+                            <label
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 700,
+                                fontSize: '13.5px',
+                                color: isSubChecked ? '#15803d' : '#003946',
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSubChecked}
+                                onChange={() => {
+                                  setSelectedOfferingOrgs((prev) =>
+                                    prev.includes(sub.id) ? prev.filter((id) => id !== sub.id) : [...prev, sub.id]
+                                  );
+                                }}
+                                style={{ width: '16px', height: '16px', accentColor: '#00485a' }}
+                              />
+                              <span>🏛 {sub.name}</span>
+                            </label>
+
+                            {sub.children && sub.children.length > 0 && (
+                              <div style={{ marginLeft: '24px', marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {sub.children.map((child: any) => {
+                                  const isChildChecked = selectedOfferingOrgs.includes(child.id);
+                                  return (
+                                    <label
+                                      key={child.id}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        background: isChildChecked ? '#dcfce7' : '#ffffff',
+                                        border: `1px solid ${isChildChecked ? '#86efac' : '#cbd5e1'}`,
+                                        cursor: 'pointer',
+                                        fontSize: '12px',
+                                        fontWeight: isChildChecked ? 700 : 500,
+                                        color: isChildChecked ? '#15803d' : '#334155',
+                                      }}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={isChildChecked}
+                                        onChange={() => {
+                                          setSelectedOfferingOrgs((prev) =>
+                                            prev.includes(child.id) ? prev.filter((id) => id !== child.id) : [...prev, child.id]
+                                          );
+                                        }}
+                                        style={{ accentColor: '#00485a' }}
+                                      />
+                                      <span>↳ {child.name}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Central Bureaus Group */}
+                  {bureaus.length > 0 && (
+                    <div>
+                      <span style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '10px' }}>
+                        🏢 Central Bureaus & Agencies ({bureaus.length})
+                      </span>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                          gap: '10px',
+                        }}
+                      >
+                        {bureaus.map((org: any) => {
+                          const isChecked = selectedOfferingOrgs.includes(org.id);
+                          return (
+                            <label
+                              key={org.id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '10px 12px',
+                                borderRadius: '6px',
+                                background: isChecked ? '#f0fdf4' : '#ffffff',
+                                border: `1px solid ${isChecked ? '#86efac' : '#e2e8f0'}`,
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: isChecked ? 700 : 500,
+                                color: isChecked ? '#15803d' : '#334155',
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  setSelectedOfferingOrgs((prev) =>
+                                    prev.includes(org.id) ? prev.filter((id) => id !== org.id) : [...prev, org.id]
+                                  );
+                                }}
+                                style={{ accentColor: '#00485a' }}
+                              />
+                              <span>{org.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div
+            className="modal-footer"
+            style={{
+              padding: '1.1rem 2.5rem',
+              background: '#ffffff',
+              borderTop: '1px solid #dce8e3',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexShrink: 0,
+            }}
+          >
+            <span style={{ fontSize: '12px', color: '#64748b' }}>
+              {isMaster ? (
+                <span>🏛 Master Domain Category</span>
+              ) : (
+                <span>
+                  📄 Citizen Subservice · <strong>{selectedDocsCount} documents</strong> ·{' '}
+                  <strong>{selectedOrgsCount} offering branches</strong>
+                </span>
+              )}
+            </span>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button type="button" className="button secondary" onClick={onClose} disabled={isLoading}>
+                Cancel
+              </button>
+              <button type="submit" className="button primary" disabled={isLoading}>
+                {isLoading
+                  ? 'Saving...'
+                  : service
+                  ? (isMaster ? 'Save Master Category' : 'Save Subservice Standard')
+                  : (isMaster ? 'Create Master Category' : 'Create Subservice Standard')}
+              </button>
+            </div>
+          </div>
+        </form>
+      </section>
+    </div>,
+    window.document.body
+  );
+};
+
+export default ServiceModal;

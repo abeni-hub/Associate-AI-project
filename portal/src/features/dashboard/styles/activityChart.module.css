@@ -1,0 +1,152 @@
+.panel {
+  min-width: 0;
+  padding: 17px 18px 14px;
+  border: 1px solid var(--border-color, #e5ede7);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-surface, #ffffff);
+  min-height: 286px;
+}
+
+.panelHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.eyebrow {
+  display: block;
+  color: var(--text-tertiary, #87948c);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 3px 0 0;
+  color: var(--primary-deep, #184e57);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.periodButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border-color, #e0ebe1);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--bg-surface, #ffffff);
+  color: var(--text-primary, #34565a);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.periodButton:hover {
+  background: var(--bg-subtle, #f5f8f5);
+  border-color: var(--primary-accent, #367b7d);
+}
+
+.chartWrap {
+  margin-top: 10px;
+}
+
+.chartSummary {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.chartTotal {
+  color: var(--primary-deep, #184e57);
+  font-family: var(--font-heading, 'Manrope', sans-serif);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+}
+
+.chartPeriod {
+  margin-left: 7px;
+  color: var(--text-tertiary, #87948c);
+  font-size: 12px;
+}
+
+.chartChange {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border: 1px solid #e0ebe1;
+  border-radius: var(--radius-sm, 4px);
+  background: #f7faf6;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chart {
+  height: 180px;
+  display: flex;
+  margin-top: 9px;
+}
+
+.chartYlabels {
+  width: 27px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 3px 0 19px;
+  color: var(--text-tertiary, #a5b0a9);
+  font-size: 11.5px;
+}
+
+.chartPlot {
+  position: relative;
+  min-width: 0;
+  flex: 1;
+}
+
+.chartGrid {
+  position: absolute;
+  inset: 2px 0 21px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.chartGrid i {
+  border-top: 1px dashed var(--border-color, #e9eeea);
+}
+
+.chartSvg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: calc(100% - 20px);
+  overflow: visible;
+}
+
+.chartXlabels {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px;
+  color: var(--text-tertiary, #99a59e);
+  font-size: 11.5px;
+}
+
+@media (max-width: 768px) {
+  .chart {
+    height: 160px;
+  }
+}
+

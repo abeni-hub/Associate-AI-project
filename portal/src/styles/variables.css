@@ -1,0 +1,167 @@
+/**
+ * Design Tokens — CivicLink Administrative Portal
+ * Centralized CSS custom properties for colors, typography, spacing, shadows, and layout.
+ */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* ========================================================================
+   * 1. Brand & Color Palette
+   * ======================================================================== */
+  
+  /* Primary Teal / Deep Ink Palette */
+  --color-primary-900: #00242e;
+  --color-primary-800: #003946;
+  --color-primary-700: #00485a; /* Core Brand Ink */
+  --color-primary-600: #0e5b6e;
+  --color-primary-500: #1b7185;
+  --color-primary-400: #3d889b;
+  --color-primary-300: #69a7b6;
+  --color-primary-200: #a2ccd5;
+  --color-primary-100: #d5e8ec;
+  --color-primary-50:  #eef6f8;
+
+  /* Accent Gold / Brass Palette */
+  --color-accent-800: #8c6a28;
+  --color-accent-700: #b58d3c;
+  --color-accent-600: #d6a854; /* Core Brand Gold */
+  --color-accent-500: #e2be6f;
+  --color-accent-400: #ecd292;
+  --color-accent-200: #f5e6c2;
+  --color-accent-100: #fbf5e6;
+  --color-accent-50:  #fdfaf2;
+
+  /* Neutral Paper & Surface Tones */
+  --color-paper:        #f8f9f4; /* Main portal backdrop */
+  --color-paper-alt:    #eef3f2; /* Secondary card/section fill */
+  --color-surface-pure: #ffffff;
+  --color-border:       #dce6e5;
+  --color-border-subtle:#eaf0ef;
+  --color-border-strong:#b8ccc9;
+
+  /* Text & Content Tokens */
+  --color-text-deep:    #003946;
+  --color-text-body:    #00485a;
+  --color-text-soft:    #3d6670;
+  --color-text-muted:   #73837d;
+  --color-text-inverse: #ffffff;
+
+  /* Semantic Feedback & Status */
+  --color-status-success-bg:   #eaf6ee;
+  --color-status-success-text: #1d733d;
+  --color-status-success-edge: #bce4c8;
+  --color-status-warning-bg:   #fef7eb;
+  --color-status-warning-text: #966014;
+  --color-status-warning-edge: #f5deb2;
+  --color-status-danger-bg:    #fef2f2;
+  --color-status-danger-text:  #991b1b;
+  --color-status-danger-edge:  #fecaca;
+  --color-status-info-bg:      #eef6f8;
+  --color-status-info-text:    #0e5b6e;
+  --color-status-info-edge:    #c4e1e8;
+
+  /* Legacy alias mappings for seamless component compatibility */
+  --ink:          var(--color-primary-700);
+  --ink-deep:     var(--color-primary-800);
+  --ink-soft:     var(--color-text-soft);
+  --link:         var(--color-primary-700);
+  --muted:        var(--color-text-muted);
+  --paper:        var(--color-paper);
+  --paper-alt:    var(--color-paper-alt);
+  --line:         var(--color-border);
+  --green:        var(--color-primary-700);
+  --green-bright: #76a6a5;
+  --gold:         var(--color-accent-600);
+  --gold-pale:    #f5eddb;
+  --white:        #ffffff;
+
+  /* ========================================================================
+   * 2. Typography
+   * ======================================================================== */
+  --font-family-sans: 'DM Sans', 'Noto Sans Ethiopic', 'Nyala', 'Abyssinica SIL', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-display: 'Manrope', 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', Menlo, Consolas, monospace;
+
+  --font-size-2xs: 0.6875rem; /* 11px */
+  --font-size-xs:  0.75rem;   /* 12px */
+  --font-size-sm:  0.84375rem;/* 13.5px */
+  --font-size-base:0.9375rem; /* 15px */
+  --font-size-md:  1rem;      /* 16px */
+  --font-size-lg:  1.125rem;  /* 18px */
+  --font-size-xl:  1.375rem;  /* 22px */
+  --font-size-2xl: 1.75rem;   /* 28px */
+  --font-size-3xl: 2.25rem;   /* 36px */
+  --font-size-4xl: 3rem;      /* 48px */
+
+  --font-weight-regular: 400;
+  --font-weight-medium:  500;
+  --font-weight-semibold:600;
+  --font-weight-bold:    700;
+  --font-weight-extrabold: 800;
+
+  --line-height-tight:  1.15;
+  --line-height-snug:   1.3;
+  --line-height-normal: 1.5;
+  --line-height-relaxed:1.75;
+
+  /* ========================================================================
+   * 3. Spacing Scale
+   * ======================================================================== */
+  --space-0: 0;
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-10: 2.5rem;  /* 40px */
+  --space-12: 3rem;    /* 48px */
+  --space-16: 4rem;    /* 64px */
+
+  /* ========================================================================
+   * 4. Border Radius
+   * ======================================================================== */
+  --radius-xs:   3px;
+  --radius-sm:   5px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-full: 9999px;
+
+  /* ========================================================================
+   * 5. Elevation & Box Shadows
+   * ======================================================================== */
+  --shadow-xs:    0 1px 2px rgba(0, 36, 46, 0.04);
+  --shadow-sm:    0 2px 6px rgba(0, 48, 59, 0.06);
+  --shadow-md:    0 6px 18px rgba(0, 48, 59, 0.08);
+  --shadow-lg:    0 12px 32px rgba(0, 48, 59, 0.1);
+  --shadow-soft:  0 16px 40px rgba(0, 55, 68, 0.07);
+  --shadow-card:  0 28px 60px rgba(0, 48, 59, 0.12);
+
+  /* ========================================================================
+   * 6. Motion & Transitions
+   * ======================================================================== */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out:   cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
+  --duration-slow: 350ms;
+
+  --transition-fast: all var(--duration-fast) var(--ease-standard);
+  --transition-base: all var(--duration-base) var(--ease-standard);
+  --transition-slow: all var(--duration-slow) var(--ease-standard);
+
+  /* ========================================================================
+   * 7. Z-Index Scale
+   * ======================================================================== */
+  --z-base:     1;
+  --z-above:    10;
+  --z-dropdown: 50;
+  --z-sticky:   100;
+  --z-drawer:   200;
+  --z-backdrop: 300;
+  --z-modal:    400;
+  --z-toast:    500;
+}
+

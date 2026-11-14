@@ -411,7 +411,7 @@ export default function FeedbackFormCard({ t, onTrack }: FeedbackFormCardProps) 
         <FeedbackSuccess
           t={t}
           onReset={handleReset}
-          trackingNumber={trackingNumber}
+          trackingNumber={trackingNumber || undefined}
           onTrack={onTrack}
         />
       )}

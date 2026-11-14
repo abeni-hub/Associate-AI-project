@@ -1,0 +1,144 @@
+.panel {
+  min-width: 0;
+  padding: 17px 18px 14px;
+  border: 1px solid var(--border-color, #e5ede7);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-surface, #ffffff);
+  min-height: 286px;
+  display: flex;
+  flex-direction: column;
+}
+
+.panelHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  display: block;
+  color: var(--text-tertiary, #87948c);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 3px 0 0;
+  color: var(--primary-deep, #184e57);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.subtleIcon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #f6f1e3;
+  color: #ad8a48;
+}
+
+.satisfactionScore {
+  display: flex;
+  align-items: baseline;
+  margin-top: 15px;
+}
+
+.satisfactionScore strong {
+  color: var(--primary-deep, #174a54);
+  font-family: var(--font-heading, 'Manrope', sans-serif);
+  font-size: 41px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.07em;
+}
+
+.scoreOutOf {
+  margin-left: 4px;
+  color: var(--text-tertiary, #89958d);
+  font-size: 13.5px;
+}
+
+.scoreStars {
+  margin-left: auto;
+  color: #c79e53;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.satisfactionCopy {
+  margin-top: 4px;
+  color: var(--text-tertiary, #89958d);
+  font-size: 12.5px;
+}
+
+.ratingBars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.ratingRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #7c8b82;
+  font-size: 12px;
+}
+
+.ratingRow > span {
+  min-width: 115px;
+  color: #4a635d;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ratingTrack {
+  height: 6px;
+  overflow: hidden;
+  flex: 1;
+  border-radius: 4px;
+  background: #eef1ed;
+}
+
+.ratingFill {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: var(--primary-accent, #367b7d);
+  transition: width 0.3s ease;
+}
+
+.ratingCount {
+  min-width: 58px;
+  color: var(--text-tertiary, #7c8b82);
+  text-align: right;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.panelLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: auto;
+  padding-top: 14px;
+  border: 0;
+  background: transparent;
+  color: var(--primary-accent, #578286);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.panelLink:hover {
+  color: var(--primary-deep, #003946);
+}
+

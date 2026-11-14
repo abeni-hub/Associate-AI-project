@@ -3,14 +3,14 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, loadEnv } from 'vite'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { BACKEND_URL } from './src/config/apiConfig.js'
 
+const DEFAULT_BACKEND_URL = 'https://civillink.jobaleengineering.com';
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const target = (env.VITE_BACKEND_URL || env.BACKEND_URL || BACKEND_URL).replace(/\/api\/?$/, '');
+  const target = (env.VITE_BACKEND_URL || env.BACKEND_URL || DEFAULT_BACKEND_URL).replace(/\/api\/?$/, '');
 
   return {
     plugins: [react(), tailwindcss()],

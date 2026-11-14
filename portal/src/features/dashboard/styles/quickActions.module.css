@@ -1,0 +1,114 @@
+.panel {
+  min-width: 0;
+  padding: 17px 18px 14px;
+  border: 1px solid var(--border-color, #e5ede7);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-surface, #ffffff);
+  min-height: 236px;
+  display: flex;
+  flex-direction: column;
+}
+
+.panelHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  display: block;
+  color: var(--text-tertiary, #87948c);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 3px 0 0;
+  color: var(--primary-deep, #184e57);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.actionList {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.actionButton {
+  width: 100%;
+  min-height: 43px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 0;
+  border: 0;
+  border-top: 1px solid #edf1ed;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.actionButton:hover b {
+  color: var(--primary-deep, #003946);
+}
+
+.actionIcon {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm, 4px);
+  background: #edf4f2;
+  color: #538083;
+}
+
+.actionButton:nth-child(2) .actionIcon {
+  background: #f5f1e6;
+  color: #a7894e;
+}
+
+.actionButton:nth-child(3) .actionIcon {
+  background: #edf3ed;
+  color: #648b72;
+}
+
+.actionText {
+  color: #536c65;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.arrowIcon {
+  color: #a5b1a9;
+}
+
+.quickFoot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #edf1ed;
+  color: #7f9187;
+  font-size: 12px;
+}
+
+.onlineIndicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #79a78b;
+  box-shadow: 0 0 0 3px #eaf3ec;
+}
+
+.footMeta {
+  margin-left: auto;
+  color: #a1aaa3;
+}
+

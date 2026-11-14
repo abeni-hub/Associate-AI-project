@@ -1,0 +1,14 @@
+.shell {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: minmax(430px, 0.92fr) minmax(540px, 1.08fr);
+  background: var(--paper);
+}
+
+@media (max-width: 980px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+}
+

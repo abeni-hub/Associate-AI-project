@@ -1,0 +1,66 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border-color, #edf1ed);
+}
+
+.intro {
+  min-width: 0;
+  flex: 1 1 280px;
+}
+
+.title {
+  margin: 0;
+  color: var(--primary-deep, #143e47);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.description {
+  margin: 4px 0 0;
+  color: var(--text-secondary, #89958e);
+  font-size: 13px;
+}
+
+.tools {
+  min-width: 0;
+  display: flex;
+  flex: 0 1 820px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.filterSelect {
+  height: 39px;
+  flex: 0 0 160px;
+  padding: 0 25px 0 10px;
+  border: 1px solid var(--border-color, #e1e8e2);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--bg-surface, #ffffff);
+  color: var(--text-primary, #647870);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .tools {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .filterSelect {
+    width: 100%;
+    flex: auto;
+  }
+}
+

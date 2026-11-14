@@ -1,27 +1,31 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
-import { AppLayout } from '../layouts/AppLayout';
+import { AppLayout, usePermissions, useGetSidebarNavigationQuery } from '../features/shared';
+import { ProtectedRoute } from './ProtectedRoute';
+import { PublicRoute } from './PublicRoute';
 import { RoleGuard, getFirstAuthorizedPath, AccessDeniedScreen } from './RoleGuard';
-import { usePermissions } from '../hooks/usePermissions';
-import { useGetSidebarNavigationQuery } from '../services/navigationApi';
+import { RouteLoadingFallback } from './RouteLoadingFallback';
 import { tokenStorage } from '../utils/tokenStorage';
-import {
-  OverviewPage,
-  ServicesPage,
-  FeedbackPage,
-  OfficesPage,
-  DocumentsPage,
-  RoutesPage,
-  QRPage,
-  NewsPage,
-  NewsDetailPage,
-  AccountsPage,
-  RolesPermissionsPage,
-  LevelsPage,
-  LandingPageCms,
-  ActivityPage,
-} from '../features';
-import { LoginPage, OfficePage } from '../pages';
+
+/* =========================================================================
+ * Route-Level Code Splitting (React.lazy)
+ * ========================================================================= */
+const LoginPage = lazy(() => import('../features/auth/LoginPage'));
+const OverviewPage = lazy(() => import('../features/dashboard/OverviewPage'));
+const OfficesPage = lazy(() => import('../features/organizations/OfficesPage'));
+const OfficePage = lazy(() => import('../features/organizations/OfficePage'));
+const AccountsPage = lazy(() => import('../features/accounts/AccountsPage'));
+const RolesPermissionsPage = lazy(() => import('../features/roles-permissions/RolesPermissionsPage'));
+const LevelsPage = lazy(() => import('../features/organizations/LevelsPage'));
+const LandingPageCms = lazy(() => import('../features/cms/LandingPageCms'));
+const ActivityPage = lazy(() => import('../features/activity-logs/ActivityPage'));
+const NewsPage = lazy(() => import('../features/news-events/NewsPage'));
+const NewsDetailPage = lazy(() => import('../features/news-events/NewsDetailPage'));
+const ServicesPage = lazy(() => import('../features/services/ServicesPage'));
+const DocumentsPage = lazy(() => import('../features/documents/DocumentsPage'));
+const RoutesPage = lazy(() => import('../features/services/RoutesPage'));
+const QRPage = lazy(() => import('../features/qr-codes/QRPage'));
+const FeedbackPage = lazy(() => import('../features/feedback/FeedbackPage'));
 
 const RootIndexRedirect: React.FC = () => {
   const { isSuperAdmin, hasPermission } = usePermissions();
@@ -36,11 +40,7 @@ const RootIndexRedirect: React.FC = () => {
   }
 
   if (isLoading && !apiNavResponse) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px', color: '#64748b' }}>
-        <span>Loading workspace…</span>
-      </div>
-    );
+    return <RouteLoadingFallback />;
   }
 
   const firstPath = getFirstAuthorizedPath(apiNavResponse?.data, hasPermission);
@@ -58,169 +58,245 @@ const AdminRedirect: React.FC = () => {
 
 export const AppRoutes: React.FC = () => {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/" element={<AppLayout />}>
-        <Route index element={<RootIndexRedirect />} />
+    <Suspense fallback={<RouteLoadingFallback />}>
+      <Routes>
+        {/* Public Guest Routes */}
         <Route
-          path="overview"
+          path="/login"
           element={
-            <RoleGuard requiredPermission="dashboard.view" pageKey="overview">
-              <OverviewPage />
-            </RoleGuard>
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
           }
         />
 
-        {/* Directory / Offices - Accessible with organizations.view permission */}
+        {/* Protected Authenticated Routes */}
         <Route
-          path="offices"
+          path="/"
           element={
-            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="organizations.view" pageKey="offices">
-              <OfficesPage />
-            </RoleGuard>
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
           }
-        />
-        <Route
-          path="subcities"
-          element={
-            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="organizations.view" pageKey="subcities">
-              <OfficesPage />
-            </RoleGuard>
-          }
-        />
-        <Route
-          path="bureaus"
-          element={
-            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="organizations.view" pageKey="bureaus">
-              <OfficesPage />
-            </RoleGuard>
-          }
-        />
+        >
+          <Route index element={<RootIndexRedirect />} />
 
-        {/* Administration routes */}
-        <Route
-          path="accounts"
-          element={
-            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="users.view" pageKey="accounts">
-              <AccountsPage />
-            </RoleGuard>
-          }
-        />
-        <Route
-          path="roles"
-          element={
-            <RoleGuard allowedRoles={['super']} requiredPermission="roles.view" pageKey="roles">
-              <RolesPermissionsPage />
-            </RoleGuard>
-          }
-        />
-        <Route
-          path="levels"
-          element={
-            <RoleGuard allowedRoles={['super']} requiredPermission="organizations.view" pageKey="levels">
-              <LevelsPage />
-            </RoleGuard>
-          }
-        />
-        <Route
-          path="cms"
-          element={
-            <RoleGuard allowedRoles={['super']} requiredPermission="cms.manage" pageKey="cms">
-              <LandingPageCms />
-            </RoleGuard>
-          }
-        />
-        <Route
-          path="activity"
-          element={
-            <RoleGuard allowedRoles={['super']} requiredPermission="audit_logs.view" pageKey="activity">
-              <ActivityPage />
-            </RoleGuard>
-          }
-        />
+          {/* Overview Dashboard */}
+          <Route
+            path="overview"
+            element={
+              <RoleGuard requiredPermission="dashboard.view" pageKey="overview">
+                <OverviewPage />
+              </RoleGuard>
+            }
+          />
 
-        {/* News & notices */}
-        <Route
-          path="news/:id"
-          element={
-            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="news.view" pageKey="news">
-              <NewsDetailPage />
-            </RoleGuard>
-          }
-        />
-        <Route
-          path="news"
-          element={
-            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="news.view" pageKey="news">
-              <NewsPage />
-            </RoleGuard>
-          }
-        />
+          {/* Directory & Jurisdictions */}
+          <Route
+            path="offices"
+            element={
+              <RoleGuard
+                allowedRoles={['super', 'subcity', 'bureau']}
+                requiredPermission="organizations.view"
+                pageKey="offices"
+              >
+                <OfficesPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="subcities"
+            element={
+              <RoleGuard
+                allowedRoles={['super', 'subcity', 'bureau']}
+                requiredPermission="organizations.view"
+                pageKey="subcities"
+              >
+                <OfficesPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="bureaus"
+            element={
+              <RoleGuard
+                allowedRoles={['super', 'subcity', 'bureau']}
+                requiredPermission="organizations.view"
+                pageKey="bureaus"
+              >
+                <OfficesPage />
+              </RoleGuard>
+            }
+          />
 
-        {/* Service standards */}
-        <Route
-          path="services"
-          element={
-            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="services.view" pageKey="services">
-              <ServicesPage />
-            </RoleGuard>
-          }
-        />
-        <Route
-          path="documents"
-          element={
-            <RoleGuard requiredPermission="documents.view" pageKey="documents">
-              <DocumentsPage />
-            </RoleGuard>
-          }
-        />
+          {/* Administration & System */}
+          <Route
+            path="accounts"
+            element={
+              <RoleGuard
+                allowedRoles={['super', 'subcity', 'bureau']}
+                requiredPermission="users.view"
+                pageKey="accounts"
+              >
+                <AccountsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="roles"
+            element={
+              <RoleGuard allowedRoles={['super']} requiredPermission="roles.view" pageKey="roles">
+                <RolesPermissionsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="levels"
+            element={
+              <RoleGuard
+                allowedRoles={['super']}
+                requiredPermission="organizations.view"
+                pageKey="levels"
+              >
+                <LevelsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="cms"
+            element={
+              <RoleGuard allowedRoles={['super']} requiredPermission="cms.manage" pageKey="cms">
+                <LandingPageCms />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="activity"
+            element={
+              <RoleGuard
+                allowedRoles={['super']}
+                requiredPermission="audit_logs.view"
+                pageKey="activity"
+              >
+                <ActivityPage />
+              </RoleGuard>
+            }
+          />
 
-        {/* Bureau / Operations room routes - commented out
-        <Route
-          path="routes"
-          element={
-            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="service_steps.view" pageKey="routes">
-              <RoutesPage />
-            </RoleGuard>
-          }
-        />
-        */}
-        <Route
-          path="qr"
-          element={
-            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="qr_codes.view" pageKey="qr">
-              <QRPage />
-            </RoleGuard>
-          }
-        />
-        <Route
-          path="office"
-          element={
-            <RoleGuard allowedRoles={['super', 'subcity', 'bureau']} requiredPermission="services.view" pageKey="office">
-              <OfficePage />
-            </RoleGuard>
-          }
-        />
+          {/* News & Communications */}
+          <Route
+            path="news/:id"
+            element={
+              <RoleGuard
+                allowedRoles={['super', 'subcity', 'bureau']}
+                requiredPermission="news.view"
+                pageKey="news"
+              >
+                <NewsDetailPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="news"
+            element={
+              <RoleGuard
+                allowedRoles={['super', 'subcity', 'bureau']}
+                requiredPermission="news.view"
+                pageKey="news"
+              >
+                <NewsPage />
+              </RoleGuard>
+            }
+          />
 
-        {/* Citizen Feedback */}
-        <Route
-          path="feedback"
-          element={
-            <RoleGuard requiredPermission={['feedback.view_own', 'feedback.view_descendants']} pageKey="feedback">
-              <FeedbackPage />
-            </RoleGuard>
-          }
-        />
-      </Route>
+          {/* Service Delivery & Standards */}
+          <Route
+            path="services"
+            element={
+              <RoleGuard
+                allowedRoles={['super', 'subcity', 'bureau']}
+                requiredPermission="services.view"
+                pageKey="services"
+              >
+                <ServicesPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="documents"
+            element={
+              <RoleGuard
+                allowedRoles={['super', 'subcity', 'bureau']}
+                requiredPermission="documents.view"
+                pageKey="documents"
+              >
+                <DocumentsPage />
+              </RoleGuard>
+            }
+          />
 
-      {/* Admin path redirect for backwards-compatibility */}
-      <Route path="/admin/:role/:page" element={<AdminRedirect />} />
-      <Route path="/admin/:page" element={<AdminRedirect />} />
-      <Route path="/admin/:role" element={<Navigate to="/" replace />} />
-      <Route path="/admin" element={<Navigate to="/" replace />} />
+          {/* Operations & Physical Touchpoints */}
+          <Route
+            path="routes"
+            element={
+              <RoleGuard
+                allowedRoles={['super', 'subcity', 'bureau']}
+                requiredPermission="service_steps.view"
+                pageKey="routes"
+              >
+                <RoutesPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="qr"
+            element={
+              <RoleGuard
+                allowedRoles={['super', 'subcity', 'bureau']}
+                requiredPermission="qr_codes.view"
+                pageKey="qr"
+              >
+                <QRPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="office"
+            element={
+              <RoleGuard
+                allowedRoles={['super', 'subcity', 'bureau']}
+                requiredPermission="services.view"
+                pageKey="office"
+              >
+                <OfficePage />
+              </RoleGuard>
+            }
+          />
 
-      {/* Catch-all fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+          {/* Citizen Feedback */}
+          <Route
+            path="feedback"
+            element={
+              <RoleGuard
+                requiredPermission={['feedback.view_own', 'feedback.view_descendants']}
+                pageKey="feedback"
+              >
+                <FeedbackPage />
+              </RoleGuard>
+            }
+          />
+        </Route>
+
+        {/* Legacy redirect aliases */}
+        <Route path="/admin/:role/:page" element={<AdminRedirect />} />
+        <Route path="/admin/:role" element={<Navigate to="/" replace />} />
+        <Route path="/admin" element={<Navigate to="/" replace />} />
+
+        {/* Fallback Catch-all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 };
+
+export default AppRoutes;

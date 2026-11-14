@@ -1,9 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   FileText,
-  CheckCircle2,
-  Layers,
-  FolderCheck,
   Search,
   Plus,
   Pencil,
@@ -13,17 +10,17 @@ import {
   Download,
   Link2,
 } from 'lucide-react';
-import { usePermissions } from '../../hooks/usePermissions';
-import { useLanguage } from '../../i18n/i18nContext';
-import { getLocalizedText } from '../../i18n/utils/getLocalized';
-import { DocumentModal } from '../../components/documents/DocumentModal';
+import { usePermissions } from '../shared/hooks/usePermissions';
+import { useLanguage, getLocalizedText } from '../shared/i18n';
+import { DocumentModal } from './components/DocumentModal';
+import { DocumentMetrics } from './components/DocumentMetrics';
 import {
   useGetDocumentsQuery,
   useCreateDocumentMutation,
   useUpdateDocumentMutation,
   useDeleteDocumentMutation,
   type DocumentItem,
-} from '../../services/documentsApi';
+} from './api/documentsApi';
 
 export const DocumentsPage: React.FC = () => {
   const { language, t } = useLanguage();
@@ -139,10 +136,30 @@ export const DocumentsPage: React.FC = () => {
     }
   };
 
+  const handleExportDocuments = () => {
+    const headers = ['ID', 'Code', 'Name', 'Description', 'Active', 'ServicesCount'];
+    const rows = documents.map((d) => [
+      d.id,
+      `"${d.code || ''}"`,
+      `"${getLocalizedText(d.name, language) || ''}"`,
+      `"${getLocalizedText(d.description, language) || ''}"`,
+      d.is_active ? 'Yes' : 'No',
+      d.services_count || 0,
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `documents_catalog_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Heading */}
-      <div className="page-heading">
+      <div className="page-heading !mb-8 sm:!mb-9">
         <div>
           <div className="eyebrow">
             <span />
@@ -152,76 +169,38 @@ export const DocumentsPage: React.FC = () => {
           <p>{t('documents.subtitle')}</p>
         </div>
 
-        {canManage && (
+        <div className="heading-actions">
           <button
             type="button"
-            onClick={handleOpenAdd}
-            className="primary-button"
+            onClick={handleExportDocuments}
+            className="button secondary"
+            title="Export document checklist to CSV"
           >
-            <Plus size={16} />
-            <span>{t('documents.addDocument')}</span>
+            <Download size={15} />
+            <span>{t('common.export', 'Export checklist')}</span>
           </button>
-        )}
+
+          {canManage && (
+            <button
+              type="button"
+              onClick={handleOpenAdd}
+              className="primary-button"
+            >
+              <Plus size={16} />
+              <span>{t('documents.addDocument')}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-[#064552]">
-            <FileText size={22} className="stroke-[2.2]" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-              {documents.length}
-            </div>
-            <div className="text-xs font-semibold text-slate-500 mt-1">
-              {t('documents.totalDocs')}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700">
-            <CheckCircle2 size={22} className="stroke-[2.2]" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-              {activeCount}
-            </div>
-            <div className="text-xs font-semibold text-slate-500 mt-1">
-              {t('documents.activeDocs')}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700">
-            <Layers size={22} className="stroke-[2.2]" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-              {linkedDocsCount}
-            </div>
-            <div className="text-xs font-semibold text-slate-500 mt-1">
-              {t('documents.linkedDocs')}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-700">
-            <FolderCheck size={22} className="stroke-[2.2]" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-              {totalServiceLinks}
-            </div>
-            <div className="text-xs font-semibold text-slate-500 mt-1">
-              {t('documents.totalLinks')}
-            </div>
-          </div>
-        </div>
-      </div>
+      <DocumentMetrics
+        isLoading={isLoading}
+        totalCount={documents.length}
+        activeCount={activeCount}
+        linkedDocsCount={linkedDocsCount}
+        totalServiceLinks={totalServiceLinks}
+      />
 
       {/* Main Catalog Card */}
       <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
@@ -456,4 +435,3 @@ export const DocumentsPage: React.FC = () => {
 };
 
 export default DocumentsPage;
-
