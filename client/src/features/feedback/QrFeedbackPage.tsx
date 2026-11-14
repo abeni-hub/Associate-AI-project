@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { BrandMark, Icon } from '../shared';
+import { BrandMark, Icon, CitizensCharter } from '../shared';
 import { useSubmitFeedbackMutation, useLazyTrackFeedbackQuery } from './api/feedbackApi';
 import { useGetOrganizationsQuery, useGetServicesQuery } from '../services';
 import { createFeedbackTrackingNumber } from '../../utils/feedbackTracking';
@@ -359,6 +359,16 @@ export default function QrFeedbackPage({
     return servicesList.find((s) => s.id === selectedServiceId) || servicesList[0];
   }, [servicesList, selectedServiceId]);
 
+  // Reset submission state when navigating back or switching service
+  function resetSubmissionState() {
+    setIsSuccess(false);
+    setTrackingNumber(null);
+    setCopiedTracking(false);
+    setMessage('');
+    setSelectedTags([]);
+    setAttachedImage(null);
+  }
+
   // Step 1: Sub-City Selection
   function handleSelectSubCity(sc: string) {
     setSelectedSubCity(sc);
@@ -377,6 +387,9 @@ export default function QrFeedbackPage({
   function handleSelectType(chosenType: UserIntent) {
     setIntent(chosenType);
     setSelectedTags([]);
+    if (isSuccess) {
+      resetSubmissionState();
+    }
     setCurrentStep(4);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -384,12 +397,18 @@ export default function QrFeedbackPage({
   // Step 4: Service Selection (DEDICATED STEP)
   function handleSelectService(srvId: string) {
     setSelectedServiceId(srvId);
+    if (isSuccess) {
+      resetSubmissionState();
+    }
     setCurrentStep(5);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // Back Navigation
   function handleBack() {
+    if (isSuccess) {
+      resetSubmissionState();
+    }
     if (currentStep === 5) {
       setCurrentStep(4);
     } else if (currentStep === 4) {
@@ -522,6 +541,7 @@ export default function QrFeedbackPage({
           ? 'satisfaction'
           : 'feedback';
 
+    const isSatisfaction = intent === 'satisfaction';
     let trackNum: string | null = null;
     try {
       const response = await submitFeedbackMutation({
@@ -532,16 +552,16 @@ export default function QrFeedbackPage({
         phone_number: phoneNumber.trim() || undefined,
       }).unwrap();
 
-      trackNum = response?.data?.tracking_number;
+      trackNum = isSatisfaction ? null : response?.data?.tracking_number;
     } catch {
+      trackNum = isSatisfaction ? null : createFeedbackTrackingNumber();
+    }
+
+    if (!isSatisfaction && !trackNum) {
       trackNum = createFeedbackTrackingNumber();
     }
 
-    if (!trackNum) {
-      trackNum = createFeedbackTrackingNumber();
-    }
-
-    setTrackingNumber(trackNum);
+    setTrackingNumber(isSatisfaction ? null : trackNum);
     setIsSuccess(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -970,6 +990,9 @@ export default function QrFeedbackPage({
                       </div>
                     )}
 
+                    {/* Citizens' Rights & Obligations Charter */}
+                    <CitizensCharter t={t} variant="qr" />
+
                     <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexWrap: 'wrap' }}>
                       <button
                         type="button"
@@ -1189,23 +1212,27 @@ export default function QrFeedbackPage({
                     </div>
                     <h2>{t('Thank you! Your feedback has been received.')}</h2>
                     <p>
-                      {t(
-                        'Your feedback was routed directly to the office administration. Use this tracking code anytime to check the resolution.'
-                      )}
+                      {intent === 'satisfaction'
+                        ? t('Thank you for rating our service. Your rating helps us improve public services.')
+                        : t(
+                            'Your feedback was routed directly to the office administration. Use this tracking code anytime to check the resolution.'
+                          )}
                     </p>
 
-                    <div className="qr-tracking-box">
-                      <span>{t('Your Official Tracking Number:')}</span>
-                      <div className="qr-tracking-number">{trackingNumber}</div>
-                      <button
-                        type="button"
-                        className="qr-copy-btn"
-                        onClick={handleCopyTracking}
-                      >
-                        <Icon name="copy" size={14} />
-                        <span>{copiedTracking ? t('Copied!') : t('Copy Tracking Code')}</span>
-                      </button>
-                    </div>
+                    {intent !== 'satisfaction' && trackingNumber && (
+                      <div className="qr-tracking-box">
+                        <span>{t('Your Official Tracking Number:')}</span>
+                        <div className="qr-tracking-number">{trackingNumber}</div>
+                        <button
+                          type="button"
+                          className="qr-copy-btn"
+                          onClick={handleCopyTracking}
+                        >
+                          <Icon name="copy" size={14} />
+                          <span>{copiedTracking ? t('Copied!') : t('Copy Tracking Code')}</span>
+                        </button>
+                      </div>
+                    )}
 
                     <div className="qr-success-actions">
                       <button

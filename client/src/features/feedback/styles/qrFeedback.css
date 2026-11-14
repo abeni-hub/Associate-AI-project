@@ -1420,6 +1420,98 @@
   transform: scale(1.02);
 }
 
+/* Citizens' Charter (Rights & Obligations in QR Info) */
+.qr-charter-section {
+  margin-top: 18px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.qr-charter-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #00485a;
+  margin-bottom: 12px;
+}
+
+.qr-charter-header h4 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.qr-charter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .qr-charter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.qr-charter-box {
+  border-radius: 9px;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+}
+
+.qr-rights-box {
+  background: #f8fbf9;
+  border-color: #d8eae0;
+}
+
+.qr-obligations-box {
+  background: #fdfbf7;
+  border-color: #ede2ce;
+}
+
+.qr-charter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.qr-pill-rights {
+  background: #e6f4ed;
+  color: #0f6150;
+  border: 1px solid #c2e5d3;
+}
+
+.qr-pill-obligations {
+  background: #f5eedf;
+  color: #8c6319;
+  border: 1px solid #e8dac0;
+}
+
+.qr-charter-list {
+  margin: 0;
+  padding: 0 0 0 16px;
+  font-size: 11.5px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.qr-charter-list li {
+  margin-bottom: 6px;
+}
+
+.qr-charter-list li:last-child {
+  margin-bottom: 0;
+}
+
 /* Professional Micro-Animations */
 .qr-fade-in {
   animation: qrFadeIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;

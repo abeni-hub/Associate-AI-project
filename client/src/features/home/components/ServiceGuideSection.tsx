@@ -1,4 +1,4 @@
-import { Icon } from '../../shared'
+import { Icon, CitizensCharter } from '../../shared'
 import '../styles/serviceGuide.css'
 
 export interface ServiceGuideSectionProps {
@@ -117,44 +117,14 @@ export default function ServiceGuideSection({
           </div>
           <div className="route-panel">
             <div className="panel-title">
-              <span className="panel-icon yellow-icon"><Icon name="route" size={18} /></span>
-              <div><span className="panel-overline">{t('ONCE YOU ARRIVE')}</span><h4>{t(guideService?.routeHeading ?? defaultRouteHeading)}</h4></div>
-            </div>
-            {guideService?.steps && guideService.steps.length > 0 ? (
-              <ol className="room-route">
-                {guideService.steps.map((step: any, index: number) => {
-                  const roomDisplay = step.routeLabel
-                    ? t(step.routeLabel)
-                    : step.room
-                      ? (step.room.startsWith('Room') || step.room.startsWith('Counter') || step.room.startsWith('Desk') || step.room.startsWith('Cashier') || step.room.startsWith('Info')
-                          ? t(step.room)
-                          : `${t('Room')} ${step.room}`)
-                      : `${t('Step')} 0${index + 1}`
-
-                  return (
-                    <li key={`${step.room}-${step.title}-${index}`}>
-                      <span className="route-number">0{index + 1}</span>
-                      <span className="route-track"><i /></span>
-                      <span className="room-pill">{roomDisplay}</span>
-                      <span className="route-description">
-                        <b>{t(step.title)}</b>
-                        {(step.department || step.floor) && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#1f6f78', fontWeight: 600, margin: '2px 0 4px' }}>
-                            <Icon name="pin" size={11} />
-                            <span>{t(step.department || '')}{step.department && step.floor ? ' · ' : ''}{step.floor ? t(step.floor) : ''}</span>
-                          </span>
-                        )}
-                        <small>{t(step.detail)}</small>
-                      </span>
-                    </li>
-                  )
-                })}
-              </ol>
-            ) : (
-              <div style={{ padding: '16px 0', color: '#6d8388', fontSize: '11px' }}>
-                <p>{t('Room navigation steps are being updated by the bureau desk.')}</p>
+              <span className="panel-icon yellow-icon"><Icon name="shield" size={18} /></span>
+              <div>
+                <span className="panel-overline">{t('PUBLIC SERVICE CHARTER')}</span>
+                <h4>{t('Citizens’ Rights & Obligations')}</h4>
               </div>
-            )}
+            </div>
+
+            <CitizensCharter t={t} variant="guide" />
           </div>
         </div>
 

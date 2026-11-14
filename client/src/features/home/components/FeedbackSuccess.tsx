@@ -28,7 +28,11 @@ export default function FeedbackSuccess({ t, onReset, trackingNumber, onTrack }:
       <span className="success-icon"><Icon name="check" size={27} /></span>
       <span className="form-eyebrow">{t('THANK YOU FOR SPEAKING UP')}</span>
       <h3>{t('Your voice matters.')}</h3>
-      <p>{t('Your feedback has been officially registered with the city administration under tracking reference. You can use this reference to check on your submission.')}</p>
+      <p>
+        {trackingNumber
+          ? t('Your feedback has been officially registered with the city administration under tracking reference. You can use this reference to check on your submission.')
+          : t('Your feedback has been officially registered with the city administration. Thank you for rating our service.')}
+      </p>
       {trackingNumber && (
         <div className="feedback-reference-card">
           <div><span>{t('YOUR OFFICIAL TRACKING NUMBER')}</span><strong>{trackingNumber}</strong></div>

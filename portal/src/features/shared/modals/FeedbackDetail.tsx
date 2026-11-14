@@ -59,12 +59,12 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
           <span className="panel-eyebrow">CITIZEN RESPONSE · {item.id}</span>
           <h2>{item.type} received</h2>
           <p>{item.time}</p>
-          <div className="feedback-tracking-ref">
-            <span>
-              <small>TRACKING NUMBER</small>
-              <b>{item.trackingNumber || 'Not assigned'}</b>
-            </span>
-            {item.trackingNumber && (
+          {item.trackingNumber && item.type?.toLowerCase() !== 'satisfaction' && (
+            <div className="feedback-tracking-ref">
+              <span>
+                <small>TRACKING NUMBER</small>
+                <b>{item.trackingNumber}</b>
+              </span>
               <button
                 type="button"
                 onClick={copyTrackingNumber}
@@ -74,8 +74,8 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
                 <Icon name={trackingCopied ? 'check' : 'copy'} size={14} />
                 {trackingCopied ? 'Copied' : 'Copy'}
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
         <button
           type="button"

@@ -16,21 +16,18 @@ import {
   Send,
   Check,
   RefreshCw,
-  Trash2,
   ChevronRight,
   ShieldCheck,
   ThumbsUp,
   HelpCircle,
   Download,
-  Globe,
 } from 'lucide-react';
-import { useLanguage, getLocalizedText, type SupportedLanguage } from '../shared/i18n';
+import { useLanguage, getLocalizedText } from '../shared/i18n';
 import { FeedbackMetricsGrid } from './components/FeedbackMetricsGrid';
 import {
   useGetFeedbackListQuery,
   useUpdateFeedbackStatusMutation,
   useRespondToFeedbackMutation,
-  useDeleteFeedbackMutation,
   type CitizenFeedback,
 } from './api/feedbackApi';
 
@@ -146,10 +143,7 @@ export const FeedbackPage: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<'All' | 'complaint' | 'feedback' | 'satisfaction'>('All');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | number | null>(null);
-  const [responseLang, setResponseLang] = useState<SupportedLanguage>('en');
-  const [responseTextEn, setResponseTextEn] = useState('');
-  const [responseTextAm, setResponseTextAm] = useState('');
-  const [responseTextOm, setResponseTextOm] = useState('');
+  const [responseText, setResponseText] = useState('');
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
 
   const { data: apiFeedback, isLoading, refetch } = useGetFeedbackListQuery(undefined, {
@@ -158,7 +152,6 @@ export const FeedbackPage: React.FC = () => {
 
   const [updateStatusTrigger, { isLoading: isUpdatingStatus }] = useUpdateFeedbackStatusMutation();
   const [respondTrigger, { isLoading: isResponding }] = useRespondToFeedbackMutation();
-  const [deleteTrigger, { isLoading: isDeleting }] = useDeleteFeedbackMutation();
 
   const items = useMemo(() => {
     return apiFeedback?.data || [];
@@ -226,24 +219,23 @@ export const FeedbackPage: React.FC = () => {
     return parseFeedbackContent(raw);
   }, [activeItem, language]);
 
-  // Keep response texts pre-filled with existing localized response if available
+  // Keep response text pre-filled with existing response if available
   useEffect(() => {
     if (activeItem) {
       const respObj = activeItem.response_localized;
-      const initialEn = (typeof activeItem.response === 'string' ? activeItem.response : '') || respObj?.eng || '';
-      const initialAm = activeItem.response_amh || respObj?.amh || '';
-      const initialOm = activeItem.response_oro || respObj?.oro || '';
-
-      setResponseTextEn(initialEn);
-      setResponseTextAm(initialAm);
-      setResponseTextOm(initialOm);
-      setResponseLang(language);
+      const initialResp =
+        (typeof activeItem.response === 'string' ? activeItem.response : '') ||
+        respObj?.eng ||
+        activeItem.response_amh ||
+        respObj?.amh ||
+        activeItem.response_oro ||
+        respObj?.oro ||
+        '';
+      setResponseText(initialResp);
     } else {
-      setResponseTextEn('');
-      setResponseTextAm('');
-      setResponseTextOm('');
+      setResponseText('');
     }
-  }, [activeItem, language]);
+  }, [activeItem]);
 
   const showFeedbackNotice = (msg: string) => {
     setActionSuccessMsg(msg);
@@ -252,14 +244,12 @@ export const FeedbackPage: React.FC = () => {
 
   const handleSetStatus = async (newStatus: 'in_review' | 'resolved' | 'closed') => {
     if (!activeItem) return;
-    const primaryResponse = responseTextEn.trim() || responseTextAm.trim() || responseTextOm.trim();
+    const cleanResponse = responseText.trim();
     try {
       await updateStatusTrigger({
         id: activeItem.id,
         status: newStatus,
-        response: primaryResponse || undefined,
-        response_amh: responseTextAm.trim() || undefined,
-        response_oro: responseTextOm.trim() || undefined,
+        response: cleanResponse || undefined,
       }).unwrap();
       showFeedbackNotice(t('feedback.statusUpdated', 'Status updated successfully.'));
       await refetch();
@@ -270,8 +260,8 @@ export const FeedbackPage: React.FC = () => {
 
   const handleSendResponse = async () => {
     if (!activeItem) return;
-    const primaryResponse = responseTextEn.trim() || responseTextAm.trim() || responseTextOm.trim();
-    if (!primaryResponse) {
+    const cleanResponse = responseText.trim();
+    if (!cleanResponse) {
       window.alert(t('feedback.requireResponse', 'Please enter an official response before submitting.'));
       return;
     }
@@ -279,28 +269,12 @@ export const FeedbackPage: React.FC = () => {
       await updateStatusTrigger({
         id: activeItem.id,
         status: 'resolved',
-        response: primaryResponse,
-        response_amh: responseTextAm.trim() || undefined,
-        response_oro: responseTextOm.trim() || undefined,
+        response: cleanResponse,
       }).unwrap();
       showFeedbackNotice(t('feedback.responseSent', 'Official response submitted and ticket marked as resolved.'));
       await refetch();
     } catch (err: any) {
       window.alert(err?.data?.message || 'Failed to send response.');
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!activeItem) return;
-    if (window.confirm(t('feedback.confirmDelete', 'Are you sure you want to permanently delete this feedback submission?'))) {
-      try {
-        await deleteTrigger(activeItem.id).unwrap();
-        showFeedbackNotice(t('feedback.itemDeleted', 'Feedback item removed.'));
-        setSelectedId(null);
-        await refetch();
-      } catch (err: any) {
-        window.alert(err?.data?.message || 'Failed to delete feedback.');
-      }
     }
   };
 
@@ -410,35 +384,49 @@ export const FeedbackPage: React.FC = () => {
             </div>
 
             {/* Streamlined Filter Row: Status Segmented Control + Type Select */}
-            <div className="flex items-center justify-between gap-2 text-xs">
-              <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/60 font-medium">
-                {(['All', 'Open', 'In review', 'Resolved'] as const).map((status) => (
-                  <button
-                    key={status}
-                    type="button"
-                    onClick={() => setStatusFilter(status)}
-                    className={`px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-all ${
-                      statusFilter === status
-                        ? 'bg-white text-slate-900 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {status === 'All'
-                      ? t('common.all', 'All')
-                      : status === 'Open'
-                      ? t('feedback.open', 'Open')
-                      : status === 'In review'
-                      ? t('feedback.inReview', 'In review')
-                      : t('feedback.resolved', 'Resolved')}
-                  </button>
-                ))}
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {(['All', 'Open', 'In review', 'Resolved'] as const).map((status) => {
+                  const isActive = statusFilter === status;
+                  return (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => setStatusFilter(status)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${
+                        isActive
+                          ? 'bg-[#00485a] border-[#003946] text-white shadow-sm shadow-[#00485a]/20'
+                          : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50/80 shadow-[0_1px_2px_rgba(0,0,0,0.03)]'
+                      }`}
+                    >
+                      {status === 'Open' && (
+                        <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-amber-300' : 'bg-amber-500'}`} />
+                      )}
+                      {status === 'In review' && (
+                        <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-sky-300' : 'bg-sky-500'}`} />
+                      )}
+                      {status === 'Resolved' && (
+                        <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-300' : 'bg-emerald-500'}`} />
+                      )}
+                      <span>
+                        {status === 'All'
+                          ? t('common.all', 'All')
+                          : status === 'Open'
+                          ? t('feedback.open', 'Open')
+                          : status === 'In review'
+                          ? t('feedback.inReview', 'In review')
+                          : t('feedback.resolved', 'Resolved')}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value as any)}
                 aria-label="Filter feedback by type"
-                className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-600 font-medium focus:outline-none focus:border-[#064552] transition-colors"
+                className="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 font-medium hover:border-slate-300 focus:outline-none focus:border-[#00485a] focus:ring-1 focus:ring-[#00485a]/20 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
               >
                 <option value="All">{t('feedback.allTypes', 'All types')}</option>
                 <option value="complaint">{t('feedback.complaint', 'Complaints')}</option>
@@ -487,9 +475,11 @@ export const FeedbackPage: React.FC = () => {
                   >
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-mono text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                          {trackingNumber}
-                        </span>
+                        {!isSatisfaction && (
+                          <span className="font-mono text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                            {trackingNumber}
+                          </span>
+                        )}
 
                         <span
                           className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
@@ -587,9 +577,11 @@ export const FeedbackPage: React.FC = () => {
               <div className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/20 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                      {activeItem.tracking_number ? `#${activeItem.tracking_number}` : `FB-${activeItem.id}`}
-                    </span>
+                    {(activeItem.feedback_type || activeItem.type || '').toLowerCase() !== 'satisfaction' && (
+                      <span className="font-mono text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                        {activeItem.tracking_number ? `#${activeItem.tracking_number}` : `FB-${activeItem.id}`}
+                      </span>
+                    )}
 
                     <span
                       className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
@@ -619,15 +611,6 @@ export const FeedbackPage: React.FC = () => {
                         : t('feedback.open', 'Open')}
                     </span>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={handleDelete}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                    title="Delete ticket"
-                  >
-                    <Trash2 size={16} />
-                  </button>
                 </div>
 
                 <div className="flex items-baseline justify-between gap-3 flex-wrap">
@@ -774,64 +757,15 @@ export const FeedbackPage: React.FC = () => {
 
                 {/* Inline Official Action Form */}
                 <div className="pt-2 border-t border-slate-100 space-y-3">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <label className="block text-xs font-bold text-slate-700">
-                      {t('feedback.composeResponse', 'Official Response')}
-                    </label>
-
-                    {/* Multilingual Response Input Switcher */}
-                    <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-lg border border-slate-200/70">
-                      <Globe size={13} className="text-[#064552] ml-1.5 mr-0.5" />
-                      {(['en', 'am', 'om'] as const).map((l) => {
-                        const hasContent =
-                          l === 'en'
-                            ? Boolean(responseTextEn.trim())
-                            : l === 'am'
-                            ? Boolean(responseTextAm.trim())
-                            : Boolean(responseTextOm.trim());
-                        return (
-                          <button
-                            key={l}
-                            type="button"
-                            onClick={() => setResponseLang(l)}
-                            className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
-                              responseLang === l
-                                ? 'bg-white text-slate-900 shadow-sm'
-                                : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                          >
-                            <span>{l === 'en' ? 'English' : l === 'am' ? 'አማርኛ' : 'Oromoo'}</span>
-                            {hasContent && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-teal-600" title="Has response text" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <label className="block text-xs font-bold text-slate-700">
+                    {t('feedback.composeResponse', 'Official Response')}
+                  </label>
 
                   <textarea
                     rows={4}
-                    value={
-                      responseLang === 'en'
-                        ? responseTextEn
-                        : responseLang === 'am'
-                        ? responseTextAm
-                        : responseTextOm
-                    }
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (responseLang === 'en') setResponseTextEn(val);
-                      else if (responseLang === 'am') setResponseTextAm(val);
-                      else setResponseTextOm(val);
-                    }}
-                    placeholder={
-                      responseLang === 'am'
-                        ? 'ይፋዊ የምርመራ ውጤት፣ የውሳኔ እርምጃዎችን ወይም ለዜጋው የሚሰጡ መመሪያዎችን እዚህ ይፃፉ...'
-                        : responseLang === 'om'
-                        ? "Bu'aa qorannoo, tarkaanfiiwwan furmaataa, yookiin qajeelfama lammiidhaaf ta'u asitti barreessaa..."
-                        : t('feedback.responsePlaceholder', 'Write an official response or resolution notes for the citizen...')
-                    }
+                    value={responseText}
+                    onChange={(e) => setResponseText(e.target.value)}
+                    placeholder={t('feedback.responsePlaceholder', 'Write an official response or resolution notes for the citizen...')}
                     className="w-full p-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#064552] focus:ring-1 focus:ring-[#064552]/20 transition-all"
                   />
 
@@ -846,21 +780,12 @@ export const FeedbackPage: React.FC = () => {
                       >
                         {t('feedback.markUnderReview', 'Mark in review')}
                       </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleSetStatus('closed')}
-                        disabled={isUpdatingStatus}
-                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors disabled:opacity-50"
-                      >
-                        {t('feedback.closeTicket', 'Close ticket')}
-                      </button>
                     </div>
 
                     <button
                       type="button"
                       onClick={handleSendResponse}
-                      disabled={isUpdatingStatus || (!responseTextEn.trim() && !responseTextAm.trim() && !responseTextOm.trim())}
+                      disabled={isUpdatingStatus || !responseText.trim()}
                       className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-[#064552] text-white hover:bg-[#085a6a] transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
                     >
                       <Send size={14} />

@@ -66,10 +66,11 @@ export async function submitCitizenFeedback({
   }
 
   // Fallback 10-digit random tracking number for complaints as specified in api.md Section 11
-  const fallbackTracking = String(Math.floor(1000000000 + Math.random() * 9000000000));
+  const isSatisfaction = normalizedType === 'satisfaction';
+  const fallbackTracking = isSatisfaction ? undefined : String(Math.floor(1000000000 + Math.random() * 9000000000));
   return {
     success: true,
-    trackingNumber: fallbackTracking,
+    trackingNumber: fallbackTracking || '',
   };
 }
 

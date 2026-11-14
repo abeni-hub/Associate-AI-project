@@ -36,9 +36,19 @@ export const feedbackSlice = createSlice({
   reducers: {
     setFeedbackStep: (state, action: PayloadAction<number>) => {
       state.step = action.payload;
+      if (state.submitted) {
+        state.submitted = false;
+        state.trackingNumber = null;
+        state.message = '';
+      }
     },
     setFeedbackType: (state, action: PayloadAction<string>) => {
       state.type = action.payload;
+      if (state.submitted) {
+        state.submitted = false;
+        state.trackingNumber = null;
+        state.message = '';
+      }
     },
     setFeedbackCity: (state, action: PayloadAction<string>) => {
       state.city = action.payload;
@@ -48,6 +58,11 @@ export const feedbackSlice = createSlice({
     },
     setFeedbackService: (state, action: PayloadAction<string>) => {
       state.service = action.payload;
+      if (state.submitted) {
+        state.submitted = false;
+        state.trackingNumber = null;
+        state.message = '';
+      }
     },
     setFeedbackMessage: (state, action: PayloadAction<string>) => {
       state.message = action.payload;
