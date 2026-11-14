@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import { useLanguage } from '../i18n/i18nContext';
+import { getLocalizedText } from '../i18n/utils/getLocalized';
 import { PageHeading } from '../components/shared/PageHeading';
 import { MetricCard } from '../components/shared/MetricCard';
 import { StatusPill } from '../components/shared/StatusPill';
@@ -14,6 +16,7 @@ import {
 } from '../services/documentsApi';
 
 export const DocumentsPage: React.FC = () => {
+  const { language, t } = useLanguage();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [usageFilter, setUsageFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
@@ -39,11 +42,13 @@ export const DocumentsPage: React.FC = () => {
   const filteredDocuments = useMemo(() => {
     return documents.filter((doc) => {
       const q = search.trim().toLowerCase();
+      const docNameStr = (getLocalizedText(doc.name, language) || (doc as any).name_en || (typeof doc.name === 'string' ? doc.name : '')).toLowerCase();
+      const docDescStr = (getLocalizedText(doc.description, language) || (doc as any).description_en || (typeof doc.description === 'string' ? doc.description : '')).toLowerCase();
       const matchSearch =
         q === '' ||
-        doc.name.toLowerCase().includes(q) ||
-        doc.code.toLowerCase().includes(q) ||
-        (doc.description && doc.description.toLowerCase().includes(q));
+        docNameStr.includes(q) ||
+        String(doc.code || '').toLowerCase().includes(q) ||
+        docDescStr.includes(q);
 
       const matchStatus =
         statusFilter === 'all' ||
@@ -131,10 +136,10 @@ export const DocumentsPage: React.FC = () => {
   return (
     <>
       <PageHeading
-        eyebrow="SERVICE STANDARDS & PREREQUISITES"
-        title="Required documents catalog"
-        subtitle="Canonical repository of citizen documents and credential templates required by government public services across Addis Ababa."
-        action={canManage ? '+ Add document' : undefined}
+        eyebrow={t('documents.eyebrow', 'SERVICE STANDARDS & PREREQUISITES')}
+        title={t('documents.title', 'Required documents catalog')}
+        subtitle={t('documents.subtitle', 'Canonical repository of citizen documents and credential templates required by government public services across Addis Ababa.')}
+        action={canManage ? t('documents.addDocument', '+ Add document') : undefined}
         onAction={canManage ? handleOpenAdd : undefined}
       />
 
@@ -142,30 +147,30 @@ export const DocumentsPage: React.FC = () => {
       <section className="metric-grid" aria-label="Documents statistics">
         <MetricCard
           icon="file"
-          label="Catalogued documents"
+          label={t('documents.cataloguedDocs', 'Catalogued documents')}
           value={isLoading && !response ? '...' : documents.length}
-          note="Standard citizen requirements"
+          note={t('documents.standardCitizenReqs', 'Standard citizen requirements')}
           tone="teal"
         />
         <MetricCard
           icon="check"
-          label="Active requirements"
+          label={t('documents.activeReqs', 'Active requirements')}
           value={isLoading && !response ? '...' : activeCount}
-          note="Ready for service checklists"
+          note={t('documents.readyForChecklists', 'Ready for service checklists')}
           tone="gold"
         />
         <MetricCard
           icon="layers"
-          label="Attached to services"
+          label={t('documents.attachedToServices', 'Attached to services')}
           value={isLoading && !response ? '...' : `${linkedDocsCount} docs`}
-          note={`${totalServiceLinks} total service associations`}
+          note={`${totalServiceLinks} ${t('documents.totalAssociations', 'total service associations')}`}
           tone="sage"
         />
         <MetricCard
           icon="shield"
-          label="Standard compliance"
+          label={t('documents.standardCompliance', 'Standard compliance')}
           value="100%"
-          note="City-wide verification standard"
+          note={t('documents.cityWideStandard', 'City-wide verification standard')}
           tone="blue"
         />
       </section>
@@ -174,9 +179,9 @@ export const DocumentsPage: React.FC = () => {
       <div className="panel activity-table-panel">
         <div className="table-toolbar">
           <div>
-            <h2>Document specifications</h2>
+            <h2>{t('documents.docSpecs', 'Document specifications')}</h2>
             <p>
-              Showing {isLoading && !response ? '...' : filteredDocuments.length} document standards defined for public service delivery.
+              {t('documents.showingDocs', 'Showing document standards defined for public service delivery.')}
             </p>
           </div>
 
@@ -185,7 +190,7 @@ export const DocumentsPage: React.FC = () => {
               <Icon name="search" size={15} />
               <input
                 type="search"
-                placeholder="Search document name, code slug, or criteria..."
+                placeholder={t('documents.searchPlaceholder', 'Search document name, code slug, or criteria...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -207,9 +212,9 @@ export const DocumentsPage: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value as any)}
               aria-label="Filter by status"
             >
-              <option value="all">All statuses</option>
-              <option value="active">Active only</option>
-              <option value="inactive">Inactive only</option>
+              <option value="all">{t('documents.allStatuses', 'All statuses')}</option>
+              <option value="active">{t('documents.activeOnly', 'Active only')}</option>
+              <option value="inactive">{t('documents.inactiveOnly', 'Inactive only')}</option>
             </select>
 
             <select
@@ -218,9 +223,9 @@ export const DocumentsPage: React.FC = () => {
               onChange={(e) => setUsageFilter(e.target.value as any)}
               aria-label="Filter by service linkage"
             >
-              <option value="all">All linkage states</option>
-              <option value="linked">Used in services</option>
-              <option value="unlinked">Unused / Catalog draft</option>
+              <option value="all">{t('documents.allLinkage', 'All linkage states')}</option>
+              <option value="linked">{t('documents.usedInServices', 'Used in services')}</option>
+              <option value="unlinked">{t('documents.unusedDraft', 'Unused / Catalog draft')}</option>
             </select>
           </div>
         </div>
@@ -230,12 +235,12 @@ export const DocumentsPage: React.FC = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th style={{ width: 280 }}>DOCUMENT STANDARD & CODE</th>
-                <th>DESCRIPTION & ACCEPTABLE CRITERIA</th>
-                <th style={{ width: 170 }}>SAMPLE TEMPLATE</th>
-                <th style={{ width: 150 }}>LINKED SERVICES</th>
-                <th style={{ width: 110 }}>STATUS</th>
-                <th style={{ width: 130, textAlign: 'right' }}>ACTIONS</th>
+                <th style={{ width: 280 }}>{t('documents.tableDocStandard', 'DOCUMENT STANDARD & CODE')}</th>
+                <th>{t('documents.tableDesc', 'DESCRIPTION & ACCEPTABLE CRITERIA')}</th>
+                <th style={{ width: 170 }}>{t('documents.tableTemplate', 'SAMPLE TEMPLATE')}</th>
+                <th style={{ width: 150 }}>{t('documents.tableLinkedServices', 'LINKED SERVICES')}</th>
+                <th style={{ width: 110 }}>{t('documents.tableStatus', 'STATUS')}</th>
+                <th style={{ width: 130, textAlign: 'right' }}>{t('common.actions', 'ACTIONS')}</th>
               </tr>
             </thead>
             <tbody>
@@ -253,10 +258,10 @@ export const DocumentsPage: React.FC = () => {
                   <td colSpan={6}>
                     <div className="empty-state">
                       <Icon name="file" size={32} />
-                      <b>No documents found</b>
+                      <b>{t('documents.noDocsFound', 'No documents found')}</b>
                       <p>
                         {search || statusFilter !== 'all' || usageFilter !== 'all'
-                          ? 'Try adjusting your search query or reset your filters.'
+                          ? t('documents.noDocsDesc', 'Try adjusting your search query or reset your filters.')
                           : 'Get started by creating the first required document standard.'}
                       </p>
                       {canManage && (
@@ -280,7 +285,7 @@ export const DocumentsPage: React.FC = () => {
                       {/* Name & Code */}
                       <td>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                          <b style={{ color: '#264b4c', fontSize: '13.5px' }}>{doc.name}</b>
+                          <b style={{ color: '#264b4c', fontSize: '13.5px' }}>{getLocalizedText(doc.name, language) || (doc as any).name_en || doc.name}</b>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <span
                               style={{
@@ -303,7 +308,7 @@ export const DocumentsPage: React.FC = () => {
                       {/* Description */}
                       <td style={{ maxWidth: '380px', whiteSpace: 'normal' }}>
                         <p style={{ margin: 0, color: '#5b7167', fontSize: '12.5px', lineHeight: 1.45 }}>
-                          {doc.description || <span style={{ color: '#9bb0a4', fontStyle: 'italic' }}>No criteria description specified.</span>}
+                          {getLocalizedText(doc.description, language) || (doc as any).description_en || doc.description || <span style={{ color: '#9bb0a4', fontStyle: 'italic' }}>No criteria description specified.</span>}
                         </p>
                       </td>
 
@@ -362,7 +367,9 @@ export const DocumentsPage: React.FC = () => {
 
                       {/* Status */}
                       <td>
-                        <StatusPill status={doc.is_active ? 'Active' : 'Draft'} />
+                        <StatusPill status={doc.is_active ? 'Active' : 'Draft'}>
+                          {doc.is_active ? t('common.active', 'Active') : t('common.inactive', 'Inactive')}
+                        </StatusPill>
                       </td>
 
                       {/* Actions */}

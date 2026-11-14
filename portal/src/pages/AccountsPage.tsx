@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { usePortal } from '../context';
+import { useLanguage } from '../i18n/i18nContext';
+import { getLocalizedText } from '../i18n/utils/getLocalized';
 import { usePermissions } from '../hooks/usePermissions';
 import { PageHeading } from '../components/shared/PageHeading';
 import { SearchBox } from '../components/shared/SearchBox';
@@ -29,6 +31,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
   search: propSearch,
   setSearch: propSetSearch,
 }) => {
+  const { language, t } = useLanguage();
   const portal = usePortal();
   const [roleFilter, setRoleFilter] = useState('All roles');
 
@@ -132,64 +135,64 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
   return (
     <>
       <PageHeading
-        eyebrow="ACCESS & PERMISSIONS"
-        title="Accounts"
-        subtitle="Manage administrator access and credentials across every connected organization."
-        action={canCreate ? 'Create account' : undefined}
+        eyebrow={t('accounts.eyebrow', 'ACCESS & PERMISSIONS')}
+        title={t('accounts.title', 'Accounts')}
+        subtitle={t('accounts.subtitle', 'Manage administrator access and credentials across every connected organization.')}
+        action={canCreate ? t('accounts.createAccount', 'Create account') : undefined}
         onAction={canCreate ? handleOpenAdd : undefined}
-        secondary="Export list"
+        secondary={t('accounts.exportList', 'Export list')}
         onSecondary={() => window.alert('Account list export is ready.')}
       />
       <div className="metric-grid compact-metrics">
         <MetricCard
           icon="users"
-          label="Total accounts"
+          label={t('accounts.totalAccounts', 'Total accounts')}
           value={isLoading && !usersResponse ? '...' : items.length}
-          note="Across administrative hierarchy"
+          note={t('accounts.totalAccountsDesc', 'Across administrative hierarchy')}
           tone="teal"
         />
         <MetricCard
           icon="check"
-          label="Active accounts"
+          label={t('accounts.activeAccounts', 'Active accounts')}
           value={isLoading && !usersResponse ? '...' : activeCount}
-          note="Access confirmed"
+          note={t('accounts.accessConfirmed', 'Access confirmed')}
           tone="sage"
         />
         <MetricCard
           icon="clock"
-          label="Inactive accounts"
+          label={t('accounts.inactiveAccounts', 'Inactive accounts')}
           value={isLoading && !usersResponse ? '...' : inactiveCount}
-          note="Access suspended"
+          note={t('accounts.accessSuspended', 'Access suspended')}
           tone="gold"
         />
         <MetricCard
           icon="shield"
-          label="Security audits"
-          value="Synchronized"
-          note="Connected to Laravel Sanctum"
+          label={t('accounts.securityAudits', 'Security audits')}
+          value={t('common.synchronized', 'Synchronized')}
+          note={t('accounts.connectedSanctum', 'Connected to Laravel Sanctum')}
           tone="blue"
         />
       </div>
       <section className="panel table-panel">
         <div className="table-toolbar">
           <div>
-            <h2>Administrator accounts</h2>
-            <p>Role and organization determine what each admin can see and manage.</p>
+            <h2>{t('accounts.adminAccounts', 'Administrator accounts')}</h2>
+            <p>{t('accounts.adminAccountsDesc', 'Role and organization determine what each admin can see and manage.')}</p>
           </div>
           <div className="toolbar-tools">
-            <SearchBox value={search} onChange={setSearch} placeholder="Search accounts" />
+            <SearchBox value={search} onChange={setSearch} placeholder={t('accounts.searchAccounts', 'Search accounts')} />
             <select
               className="filter-select"
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
               aria-label="Filter by admin role"
             >
-              <option>All roles</option>
-              <option>Super Admin</option>
-              <option>Sub-City Admin</option>
-              <option>Woreda Admin</option>
-              <option>Bureau Admin</option>
-              <option>Staff</option>
+              <option value="All roles">{t('accounts.allRoles', 'All roles')}</option>
+              <option value="Super Admin">{t('roles.superAdmin', 'Super Admin')}</option>
+              <option value="Sub-City Admin">{t('roles.subCityAdmin', 'Sub-City Admin')}</option>
+              <option value="Woreda Admin">{t('roles.woredaAdmin', 'Woreda Admin')}</option>
+              <option value="Bureau Admin">{t('roles.bureauAdmin', 'Bureau Admin')}</option>
+              <option value="Staff">{t('roles.staff', 'Staff')}</option>
             </select>
           </div>
         </div>
@@ -204,11 +207,11 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
           <table className="data-table">
             <thead>
               <tr>
-                <th>ACCOUNT</th>
-                <th>ROLE</th>
-                <th>ORGANIZATION</th>
-                <th>STATUS</th>
-                <th>LAST ACTIVE</th>
+                <th>{t('accounts.tableAccount', 'ACCOUNT')}</th>
+                <th>{t('accounts.tableRole', 'ROLE')}</th>
+                <th>{t('accounts.tableOrg', 'ORGANIZATION')}</th>
+                <th>{t('accounts.tableStatus', 'STATUS')}</th>
+                <th>{t('accounts.tableLastActive', 'LAST ACTIVE')}</th>
                 <th />
               </tr>
             </thead>
@@ -233,9 +236,9 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
                   <td>
                     <span className="badge role-badge">{item.role}</span>
                   </td>
-                  <td>{item.organization}</td>
+                  <td>{getLocalizedText(item.organization as any, language) || item.organization}</td>
                   <td>
-                    <StatusPill>{item.status}</StatusPill>
+                    <StatusPill>{item.status === 'Active' ? t('common.active', 'Active') : t('common.inactive', 'Inactive')}</StatusPill>
                   </td>
                   <td>{item.lastActive}</td>
                   <td className="table-action-cell" style={{ display: 'flex', gap: '6px' }}>
@@ -249,7 +252,7 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
                               className="button secondary small-button"
                               onClick={() => handleOpenEdit(item)}
                             >
-                              Edit
+                              {t('common.edit', 'Edit')}
                             </button>
                           )}
                           {canDelete && canManageThisAccount && (
@@ -257,9 +260,9 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
                               className="button secondary small-button"
                               style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
                               onClick={() => handleDeleteUser(item)}
-                              title="Delete account"
+                              title={t('common.delete', 'Delete')}
                             >
-                              Delete
+                              {t('common.delete', 'Delete')}
                             </button>
                           )}
                         </>
@@ -272,8 +275,8 @@ export const AccountsPage: React.FC<AccountsPageProps> = ({
           </table>
           {!filtered.length && !isLoading && (
             <div className="panel empty-state">
-              <b>No accounts found</b>
-              <p>Try adjusting your search filters or create an account.</p>
+              <b>{t('accounts.noAccountsFound', 'No accounts found')}</b>
+              <p>{t('accounts.noAccountsDesc', 'Try adjusting your search filters or create an account.')}</p>
             </div>
           )}
         </div>

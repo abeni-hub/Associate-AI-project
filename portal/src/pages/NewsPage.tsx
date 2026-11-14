@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePortal } from '../context';
+import { useLanguage } from '../i18n/i18nContext';
+import { getLocalizedText } from '../i18n/utils/getLocalized';
 import { usePermissions } from '../hooks/usePermissions';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
@@ -57,6 +59,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({
   setSearch: propSetSearch,
   onTogglePublish: propOnTogglePublish,
 }) => {
+  const { language, t } = useLanguage();
   const portal = usePortal();
   const [typeFilter, setTypeFilter] = useState('all');
   const [publicationFilter, setPublicationFilter] = useState('all');
@@ -308,10 +311,10 @@ export const NewsPage: React.FC<NewsPageProps> = ({
   return (
     <>
       <PageHeading
-        eyebrow="PUBLIC INFORMATION"
-        title="News & events"
-        subtitle="Manage the bilingual updates and public events shown to residents in the client app."
-        action={canCreate ? 'Create an update' : undefined}
+        eyebrow={t('news.eyebrow', 'PUBLIC INFORMATION')}
+        title={t('news.title', 'News & events')}
+        subtitle={t('news.subtitle', 'Manage the bilingual updates and public events shown to residents in the client app.')}
+        action={canCreate ? t('news.createUpdate', 'Create an update') : undefined}
         onAction={canCreate ? handleOpenAdd : undefined}
       />
 
@@ -323,26 +326,26 @@ export const NewsPage: React.FC<NewsPageProps> = ({
             </span>
             <div>
               <span className={'feed-live-status' + (publishedCount ? '' : ' is-empty')}>
-                <i /> Public client feed
+                <i /> {t('news.publicFeed', 'Public client feed')}
               </span>
-              <h2>Updates residents can use</h2>
+              <h2>{t('news.updatesTitle', 'Updates residents can use')}</h2>
             </div>
           </div>
           <p>
-            Published notices appear in the client app. Preview each update in English and Amharic before it goes live.
+            {t('news.feedDesc', 'Published notices appear in the client app. Preview each update in English and Amharic before it goes live.')}
           </p>
         </div>
         <dl className="feed-overview-stats">
           <div>
-            <dt>Total updates</dt>
+            <dt>{t('news.totalUpdates', 'Total updates')}</dt>
             <dd>{items.length}</dd>
           </div>
           <div>
-            <dt>Published</dt>
+            <dt>{t('news.published', 'Published')}</dt>
             <dd>{publishedCount}</dd>
           </div>
           <div>
-            <dt>Published events</dt>
+            <dt>{t('news.publishedEvents', 'Published events')}</dt>
             <dd>{eventCount}</dd>
           </div>
         </dl>
@@ -351,20 +354,20 @@ export const NewsPage: React.FC<NewsPageProps> = ({
       <section className="panel table-panel news-list-panel">
         <div className="table-toolbar">
           <div>
-            <h2>Client feed content</h2>
-            <p>Browse public cards, open the full detail, and manage publication.</p>
+            <h2>{t('news.feedContent', 'Client feed content')}</h2>
+            <p>{t('news.feedContentDesc', 'Browse public cards, open the full detail, and manage publication.')}</p>
           </div>
           <div className="toolbar-tools">
-            <SearchBox value={search} onChange={setSearch} placeholder="Search updates, bureau, location" />
+            <SearchBox value={search} onChange={setSearch} placeholder={t('news.searchPlaceholder', 'Search updates, bureau, location')} />
             <select
               className="filter-select"
               value={typeFilter}
               onChange={(event) => setTypeFilter(event.target.value)}
               aria-label="Filter by content type"
             >
-              <option value="all">All types</option>
-              <option value="news">News</option>
-              <option value="event">Events</option>
+              <option value="all">{t('news.allTypes', 'All types')}</option>
+              <option value="news">{t('news.newsType', 'News')}</option>
+              <option value="event">{t('news.eventType', 'Events')}</option>
             </select>
             <select
               className="filter-select"
@@ -372,9 +375,9 @@ export const NewsPage: React.FC<NewsPageProps> = ({
               onChange={(event) => setPublicationFilter(event.target.value)}
               aria-label="Filter by publication status"
             >
-              <option value="all">All statuses</option>
-              <option value="published">Published</option>
-              <option value="draft">Drafts</option>
+              <option value="all">{t('news.allStatuses', 'All statuses')}</option>
+              <option value="published">{t('news.publishedStatus', 'Published')}</option>
+              <option value="draft">{t('news.draftStatus', 'Drafts')}</option>
             </select>
           </div>
         </div>

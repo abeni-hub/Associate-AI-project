@@ -7,6 +7,8 @@ import { SearchBox } from '../components/shared/SearchBox';
 import { StatusPill } from '../components/shared/StatusPill';
 import type { BureauItem } from '../types/portal.types';
 import { useGetOrganizationsQuery, useCreateOrganizationMutation } from '../services/organizationsApi';
+import { useLanguage } from '../i18n/i18nContext';
+import { getLocalizedText } from '../i18n/utils/getLocalized';
 
 export interface BureausPageProps {
   items?: BureauItem[];
@@ -22,6 +24,7 @@ export const BureausPage: React.FC<BureausPageProps> = ({
   setSearch: propSetSearch,
 }) => {
   const portal = usePortal();
+  const { language, t } = useLanguage();
 
   const { data: apiOrgs, isLoading, refetch } = useGetOrganizationsQuery(undefined, { refetchOnMountOrArgChange: true });
   const [createOrgTrigger] = useCreateOrganizationMutation();
@@ -33,7 +36,7 @@ export const BureausPage: React.FC<BureausPageProps> = ({
       const apiBureaus = apiOrgs.data.filter((o) => o.organization_type_id === 3 || o.type?.code === 'bureau');
       return apiBureaus.map((b) => ({
         id: b.id,
-        name: b.name,
+        name: getLocalizedText(b.name, language) || (typeof b.name === 'string' ? b.name : b.code),
         category: b.code || 'Sector Bureau',
         admin: b.email || 'Bureau Administrator',
         services: b.services_count ?? 0,
@@ -43,7 +46,7 @@ export const BureausPage: React.FC<BureausPageProps> = ({
     }
 
     return [];
-  }, [propItems, apiOrgs]);
+  }, [propItems, apiOrgs, language]);
 
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;

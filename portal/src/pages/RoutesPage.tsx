@@ -11,6 +11,8 @@ import {
   useSyncServiceStepsMutation,
 } from '../services/servicesApi';
 import { useGetOrganizationsQuery } from '../services/organizationsApi';
+import { useLanguage } from '../i18n/i18nContext';
+import { getLocalizedText } from '../i18n/utils/getLocalized';
 
 export interface RoutesPageProps {
   items?: RouteItem[];
@@ -26,6 +28,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
   setSearch: propSetSearch,
 }) => {
   const portal = usePortal();
+  const { language, t } = useLanguage();
   const { hasPermission } = usePermissions();
   const canManageSteps = hasPermission('service_steps.manage');
 
@@ -57,10 +60,11 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
     const subcities: typeof organizations = [];
     const bureaus: typeof organizations = [];
     organizations.forEach((org) => {
+      const nameStr = (getLocalizedText(org.name, 'en') || (typeof org.name === 'string' ? org.name : '')).toLowerCase();
       const isSubcity =
         org.type?.code === 'sub_city' ||
-        org.name.toLowerCase().includes('sub-city') ||
-        org.name.toLowerCase().includes('subcity');
+        nameStr.includes('sub-city') ||
+        nameStr.includes('subcity');
       if (isSubcity) {
         subcities.push(org);
       } else {
@@ -93,13 +97,13 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
               }))
             : [];
 
-        const parentCategoryName = s.parent?.name || 'Sub-service';
+        const parentCategoryName = getLocalizedText(s.parent?.name, language) || 'Sub-service';
 
         return {
           id: s.id,
-          service: s.name,
+          service: getLocalizedText(s.name, language) || s.code,
           category: parentCategoryName,
-          bureau: s.organization?.name || 'Addis Ababa City Administration',
+          bureau: getLocalizedText(s.organization?.name, language) || 'Addis Ababa City Administration',
           organizationId:
             selectedOrgFilter !== 'all'
               ? Number(selectedOrgFilter)
@@ -187,7 +191,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
               <optgroup label="── Sub-city Administrations ──">
                 {subcitiesList.map((org) => (
                   <option key={org.id} value={org.id}>
-                    🏛 {org.name}
+                    🏛 {getLocalizedText(org.name, language) || (typeof org.name === 'string' ? org.name : '')}
                   </option>
                 ))}
               </optgroup>
@@ -196,7 +200,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
               <optgroup label="── Bureaus & Agencies ──">
                 {bureausList.map((org) => (
                   <option key={org.id} value={org.id}>
-                    🏢 {org.name}
+                    🏢 {getLocalizedText(org.name, language) || (typeof org.name === 'string' ? org.name : '')}
                   </option>
                 ))}
               </optgroup>

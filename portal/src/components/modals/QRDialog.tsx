@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { usePortal } from '../../context';
 import { useLanguage } from '../../i18n/i18nContext';
+import { getLocalizedText } from '../../i18n/utils/getLocalized';
 import { Icon } from '../shared/Icon';
 import { QRPattern } from '../shared/QRPattern';
 import type { QRModalConfig } from '../../types/portal.types';
@@ -19,7 +20,7 @@ export const QRDialog: React.FC<QRDialogProps> = ({
   onClose,
   onGenerate: propOnGenerate,
 }) => {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const portal = usePortal();
   const existingQr = modal?.qr;
   const userOrg = portal.session?.user?.organization;
@@ -88,19 +89,19 @@ export const QRDialog: React.FC<QRDialogProps> = ({
     const cleanUrl = targetUrl.trim();
 
     if (!effectiveOrgId) {
-      setErrorMessage('Please select an organization for this QR poster.');
+      setErrorMessage(t('qr.orgRequired', 'Please select an organization for this QR poster.'));
       return;
     }
     if (!cleanLabel) {
-      setErrorMessage('Please enter a descriptive label for the QR poster.');
+      setErrorMessage(t('qr.labelRequired', 'Please enter a descriptive label for the QR poster.'));
       return;
     }
     if (!cleanCode) {
-      setErrorMessage('Please enter a unique alphanumeric QR code identifier.');
+      setErrorMessage(t('qr.codeRequired', 'Please enter a unique alphanumeric QR code identifier.'));
       return;
     }
     if (!cleanUrl || !cleanUrl.startsWith('http')) {
-      setErrorMessage('Please enter a valid HTTP/HTTPS destination URL.');
+      setErrorMessage(t('qr.urlRequired', 'Please enter a valid HTTP/HTTPS destination URL.'));
       return;
     }
 
@@ -122,7 +123,7 @@ export const QRDialog: React.FC<QRDialogProps> = ({
       onClose();
     } catch (err: any) {
       setErrorMessage(
-        err?.data?.message || err?.error || 'Failed to generate QR poster. Ensure the code is unique.'
+        err?.data?.message || err?.error || t('qr.createFailed', 'Failed to generate QR poster. Ensure the code is unique.')
       );
     }
   };
@@ -218,15 +219,15 @@ export const QRDialog: React.FC<QRDialogProps> = ({
     <form onSubmit={handleGenerate}>
       <div className="modal-header">
         <div>
-          <span className="panel-eyebrow">CITIZEN ACCESS & POSTERS</span>
-          <h2>Generate feedback QR poster</h2>
-          <p>Create a physical access token linking citizens directly to your service feedback portal.</p>
+          <span className="panel-eyebrow">{t('qr.modalEyebrow', 'CITIZEN ACCESS & POSTERS')}</span>
+          <h2>{t('qr.modalTitle', 'Generate feedback QR poster')}</h2>
+          <p>{t('qr.modalSubtitle', 'Create a physical access token linking citizens directly to your service feedback portal.')}</p>
         </div>
         <button
           type="button"
           className="modal-close"
           onClick={onClose}
-          aria-label="Close dialog"
+          aria-label={t('common.close', 'Close dialog')}
         >
           <Icon name="close" />
         </button>
@@ -251,7 +252,7 @@ export const QRDialog: React.FC<QRDialogProps> = ({
       <div className="modal-form-grid" style={{ marginBottom: '16px' }}>
         <label className="modal-field full">
           <span>
-            Assigned Organization / Bureau <i>*</i>
+            {t('qr.assignedOrg', 'Assigned Organization / Bureau')} <i>*</i>
           </span>
           <select
             value={effectiveOrgId}
@@ -260,26 +261,30 @@ export const QRDialog: React.FC<QRDialogProps> = ({
           >
             {organizations.length === 0 && (
               <option value={effectiveOrgId}>
-                {userOrg?.name || 'Default Administrative Office'}
+                {getLocalizedText(userOrg?.name, language) || t('qr.defaultOrg', 'Default Administrative Office')}
               </option>
             )}
-            {organizations.map((org) => (
-              <option key={org.id} value={org.id}>
-                {org.name} {org.type?.name ? `(${org.type.name})` : `(${org.code})`}
-              </option>
-            ))}
+            {organizations.map((org) => {
+              const orgName = getLocalizedText(org.name, language);
+              const orgTypeName = org.type?.name ? getLocalizedText(org.type.name, language) : org.code;
+              return (
+                <option key={org.id} value={org.id}>
+                  {orgName} {orgTypeName ? `(${orgTypeName})` : ''}
+                </option>
+              );
+            })}
           </select>
         </label>
 
         <label className="modal-field full">
           <span>
-            Poster Location / Desk Label <i>*</i>
+            {t('qr.deskLabel', 'Poster Location / Desk Label')} <i>*</i>
           </span>
           <input
             type="text"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder="e.g. Main Public Service Reception Desk"
+            placeholder={t('qr.deskPlaceholder', 'e.g. Main Public Service Reception Desk')}
             maxLength={150}
             required
           />
@@ -287,7 +292,7 @@ export const QRDialog: React.FC<QRDialogProps> = ({
 
         <label className="modal-field">
           <span>
-            Unique QR Code ID <i>*</i>
+            {t('qr.qrCodeId', 'Unique QR Code ID')} <i>*</i>
           </span>
           <input
             type="text"
@@ -300,19 +305,19 @@ export const QRDialog: React.FC<QRDialogProps> = ({
         </label>
 
         <label className="modal-field">
-          <span>Status</span>
+          <span>{t('common.status', 'Status')}</span>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}
           >
-            <option value="active">Active (Scannable)</option>
-            <option value="inactive">Inactive (Disabled)</option>
+            <option value="active">{t('common.active', 'Active (Scannable)')}</option>
+            <option value="inactive">{t('common.inactive', 'Inactive (Disabled)')}</option>
           </select>
         </label>
 
         <label className="modal-field full">
           <span>
-            Destination Target URL <i>*</i>
+            {t('qr.targetUrl', 'Destination Target URL')} <i>*</i>
           </span>
           <input
             type="url"
@@ -353,7 +358,7 @@ export const QRDialog: React.FC<QRDialogProps> = ({
         </div>
         <div>
           <span style={{ fontSize: '11px', fontWeight: 700, color: '#00485a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            {activeOrg?.name || 'Selected Office'}
+            {getLocalizedText(activeOrg?.name, language) || t('qr.defaultOrg', 'Selected Office')}
           </span>
           <b style={{ display: 'block', fontSize: '15px', color: '#1e293b', marginTop: '2px' }}>
             {code || 'QR-CODE'}
@@ -366,7 +371,7 @@ export const QRDialog: React.FC<QRDialogProps> = ({
 
       <div className="modal-footer">
         <span>
-          <Icon name="globe" size={14} /> Citizens can scan to submit feedback without login.
+          <Icon name="globe" size={14} /> {t('qr.citizenScanHint', 'Citizens can scan to submit feedback without login.')}
         </span>
         <div>
           <button
@@ -382,7 +387,7 @@ export const QRDialog: React.FC<QRDialogProps> = ({
             className="button primary"
             disabled={isCreating}
           >
-            {isCreating ? t('qr.generating', 'Generating poster...') : t('qr.generateQr', 'Generate QR code')}{' '}
+            {isCreating ? t('qr.generating', 'Generating poster...') : t('qr.generatePoster', 'Generate QR poster')}{' '}
             <Icon name="arrow" size={15} />
           </button>
         </div>

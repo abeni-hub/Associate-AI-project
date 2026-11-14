@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useLanguage } from '../../i18n/i18nContext';
+import { getLocalizedText } from '../../i18n/utils/getLocalized';
 import { Icon } from '../shared/Icon';
 import { SearchBox } from '../shared/SearchBox';
 import type { AccountItem } from '../../types/portal.types';
@@ -164,6 +166,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
   onClose,
   onRoleUpdated,
 }) => {
+  const { language, t } = useLanguage();
   const { data: rolesResponse } = useGetRolesQuery(undefined, { skip: !isOpen });
   const { data: permissionsResponse } = useGetPermissionsQuery(undefined, { skip: !isOpen });
   const [updateUserTrigger, { isLoading: isUpdatingUser }] = useUpdateUserMutation();
@@ -484,15 +487,15 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
           {/* Header */}
           <div className="modal-header" style={{ flexShrink: 0 }}>
             <div>
-              <span className="panel-eyebrow">ACCESS & AUTHORIZATION GOVERNANCE</span>
-              <h2>Edit Administrator Role & Permissions</h2>
-              <p>Configure role tier, jurisdictional scope, and granular permissions for this child user account.</p>
+              <span className="panel-eyebrow">{t('accounts.accessGovernance', 'ACCESS & AUTHORIZATION GOVERNANCE')}</span>
+              <h2>{t('accounts.editUserRoleModalTitle', 'Edit Administrator Role & Permissions')}</h2>
+              <p>{t('accounts.editUserRoleModalDesc', 'Configure role tier, jurisdictional scope, and granular permissions for this child user account.')}</p>
             </div>
             <button
               type="button"
               className="modal-close"
               onClick={onClose}
-              aria-label="Close dialog"
+              aria-label={t('common.close', 'Close dialog')}
             >
               <Icon name="close" />
             </button>
@@ -605,11 +608,11 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
                         color: '#0369a1',
                       }}
                     >
-                      Child User Account
+                      {t('accounts.childAccountBadge', 'Child User Account')}
                     </span>
                   </div>
                   <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '3px' }}>
-                    {user.organization} · Status: <strong style={{ color: user.status === 'Active' ? '#16a34a' : '#64748b' }}>{user.status}</strong> · Current Role:{' '}
+                    {getLocalizedText(user.organization, language) || user.organization} · {t('common.status', 'Status')}: <strong style={{ color: user.status === 'Active' ? '#16a34a' : '#64748b' }}>{user.status === 'Active' ? t('common.active', 'Active') : t('common.inactive', 'Inactive')}</strong> · {t('accounts.tableRole', 'Role')}:{' '}
                     <strong>{user.role}</strong>
                   </div>
                 </div>
@@ -617,7 +620,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
 
               <div style={{ textAlign: 'right' }}>
                 <small style={{ fontSize: '10.5px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700, display: 'block' }}>
-                  Effective Permissions
+                  {t('accounts.effectivePermissions', 'Effective Permissions')}
                 </small>
                 <span
                   style={{
@@ -632,7 +635,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
                     border: '1px solid #bbf7d0',
                   }}
                 >
-                  {activePermissionIds.length} / {allPermissions.length} Active
+                  {activePermissionIds.length} / {allPermissions.length} {t('accounts.activePerms', 'Active')}
                 </span>
               </div>
             </div>
@@ -641,10 +644,10 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
             <div>
               <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  1. Select Role Assignment
+                  {t('accounts.selectRoleStep', '1. Select Role Assignment')}
                 </span>
                 <span style={{ fontSize: '11px', color: '#64748b' }}>
-                  Role presets baseline permissions
+                  {t('accounts.rolePresetDesc', 'Role presets baseline permissions')}
                 </span>
               </div>
 
@@ -729,7 +732,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      2. Update Child User Permissions
+                      {t('accounts.updatePermsStep', '2. Update Child User Permissions')}
                     </span>
                     <span
                       style={{
@@ -742,14 +745,14 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
                         border: '1px solid #bbf7d0',
                       }}
                     >
-                      {activePermissionIds.length} / {allPermissions.length} permissions active
+                      {activePermissionIds.length} / {allPermissions.length} {t('accounts.permsActive', 'permissions active')}
                     </span>
                     {isLoadingRoleDetail && (
-                      <span style={{ fontSize: '11px', color: '#64748b' }}>Syncing role defaults...</span>
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>{t('accounts.syncingRoleDefaults', 'Syncing role defaults...')}</span>
                     )}
                   </div>
                   <p style={{ margin: '3px 0 0', fontSize: '11.5px', color: '#64748b' }}>
-                    Click any checkbox to grant or revoke specific permissions for <strong>@{user.username}</strong> ({user.organization}).
+                    {t('accounts.clickCheckboxHint', 'Click any checkbox to grant or revoke specific permissions for this account.')}
                   </p>
                 </div>
 
@@ -760,27 +763,27 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
                     onClick={handleGrantAll}
                     className="button secondary small-button"
                     style={{ fontSize: '11px', padding: '3px 8px' }}
-                    title="Grant all 37 permissions to this user"
+                    title={t('accounts.grantAll', 'Grant All')}
                   >
-                    Grant All
+                    {t('accounts.grantAll', 'Grant All')}
                   </button>
                   <button
                     type="button"
                     onClick={handleRevokeAll}
                     className="button secondary small-button"
                     style={{ fontSize: '11px', padding: '3px 8px', color: '#b91c1c' }}
-                    title="Revoke all permissions from this user"
+                    title={t('accounts.clearAll', 'Clear All')}
                   >
-                    Clear All
+                    {t('accounts.clearAll', 'Clear All')}
                   </button>
                   <button
                     type="button"
                     onClick={handleResetToRoleStandard}
                     className="button secondary small-button"
                     style={{ fontSize: '11px', padding: '3px 8px', color: '#0369a1' }}
-                    title={`Reset permissions to ${selectedRoleObj.name} standard (${defaultRolePermissionIds.length} permissions)`}
+                    title={`${t('accounts.resetToDefaults', 'Reset to Defaults')} (${defaultRolePermissionIds.length})`}
                   >
-                    Reset to {selectedRoleObj.name} Defaults
+                    {t('accounts.resetToDefaults', 'Reset to Defaults')}
                   </button>
                 </div>
               </div>
@@ -790,7 +793,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
                 <SearchBox
                   value={permissionSearch}
                   onChange={setPermissionSearch}
-                  placeholder="Search permissions by name, key, domain..."
+                  placeholder={t('accounts.searchPermsPlaceholder', 'Search permissions by name, key, domain...')}
                 />
               </div>
 
@@ -933,7 +936,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            {isGranted ? '✓ GRANTED' : 'REVOKED'}
+                            {isGranted ? t('accounts.grantedBadge', '✓ GRANTED') : t('accounts.revokedBadge', 'REVOKED')}
                           </span>
                         </div>
 
@@ -966,10 +969,10 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
                     }}
                   >
                     <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#475569' }}>
-                      No permissions match "{permissionSearch}"
+                      {t('accounts.noPermsMatch', 'No permissions match')} "{permissionSearch}"
                     </p>
                     <p style={{ margin: '4px 0 10px', fontSize: '11.5px', color: '#64748b' }}>
-                      Try searching by action (e.g. view, create, manage) or clear the search filter.
+                      {t('documents.noDocsDesc', 'Try adjusting your search query or reset your filters.')}
                     </p>
                     <button
                       type="button"
@@ -977,7 +980,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
                       onClick={() => setPermissionSearch('')}
                       style={{ fontSize: '11.5px', padding: '3px 10px' }}
                     >
-                      Clear search filter
+                      {t('accounts.clearSearchFilter', 'Clear search filter')}
                     </button>
                   </div>
                 )}
@@ -1020,7 +1023,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
           {/* Footer */}
           <div className="modal-footer" style={{ flexShrink: 0, marginTop: 0 }}>
             <span style={{ fontSize: '12px' }}>
-              <Icon name="key" size={14} /> Child user permission changes trigger security audit logs.
+              <Icon name="key" size={14} /> {t('accounts.auditLogNote', 'Child user permission changes trigger security audit logs.')}
             </span>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
@@ -1029,7 +1032,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
                 onClick={onClose}
                 disabled={isUpdatingUser}
               >
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </button>
               <button
                 type="submit"
@@ -1037,7 +1040,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
                 disabled={isUpdatingUser}
                 style={{ minWidth: '150px' }}
               >
-                {isUpdatingUser ? 'Saving...' : 'Save user permissions'}
+                {isUpdatingUser ? t('common.saving', 'Saving...') : t('accounts.saveUserPerms', 'Save user permissions')}
                 <Icon name="arrow" size={15} />
               </button>
             </div>

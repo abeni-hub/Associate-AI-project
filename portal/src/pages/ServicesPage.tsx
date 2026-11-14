@@ -1,5 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { usePortal } from '../context';
+import { useLanguage } from '../i18n/i18nContext';
+import { getLocalizedText } from '../i18n/utils/getLocalized';
 import { usePermissions } from '../hooks/usePermissions';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
@@ -40,6 +42,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
   setSearch: propSetSearch,
   onTogglePublish: propOnTogglePublish,
 }) => {
+  const { language } = useLanguage();
   const portal = usePortal();
   const { hasPermission, isSuperAdmin, authUser } = usePermissions();
 
@@ -84,9 +87,16 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
     const subcities: typeof organizations = [];
     const bureaus: typeof organizations = [];
     organizations.forEach((org) => {
+      const orgNameStr = (getLocalizedText(org.name, 'en') || (typeof org.name === 'string' ? org.name : '')).toLowerCase();
+      const typeCode = String(org.type?.code || '').toLowerCase();
+      const typeNameStr = (getLocalizedText(org.type?.name, 'en') || (typeof org.type?.name === 'string' ? org.type?.name : '')).toLowerCase();
       const isSubcity =
-        org.type?.code === 'sub_city' ||
-        org.name.toLowerCase().includes('sub-city');
+        typeCode === 'sub_city' ||
+        typeCode === 'subcity' ||
+        orgNameStr.includes('sub-city') ||
+        orgNameStr.includes('subcity') ||
+        typeNameStr.includes('sub-city') ||
+        typeNameStr.includes('subcity');
       if (isSubcity) {
         subcities.push(org);
       } else {
@@ -147,16 +157,20 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
     if (q && masterTreeNodes.length > 0) {
       const matchingIds = masterTreeNodes
         .filter((m) => {
-          const matchMaster = m.name.toLowerCase().includes(q) || m.code.toLowerCase().includes(q);
+          const mTitle = (getLocalizedText(m.name, language) || '').toLowerCase();
+          const matchMaster = mTitle.includes(q) || String(m.code || '').toLowerCase().includes(q);
           const matchChild = m.children.some(
-            (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+            (c) => {
+              const cTitle = (getLocalizedText(c.name, language) || '').toLowerCase();
+              return cTitle.includes(q) || String(c.code || '').toLowerCase().includes(q);
+            }
           );
           return matchMaster || matchChild;
         })
         .map((m) => m.id);
       setExpandedMasterIds(new Set(matchingIds));
     }
-  }, [search, masterTreeNodes]);
+  }, [search, masterTreeNodes, language]);
 
   // Filter tree nodes according to live search text and published status
   const filteredTreeNodes = useMemo(() => {
@@ -172,11 +186,11 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
           if (!statusMatch) return false;
           if (!q) return true;
 
-          const matchName = child.name.toLowerCase().includes(q);
-          const matchCode = child.code.toLowerCase().includes(q);
-          const matchDesc = (child.description || '').toLowerCase().includes(q);
+          const matchName = (getLocalizedText(child.name, language) || '').toLowerCase().includes(q);
+          const matchCode = String(child.code || '').toLowerCase().includes(q);
+          const matchDesc = (getLocalizedText(child.description, language) || '').toLowerCase().includes(q);
           const matchDocs = (child.required_documents || []).some((d) =>
-            d.name.toLowerCase().includes(q)
+            (getLocalizedText(d.name, language) || '').toLowerCase().includes(q)
           );
           return matchName || matchCode || matchDesc || matchDocs;
         });
@@ -185,11 +199,13 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
           serviceFilter === 'All services' ||
           (serviceFilter === 'Published' ? master.is_active : !master.is_active);
 
+        const mTitle = (getLocalizedText(master.name, language) || '').toLowerCase();
+        const mDesc = (getLocalizedText(master.description, language) || '').toLowerCase();
         const masterSearchMatch =
           !q ||
-          master.name.toLowerCase().includes(q) ||
-          master.code.toLowerCase().includes(q) ||
-          (master.description || '').toLowerCase().includes(q);
+          mTitle.includes(q) ||
+          String(master.code || '').toLowerCase().includes(q) ||
+          mDesc.includes(q);
 
         const shouldIncludeMaster =
           (masterSearchMatch && masterStatusMatch) || matchingChildren.length > 0;

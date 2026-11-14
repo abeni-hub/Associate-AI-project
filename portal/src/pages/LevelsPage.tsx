@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import { useLanguage } from '../i18n/i18nContext';
+import { getLocalizedText } from '../i18n/utils/getLocalized';
 import { PageHeading } from '../components/shared/PageHeading';
 import { MetricCard } from '../components/shared/MetricCard';
 import { SearchBox } from '../components/shared/SearchBox';
@@ -15,6 +17,7 @@ import {
 } from '../services/organizationsApi';
 
 export const LevelsPage: React.FC = () => {
+  const { language, t } = useLanguage();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [rootFilter, setRootFilter] = useState<'all' | 'root' | 'child'>('all');
@@ -38,11 +41,14 @@ export const LevelsPage: React.FC = () => {
 
   const filteredLevels = useMemo(() => {
     return levels.filter((lvl) => {
+      const q = search.trim().toLowerCase();
+      const lvlNameStr = (getLocalizedText(lvl.name, language) || (typeof lvl.name === 'string' ? lvl.name : '')).toLowerCase();
+      const lvlDescStr = (getLocalizedText(lvl.description, language) || (typeof lvl.description === 'string' ? lvl.description : '')).toLowerCase();
       const matchSearch =
-        search.trim() === '' ||
-        lvl.name.toLowerCase().includes(search.toLowerCase()) ||
-        lvl.code.toLowerCase().includes(search.toLowerCase()) ||
-        (lvl.description && lvl.description.toLowerCase().includes(search.toLowerCase()));
+        q === '' ||
+        lvlNameStr.includes(q) ||
+        String(lvl.code || '').toLowerCase().includes(q) ||
+        lvlDescStr.includes(q);
 
       const matchStatus =
         statusFilter === 'all' ||
@@ -127,33 +133,33 @@ export const LevelsPage: React.FC = () => {
   return (
     <>
       <PageHeading
-        eyebrow="SUPER ADMIN · HIERARCHY STRUCTURE"
-        title="Organization levels"
-        subtitle="Manage the hierarchy ranks and classification tiers (Sub-City, Woreda, Bureau, etc.) used when registering offices."
-        action={canCreate ? "Add tier level" : undefined}
+        eyebrow={t('levels.eyebrow', 'GOVERNANCE HIERARCHY')}
+        title={t('levels.title', 'Hierarchy levels')}
+        subtitle={t('levels.subtitle', 'Configure administrative depth, rank orders, and parent-child constraints across the municipal structure.')}
+        action={canCreate ? t('levels.addLevel', '+ Add hierarchy level') : undefined}
         onAction={canCreate ? handleOpenAdd : undefined}
       />
 
       <div className="metric-grid compact-metrics">
         <MetricCard
           icon="layers"
-          label="Total tiers configured"
+          label={t('levels.totalTiers', 'Total tiers configured')}
           value={isLoading ? '...' : levels.length}
-          note="Statutory hierarchy ranks"
+          note={t('levels.statutoryRanks', 'Statutory hierarchy ranks')}
           tone="teal"
         />
         <MetricCard
           icon="building"
-          label="Root tiers"
+          label={t('levels.rootTiers', 'Root tiers')}
           value={isLoading ? '...' : rootCount}
-          note="Independent regional authorities"
+          note={t('levels.independentAuth', 'Independent regional authorities')}
           tone="sage"
         />
         <MetricCard
           icon="check"
-          label="Active tiers"
+          label={t('levels.activeTiers', 'Active tiers')}
           value={isLoading ? '...' : activeCount}
-          note="Available in office forms"
+          note={t('levels.availableInForms', 'Available in office forms')}
           tone="gold"
         />
       </div>
@@ -161,20 +167,20 @@ export const LevelsPage: React.FC = () => {
       <section className="panel table-panel">
         <div className="table-toolbar">
           <div>
-            <h2>Hierarchy tier levels</h2>
-            <p>Offices choose from these tiers during registration to establish parent/child relationships.</p>
+            <h2>{t('levels.tierLevels', 'Hierarchy tier levels')}</h2>
+            <p>{t('levels.tierLevelsDesc', 'Offices choose from these tiers during registration to establish parent/child relationships.')}</p>
           </div>
           <div className="toolbar-tools">
-            <SearchBox value={search} onChange={setSearch} placeholder="Search levels by name or slug..." />
+            <SearchBox value={search} onChange={setSearch} placeholder={t('levels.searchPlaceholder', 'Search levels by name or slug...')} />
             <select
               className="filter-select"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
               aria-label="Filter by status"
             >
-              <option value="all">All statuses</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="all">{t('levels.allStatuses', 'All statuses')}</option>
+              <option value="active">{t('common.active', 'Active')}</option>
+              <option value="inactive">{t('common.inactive', 'Inactive')}</option>
             </select>
             <select
               className="filter-select"
@@ -182,9 +188,9 @@ export const LevelsPage: React.FC = () => {
               onChange={(e) => setRootFilter(e.target.value as any)}
               aria-label="Filter by root permission"
             >
-              <option value="all">All structures</option>
-              <option value="root">Root tier eligible</option>
-              <option value="child">Requires parent</option>
+              <option value="all">{t('levels.allStructures', 'All structures')}</option>
+              <option value="root">{t('levels.rootEligible', 'Root tier eligible')}</option>
+              <option value="child">{t('levels.requiresParent', 'Requires parent')}</option>
             </select>
           </div>
         </div>
@@ -193,12 +199,12 @@ export const LevelsPage: React.FC = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th style={{ width: '110px' }}>Rank Level</th>
-                <th style={{ width: '220px' }}>Tier Name & Code</th>
-                <th>Hierarchy Structure</th>
-                <th>Mandate Description</th>
-                <th style={{ width: '100px' }}>Status</th>
-                <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
+                <th style={{ width: '110px' }}>{t('levels.tableRankLevel', 'Rank Level')}</th>
+                <th style={{ width: '220px' }}>{t('levels.tableTierName', 'Tier Name & Code')}</th>
+                <th>{t('levels.tableStructure', 'Hierarchy Structure')}</th>
+                <th>{t('levels.tableMandate', 'Mandate Description')}</th>
+                <th style={{ width: '100px' }}>{t('common.status', 'Status')}</th>
+                <th style={{ width: '120px', textAlign: 'right' }}>{t('common.actions', 'Actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -220,12 +226,12 @@ export const LevelsPage: React.FC = () => {
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        Level {lvl.level}
+                        {t('levels.levelWord', 'Level')} {lvl.level}
                       </span>
                     </td>
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        <b style={{ fontSize: '13.5px', color: '#0f172a' }}>{lvl.name}</b>
+                        <b style={{ fontSize: '13.5px', color: '#0f172a' }}>{getLocalizedText(lvl.name, language) || lvl.name}</b>
                         <code style={{ fontSize: '11px', color: '#64748b', background: '#f8fafc', padding: '1px 5px', borderRadius: '3px', width: 'fit-content' }}>
                           {lvl.code}
                         </code>
@@ -243,21 +249,21 @@ export const LevelsPage: React.FC = () => {
                             color: '#047857',
                           }}
                         >
-                          <Icon name="check" size={14} /> Root Tier (No parent needed)
+                          <Icon name="check" size={14} /> {t('levels.rootTier', 'Root Tier (No parent needed)')}
                         </span>
                       ) : (
                         <span style={{ fontSize: '12px', color: '#64748b' }}>
-                          Reports to ancestor tier
+                          {t('levels.subordinateTier', 'Reports to ancestor tier')}
                         </span>
                       )}
                     </td>
                     <td>
                       <span style={{ fontSize: '12.5px', color: '#475569' }}>
-                        {lvl.description || '—'}
+                        {getLocalizedText(lvl.description, language) || lvl.description || '—'}
                       </span>
                     </td>
                     <td>
-                      <StatusPill>{lvl.is_active ? 'Active' : 'Inactive'}</StatusPill>
+                      <StatusPill>{lvl.is_active ? t('common.active', 'Active') : t('common.inactive', 'Inactive')}</StatusPill>
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
@@ -268,7 +274,7 @@ export const LevelsPage: React.FC = () => {
                               className="button secondary small-button"
                               disabled={lvl.level <= 1 || isUpdating}
                               onClick={() => handleMoveRank(lvl, 'up')}
-                              title="Shift rank up (higher authority)"
+                              title="Shift rank up"
                               style={{ padding: '3px 7px', fontSize: '12px' }}
                             >
                               &uarr;
@@ -278,7 +284,7 @@ export const LevelsPage: React.FC = () => {
                               className="button secondary small-button"
                               disabled={lvl.level >= levels.length || isUpdating}
                               onClick={() => handleMoveRank(lvl, 'down')}
-                              title="Shift rank down (lower authority)"
+                              title="Shift rank down"
                               style={{ padding: '3px 7px', fontSize: '12px' }}
                             >
                               &darr;
@@ -288,7 +294,7 @@ export const LevelsPage: React.FC = () => {
                               className="button secondary small-button"
                               onClick={() => handleOpenEdit(lvl)}
                             >
-                              Edit
+                              {t('common.edit', 'Edit')}
                             </button>
                           </>
                         )}
@@ -298,9 +304,8 @@ export const LevelsPage: React.FC = () => {
                             className="button secondary small-button"
                             style={{ color: '#dc2626' }}
                             onClick={() => handleDelete(lvl)}
-                            title="Delete level"
                           >
-                            Delete
+                            {t('common.delete', 'Delete')}
                           </button>
                         )}
                       </div>
@@ -314,10 +319,10 @@ export const LevelsPage: React.FC = () => {
                     {isLoading ? (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                         <div className="loading-spinner" />
-                        <span style={{ fontWeight: 600, color: '#00485a', fontSize: '13.5px' }}>Loading hierarchy levels...</span>
+                        <span style={{ fontWeight: 600, color: '#00485a', fontSize: '13.5px' }}>{t('common.loading', 'Loading hierarchy levels...')}</span>
                       </div>
                     ) : (
-                      'No organization levels found matching criteria.'
+                      t('levels.noLevelsFound', 'No organization levels found matching criteria.')
                     )}
                   </td>
                 </tr>

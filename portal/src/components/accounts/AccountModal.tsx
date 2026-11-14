@@ -29,7 +29,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   onSave,
   isLoading = false,
 }) => {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const { data: apiRoles } = useGetRolesQuery(undefined, { skip: !isOpen });
   const { data: apiOrgs } = useGetOrganizationsQuery(undefined, { skip: !isOpen });
 
@@ -91,16 +91,16 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     return [
       {
         value: 0,
-        label: 'None (Global Platform Administrator)',
+        label: t('accounts.globalAdminOption', 'None (Global Platform Administrator)'),
         code: 'global',
         badge: 'Global',
         badgeTone: 'gold',
-        secondary: 'Platform-wide authority without organizational boundary (Super Admin).',
+        secondary: t('accounts.globalAdminDesc', 'Platform-wide authority without organizational boundary (Super Admin).'),
       },
       ...orgsList.map((org: any) => {
-        const orgName = typeof org.name === 'string' ? org.name : getLocalizedText(org.name, 'en') || 'Office';
-        const typeName = typeof org.type?.name === 'string' ? org.type.name : getLocalizedText(org.type?.name, 'en') || (org.organization_type_id === 1 ? 'Sub-City' : org.organization_type_id === 2 ? 'Woreda' : 'Bureau');
-        const orgAddress = typeof org.address === 'string' ? org.address : getLocalizedText(org.address, 'en') || `${org.code} jurisdictional office`;
+        const orgName = typeof org.name === 'string' ? org.name : getLocalizedText(org.name, language) || 'Office';
+        const typeName = typeof org.type?.name === 'string' ? org.type.name : getLocalizedText(org.type?.name, language) || (org.organization_type_id === 1 ? 'Sub-City' : org.organization_type_id === 2 ? 'Woreda' : 'Bureau');
+        const orgAddress = typeof org.address === 'string' ? org.address : getLocalizedText(org.address, language) || `${org.code} jurisdictional office`;
         return {
           value: org.id,
           label: orgName,
@@ -111,7 +111,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         };
       }),
     ];
-  }, [propOrganizations, apiOrgs]);
+  }, [propOrganizations, apiOrgs, language, t]);
 
   // Look up selected organization metadata to contextualize roles
   const selectedOrg = useMemo(() => {
@@ -148,13 +148,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
     return allowed.map((r: any) => ({
       value: r.id,
-      label: typeof r.name === 'string' ? r.name : getLocalizedText(r.name, 'en') || r.slug || 'Role',
+      label: typeof r.name === 'string' ? r.name : getLocalizedText(r.name, language) || r.slug || 'Role',
       code: r.slug,
       badge: r.slug === 'super_admin' ? 'global' : r.slug === 'sub_city_admin' ? 'sub_city' : r.slug === 'woreda_admin' ? 'woreda' : 'bureau',
       badgeTone: r.slug === 'super_admin' ? 'gold' : r.slug === 'sub_city_admin' ? 'sage' : r.slug === 'woreda_admin' ? 'blue' : 'gray',
-      secondary: typeof r.description === 'string' ? r.description : getLocalizedText(r.description, 'en') || '',
+      secondary: typeof r.description === 'string' ? r.description : getLocalizedText(r.description, language) || '',
     }));
-  }, [organizationId, selectedOrg, propRoles, apiRoles]);
+  }, [organizationId, selectedOrg, propRoles, apiRoles, language]);
 
   const handleNameChange = (val: string) => {
     setName(val);
@@ -194,20 +194,20 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return setErrorMsg('Full name is required.');
-    if (!username.trim()) return setErrorMsg('Username is required.');
-    if (!email.trim()) return setErrorMsg('Email address is required.');
+    if (!name.trim()) return setErrorMsg(t('accounts.nameRequired', 'Full name is required.'));
+    if (!username.trim()) return setErrorMsg(t('accounts.usernameRequired', 'Username is required.'));
+    if (!email.trim()) return setErrorMsg(t('accounts.emailRequired', 'Work email is required.'));
     if (!account && !password.trim()) {
-      return setErrorMsg('Initial password is required for new accounts (minimum 8 characters).');
+      return setErrorMsg(t('accounts.passwordRequired', 'Initial password is required for new accounts (minimum 8 characters).'));
     }
     if (password.trim() && password.trim().length < 8) {
-      return setErrorMsg('Password must be at least 8 characters long.');
+      return setErrorMsg(t('accounts.passwordLength', 'Password must be at least 8 characters long.'));
     }
     if (organizationId === null || organizationId === undefined) {
-      return setErrorMsg('Please select an organization (or Global Platform) first.');
+      return setErrorMsg(t('accounts.orgRequired', 'Please select an organization (or Global Platform) first.'));
     }
     if (!roleId) {
-      return setErrorMsg('Please select an administrative role.');
+      return setErrorMsg(t('accounts.roleRequired', 'Please select an administrative role.'));
     }
 
     const isGlobal = Number(organizationId) === 0 || Number(roleId) === 1;
@@ -236,15 +236,15 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         className="modal-card modal-form"
         role="dialog"
         aria-modal="true"
-        aria-label={account ? 'Edit administrator account' : 'Create administrator account'}
+        aria-label={account ? t('accounts.editAccount', 'Edit account') : t('accounts.createAccount', 'Create account')}
         style={{ maxWidth: '640px', width: '92%' }}
       >
         <form onSubmit={handleSubmit}>
           <div className="modal-header">
             <div>
-              <span className="panel-eyebrow">ACCESS & PERMISSIONS</span>
-              <h2>{account ? 'Edit account' : 'Create account'}</h2>
-              <p>Assign administrative authority and link workspace organization.</p>
+              <span className="panel-eyebrow">{t('accounts.modalEyebrow', 'ACCESS & PERMISSIONS')}</span>
+              <h2>{account ? t('accounts.editAccount', 'Edit account') : t('accounts.createAccount', 'Create account')}</h2>
+              <p>{t('accounts.modalSubtitle', 'Assign administrative authority and link workspace organization.')}</p>
             </div>
             <button type="button" className="modal-close" onClick={onClose} aria-label="Close dialog">
               <Icon name="close" />
@@ -276,18 +276,18 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             {/* 1. Organization Assignment (Selected First) */}
             <div className="modal-field full">
               <SearchSelect
-                label="Assigned Organization"
+                label={t('accounts.assignedOrg', 'Assigned Organization')}
                 required
                 value={organizationId}
                 onChange={handleOrganizationSelect}
                 options={organizationOptions}
-                placeholder="Search & select organization or Global Platform..."
+                placeholder={t('accounts.selectOrgPlaceholder', 'Search & select organization or Global Platform...')}
                 helperText={
                   organizationId === 0
-                    ? 'Global Platform provides platform-wide administration across all organizations.'
+                    ? t('accounts.globalAdminDesc', 'Global Platform provides platform-wide administration across all organizations.')
                     : selectedOrg
-                      ? `Selected ${selectedOrg.organization_type_id === 1 ? 'Sub-City' : selectedOrg.organization_type_id === 2 ? 'Woreda' : 'Bureau'}: ${selectedOrg.name}`
-                      : 'Choose an organization to unlock applicable administrative roles.'
+                      ? `${getLocalizedText(selectedOrg.name, language)}`
+                      : t('accounts.selectOrgFirst', 'Choose an organization to unlock applicable administrative roles.')
                 }
               />
             </div>
@@ -295,7 +295,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             {/* 2. Administrative Role (Selected Second, filtered by organization) */}
             <div className="modal-field full">
               <SearchSelect
-                label="Administrative Role"
+                label={t('accounts.adminRole', 'Administrative Role')}
                 required
                 value={roleId}
                 onChange={(val) => {
@@ -306,12 +306,12 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 disabled={organizationId === null || organizationId === undefined}
                 placeholder={
                   organizationId === null || organizationId === undefined
-                    ? 'Select an organization first...'
-                    : 'Select role for this organization...'
+                    ? t('accounts.selectOrgFirst', 'Select an organization first...')
+                    : t('accounts.selectRolePlaceholder', 'Select role for this organization...')
                 }
                 helperText={
                   organizationId === null || organizationId === undefined
-                    ? 'Select an organization above to view its permitted administrative roles.'
+                    ? t('accounts.selectOrgFirst', 'Select an organization above to view its permitted administrative roles.')
                     : undefined
                 }
               />
@@ -319,10 +319,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
             {/* Full Name */}
             <label className="modal-field">
-              <span>Full name <i>*</i></span>
+              <span>{t('accounts.fullName', 'Full name')} <i>*</i></span>
               <input
                 required
-                placeholder="e.g. Sofia Lemma"
+                placeholder={t('accounts.fullNamePlaceholder', 'e.g. Sofia Lemma')}
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
               />
@@ -330,10 +330,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
             {/* Username */}
             <label className="modal-field">
-              <span>Username <i>*</i></span>
+              <span>{t('accounts.username', 'Username')} <i>*</i></span>
               <input
                 required
-                placeholder="e.g. sofia.lemma"
+                placeholder={t('accounts.usernamePlaceholder', 'e.g. sofia.lemma')}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
@@ -341,11 +341,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
             {/* Email */}
             <label className="modal-field">
-              <span>Work email <i>*</i></span>
+              <span>{t('accounts.workEmail', 'Work email')} <i>*</i></span>
               <input
                 required
                 type="email"
-                placeholder="sofia@admin.gov.et"
+                placeholder={t('accounts.workEmailPlaceholder', 'sofia@admin.gov.et')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -353,7 +353,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
             {/* Phone */}
             <label className="modal-field">
-              <span>Phone number</span>
+              <span>{t('accounts.phone', 'Phone number')}</span>
               <input
                 type="tel"
                 placeholder="+251 91 000 0000"
@@ -365,11 +365,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             {/* Password */}
             <label className="modal-field">
               <span>
-                {account ? 'New password (optional)' : 'Initial password'} <i>{!account && '*'}</i>
+                {account ? t('accounts.newPassword', 'New password (optional)') : t('accounts.initialPassword', 'Initial password')} <i>{!account && '*'}</i>
               </span>
               <input
                 type="password"
-                placeholder={account ? 'Leave blank to keep current' : 'Min 8 characters'}
+                placeholder={account ? t('accounts.passwordCurrentPlaceholder', 'Leave blank to keep current') : t('accounts.passwordPlaceholder', 'Min 8 characters')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required={!account}
@@ -378,10 +378,10 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
             {/* Status */}
             <label className="modal-field">
-              <span>Account status</span>
+              <span>{t('accounts.accountStatus', 'Account status')}</span>
               <select value={status} onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="active">{t('common.active', 'Active')}</option>
+                <option value="inactive">{t('common.inactive', 'Inactive')}</option>
               </select>
             </label>
           </div>

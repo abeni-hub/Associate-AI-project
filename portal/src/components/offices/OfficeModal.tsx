@@ -44,7 +44,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
   onSave,
   isLoading = false,
 }) => {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const { data: apiOrgTypes } = useGetOrganizationTypesQuery(undefined, { skip: !isOpen });
   const { data: apiOrgs } = useGetOrganizationsQuery(undefined, { skip: !isOpen });
 
@@ -83,9 +83,9 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
   // Sync form fields when opening or switching office
   useEffect(() => {
     if (isOpen) {
-      const initialName = typeof office?.name === 'string' ? office.name : getLocalizedText(office?.name, 'en');
-      const initialAddress = typeof office?.address === 'string' ? office.address : getLocalizedText(office?.address, 'en');
-      const initialDesc = typeof office?.description === 'string' ? office.description : getLocalizedText(office?.description, 'en');
+      const initialName = typeof office?.name === 'string' ? office.name : getLocalizedText(office?.name, language);
+      const initialAddress = typeof office?.address === 'string' ? office.address : getLocalizedText(office?.address, language);
+      const initialDesc = typeof office?.description === 'string' ? office.description : getLocalizedText(office?.description, language);
       setName(initialName);
       setCode(office?.code || (initialName ? slugify(initialName) : ''));
       const initialType = Number(
@@ -104,7 +104,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
       setLogo(null);
       setErrorMsg(null);
     }
-  }, [isOpen, office, allTypes, rootType]);
+  }, [isOpen, office, allTypes, rootType, language]);
 
   // Ensure typeId resolves to a valid tier once allTypes loads
   useEffect(() => {
@@ -118,15 +118,15 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
 
   // Classification options
   const classificationOptions: SearchSelectOption[] = useMemo(() => {
-    return allTypes.map((t: any) => ({
-      value: t.id,
-      label: typeof t.name === 'string' ? t.name : getLocalizedText(t.name, 'en') || t.code || 'Tier',
-      code: t.code,
-      badge: `Level ${t.level ?? 1}`,
-      badgeTone: t.level === 1 ? 'sage' : t.level === 2 ? 'blue' : 'gold',
-      secondary: (typeof t.description === 'string' ? t.description : getLocalizedText(t.description, 'en')) || (t.can_be_root || t.level === 1 ? 'Root platform tier' : 'Requires parent organization'),
+    return allTypes.map((tType: any) => ({
+      value: tType.id,
+      label: typeof tType.name === 'string' ? tType.name : getLocalizedText(tType.name, language) || tType.code || 'Tier',
+      code: tType.code,
+      badge: `${t('levels.levelWord', 'Level')} ${tType.level ?? 1}`,
+      badgeTone: tType.level === 1 ? 'sage' : tType.level === 2 ? 'blue' : 'gold',
+      secondary: (typeof tType.description === 'string' ? tType.description : getLocalizedText(tType.description, language)) || (tType.can_be_root || tType.level === 1 ? 'Root platform tier' : 'Requires parent organization'),
     }));
-  }, [allTypes]);
+  }, [allTypes, language, t]);
 
   // Resolve currently selected classification tier
   const selectedType = useMemo(() => {
@@ -183,11 +183,11 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
       return [
         {
           value: 0,
-          label: 'None (Root Organization)',
+          label: t('offices.noneRoot', 'None (Root Organization)'),
           code: 'root',
           badge: 'Root',
           badgeTone: 'sage',
-          secondary: `${selectedType?.name || 'Root organizations'} have no parent organization.`,
+          secondary: t('offices.rootNoParentDesc', 'Root organizations have no parent organization.'),
         },
       ];
     }
@@ -214,7 +214,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
     });
 
     if (eligible.length === 0) {
-      const selTypeName = typeof selectedType?.name === 'string' ? selectedType.name : getLocalizedText(selectedType?.name, 'en') || 'child office';
+      const selTypeName = typeof selectedType?.name === 'string' ? selectedType.name : getLocalizedText(selectedType?.name, language) || 'child office';
       return [
         {
           value: 0,
@@ -231,9 +231,9 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
     return eligible.map((org) => {
       const orgType = org.type || typeMap.get(Number(org.organization_type_id || org.typeId));
       const orgLevel = getOrgLevel(org);
-      const typeName = typeof org.typeName === 'string' ? org.typeName : getLocalizedText(org.typeName || orgType?.name, 'en') || parentTierName;
-      const orgName = typeof org.name === 'string' ? org.name : getLocalizedText(org.name, 'en') || 'Office';
-      const orgAddress = typeof org.address === 'string' ? org.address : getLocalizedText(org.address, 'en') || '';
+      const typeName = typeof org.typeName === 'string' ? org.typeName : getLocalizedText(org.typeName || orgType?.name, language) || parentTierName;
+      const orgName = typeof org.name === 'string' ? org.name : getLocalizedText(org.name, language) || 'Office';
+      const orgAddress = typeof org.address === 'string' ? org.address : getLocalizedText(org.address, language) || '';
       return {
         value: org.id,
         label: orgName,
@@ -243,7 +243,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
         secondary: orgAddress ? `${typeName}: ${orgAddress}` : `${org.code || ''} (${typeName})`,
       };
     });
-  }, [propOffices, apiOrgs, isRootType, currentLevel, selectedType, office, typeMap, targetParentLevel, parentTierName]);
+  }, [propOffices, apiOrgs, isRootType, currentLevel, selectedType, office, typeMap, targetParentLevel, parentTierName, language, t]);
 
   const handleNameChange = (val: string) => {
     setName(val);
@@ -272,18 +272,16 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return setErrorMsg('Office name is required.');
-    if (!office?.id && !logo) return setErrorMsg('Office logo image is required.');
+    if (!name.trim()) return setErrorMsg(t('offices.nameRequired', 'Office name is required.'));
+    if (!office?.id && !logo) return setErrorMsg(t('offices.logoRequired', 'Office logo image is required.'));
     const cleanCode = code.toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-').replace(/(^-+|-+$)/g, '');
-    if (!cleanCode) return setErrorMsg('Office code identifier is required.');
+    if (!cleanCode) return setErrorMsg(t('offices.codeRequired', 'Office code identifier is required.'));
     if (!isRootType && (!parentId || Number(parentId) <= 0)) {
-      return setErrorMsg(
-        `A ${selectedType?.name || 'child office'} must have a parent ${parentTierName || 'organization'} selected.`
-      );
+      return setErrorMsg(t('offices.parentRequired', 'A child office must have a parent organization selected.'));
     }
     const cleanEmail = email.trim();
     if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      return setErrorMsg('Please enter a valid email address (e.g., info@office.gov.et).');
+      return setErrorMsg(t('offices.emailInvalid', 'Please enter a valid email address (e.g., info@office.gov.et).'));
     }
     setErrorMsg(null);
 
@@ -323,15 +321,15 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
         className="modal-card modal-form"
         role="dialog"
         aria-modal="true"
-        aria-label={office ? 'Edit office' : 'Create new office'}
+        aria-label={office ? t('offices.editOffice', 'Edit administrative office') : t('offices.createOffice', 'Create new administrative office')}
         style={{ maxWidth: '640px', width: '92%' }}
       >
         <form onSubmit={handleSubmit}>
           <div className="modal-header">
             <div>
-              <span className="panel-eyebrow">ORGANIZATION DIRECTORY</span>
-              <h2>{office ? 'Edit administrative office' : 'Create new administrative office'}</h2>
-              <p>Configure office details, hierarchy tier, and contact information.</p>
+              <span className="panel-eyebrow">{t('offices.modalEyebrow', 'ORGANIZATION DIRECTORY')}</span>
+              <h2>{office ? t('offices.editOffice', 'Edit administrative office') : t('offices.createOffice', 'Create new administrative office')}</h2>
+              <p>{t('offices.modalSubtitle', 'Configure office details, hierarchy tier, and contact information.')}</p>
             </div>
             <button type="button" className="modal-close" onClick={onClose} aria-label="Close dialog">
               <Icon name="close" />
@@ -362,10 +360,10 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
           <div className="modal-form-grid" style={{ padding: '1.25rem 1.5rem' }}>
             {/* Name */}
             <label className="modal-field full">
-              <span>Office name <i>*</i></span>
+              <span>{t('offices.officeName', 'Office name')} <i>*</i></span>
               <input
                 required
-                placeholder="e.g. Bole Sub-City Administration or Revenues Bureau"
+                placeholder={t('offices.officeNamePlaceholder', 'e.g. Bole Sub-City Administration or Revenues Bureau')}
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
               />
@@ -374,7 +372,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
             {/* Logo */}
             {!office && (
               <label className="modal-field full">
-                <span>Office logo <i>*</i></span>
+                <span>{t('offices.officeLogo', 'Office logo')} <i>*</i></span>
                 <input
                   type="file"
                   accept="image/*"
@@ -390,19 +388,19 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
             {/* Type */}
             <div className="modal-field full">
               <SearchSelect
-                label="Classification Tier"
+                label={t('offices.classificationTier', 'Classification Tier')}
                 required
                 value={typeId}
                 onChange={handleTypeSelect}
                 options={classificationOptions}
-                placeholder="Select tier..."
+                placeholder={t('offices.selectTierPlaceholder', 'Select tier...')}
               />
             </div>
 
             {/* Parent Organization SearchSelect */}
             <div className="modal-field full">
               <SearchSelect
-                label={`Governing Parent ${isRootType ? '(Not required - Root Level)' : 'Organization'}`}
+                label={`${t('offices.governingParent', 'Governing Parent')} ${isRootType ? t('offices.notRequiredRoot', '(Not required - Root Level)') : t('offices.organization', 'Organization')}`}
                 required={!isRootType}
                 value={isRootType ? 0 : parentId}
                 onChange={(val) => {
@@ -468,9 +466,9 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
 
             {/* Address */}
             <label className="modal-field">
-              <span>Physical address / location</span>
+              <span>{t('offices.physicalAddress', 'Physical address / location')}</span>
               <input
-                placeholder="e.g. Bole Road, Building B, Floor 2"
+                placeholder={t('offices.addressPlaceholder', 'e.g. Bole Road, Building B, Floor 2')}
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
               />
@@ -478,16 +476,16 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
 
             {/* Status */}
             <label className="modal-field">
-              <span>Status</span>
+              <span>{t('common.status', 'Status')}</span>
               <select value={status} onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="active">{t('common.active', 'Active')}</option>
+                <option value="inactive">{t('common.inactive', 'Inactive')}</option>
               </select>
             </label>
 
             {/* Phone */}
             <label className="modal-field">
-              <span>Official phone number</span>
+              <span>{t('offices.phone', 'Official phone number')}</span>
               <input
                 type="tel"
                 placeholder="+251 11 000 0000"
@@ -498,7 +496,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
 
             {/* Email */}
             <label className="modal-field">
-              <span>Official contact email</span>
+              <span>{t('offices.email', 'Official contact email')}</span>
               <input
                 type="email"
                 placeholder="contact@office.gov.et"
@@ -509,10 +507,10 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
 
             {/* Description */}
             <label className="modal-field full">
-              <span>Description / office mandate</span>
+              <span>{t('offices.descriptionLabel', 'Description / office mandate')}</span>
               <textarea
                 rows={2}
-                placeholder="Brief summary of office mission and public services..."
+                placeholder={t('offices.descriptionPlaceholder', 'Brief summary of office mission and public services...')}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 style={{ resize: 'vertical' }}

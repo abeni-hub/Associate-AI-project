@@ -6,6 +6,8 @@ import { SearchBox } from '../components/shared/SearchBox';
 import { StatusPill } from '../components/shared/StatusPill';
 import type { SubcityItem } from '../types/portal.types';
 import { useGetOrganizationsQuery, useCreateOrganizationMutation } from '../services/organizationsApi';
+import { useLanguage } from '../i18n/i18nContext';
+import { getLocalizedText } from '../i18n/utils/getLocalized';
 
 export interface SubcitiesPageProps {
   items?: SubcityItem[];
@@ -21,6 +23,7 @@ export const SubcitiesPage: React.FC<SubcitiesPageProps> = ({
   setSearch: propSetSearch,
 }) => {
   const portal = usePortal();
+  const { language, t } = useLanguage();
 
   const { data: apiOrgs, isLoading, refetch } = useGetOrganizationsQuery(undefined, { refetchOnMountOrArgChange: true });
   const [createOrgTrigger] = useCreateOrganizationMutation();
@@ -32,7 +35,7 @@ export const SubcitiesPage: React.FC<SubcitiesPageProps> = ({
       const apiSubcities = apiOrgs.data.filter((o) => o.organization_type_id === 1 || o.type?.code === 'sub_city');
       return apiSubcities.map((s) => ({
         id: s.id,
-        name: s.name,
+        name: getLocalizedText(s.name, language) || (typeof s.name === 'string' ? s.name : s.code),
         admin: s.email || 'Sub-City Administrator',
         bureaus: s.children?.length ?? 0,
         services: s.services_count ?? 0,
@@ -42,7 +45,7 @@ export const SubcitiesPage: React.FC<SubcitiesPageProps> = ({
     }
 
     return [];
-  }, [propItems, apiOrgs]);
+  }, [propItems, apiOrgs, language]);
 
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;

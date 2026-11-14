@@ -57,10 +57,11 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
     });
 
     organizations.forEach((o: any) => {
+      const oName = (typeof o.name === 'string' ? o.name : (o.name?.eng || o.name?.en || '')).toLowerCase();
       const isSub =
         o.type?.code === 'sub_city' ||
-        o.name?.toLowerCase().includes('sub-city') ||
-        o.name?.toLowerCase().includes('subcity');
+        oName.includes('sub-city') ||
+        oName.includes('subcity');
       if (isSub) {
         subs.push(o);
       } else {
@@ -220,10 +221,15 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
     if (!docSearch.trim()) return availableDocuments;
     const q = docSearch.toLowerCase();
     return availableDocuments.filter(
-      (d) =>
-        d.name.toLowerCase().includes(q) ||
-        d.code.toLowerCase().includes(q) ||
-        (d.description && d.description.toLowerCase().includes(q))
+      (d) => {
+        const dName = (typeof d.name === 'string' ? d.name : ((d.name as any)?.eng || (d.name as any)?.en || '')).toLowerCase();
+        const dDesc = (typeof d.description === 'string' ? d.description : ((d.description as any)?.eng || (d.description as any)?.en || '')).toLowerCase();
+        return (
+          dName.includes(q) ||
+          String(d.code || '').toLowerCase().includes(q) ||
+          dDesc.includes(q)
+        );
+      }
     );
   }, [availableDocuments, docSearch]);
 
@@ -767,10 +773,10 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                     />
                     <div>
                       <b style={{ display: 'block', fontSize: '13px', color: '#003946' }}>
-                        Publish & Activate this service
+                        {t('services.editor.publishToggle', 'Publish this service')}
                       </b>
                       <small style={{ color: '#688075', fontSize: '11.5px' }}>
-                        Active services are visible to citizens and listed in government office directories.
+                        {t('services.editor.publishToggleDesc', 'Citizens can see published services in the public directory.')}
                       </small>
                     </div>
                   </label>
@@ -778,11 +784,11 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                   {/* Citizen Overview Description */}
                   <label className="modal-field full">
                     <span style={{ fontWeight: 700, color: '#003946' }}>
-                      Citizen Overview & Eligibility Description
+                      {t('services.editor.overviewDescription', 'Citizen Overview & Eligibility Description')}
                     </span>
                     <textarea
                       rows={3}
-                      placeholder="Describe what this public service provides, who is eligible, and output expectations..."
+                      placeholder={t('services.editor.descriptionPlaceholder', 'Describe what this public service provides, who is eligible, and output expectations...')}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       style={{ fontSize: '13.5px', padding: '9px 12px', lineHeight: 1.5 }}

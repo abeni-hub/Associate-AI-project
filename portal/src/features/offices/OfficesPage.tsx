@@ -284,7 +284,7 @@ export const OfficesPage: React.FC = () => {
                 <option value="all">{t('offices.allOfficeTypes', 'All office types')}</option>
                 {officeTypes.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.name}
+                    {getLocalizedText(t.name, language) || t.name}
                   </option>
                 ))}
               </select>
@@ -330,7 +330,8 @@ export const OfficesPage: React.FC = () => {
             <OfficeHierarchyTree
               offices={scopedOffices}
               officeTypes={officeTypes}
-              onEditOffice={handleOpenEdit}
+              matchingOfficeIds={new Set(filtered.map((o) => Number(o.id)))}
+              onEdit={handleOpenEdit}
               canEdit={canUpdate}
             />
           ) : filtered.length === 0 ? (

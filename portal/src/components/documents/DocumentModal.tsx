@@ -104,12 +104,12 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setErrorMsg('Document name is required.');
+      setErrorMsg(t('documents.nameRequired', 'Document name is required.'));
       return;
     }
     const cleanCode = code.trim().toLowerCase();
     if (!cleanCode) {
-      setErrorMsg('Document code slug is required.');
+      setErrorMsg(t('documents.codeRequired', 'Document code slug is required.'));
       return;
     }
     if (!/^[a-z0-9-]+$/.test(cleanCode)) {
@@ -118,7 +118,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
     }
 
     if (sampleFileUrl.trim() && !/^https?:\/\/.+/.test(sampleFileUrl.trim())) {
-      setErrorMsg('Sample file URL must be a valid web address starting with http:// or https://');
+      setErrorMsg(t('documents.urlInvalid', 'Sample file URL must be a valid web address starting with http:// or https://'));
       return;
     }
 
@@ -148,16 +148,16 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
         className="modal-card modal-form"
         role="dialog"
         aria-modal="true"
-        aria-label={doc ? 'Edit required document' : 'Add required document'}
+        aria-label={doc ? t('documents.editDoc', 'Edit required document') : t('documents.createDoc', 'Create required document')}
         onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: '560px', width: '92%' }}
       >
         <form onSubmit={handleSubmit}>
           <div className="modal-header">
             <div>
-              <span className="panel-eyebrow">DOCUMENT CATALOG STANDARD</span>
-              <h2>{doc ? 'Edit required document' : 'Create required document'}</h2>
-              <p>Define a canonical document criteria that services can require from citizens.</p>
+              <span className="panel-eyebrow">{t('documents.modalEyebrow', 'DOCUMENT CATALOG STANDARD')}</span>
+              <h2>{doc ? t('documents.editDoc', 'Edit required document') : t('documents.createDoc', 'Create required document')}</h2>
+              <p>{t('documents.modalSubtitle', 'Define a canonical document criteria that services can require from citizens.')}</p>
             </div>
             <button type="button" className="modal-close" onClick={onClose} aria-label="Close dialog">
               <Icon name="close" />
@@ -188,10 +188,10 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
           <div className="modal-form-grid" style={{ padding: '1.25rem 1.5rem' }}>
             {/* Document Name (English) */}
             <label className="modal-field full">
-              <span>Document name (English) <i>*</i></span>
+              <span>{t('documents.nameEn', 'Document name (English)')} <i>*</i></span>
               <input
                 required
-                placeholder="e.g. Kebele Resident ID, Renewed Trade License, Birth Certificate"
+                placeholder={t('documents.nameEnPlaceholder', 'e.g. Kebele Resident ID, Renewed Trade License, Birth Certificate')}
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
               />
@@ -199,9 +199,9 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
 
             {/* Document Name (Amharic) */}
             <label className="modal-field full">
-              <span>Document name (Amharic - አማርኛ)</span>
+              <span>{t('documents.nameAm', 'Document name (Amharic - አማርኛ)')}</span>
               <input
-                placeholder="ለምሳሌ፡ የቀበሌ ነዋሪነት መታወቂያ"
+                placeholder={t('documents.nameAmPlaceholder', 'ለምሳሌ፡ የቀበሌ ነዋሪነት መታወቂያ')}
                 value={nameAmh}
                 onChange={(e) => setNameAmh(e.target.value)}
               />
@@ -209,9 +209,9 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
 
             {/* Document Name (Afaan Oromoo) */}
             <label className="modal-field full">
-              <span>Document name (Afaan Oromoo)</span>
+              <span>{t('documents.nameOm', 'Document name (Afaan Oromoo)')}</span>
               <input
-                placeholder="Fkf: Waraqaa Eenyummaa Jiraattummaa Gandaa"
+                placeholder={t('documents.nameOmPlaceholder', 'Fkf: Waraqaa Eenyummaa Jiraattummaa Gandaa')}
                 value={nameOro}
                 onChange={(e) => setNameOro(e.target.value)}
               />
@@ -222,10 +222,10 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
 
             {/* Description (English) */}
             <label className="modal-field full">
-              <span>Description & Issuing Criteria (English)</span>
+              <span>{t('documents.descEn', 'Description & Issuing Criteria (English)')}</span>
               <textarea
                 rows={2}
-                placeholder="Explain what this document is, issuing authority requirements, acceptable format (original, copy, or certified slip)..."
+                placeholder={t('documents.descEnPlaceholder', 'Explain what this document is, issuing authority requirements, acceptable format...')}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
@@ -233,10 +233,10 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
 
             {/* Description (Amharic) */}
             <label className="modal-field full">
-              <span>Description (Amharic - አማርኛ)</span>
+              <span>{t('documents.descAm', 'Description (Amharic - አማርኛ)')}</span>
               <textarea
                 rows={2}
-                placeholder="የሰነዱን መግለጫ እና የማስረጃ መስፈርቶችን በአማርኛ ያስገቡ..."
+                placeholder={t('documents.descAmPlaceholder', 'የሰነዱን መግለጫ እና የማስረጃ መስፈርቶችን በአማርኛ ያስገቡ...')}
                 value={descriptionAmh}
                 onChange={(e) => setDescriptionAmh(e.target.value)}
               />
@@ -244,10 +244,10 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
 
             {/* Description (Afaan Oromoo) */}
             <label className="modal-field full">
-              <span>Description (Afaan Oromoo)</span>
+              <span>{t('documents.descOm', 'Description (Afaan Oromoo)')}</span>
               <textarea
                 rows={2}
-                placeholder="Ibsa sanadaa fi ulaagaalee dhiyeessaa Afaan Oromootiin galchaa..."
+                placeholder={t('documents.descOmPlaceholder', 'Ibsa sanadaa fi ulaagaalee dhiyeessaa Afaan Oromootiin galchaa...')}
                 value={descriptionOro}
                 onChange={(e) => setDescriptionOro(e.target.value)}
               />
@@ -255,7 +255,7 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
 
             {/* Sample File URL */}
             <label className="modal-field full">
-              <span>Sample file or template download URL <small style={{ color: '#88988f', fontWeight: 500 }}>(Optional)</small></span>
+              <span>{t('documents.sampleUrl', 'Sample file or template download URL')} <small style={{ color: '#88988f', fontWeight: 500 }}>(Optional)</small></span>
               <input
                 type="url"
                 placeholder="https://example.gov.et/forms/sample_template.pdf"
@@ -283,9 +283,9 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
                 style={{ width: '18px', height: '18px', accentColor: '#00485a' }}
               />
               <div>
-                <b style={{ color: '#2c4d48', fontSize: '13.5px' }}>Active document standard</b>
+                <b style={{ color: '#2c4d48', fontSize: '13.5px' }}>{t('documents.activeStandard', 'Active document standard')}</b>
                 <small style={{ display: 'block', color: '#74867c', fontSize: '12px' }}>
-                  When active, services across all sub-cities and bureaus can select and attach this document.
+                  {t('documents.activeStandardDesc', 'When active, services across all sub-cities and bureaus can select and attach this document.')}
                 </small>
               </div>
             </label>

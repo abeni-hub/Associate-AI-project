@@ -47,7 +47,7 @@ export const AccountsPage: React.FC = () => {
     if (usersResponse?.data) {
       return usersResponse.data.map((u) => ({
         id: u.id,
-        name: u.name,
+        name: getLocalizedText(u.name as any, language) || (typeof u.name === 'string' ? u.name : 'User'),
         username: u.username,
         email: u.email,
         phone: u.phone,
@@ -91,7 +91,7 @@ export const AccountsPage: React.FC = () => {
   }, [items, search, roleFilter, statusFilter]);
 
   const activeCount = items.filter((i) => i.status === 'Active').length;
-  const adminCount = items.filter((i) => i.role.toLowerCase().includes('admin')).length;
+  const adminCount = items.filter((i) => (i.role || '').toLowerCase().includes('admin')).length;
   const uniqueOrgs = new Set(items.map((i) => i.organization_id).filter(Boolean)).size;
 
   const handleOpenAdd = () => {

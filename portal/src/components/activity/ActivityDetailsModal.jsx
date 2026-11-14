@@ -105,7 +105,7 @@ function ActivityDetailsModal({ event, onClose }) {
             onClick={() => setActiveTab('diff')}
           >
             <Icon name="edit" size={14} />
-            <span>Changes & State Transition</span>
+            <span>{t('activity.tabChanges', 'Changes & State Transition')}</span>
             {diffCount > 0 && <span className="activity-modal-tab-badge">{diffCount}</span>}
           </button>
 
@@ -117,7 +117,7 @@ function ActivityDetailsModal({ event, onClose }) {
             onClick={() => setActiveTab('telemetry')}
           >
             <Icon name="file" size={14} />
-            <span>HTTP Telemetry (Req & Res)</span>
+            <span>{t('activity.tabTelemetry', 'HTTP Telemetry (Req & Res)')}</span>
             <span className={`activity-modal-tab-badge ${statusTone}`}>{statusCode}</span>
           </button>
 
@@ -129,7 +129,7 @@ function ActivityDetailsModal({ event, onClose }) {
             onClick={() => setActiveTab('context')}
           >
             <Icon name="users" size={14} />
-            <span>Actor & Network Origin</span>
+            <span>{t('activity.tabOrigin', 'Actor & Network Origin')}</span>
           </button>
         </div>
 
@@ -487,7 +487,7 @@ function ActivityDetailsModal({ event, onClose }) {
         {/* Footer */}
         <div className="modal-footer activity-detail-footer">
           <span className="modal-security-note">
-            <Icon name="shield" size={13} /> This audit record is immutable and cryptographically bound to the CivicLink municipal ledger.
+            <Icon name="shield" size={13} /> {t('activity.auditImmutableNote', 'This audit record is immutable and cryptographically bound to the CivicLink municipal ledger.')}
           </span>
           <button type="button" className="button secondary" onClick={onClose}>
             {t('common.close', 'Close')}

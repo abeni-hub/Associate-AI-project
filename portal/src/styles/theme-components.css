@@ -1087,14 +1087,23 @@ button.primary svg {
   width: 13px;
   height: 13px;
 }
+.publish-toggle > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 .publish-toggle b {
+  display: block;
   color: #315852;
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.3;
 }
 .publish-toggle small {
-  margin-top: 3px;
+  display: block;
+  margin-top: 2px;
   color: #82918c;
-  font-size: 11px;
+  font-size: 11.5px;
+  line-height: 1.4;
 }
 
 .doc-search {

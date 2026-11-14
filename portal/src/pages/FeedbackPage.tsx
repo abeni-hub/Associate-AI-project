@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { usePortal } from '../context';
+import { useLanguage } from '../i18n/i18nContext';
+import { getLocalizedText } from '../i18n/utils/getLocalized';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { MetricCard } from '../components/shared/MetricCard';
@@ -45,6 +47,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
   statusFilter: propStatusFilter,
   setStatusFilter: propSetStatusFilter,
 }) => {
+  const { language, t } = useLanguage();
   const portal = usePortal();
 
   const [localTypeFilter, setLocalTypeFilter] = useState('All types');
@@ -169,10 +172,10 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
   return (
     <>
       <PageHeading
-        eyebrow="CITIZEN VOICE"
-        title="Feedback inbox"
-        subtitle="Read citizen submissions and track inquiries, complaints, and compliments to resolution."
-        secondary="Export feedback"
+        eyebrow={t('feedback.eyebrow', 'CITIZEN VOICE')}
+        title={t('feedback.title', 'Feedback inbox')}
+        subtitle={t('feedback.subtitle', 'Read citizen submissions and track inquiries, complaints, and compliments to resolution.')}
+        secondary={t('feedback.exportFeedback', 'Export feedback')}
         onSecondary={() => window.alert('Feedback report generated and exported.')}
       />
 
@@ -199,60 +202,60 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({
       <div className="metric-grid compact-metrics">
         <MetricCard
           icon="message"
-          label="All responses"
+          label={t('feedback.allResponses', 'All responses')}
           value={isLoading && !apiFeedback ? '...' : items.length}
-          note="Active feedback queue"
+          note={t('feedback.activeFeedbackQueue', 'Active feedback queue')}
           tone="teal"
         />
         <MetricCard
           icon="clock"
-          label="Open items"
+          label={t('feedback.openItems', 'Open items')}
           value={isLoading && !apiFeedback ? '...' : openCount}
-          note="Awaiting first review"
+          note={t('feedback.awaitingFirstReview', 'Awaiting first review')}
           tone="gold"
         />
         <MetricCard
           icon="activity"
-          label="In review"
+          label={t('feedback.inReview', 'In review')}
           value={isLoading && !apiFeedback ? '...' : inReviewCount}
-          note="Actively being resolved"
+          note={t('feedback.activelyBeingResolved', 'Actively being resolved')}
           tone="blue"
         />
         <MetricCard
           icon="check"
-          label="Resolution rate"
+          label={t('feedback.resolutionRate', 'Resolution rate')}
           value={isLoading && !apiFeedback ? '...' : `${resolutionRate}%`}
-          note="Resolved responses"
+          note={t('feedback.resolvedResponses', 'Resolved responses')}
           tone="sage"
         />
       </div>
       <section className="panel table-panel feedback-inbox">
         <div className="table-toolbar">
           <div>
-            <h2>All citizen responses</h2>
-            <p>Feedback is routed to the relevant bureau and sub-city teams.</p>
+            <h2>{t('feedback.allCitizenResponses', 'All citizen responses')}</h2>
+            <p>{t('feedback.feedbackRoutedDesc', 'Feedback is routed to the relevant bureau and sub-city teams.')}</p>
           </div>
           <div className="toolbar-tools">
-            <SearchBox value={search} onChange={setSearch} placeholder="Search feedback" />
+            <SearchBox value={search} onChange={setSearch} placeholder={t('feedback.searchPlaceholder', 'Search feedback')} />
             <select
               className="filter-select"
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
             >
-              <option>All types</option>
-              <option>Complaint</option>
-              <option>Suggestion</option>
-              <option>Satisfaction</option>
+              <option value="All types">{t('feedback.allTypes', 'All types')}</option>
+              <option value="Complaint">{t('feedback.complaint', 'Complaint')}</option>
+              <option value="Suggestion">{t('feedback.suggestion', 'Suggestion')}</option>
+              <option value="Satisfaction">{t('feedback.satisfaction', 'Satisfaction')}</option>
             </select>
             <select
               className="filter-select"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option>All statuses</option>
-              <option>Open</option>
-              <option>In review</option>
-              <option>Resolved</option>
+              <option value="All statuses">{t('feedback.allStatuses', 'All statuses')}</option>
+              <option value="Open">{t('feedback.open', 'Open')}</option>
+              <option value="In review">{t('feedback.inReview', 'In review')}</option>
+              <option value="Resolved">{t('feedback.resolved', 'Resolved')}</option>
             </select>
           </div>
         </div>

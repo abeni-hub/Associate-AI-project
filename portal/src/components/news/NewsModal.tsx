@@ -5,6 +5,7 @@ import { SearchSelect, type SearchSelectOption } from '../shared/SearchSelect';
 import { useGetOrganizationsQuery } from '../../services/organizationsApi';
 import { useUploadCmsImageMutation } from '../../services/cmsApi';
 import { useLanguage } from '../../i18n/i18nContext';
+import { getLocalizedText } from '../../i18n/utils/getLocalized';
 import { usePortal } from '../../context';
 import { useGetMeQuery } from '../../services/authApi';
 import { tokenStorage } from '../../utils/tokenStorage';
@@ -34,7 +35,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
   onSave,
   isLoading = false,
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const portal = usePortal();
   const { data: meResponse } = useGetMeQuery(undefined, { skip: !isOpen });
   const sessionUser = tokenStorage.getSessionUser<any>();
@@ -61,7 +62,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
       if (roleMeta?.organization) {
         const needle = roleMeta.organization.toLowerCase();
         const match = orgList.find((o: any) => {
-          const name = (o.name || '').toLowerCase();
+          const name = (getLocalizedText(o.name, 'en') || (typeof o.name === 'string' ? o.name : '')).toLowerCase();
           return needle.includes(name) || name.includes(needle);
         });
         if (match) return match;
@@ -88,7 +89,10 @@ export const NewsModal: React.FC<NewsModalProps> = ({
     return (
       orgList.find((o: any) => o.is_root === true) ||
       orgList.find((o: any) => !o.parent_organization_id && !o.parent?.id) ||
-      orgList.find((o: any) => o.code?.toLowerCase() === 'root' || o.name?.toLowerCase().includes('city admin')) ||
+      orgList.find((o: any) => {
+        const oName = (typeof o.name === 'string' ? o.name : (o.name?.eng || o.name?.en || '')).toLowerCase();
+        return o.code?.toLowerCase() === 'root' || oName.includes('city admin');
+      }) ||
       orgList[0]
     );
   }, [orgList]);
@@ -254,7 +258,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
   const organizationOptions: SearchSelectOption[] = useMemo(() => {
     return orgList.map((org: any) => ({
       value: org.id,
-      label: org.name,
+      label: getLocalizedText(org.name, language) || (typeof org.name === 'string' ? org.name : ''),
       code: org.code,
       badge:
         org.organization_type_id === 1
@@ -265,7 +269,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
       badgeTone:
         org.organization_type_id === 1 ? 'sage' : org.organization_type_id === 2 ? 'blue' : 'gold',
     }));
-  }, [orgList]);
+  }, [orgList, language]);
 
   // Handle multiple file upload
   const handleProcessFiles = (files: FileList | File[]) => {
@@ -477,16 +481,16 @@ export const NewsModal: React.FC<NewsModalProps> = ({
           {/* Modal Header */}
           <div className="modal-header">
             <div>
-              <span className="panel-eyebrow">PUBLIC INFORMATION</span>
+              <span className="panel-eyebrow">{t('news.modalEyebrow', 'PUBLIC INFORMATION')}</span>
               <h2>
                 {item
-                  ? `Edit ${contentType === 'event' ? 'public event' : 'news article'}`
-                  : `Create ${contentType === 'event' ? 'public event' : 'news article'}`}
+                  ? (contentType === 'event' ? t('news.editEvent', 'Edit public event') : t('news.editNews', 'Edit news article'))
+                  : (contentType === 'event' ? t('news.createEvent', 'Create public event') : t('news.createNews', 'Create news article'))}
               </h2>
               <p>
                 {contentType === 'event'
-                  ? 'Coordinate a municipal public gathering, town hall, or civic event.'
-                  : 'Publish an official municipal notice or civic announcement.'}
+                  ? t('news.eventDesc', 'Coordinate a municipal public gathering, town hall, or civic event.')
+                  : t('news.newsDesc', 'Publish an official municipal notice or civic announcement.')}
               </p>
             </div>
             <button
@@ -530,7 +534,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                 transition: 'all 0.15s ease',
               }}
             >
-              <Icon name="news" size={15} /> News Announcement
+              <Icon name="news" size={15} /> {t('news.tabNews', 'News Announcement')}
             </button>
             <button
               type="button"
@@ -554,7 +558,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                 transition: 'all 0.15s ease',
               }}
             >
-              <Icon name="calendar" size={15} /> Public Event
+              <Icon name="calendar" size={15} /> {t('news.tabEvent', 'Public Event')}
             </button>
           </div>
 
@@ -583,15 +587,15 @@ export const NewsModal: React.FC<NewsModalProps> = ({
             {/* Title / Headline */}
             <label className="modal-field full">
               <span>
-                {contentType === 'event' ? 'Event title ' : 'Headline title '}
+                {contentType === 'event' ? t('news.eventTitle', 'Event title') : t('news.headlineTitle', 'Headline title')}
                 <i>*</i>
               </span>
               <input
                 required
                 placeholder={
                   contentType === 'event'
-                    ? 'e.g. Annual Addis Ababa Youth Innovation & Civic Town Hall'
-                    : 'e.g. New Business License Registration Windows Opened'
+                    ? t('news.eventTitlePlaceholder', 'e.g. Annual Addis Ababa Youth Innovation & Civic Town Hall')
+                    : t('news.headlinePlaceholder', 'e.g. New Business License Registration Windows Opened')
                 }
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -601,7 +605,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
             {/* Publishing Organization */}
             <div className="modal-field full">
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                {contentType === 'event' ? 'Host Organization' : 'Publishing Organization'} <i style={{ color: '#dc2626' }}>*</i>
+                {contentType === 'event' ? t('news.hostOrg', 'Host Organization') : t('news.publishingOrg', 'Publishing Organization')} <i style={{ color: '#dc2626' }}>*</i>
               </label>
 
               {!isSuperAdmin && userOrg ? (
@@ -637,7 +641,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <b style={{ fontSize: '13.5px', color: '#0f172a' }}>
-                          {item?.organization?.name || userOrg.name}
+                          {getLocalizedText(item?.organization?.name || userOrg?.name, language) || (typeof userOrg?.name === 'string' ? userOrg.name : '')}
                         </b>
                         {(item?.organization?.code || userOrg.code) && (
                           <code
@@ -683,8 +687,8 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                     <span style={{ fontSize: '11.5px', color: '#047857', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <Icon name="check" size={12} /> {
                         isSuperAdmin
-                          ? `Defaulted to root organization (${defaultOrg?.name || 'City Administration'})`
-                          : (userOrg ? `Pre-filled with your organization (${userOrg.name})` : 'Autofetched default organization')
+                          ? `Defaulted to root organization (${getLocalizedText(defaultOrg?.name, language) || 'City Administration'})`
+                          : (userOrg ? `Pre-filled with your organization (${getLocalizedText(userOrg.name, language) || userOrg.name})` : 'Autofetched default organization')
                       }
                     </span>
                     {defaultOrg && organizationId !== Number(defaultOrg.id) && (
@@ -705,7 +709,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                           textDecoration: 'underline',
                         }}
                       >
-                        Reset to {isSuperAdmin ? 'root organization' : 'my organization'} ({defaultOrg.name})
+                        Reset to {isSuperAdmin ? 'root organization' : 'my organization'} ({getLocalizedText(defaultOrg.name, language) || defaultOrg.name})
                       </button>
                     )}
                   </div>
@@ -728,11 +732,11 @@ export const NewsModal: React.FC<NewsModalProps> = ({
               <>
                 <label className="modal-field full">
                   <span>
-                    Venue / Location name <i>*</i>
+                    {t('news.venueName', 'Venue / Location name')} <i>*</i>
                   </span>
                   <input
                     required
-                    placeholder="e.g. Addis Ababa Exhibition Center, Hall 2 / Meskel Square"
+                    placeholder={t('news.venuePlaceholder', 'e.g. Addis Ababa Exhibition Center, Hall 2 / Meskel Square')}
                     value={locationName}
                     onChange={(e) => setLocationName(e.target.value)}
                   />
@@ -740,7 +744,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
 
                 <label className="modal-field">
                   <span>
-                    Event date <i>*</i>
+                    {t('news.eventDate', 'Event date')} <i>*</i>
                   </span>
                   <input
                     type="date"
@@ -751,7 +755,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                 </label>
 
                 <label className="modal-field">
-                  <span>End date (optional)</span>
+                  <span>{t('news.endDate', 'End date (optional)')}</span>
                   <input
                     type="date"
                     value={endDate}
@@ -760,9 +764,9 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                 </label>
 
                 <label className="modal-field full">
-                  <span>Target Audience</span>
+                  <span>{t('news.targetAudience', 'Target Audience')}</span>
                   <input
-                    placeholder="e.g. All Addis Ababa Residents, Registered Merchants, Youth"
+                    placeholder={t('news.audiencePlaceholder', 'e.g. All Addis Ababa Residents, Registered Merchants, Youth')}
                     value={audience}
                     onChange={(e) => setAudience(e.target.value)}
                   />
@@ -792,7 +796,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                     }}
                   >
                     <Icon name="image" size={16} />
-                    {contentType === 'event' ? 'Event Images' : 'Article Images'}
+                    {contentType === 'event' ? t('news.eventImages', 'Event Images') : t('news.articleImages', 'Article Images')}
                   </span>
                   {images.length > 0 && (
                     <span
@@ -1060,21 +1064,21 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                   display: 'block',
                 }}
               >
-                The first image is used as the public feed cover. Subsequent images are displayed in the full article/event gallery.
+                {t('news.imageHelp', 'The first image is used as the public feed cover. Subsequent images are displayed in the full article/event gallery.')}
               </span>
             </div>
 
             {/* Summary / Lead notice */}
             <label className="modal-field full">
               <span>
-                {contentType === 'event' ? 'Short brief / summary' : 'Summary / lead notice'}
+                {contentType === 'event' ? t('news.eventBrief', 'Short brief / summary') : t('news.summaryBrief', 'Summary / lead notice')}
               </span>
               <textarea
                 rows={2}
                 placeholder={
                   contentType === 'event'
-                    ? 'Brief one-line teaser for public event previews...'
-                    : 'Brief summary or key takeaway for public previews...'
+                    ? t('news.summaryPlaceholder', 'Brief summary or key takeaway for public previews...')
+                    : t('news.summaryPlaceholder', 'Brief summary or key takeaway for public previews...')
                 }
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
@@ -1086,8 +1090,8 @@ export const NewsModal: React.FC<NewsModalProps> = ({
             <label className="modal-field full">
               <span>
                 {contentType === 'event'
-                  ? 'Event description & agenda '
-                  : 'Article content / details '}
+                  ? t('news.eventAgenda', 'Event description & agenda')
+                  : t('news.contentDetails', 'Article content / details')}
                 <i>*</i>
               </span>
               <textarea
@@ -1095,8 +1099,8 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                 rows={5}
                 placeholder={
                   contentType === 'event'
-                    ? 'Full schedule, speakers, participation instructions, registration details...'
-                    : 'Detailed instructions, requirements, office hours, and contact details...'
+                    ? t('news.contentPlaceholder', 'Detailed instructions, requirements, office hours, and contact details...')
+                    : t('news.contentPlaceholder', 'Detailed instructions, requirements, office hours, and contact details...')
                 }
                 value={content}
                 onChange={(e) => setContent(e.target.value)}

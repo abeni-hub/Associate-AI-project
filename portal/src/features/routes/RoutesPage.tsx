@@ -54,10 +54,11 @@ export const RoutesPage: React.FC = () => {
     const subcities: typeof organizations = [];
     const bureaus: typeof organizations = [];
     organizations.forEach((org) => {
+      const nameStr = (getLocalizedText(org.name, 'en') || (typeof org.name === 'string' ? org.name : '')).toLowerCase();
       const isSubcity =
         org.type?.code === 'sub_city' ||
-        org.name.toLowerCase().includes('sub-city') ||
-        org.name.toLowerCase().includes('subcity');
+        nameStr.includes('sub-city') ||
+        nameStr.includes('subcity');
       if (isSubcity) {
         subcities.push(org);
       } else {
@@ -279,17 +280,17 @@ export const RoutesPage: React.FC = () => {
                   className="px-2.5 py-1 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-[#064552]"
                 >
                   <option value="all">{t('routes.allBranches', 'All participating branches')}</option>
-                  <optgroup label="Sub-cities">
+                  <optgroup label={t('common.subcitiesGroup', 'Sub-cities')}>
                     {subcitiesList.map((org) => (
                       <option key={org.id} value={org.id}>
-                        {org.name}
+                        {getLocalizedText(org.name, language) || (typeof org.name === 'string' ? org.name : '')}
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label="Central Bureaus">
+                  <optgroup label={t('common.centralBureausGroup', 'Central Bureaus')}>
                     {bureausList.map((org) => (
                       <option key={org.id} value={org.id}>
-                        {org.name}
+                        {getLocalizedText(org.name, language) || (typeof org.name === 'string' ? org.name : '')}
                       </option>
                     ))}
                   </optgroup>

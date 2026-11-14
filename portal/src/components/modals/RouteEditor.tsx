@@ -3,6 +3,8 @@ import { Icon } from '../shared/Icon';
 import type { RouteItem, RouteStep, RouteModalConfig } from '../../types/portal.types';
 import { useGetOrganizationsQuery } from '../../services/organizationsApi';
 import { useGetServiceStepsQuery } from '../../services/servicesApi';
+import { useLanguage } from '../../i18n/i18nContext';
+import { getLocalizedText } from '../../i18n/utils/getLocalized';
 
 export interface RouteEditorProps {
   route?: RouteItem;
@@ -19,6 +21,7 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({
 }) => {
   const route = propRoute || modal?.route;
   const onSave = propOnSave || modal?.onSave || (() => {});
+  const { language, t } = useLanguage();
 
   const { data: orgsResponse } = useGetOrganizationsQuery({ per_page: 100 });
   const organizations = useMemo(() => orgsResponse?.data || [], [orgsResponse]);
@@ -27,10 +30,11 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({
     const subs: typeof organizations = [];
     const burs: typeof organizations = [];
     organizations.forEach((o: any) => {
+      const nameStr = (getLocalizedText(o.name, 'en') || (typeof o.name === 'string' ? o.name : '')).toLowerCase();
       const isSub =
         o.type?.code === 'sub_city' ||
-        o.name.toLowerCase().includes('sub-city') ||
-        o.name.toLowerCase().includes('subcity');
+        nameStr.includes('sub-city') ||
+        nameStr.includes('subcity');
       if (isSub) {
         subs.push(o);
       } else {
@@ -262,7 +266,7 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({
               border: `1px solid ${isBranchCustom ? '#bae6fd' : '#e2e8f0'}`,
             }}
           >
-            {isBranchCustom ? `📍 Branch Specific: ${currentOrg?.name || 'Office'}` : '🌐 Platform-Wide Standard Template'}
+            {isBranchCustom ? `📍 Branch Specific: ${getLocalizedText(currentOrg?.name, language) || 'Office'}` : '🌐 Platform-Wide Standard Template'}
           </span>
         </div>
 
@@ -288,7 +292,7 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({
             <optgroup label="── Municipal Sub-cities ──">
               {subcities.map((org: any) => (
                 <option key={org.id} value={org.id}>
-                  📍 {org.name}
+                  📍 {getLocalizedText(org.name, language) || (typeof org.name === 'string' ? org.name : '')}
                 </option>
               ))}
             </optgroup>
@@ -297,7 +301,7 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({
             <optgroup label="── Central Bureaus & Agencies ──">
               {bureaus.map((org: any) => (
                 <option key={org.id} value={org.id}>
-                  🏢 {org.name}
+                  🏢 {getLocalizedText(org.name, language) || (typeof org.name === 'string' ? org.name : '')}
                 </option>
               ))}
             </optgroup>
@@ -319,7 +323,7 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({
             }}
           >
             <span style={{ fontSize: '12.5px', color: '#92400e', fontWeight: 600 }}>
-              No custom room numbers saved for {currentOrg?.name} yet.
+              No custom room numbers saved for {getLocalizedText(currentOrg?.name, language) || 'this office'} yet.
             </span>
             <button
               type="button"
@@ -555,7 +559,7 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({
       <div className="modal-footer" style={{ padding: '12px 20px', background: '#ffffff', borderTop: '1px solid #e2e8f0' }}>
         <span style={{ fontSize: '12px', color: '#64748b' }}>
           <Icon name="globe" size={14} /> Steps are visible to citizens when filtering for{' '}
-          <strong>{currentOrg?.name || 'all branches'}</strong>.
+          <strong>{getLocalizedText(currentOrg?.name, language) || 'all branches'}</strong>.
         </span>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button

@@ -30,11 +30,17 @@ class CreateOrganizationRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'name_amh' => ['nullable', 'string', 'max:255'],
+            'name_oro' => ['nullable', 'string', 'max:255'],
             'code' => ['required', 'string', 'max:100', 'unique:organizations,code', 'regex:/^[a-z0-9\-]+$/'],
             'organization_type_id' => ['required', 'integer', 'exists:organization_types,id'],
             'parent_organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
             'description' => ['nullable', 'string', 'max:1000'],
+            'description_amh' => ['nullable', 'string', 'max:1000'],
+            'description_oro' => ['nullable', 'string', 'max:1000'],
             'address' => ['nullable', 'string', 'max:255'],
+            'address_amh' => ['nullable', 'string', 'max:255'],
+            'address_oro' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
             'logo' => ['nullable', 'image', 'max:2048'],

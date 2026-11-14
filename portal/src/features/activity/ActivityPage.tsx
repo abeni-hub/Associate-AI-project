@@ -82,7 +82,7 @@ export const ActivityPage: React.FC = () => {
           entityId: log.entity_id ? `#${log.entity_id}` : '',
           action: log.action || 'system.action',
           actionType,
-          description: log.description || `Performed ${log.action} on ${log.entity_type}`,
+          description: getLocalizedText(log.description as any, language) || (typeof log.description === 'string' ? log.description : `Performed ${log.action} on ${log.entity_type}`),
           ip: log.ip_address || '127.0.0.1',
           time: log.created_at ? new Date(log.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent',
           diffs,

@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { useLanguage } from '../i18n/i18nContext';
+import { getLocalizedText } from '../i18n/utils/getLocalized';
 import { Icon } from '../components/shared/Icon';
 import { PageHeading } from '../components/shared/PageHeading';
 import { MetricCard } from '../components/shared/MetricCard';
@@ -6,6 +8,7 @@ import ActivityDetailsModal from '../components/activity/ActivityDetailsModal.js
 import { useGetAuditLogsQuery } from '../services/auditLogsApi';
 
 export const ActivityPage: React.FC = () => {
+  const { language, t } = useLanguage();
   const { data: apiLogs, isLoading } = useGetAuditLogsQuery();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -206,13 +209,13 @@ export const ActivityPage: React.FC = () => {
 
   // Categories with counts
   const categories = [
-    { id: 'all', label: 'All activity', count: activities.length },
-    { id: 'Services', label: 'Service standards', count: activities.filter((a) => a.category === 'Services').length },
-    { id: 'Citizen voice', label: 'Citizen voice', count: activities.filter((a) => a.category === 'Citizen voice').length },
-    { id: 'Security & access', label: 'Security & access', count: activities.filter((a) => a.category === 'Security & access').length },
-    { id: 'CMS & Landing', label: 'CMS & landing', count: activities.filter((a) => a.category === 'CMS & Landing').length },
-    { id: 'Offices', label: 'Offices & bureaus', count: activities.filter((a) => a.category === 'Offices').length },
-    { id: 'Roles & access', label: 'Roles & permissions', count: activities.filter((a) => a.category === 'Roles & access').length },
+    { id: 'all', label: t('activity.catAll', 'All activity'), count: activities.length },
+    { id: 'Services', label: t('activity.catServices', 'Service standards'), count: activities.filter((a) => a.category === 'Services').length },
+    { id: 'Citizen voice', label: t('activity.catCitizenVoice', 'Citizen voice'), count: activities.filter((a) => a.category === 'Citizen voice').length },
+    { id: 'Security & access', label: t('activity.catSecurity', 'Security & access'), count: activities.filter((a) => a.category === 'Security & access').length },
+    { id: 'CMS & Landing', label: t('activity.catCms', 'CMS & landing'), count: activities.filter((a) => a.category === 'CMS & Landing').length },
+    { id: 'Offices', label: t('activity.catOffices', 'Offices & bureaus'), count: activities.filter((a) => a.category === 'Offices').length },
+    { id: 'Roles & access', label: t('activity.catRoles', 'Roles & permissions'), count: activities.filter((a) => a.category === 'Roles & access').length },
   ];
 
   // Filtered list
@@ -356,10 +359,10 @@ export const ActivityPage: React.FC = () => {
   return (
     <>
       <PageHeading
-        eyebrow="AUDIT TRAIL & SYSTEM COMPLIANCE"
-        title="Activity & audit log"
-        subtitle="Cryptographically verified record of system actions, state changes from what to what, and administrative access across all sub-cities."
-        secondary="Export CSV audit"
+        eyebrow={t('activity.eyebrow', 'AUDIT TRAIL & SYSTEM COMPLIANCE')}
+        title={t('activity.title', 'Activity & audit log')}
+        subtitle={t('activity.subtitle', 'Cryptographically verified record of system actions, state changes from what to what, and administrative access across all sub-cities.')}
+        secondary={t('activity.exportCsv', 'Export CSV audit')}
         onSecondary={handleExportCsv}
       />
 
@@ -379,14 +382,14 @@ export const ActivityPage: React.FC = () => {
       <section className="metric-grid" aria-label="Activity statistics">
         <MetricCard
           icon="activity"
-          label="Logged system actions"
+          label={t('activity.loggedActions', 'Logged system actions')}
           value={isLoading && !apiLogs ? '...' : activities.length}
-          note="Across administrative hierarchy"
+          note={t('activity.acrossHierarchy', 'Across administrative hierarchy')}
           tone="teal"
         />
         <MetricCard
           icon="edit"
-          label="State changes & diffs"
+          label={t('activity.stateChangesDiffs', 'State changes & diffs')}
           value={
             isLoading && !apiLogs
               ? '...'
@@ -394,29 +397,29 @@ export const ActivityPage: React.FC = () => {
                   (a) => a.actionType === 'UPDATE' || a.actionType === 'STATUS' || a.displayDiffs?.length > 0
                 ).length
           }
-          note="Field-level state transitions"
+          note={t('activity.fieldTransitions', 'Field-level state transitions')}
           tone="gold"
         />
         <MetricCard
           icon="file"
-          label="Wire telemetry captured"
+          label={t('activity.wireTelemetry', 'Wire telemetry captured')}
           value={
             isLoading && !apiLogs
               ? '...'
               : activities.filter((a) => a.hasTelemetry).length
           }
-          note="HTTP requests & responses"
+          note={t('activity.httpReqRes', 'HTTP requests & responses')}
           tone="sage"
         />
         <MetricCard
           icon="shield"
-          label="Audit integrity rate"
+          label={t('activity.integrityRate', 'Audit integrity rate')}
           value={
             isLoading && !apiLogs
               ? '...'
               : `${activities.length ? Math.round((activities.filter((a) => a.isSuccess).length / activities.length) * 100) : 100}%`
           }
-          note="Tamper-evident SHA-256"
+          note={t('activity.tamperSha', 'Tamper-evident SHA-256')}
           tone="blue"
         />
       </section>
@@ -426,9 +429,9 @@ export const ActivityPage: React.FC = () => {
         {/* Table Toolbar */}
         <div className="table-toolbar">
           <div>
-            <h2>Recorded audit entries</h2>
+            <h2>{t('activity.recordedEntries', 'Recorded audit entries')}</h2>
             <p>
-              Showing {isLoading && !apiLogs ? '...' : filteredActivities.length} events with full user action, state change diffs, and network metadata.
+              {t('activity.showingEvents', 'Showing events with full user action, state change diffs, and network metadata.')}
             </p>
           </div>
 
@@ -437,7 +440,7 @@ export const ActivityPage: React.FC = () => {
               <Icon name="search" size={15} />
               <input
                 type="search"
-                placeholder="Search user, action, diff, HTTP status, or IP..."
+                placeholder={t('activity.searchPlaceholder', 'Search user, action, diff, HTTP status, or IP...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -459,14 +462,14 @@ export const ActivityPage: React.FC = () => {
               onChange={(e) => setActionTypeFilter(e.target.value)}
               aria-label="Filter by action type"
             >
-              <option value="all">All action types</option>
-              <option value="UPDATE">Updates & diffs (UPDATE)</option>
-              <option value="CREATE">New additions (CREATE)</option>
-              <option value="PUBLISH">Publications (PUBLISH)</option>
-              <option value="SECURITY">Security & access (SECURITY)</option>
-              <option value="STATUS">Status transitions (STATUS)</option>
-              <option value="DELETE">Record removals (DELETE)</option>
-              <option value="ERRORS">Errors & failed requests (HTTP 4xx/5xx)</option>
+              <option value="all">{t('activity.allActionTypes', 'All action types')}</option>
+              <option value="UPDATE">{t('activity.typeUpdate', 'Updates & diffs (UPDATE)')}</option>
+              <option value="CREATE">{t('activity.typeCreate', 'New additions (CREATE)')}</option>
+              <option value="PUBLISH">{t('activity.typePublish', 'Publications (PUBLISH)')}</option>
+              <option value="SECURITY">{t('activity.typeSecurity', 'Security & access (SECURITY)')}</option>
+              <option value="STATUS">{t('activity.typeStatus', 'Status transitions (STATUS)')}</option>
+              <option value="DELETE">{t('activity.typeDelete', 'Record removals (DELETE)')}</option>
+              <option value="ERRORS">{t('activity.typeErrors', 'Errors & failed requests (HTTP 4xx/5xx)')}</option>
             </select>
           </div>
         </div>
@@ -490,13 +493,13 @@ export const ActivityPage: React.FC = () => {
           <table className="data-table activity-rich-table">
             <thead>
               <tr>
-                <th style={{ width: 140 }}>TIME & EVENT ID</th>
-                <th style={{ width: 200 }}>USER (ACTOR)</th>
-                <th style={{ width: 190 }}>ACTION & HTTP STATUS</th>
-                <th style={{ width: 210 }}>RESOURCE / TARGET</th>
-                <th>WHAT CHANGED (FROM ➔ TO)</th>
-                <th style={{ width: 170 }}>ORIGIN & IP</th>
-                <th style={{ width: 90, textAlign: 'right' }}>DETAILS</th>
+                <th style={{ width: 140 }}>{t('activity.tableTimeId', 'TIME & EVENT ID')}</th>
+                <th style={{ width: 200 }}>{t('activity.tableActor', 'USER (ACTOR)')}</th>
+                <th style={{ width: 190 }}>{t('activity.tableActionStatus', 'ACTION & HTTP STATUS')}</th>
+                <th style={{ width: 210 }}>{t('activity.tableResourceTarget', 'RESOURCE / TARGET')}</th>
+                <th>{t('activity.tableWhatChanged', 'WHAT CHANGED (FROM ➔ TO)')}</th>
+                <th style={{ width: 170 }}>{t('activity.tableOriginIp', 'ORIGIN & IP')}</th>
+                <th style={{ width: 90, textAlign: 'right' }}>{t('activity.tableDetails', 'DETAILS')}</th>
               </tr>
             </thead>
             <tbody>

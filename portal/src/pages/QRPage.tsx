@@ -13,6 +13,8 @@ import {
 } from '../services/qrCodesApi';
 import { useGetOrganizationsQuery } from '../services/organizationsApi';
 import { getClientBaseUrl } from '../config/apiConfig';
+import { useLanguage } from '../i18n/i18nContext';
+import { getLocalizedText } from '../i18n/utils/getLocalized';
 
 export interface QRPageProps {
   onGenerate?: () => void;
@@ -24,6 +26,7 @@ export const QRPage: React.FC<QRPageProps> = ({
   onCopy: propOnCopy,
 }) => {
   const portal = usePortal();
+  const { language, t } = useLanguage();
   const { hasPermission } = usePermissions();
   const canManageQrCodes = hasPermission('qr_codes.manage');
 
@@ -54,14 +57,16 @@ export const QRPage: React.FC<QRPageProps> = ({
   // Filtered list based on search, office, and status filters
   const filtered = useMemo(() => {
     return qrList.filter((qr) => {
-      const matchesSearch = `${qr.label} ${qr.code} ${qr.organization?.name || ''} ${qr.target_url}`
+      const orgNameStr = (getLocalizedText(qr.organization?.name, language) || (typeof qr.organization?.name === 'string' ? qr.organization.name : '')).toLowerCase();
+      const matchesSearch = `${qr.label} ${qr.code} ${orgNameStr} ${qr.target_url}`
         .toLowerCase()
         .includes(search.toLowerCase());
 
       const matchesOffice =
         officeFilter === 'All offices' ||
-        (qr.organization?.name && qr.organization.name === officeFilter) ||
-        (qr.organization?.code && qr.organization.code === officeFilter);
+        String(qr.organization_id) === officeFilter ||
+        orgNameStr === officeFilter.toLowerCase() ||
+        (qr.organization?.code && qr.organization.code.toLowerCase() === officeFilter.toLowerCase());
 
       const matchesStatus =
         statusFilter === 'All statuses' ||
@@ -69,7 +74,7 @@ export const QRPage: React.FC<QRPageProps> = ({
 
       return matchesSearch && matchesOffice && matchesStatus;
     });
-  }, [qrList, search, officeFilter, statusFilter]);
+  }, [qrList, search, officeFilter, statusFilter, language]);
 
   const activeQr = useMemo(() => {
     if (selectedId) {
@@ -205,11 +210,14 @@ export const QRPage: React.FC<QRPageProps> = ({
                   aria-label="Filter by office"
                 >
                   <option>All offices</option>
-                  {organizations.map((org) => (
-                    <option key={org.id} value={org.name}>
-                      {org.name}
-                    </option>
-                  ))}
+                  {organizations.map((org) => {
+                    const orgDisplayName = getLocalizedText(org.name, language) || (typeof org.name === 'string' ? org.name : '');
+                    return (
+                      <option key={org.id} value={orgDisplayName}>
+                        {orgDisplayName}
+                      </option>
+                    );
+                  })}
                 </select>
                 <select
                   className="filter-select"
@@ -272,7 +280,7 @@ export const QRPage: React.FC<QRPageProps> = ({
                             </p>
                           </td>
                           <td>
-                            <b>{qr.organization?.name || 'Public Bureau'}</b>
+                            <b>{getLocalizedText(qr.organization?.name as any, language) || (typeof qr.organization?.name === 'string' ? qr.organization.name : 'Public Bureau')}</b>
                             <small style={{ display: 'block', color: '#94a3b8' }}>
                               {qr.organization?.code || 'bureau'}
                             </small>

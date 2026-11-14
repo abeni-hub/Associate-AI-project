@@ -83,6 +83,9 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
 
   // Pre-fill state when editing existing service
   useEffect(() => {
+    if (isOpen && ['en', 'am', 'om'].includes(language)) {
+      setFormLang(language as SupportedLanguage);
+    }
     if (service && isOpen) {
       const isM = Boolean(service.is_master || !service.parent_id);
       setIsMaster(isM);
@@ -295,20 +298,20 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
                 <ClipboardList />
               </div>
               <div>
-                <p>{isMaster ? 'MASTER SERVICE CATALOG' : 'SERVICE SETUP'}</p>
+                <p>{isMaster ? t('services.editor.masterCategoryType', 'Master Category') : t('services.editor.stepSetup', 'SERVICE SETUP')}</p>
                 <h2 id="editor-title">
                   {service
                     ? isMaster
-                      ? 'Edit Master Category'
-                      : 'Edit Subservice'
+                      ? t('services.editor.masterCategoryType', 'Master Category')
+                      : t('services.editor.subserviceType', 'Citizen Subservice')
                     : isMaster
-                    ? 'Create Master Category'
-                    : 'Create Citizen Service'}
+                    ? t('services.editor.masterCategoryType', 'Master Category')
+                    : t('services.createService', 'Create service')}
                 </h2>
               </div>
             </div>
             <p className="editor-subtitle">
-              Add the essentials, then configure documents and delivery branches.
+              {t('services.editor.step1Subtitle', 'Add the essentials, then configure documents and delivery branches.')}
             </p>
           </div>
           <button
@@ -371,9 +374,9 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
           {(isMaster || step === 0) && (
             <div className="step-content">
               <div className="step-intro">
-                <span className="step-kicker">STEP 1 OF 3</span>
-                <h3>{isMaster ? 'Master Domain Category' : 'Start with the essentials'}</h3>
-                <p>These details help citizens find, identify, and understand this public service.</p>
+                <span className="step-kicker">{t('services.editor.step1Kicker', 'STEP 1 OF 3')}</span>
+                <h3>{isMaster ? t('services.editor.masterCategoryType', 'Master Category') : t('services.editor.step1Title', 'Start with the essentials')}</h3>
+                <p>{t('services.editor.step1Subtitle', 'These details help citizens find, identify, and understand this public service.')}</p>
               </div>
 
               {/* Service Type Switcher (Master vs Subservice) */}
@@ -450,7 +453,7 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
               >
                 <Globe style={{ width: '14px', height: '14px', color: '#075363' }} />
                 <span style={{ fontSize: '11px', fontWeight: 700, color: '#334155' }}>
-                  Input Language:
+                  {t('services.editor.inputLanguage', 'Input Language:')}
                 </span>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   {(['en', 'am', 'om'] as SupportedLanguage[]).map((l) => (
@@ -480,14 +483,14 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
                 {/* Localized Service Name */}
                 <label className="field full-field">
                   <span>
-                    Service name ({formLang === 'en' ? 'English' : formLang === 'am' ? 'አማርኛ' : 'Afaan Oromoo'}) <i>*</i>
+                    {t('services.editor.serviceName', 'Service name')} ({formLang === 'en' ? 'English' : formLang === 'am' ? 'አማርኛ' : 'Oromoo'}) <i>*</i>
                   </span>
                   {formLang === 'en' && (
                     <input
                       required
                       value={nameEn}
                       onChange={(e) => handleNameEnChange(e.target.value)}
-                      placeholder="e.g. Birth Certificate Issuance"
+                      placeholder={t('services.editor.serviceNamePlaceholder', 'e.g. Birth Certificate Issuance')}
                     />
                   )}
                   {formLang === 'am' && (
@@ -508,7 +511,7 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
 
                 {/* Code Slug */}
                 <label className="field">
-                  <span>Code identifier <i>*</i></span>
+                  <span>{t('services.editor.codeIdentifier', 'Code identifier')} <i>*</i></span>
                   <input
                     required
                     value={code}
@@ -521,13 +524,13 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
                 {/* Parent Category (Subservice only) */}
                 {!isMaster && (
                   <label className="field">
-                    <span>Parent category <i>*</i></span>
+                    <span>{t('services.editor.parentCategory', 'Parent category')} <i>*</i></span>
                     <select
                       required
                       value={parentId ?? ''}
                       onChange={(e) => setParentId(e.target.value ? Number(e.target.value) : null)}
                     >
-                      <option value="">Select a category...</option>
+                      <option value="">{t('services.editor.selectCategory', 'Select a category...')}</option>
                       {masterServices.map((ms: any) => (
                         <option key={ms.id} value={ms.id}>
                           {getLocalizedText(ms.name, language)} ({ms.code})
@@ -539,13 +542,13 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
 
                 {/* Governing Organization */}
                 <label className="field full-field">
-                  <span>Responsible organization / bureau <i>*</i></span>
+                  <span>{t('services.editor.responsibleOrg', 'Responsible organization / bureau')} <i>*</i></span>
                   <select
                     required
                     value={primaryOrgId ?? ''}
                     onChange={(e) => setPrimaryOrgId(e.target.value ? Number(e.target.value) : null)}
                   >
-                    <option value="">Select responsible organization...</option>
+                    <option value="">{t('services.editor.selectResponsibleOrg', 'Select responsible organization...')}</option>
                     {allOrganizations.map((org: any) => (
                       <option key={org.id} value={org.id}>
                         {getLocalizedText(org.name, language)} ({org.code})
@@ -558,7 +561,7 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
                 {!isMaster && (
                   <>
                     <label className="field">
-                      <span>Turnaround time</span>
+                      <span>{t('services.editor.turnaroundTime', 'Turnaround time')}</span>
                       <div className="input-suffix">
                         <input
                           type="number"
@@ -566,12 +569,12 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
                           value={estimatedDuration}
                           onChange={(e) => setEstimatedDuration(e.target.value)}
                         />
-                        <span>minutes</span>
+                        <span>{t('common.minutes', 'minutes')}</span>
                       </div>
                     </label>
 
                     <label className="field">
-                      <span>Standard citizen fee</span>
+                      <span>{t('services.editor.serviceFee', 'Standard citizen fee')}</span>
                       <div className="input-suffix">
                         <input
                           type="number"
@@ -589,7 +592,7 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
                 {/* Description */}
                 <label className="field full-field">
                   <span>
-                    Citizen overview & description ({formLang === 'en' ? 'English' : formLang === 'am' ? 'አማርኛ' : 'Oromoo'})
+                    {t('services.editor.overviewDescription', 'Citizen overview & description')} ({formLang === 'en' ? 'English' : formLang === 'am' ? 'አማርኛ' : 'Oromoo'})
                   </span>
                   {formLang === 'en' && (
                     <textarea
@@ -618,20 +621,85 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
                 </label>
               </div>
 
-              {/* Publish Toggle */}
-              <label className="publish-toggle">
-                <input
-                  type="checkbox"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                />
-                <span className="toggle-check">
-                  <Check />
-                </span>
-                <span>
-                  <b>Publish this service</b>
-                  <small>Citizens can see published services in the public directory.</small>
-                </span>
+              {/* Publish Toggle Card */}
+              <label
+                className="service-publish-card"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px',
+                  marginTop: '20px',
+                  padding: '14px 18px',
+                  borderRadius: '10px',
+                  background: isActive ? '#f0fdf4' : '#f8fafc',
+                  border: `1.5px solid ${isActive ? '#bbf7d0' : '#e2e8f0'}`,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  userSelect: 'none',
+                }}
+              >
+                {/* Switch toggle container */}
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '42px',
+                    height: '24px',
+                    flexShrink: 0,
+                    borderRadius: '12px',
+                    background: isActive ? '#0d9488' : '#cbd5e1',
+                    transition: 'background 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '2px',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isActive}
+                    onChange={(e) => setIsActive(e.target.checked)}
+                    style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+                  />
+                  <span
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      background: '#ffffff',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                      transform: isActive ? 'translateX(18px)' : 'translateX(0)',
+                      transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {isActive && <Check style={{ width: '12px', height: '12px', color: '#0d9488', strokeWidth: 3 }} />}
+                  </span>
+                </div>
+
+                {/* Content description */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <b style={{ fontSize: '13.5px', fontWeight: 700, color: isActive ? '#134e4a' : '#334155' }}>
+                      {t('services.editor.publishToggle', 'Publish this service')}
+                    </b>
+                    <span
+                      style={{
+                        fontSize: '10.5px',
+                        fontWeight: 700,
+                        padding: '1px 8px',
+                        borderRadius: '10px',
+                        background: isActive ? '#dcfce7' : '#e2e8f0',
+                        color: isActive ? '#15803d' : '#64748b',
+                      }}
+                    >
+                      {isActive ? t('common.active', 'Active') : t('common.draft', 'Draft')}
+                    </span>
+                  </div>
+                  <small style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.4, display: 'block' }}>
+                    {t('services.editor.publishToggleDesc', 'Citizens can see published services in the public directory.')}
+                  </small>
+                </div>
               </label>
             </div>
           )}
@@ -640,9 +708,9 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
           {!isMaster && step === 1 && (
             <div className="step-content">
               <div className="step-intro">
-                <span className="step-kicker">STEP 2 OF 3</span>
-                <h3>What should citizens bring?</h3>
-                <p>Select the documents required to complete this service. You can update this anytime.</p>
+                <span className="step-kicker">{t('services.editor.step2Kicker', 'STEP 2 OF 3')}</span>
+                <h3>{t('services.editor.step2Title', 'What should citizens bring?')}</h3>
+                <p>{t('services.editor.step2Subtitle', 'Select the documents required to complete this service. You can update this anytime.')}</p>
               </div>
 
               <label className="search-box doc-search">
@@ -650,19 +718,19 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
                 <input
                   value={docSearch}
                   onChange={(e) => setDocSearch(e.target.value)}
-                  placeholder="Search documents by name or code..."
-                  aria-label="Search documents"
+                  placeholder={t('services.editor.searchDocs', 'Search documents by name or code...')}
+                  aria-label={t('services.editor.searchDocs', 'Search documents')}
                 />
               </label>
 
               <div className="selection-list">
                 {isLoadingDocs ? (
                   <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
-                    Loading documents catalog...
+                    {t('common.loading', 'Loading documents catalog...')}
                   </div>
                 ) : filteredDocs.length === 0 ? (
                   <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
-                    No documents found matching search.
+                    {t('documents.emptyNotice', 'No documents found matching search.')}
                   </div>
                 ) : (
                   filteredDocs.map((doc: any) => {
@@ -692,7 +760,7 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
                           <small>{doc.code}</small>
                         </span>
                         <span className="attach-action">
-                          {isSelected ? 'Added ✓' : '+ Add'}
+                          {isSelected ? t('services.editor.added', 'Added ✓') : t('services.editor.add', '+ Add')}
                         </span>
                       </div>
                     );
@@ -702,10 +770,10 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
 
               <div className="selection-summary">
                 <span>
-                  <Check /> {selectedDocsCount} document{selectedDocsCount === 1 ? '' : 's'} selected
+                  <Check /> {selectedDocsCount} {t('nav.documents', 'documents')}
                 </span>
                 <button type="button" onClick={() => setSelectedDocs({})}>
-                  Clear selection
+                  {t('services.editor.clearSelection', 'Clear selection')}
                 </button>
               </div>
             </div>
@@ -715,13 +783,13 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
           {!isMaster && step === 2 && (
             <div className="step-content">
               <div className="step-intro">
-                <span className="step-kicker">STEP 3 OF 3</span>
-                <h3>Where is this service available?</h3>
-                <p>Choose the municipal offices and sub-cities that deliver this service to citizens.</p>
+                <span className="step-kicker">{t('services.editor.step3Kicker', 'STEP 3 OF 3')}</span>
+                <h3>{t('services.editor.step3Title', 'Where is this service available?')}</h3>
+                <p>{t('services.editor.step3Subtitle', 'Choose the municipal offices and sub-cities that deliver this service to citizens.')}</p>
               </div>
 
               <div className="location-toolbar">
-                <span>Available offices & sub-cities</span>
+                <span>{t('services.editor.availableOffices', 'Available offices & sub-cities')}</span>
                 <button
                   type="button"
                   onClick={
@@ -730,7 +798,7 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
                       : handleSelectAllOrgs
                   }
                 >
-                  {selectedOrgs.length === allOrganizations.length ? 'Clear all' : 'Select all'}
+                  {selectedOrgs.length === allOrganizations.length ? t('services.editor.clearAll', 'Clear all') : t('services.editor.selectAll', 'Select all')}
                 </button>
               </div>
 
@@ -760,7 +828,7 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
               <div className="selection-summary">
                 <span>
                   <Building2 style={{ width: '13px', height: '13px' }} />
-                  {selectedOrgsCount} location{selectedOrgsCount === 1 ? '' : 's'} selected
+                  {selectedOrgsCount} {t('services.editor.locations', 'locations')}
                 </span>
                 <button type="button" onClick={handleClearAllOrgs}>
                   {t('services.editor.clearSelection', 'Clear selection')}
@@ -776,12 +844,12 @@ export const ServiceEditorModal: React.FC<ServiceEditorModalProps> = ({
             {!isMaster ? (
               <>
                 <FileText />
-                <span>{selectedDocsCount} documents</span>
+                <span>{selectedDocsCount} {t('services.editor.documents', 'documents')}</span>
                 <span className="summary-dot">·</span>
-                <span>{selectedOrgsCount} locations</span>
+                <span>{selectedOrgsCount} {t('services.editor.locations', 'locations')}</span>
               </>
             ) : (
-              <span>Master Service Category</span>
+              <span>{t('services.editor.masterCategoryType', 'Master Service Category')}</span>
             )}
           </div>
 

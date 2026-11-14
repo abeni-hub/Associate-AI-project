@@ -74,9 +74,16 @@ export const ServicesPage: React.FC = () => {
     const subcities: typeof organizations = [];
     const bureaus: typeof organizations = [];
     organizations.forEach((org) => {
+      const orgNameStr = (getLocalizedText(org.name, 'en') || (typeof org.name === 'string' ? org.name : '')).toLowerCase();
+      const typeCode = String(org.type?.code || '').toLowerCase();
+      const typeNameStr = (getLocalizedText(org.type?.name, 'en') || (typeof org.type?.name === 'string' ? org.type?.name : '')).toLowerCase();
       const isSubcity =
-        org.type?.code === 'sub_city' ||
-        org.name.toLowerCase().includes('sub-city');
+        typeCode === 'sub_city' ||
+        typeCode === 'subcity' ||
+        orgNameStr.includes('sub-city') ||
+        orgNameStr.includes('subcity') ||
+        typeNameStr.includes('sub-city') ||
+        typeNameStr.includes('subcity');
       if (isSubcity) {
         subcities.push(org);
       } else {
@@ -395,7 +402,7 @@ export const ServicesPage: React.FC = () => {
               {stats.masterCount}
             </div>
             <div className="text-xs font-semibold text-slate-500 mt-1">
-              Master Categories
+              {t('services.masterCategories', 'Master Categories')}
             </div>
           </div>
         </div>
@@ -409,7 +416,7 @@ export const ServicesPage: React.FC = () => {
               {stats.subserviceCount}
             </div>
             <div className="text-xs font-semibold text-slate-500 mt-1">
-              Citizen Services
+              {t('services.citizenServices', 'Citizen Services')}
             </div>
           </div>
         </div>
@@ -423,7 +430,7 @@ export const ServicesPage: React.FC = () => {
               {stats.officesCount}
             </div>
             <div className="text-xs font-semibold text-slate-500 mt-1">
-              Delivery Offices
+              {t('services.deliveryOffices', 'Delivery Offices')}
             </div>
           </div>
         </div>
@@ -437,7 +444,7 @@ export const ServicesPage: React.FC = () => {
               {stats.activeRate}%
             </div>
             <div className="text-xs font-semibold text-slate-500 mt-1">
-              Published & Active
+              {t('services.publishedActive', 'Published & Active')}
             </div>
           </div>
         </div>
@@ -450,10 +457,10 @@ export const ServicesPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-slate-900">
-                Service Catalog Directory
+                {t('services.catalogDirectory', 'Service Catalog Directory')}
               </span>
               <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">
-                {totalCatalogCount} total
+                {totalCatalogCount} {t('common.total', 'total')}
               </span>
             </div>
 
@@ -461,24 +468,24 @@ export const ServicesPage: React.FC = () => {
             {isSuperAdmin && organizations.length > 0 && (
               <div className="flex items-center gap-2 text-xs">
                 <Filter size={14} className="text-slate-400" />
-                <span className="text-slate-500 font-medium">Branch scope:</span>
+                <span className="text-slate-500 font-medium">{t('services.branchScope', 'Branch scope:')}</span>
                 <select
                   value={selectedOrgFilter}
                   onChange={(e) => setSelectedOrgFilter(e.target.value)}
                   className="px-2.5 py-1 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-[#064552]"
                 >
-                  <option value="all">All administrative branches</option>
-                  <optgroup label="Sub-cities">
+                  <option value="all">{t('services.allBranches', 'All administrative branches')}</option>
+                  <optgroup label={t('services.subcitiesGroup', 'Sub-cities')}>
                     {subcitiesList.map((org) => (
                       <option key={org.id} value={org.id}>
-                        {org.name}
+                        {getLocalizedText(org.name, language) || org.name}
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label="Central Bureaus">
+                  <optgroup label={t('services.centralBureausGroup', 'Central Bureaus')}>
                     {bureausList.map((org) => (
                       <option key={org.id} value={org.id}>
-                        {org.name}
+                        {getLocalizedText(org.name, language) || org.name}
                       </option>
                     ))}
                   </optgroup>
@@ -499,7 +506,7 @@ export const ServicesPage: React.FC = () => {
                 type="text"
                 value={localSearch}
                 onChange={(e) => setLocalSearch(e.target.value)}
-                placeholder="Search services, codes, descriptions..."
+                placeholder={t('services.searchPlaceholder', 'Search services, codes, descriptions...')}
                 className="w-full pl-9 pr-4 py-2 text-sm bg-slate-50/80 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#064552] focus:ring-2 focus:ring-[#064552]/10 transition-all"
               />
             </div>

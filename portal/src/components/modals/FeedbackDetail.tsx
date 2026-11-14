@@ -57,23 +57,31 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
     <div>
       <div className="modal-header">
         <div>
-          <span className="panel-eyebrow">CITIZEN RESPONSE · {item.id}</span>
-          <h2>{item.type} received</h2>
+          <span className="panel-eyebrow">{t('feedback.ticketResponse', 'CITIZEN RESPONSE')} · {item.id}</span>
+          <h2>
+            {(() => {
+              const rawType = String(item.type || '').toLowerCase();
+              if (rawType.includes('complaint')) return `${t('feedback.complaint', 'Complaint')} ${t('feedback.ticketReceived', 'received')}`;
+              if (rawType.includes('suggestion')) return `${t('feedback.suggestion', 'Suggestion')} ${t('feedback.ticketReceived', 'received')}`;
+              if (rawType.includes('satisfaction')) return `${t('feedback.satisfaction', 'Satisfaction')} ${t('feedback.ticketReceived', 'received')}`;
+              return `${item.type} ${t('feedback.ticketReceived', 'received')}`;
+            })()}
+          </h2>
           <p>{item.time}</p>
           <div className="feedback-tracking-ref">
             <span>
-              <small>TRACKING NUMBER</small>
-              <b>{item.trackingNumber || 'Not assigned'}</b>
+              <small>{t('feedback.trackingNumber', 'TRACKING NUMBER')}</small>
+              <b>{item.trackingNumber || t('common.notAssigned', 'Not assigned')}</b>
             </span>
             {item.trackingNumber && (
               <button
                 type="button"
                 onClick={copyTrackingNumber}
                 disabled={!globalThis.navigator?.clipboard?.writeText}
-                aria-label="Copy tracking number"
+                aria-label={t('common.copy', 'Copy tracking number')}
               >
                 <Icon name={trackingCopied ? 'check' : 'copy'} size={14} />
-                {trackingCopied ? 'Copied' : 'Copy'}
+                {trackingCopied ? t('common.copied', 'Copied') : t('common.copy', 'Copy')}
               </button>
             )}
           </div>
@@ -82,7 +90,7 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
           type="button"
           className="modal-close"
           onClick={onClose}
-          aria-label="Close dialog"
+          aria-label={t('common.close', 'Close dialog')}
         >
           <Icon name="close" />
         </button>
@@ -92,20 +100,20 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
           className={`detail-context${item.rating ? ' has-rating' : ' no-rating'}`}
         >
           <span>
-            <small>SERVICE</small>
+            <small>{t('feedback.serviceLabel', 'SERVICE')}</small>
             <b>{getLocalizedText(item.service as any, language) || (typeof item.service === 'string' ? item.service : 'General Service')}</b>
           </span>
           <span>
-            <small>BUREAU</small>
+            <small>{t('feedback.bureauLabel', 'BUREAU')}</small>
             <b>{getLocalizedText(item.bureau as any, language) || (typeof item.bureau === 'string' ? item.bureau : 'City Bureau')}</b>
           </span>
           <span>
-            <small>SUB-CITY</small>
-            <b>{getLocalizedText(item.subcity as any, language) || (typeof item.subcity === 'string' ? item.subcity : 'Not provided')}</b>
+            <small>{t('feedback.subcityLabel', 'SUB-CITY')}</small>
+            <b>{getLocalizedText(item.subcity as any, language) || (typeof item.subcity === 'string' ? item.subcity : t('common.notProvided', 'Not provided'))}</b>
           </span>
           {item.rating && (
             <span>
-              <small>CITIZEN RATING</small>
+              <small>{t('feedback.ratingLabel', 'CITIZEN RATING')}</small>
               <b className="detail-stars">
                 {'★'.repeat(item.rating)}
                 <i>{'★'.repeat(5 - item.rating)}</i>{' '}
@@ -115,13 +123,13 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
           )}
           {citizenName && (
             <span>
-              <small>CITIZEN NAME</small>
+              <small>{t('feedback.citizenNameLabel', 'CITIZEN NAME')}</small>
               <b>{citizenName}</b>
             </span>
           )}
           {citizenPhone && (
             <span>
-              <small>PHONE NUMBER</small>
+              <small>{t('feedback.phoneNumberLabel', 'PHONE NUMBER')}</small>
               <b>
                 <a
                   href={`tel:${citizenPhone}`}
@@ -135,7 +143,7 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
           )}
           {citizenEmail && (
             <span>
-              <small>EMAIL</small>
+              <small>{t('feedback.emailLabel', 'EMAIL')}</small>
               <b>
                 <a
                   href={`mailto:${citizenEmail}`}
@@ -150,14 +158,14 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
         <blockquote>"{getLocalizedText(item.message as any, language) || (typeof item.message === 'string' ? item.message : '')}"</blockquote>
         <div className="detail-status-section" style={{ margin: '1rem 0' }}>
           <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '8px' }}>
-            Follow-up Resolution Status
+            {t('feedback.followupStatus', 'Follow-up Resolution Status')}
           </label>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {[
-              { id: 'Open', label: 'Open', desc: 'Awaiting first review', bg: '#fffbeb', border: '#fde68a', color: '#b45309' },
-              { id: 'In review', label: 'In review', desc: 'Under investigation', bg: '#eff6ff', border: '#bfdbfe', color: '#1d4ed8' },
-              { id: 'Resolved', label: 'Resolved', desc: 'Addressed & completed', bg: '#ecfdf5', border: '#a7f3d0', color: '#047857' },
-              { id: 'Closed', label: 'Closed', desc: 'Archived / Dismissed', bg: '#f1f5f9', border: '#cbd5e1', color: '#475569' },
+              { id: 'Open', label: t('feedback.statusOpen', 'Open'), desc: t('feedback.statusOpenDesc', 'Awaiting first review'), bg: '#fffbeb', border: '#fde68a', color: '#b45309' },
+              { id: 'In review', label: t('feedback.statusReview', 'In review'), desc: t('feedback.statusReviewDesc', 'Under investigation'), bg: '#eff6ff', border: '#bfdbfe', color: '#1d4ed8' },
+              { id: 'Resolved', label: t('feedback.statusResolved', 'Resolved'), desc: t('feedback.statusResolvedDesc', 'Addressed & completed'), bg: '#ecfdf5', border: '#a7f3d0', color: '#047857' },
+              { id: 'Closed', label: t('feedback.statusClosed', 'Closed'), desc: t('feedback.statusClosedDesc', 'Archived / Dismissed'), bg: '#f1f5f9', border: '#cbd5e1', color: '#475569' },
             ].map((s) => {
               const isSelected = status.toLowerCase() === s.id.toLowerCase();
               return (
@@ -195,13 +203,13 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
         </div>
         <div style={{ margin: '1rem 0' }}>
           <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '8px' }}>
-            Official Response to Citizen (Optional)
+            {t('feedback.officialResponseLabel', 'Official Response to Citizen (Optional)')}
           </label>
           <textarea
             value={responseText}
             onChange={(e) => setResponseText(e.target.value)}
             disabled={!canUpdateStatus}
-            placeholder={canUpdateStatus ? "Write official resolution notes or citizen response..." : "Read-only: permission required to update feedback status"}
+            placeholder={canUpdateStatus ? t('feedback.responseInputPlaceholder', 'Write official resolution notes or citizen response...') : t('feedback.responseReadOnly', 'Read-only: permission required to update feedback status')}
             rows={3}
             style={{
               width: '100%',
@@ -219,16 +227,16 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
         <div className="feedback-routing-note">
           <Icon name="shield" size={16} />
           <span>
-            <b>Routed to authorized teams</b>
+            <b>{t('feedback.routedTitle', 'Routed to authorized teams')}</b>
             <small>
-              Visible to {item.subcity} Sub-city Admin and {item.bureau} Admin
+              {t('feedback.routedDesc', 'Visible to Sub-city Admin and Bureau Admin')}
             </small>
           </span>
         </div>
       </div>
       <div className="modal-footer">
         <span>
-          <Icon name="lock" size={14} /> Citizen details are kept private.
+          <Icon name="lock" size={14} /> {t('feedback.privateNote', 'Citizen details are kept private.')}
         </span>
         <div>
           <button
