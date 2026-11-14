@@ -3,7 +3,7 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--space-6);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-8, 34px);
 }
 
 .textGroup {
@@ -54,51 +54,113 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 10px;
   flex-shrink: 0;
 }
 
 .actionButton {
-  min-height: 41px;
+  min-height: 40px;
+  height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-4);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
+  gap: 8px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-family: var(--font-family-sans, 'DM Sans', sans-serif);
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
-  transition: transform var(--duration-fast), background var(--duration-fast), box-shadow var(--duration-fast);
+  user-select: none;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.18s ease,
+              border-color 0.18s ease,
+              box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.18s ease;
 }
 
-.actionButton:hover {
-  transform: translateY(-1px);
+.actionButton:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
+.actionButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Primary "Add / Create" Button */
 .primaryButton {
-  color: var(--white);
-  background: var(--ink);
-  border: 1px solid transparent;
-  box-shadow: 0 5px 12px rgba(0, 72, 90, 0.12);
+  color: #ffffff;
+  background: linear-gradient(180deg, #09596a 0%, #00485a 100%);
+  border: 1px solid rgba(0, 36, 46, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22),
+              0 2px 4px rgba(0, 40, 50, 0.12),
+              0 6px 14px -2px rgba(0, 48, 59, 0.16);
 }
 
-.primaryButton:hover {
-  background: var(--color-primary-800);
-  box-shadow: 0 8px 18px rgba(0, 72, 90, 0.19);
+.primaryButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, #0c6578 0%, #005063 100%);
+  border-color: rgba(0, 36, 46, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28),
+              0 4px 8px rgba(0, 40, 50, 0.15),
+              0 10px 22px -3px rgba(0, 48, 59, 0.22);
+  color: #ffffff;
 }
 
+.primaryButton:active:not(:disabled) {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 40, 50, 0.1);
+}
+
+.primaryButton svg {
+  width: 15px;
+  height: 15px;
+  color: rgba(255, 255, 255, 0.95);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.primaryButton:hover:not(:disabled) svg {
+  transform: scale(1.1);
+  color: #ffffff;
+}
+
+/* Secondary "Export" Button */
 .secondaryButton {
-  color: var(--color-text-soft);
-  border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.85);
+  color: #17424b;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbfb 100%);
+  border: 1px solid #d4e1de;
+  box-shadow: 0 1px 2px rgba(0, 36, 46, 0.04),
+              0 3px 8px -2px rgba(0, 36, 46, 0.04);
 }
 
-.secondaryButton:hover {
-  border-color: var(--color-border-strong);
-  background: var(--white);
+.secondaryButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #ffffff;
+  border-color: #00485a;
+  color: #00485a;
+  box-shadow: 0 4px 12px -2px rgba(0, 72, 90, 0.12),
+              0 1px 3px rgba(0, 36, 46, 0.04);
+}
+
+.secondaryButton:active:not(:disabled) {
+  background: #f0f5f4;
+  box-shadow: 0 1px 2px rgba(0, 36, 46, 0.04);
+}
+
+.secondaryButton svg {
+  width: 15px;
+  height: 15px;
+  color: #426971;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.18s ease;
+}
+
+.secondaryButton:hover:not(:disabled) svg {
+  color: #00485a;
+  transform: translateY(-1px);
 }
 
 @media (max-width: 768px) {

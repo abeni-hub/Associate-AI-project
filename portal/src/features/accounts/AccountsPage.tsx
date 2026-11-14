@@ -1,19 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import {
   Users,
-  ShieldCheck,
   Building2,
-  UserCheck,
   Search,
   Plus,
   Pencil,
   Trash2,
   Mail,
   Phone,
+  Download,
 } from 'lucide-react';
 import { usePermissions } from '../shared/hooks/usePermissions';
 import { useLanguage, getLocalizedText } from '../shared/i18n';
 import { AccountModal } from './components/AccountFormModal';
+import { AccountsMetricsGrid } from './components/AccountsMetricsGrid';
 import type { AccountItem } from '../../types/portal.types';
 import {
   useGetUsersQuery,
@@ -130,10 +130,30 @@ export const AccountsPage: React.FC = () => {
     }
   };
 
+  const handleExportAccounts = () => {
+    const headers = ['ID', 'Name', 'Username', 'Email', 'Role', 'Status'];
+    const rows = items.map((a) => [
+      a.id,
+      `"${a.name || ''}"`,
+      `"${a.username || ''}"`,
+      `"${a.email || ''}"`,
+      `"${a.role || ''}"`,
+      `"${a.status || ''}"`,
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `accounts_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Heading */}
-      <div className="page-heading">
+      <div className="page-heading !mb-8 sm:!mb-9">
         <div>
           <div className="eyebrow">
             <span />
@@ -143,76 +163,37 @@ export const AccountsPage: React.FC = () => {
           <p>{t('accounts.subtitle')}</p>
         </div>
 
-        {canCreate && (
+        <div className="heading-actions">
           <button
             type="button"
-            onClick={handleOpenAdd}
-            className="primary-button"
+            onClick={handleExportAccounts}
+            className="button secondary"
+            title="Export staff directory to CSV"
           >
-            <Plus size={16} />
-            <span>{t('accounts.addAccount')}</span>
+            <Download size={15} />
+            <span>{t('common.export', 'Export list')}</span>
           </button>
-        )}
+
+          {canCreate && (
+            <button
+              type="button"
+              onClick={handleOpenAdd}
+              className="primary-button"
+            >
+              <Plus size={16} />
+              <span>{t('accounts.addAccount')}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-[#064552]">
-            <Users size={22} className="stroke-[2.2]" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-              {items.length}
-            </div>
-            <div className="text-xs font-semibold text-slate-500 mt-1">
-              {t('accounts.totalAccounts')}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700">
-            <UserCheck size={22} className="stroke-[2.2]" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-              {activeCount}
-            </div>
-            <div className="text-xs font-semibold text-slate-500 mt-1">
-              {t('accounts.activeAccounts')}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700">
-            <ShieldCheck size={22} className="stroke-[2.2]" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-              {adminCount}
-            </div>
-            <div className="text-xs font-semibold text-slate-500 mt-1">
-              {t('accounts.administrators')}
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700">
-            <Building2 size={22} className="stroke-[2.2]" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-              {uniqueOrgs}
-            </div>
-            <div className="text-xs font-semibold text-slate-500 mt-1">
-              {t('accounts.assignedOffices')}
-            </div>
-          </div>
-        </div>
-      </div>
+      <AccountsMetricsGrid
+        total={items.length}
+        active={activeCount}
+        admins={adminCount}
+        offices={uniqueOrgs}
+      />
 
       {/* Main Catalog Card */}
       <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
@@ -297,7 +278,7 @@ export const AccountsPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
               {filtered.map((account) => {
                 const initials = account.name
                   .split(' ')
@@ -311,27 +292,27 @@ export const AccountsPage: React.FC = () => {
                 return (
                   <div
                     key={account.id}
-                    className="border border-slate-200/80 rounded-xl p-4 bg-white hover:border-slate-300 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all flex flex-col justify-between"
+                    className="border border-slate-200/80 rounded-xl p-3 sm:p-3.5 bg-white hover:border-teal-200 hover:shadow-sm transition-all flex flex-col justify-between gap-2.5"
                   >
                     <div>
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center font-bold text-[#064552] text-sm flex-shrink-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-9 h-9 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center font-bold text-[#064552] text-xs flex-shrink-0">
                             {initials}
                           </div>
-                          <div>
-                            <h3 className="text-sm font-bold text-slate-900 tracking-tight leading-snug">
+                          <div className="min-w-0">
+                            <h3 className="text-sm font-bold text-slate-900 tracking-tight leading-snug truncate">
                               {account.name}
                             </h3>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                                 isSuper
                                   ? 'bg-purple-50 text-purple-700 border border-purple-200/60'
                                   : 'bg-teal-50 text-teal-800 border border-teal-200/60'
                               }`}>
                                 {account.role}
                               </span>
-                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
                                 account.status === 'Active'
                                   ? 'bg-emerald-50 text-emerald-700'
                                   : 'bg-slate-100 text-slate-500'
@@ -342,7 +323,7 @@ export const AccountsPage: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-0.5 flex-shrink-0">
                           {canUpdate && (
                             <button
                               type="button"
@@ -366,29 +347,28 @@ export const AccountsPage: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="mt-3 pt-3 border-t border-slate-100 space-y-1 text-xs text-slate-600">
-                        {account.email && (
-                          <div className="flex items-center gap-1.5">
-                            <Mail size={12} className="text-slate-400 flex-shrink-0" />
-                            <span className="truncate">{account.email}</span>
-                          </div>
-                        )}
-                        {account.phone && (
-                          <div className="flex items-center gap-1.5">
-                            <Phone size={12} className="text-slate-400 flex-shrink-0" />
-                            <span>{account.phone}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1.5">
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-col gap-1 text-xs">
+                        <div className="flex items-center gap-1.5 text-slate-700 font-medium">
                           <Building2 size={12} className="text-slate-400 flex-shrink-0" />
-                          <span className="truncate font-medium text-slate-700">{account.organization}</span>
+                          <span className="truncate">{account.organization}</span>
                         </div>
+                        {(account.email || account.phone) && (
+                          <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[11.5px] text-slate-500">
+                            {account.email && (
+                              <div className="flex items-center gap-1 min-w-0">
+                                <Mail size={11} className="text-slate-400 flex-shrink-0" />
+                                <span className="truncate">{account.email}</span>
+                              </div>
+                            )}
+                            {account.phone && (
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <Phone size={11} className="text-slate-400 flex-shrink-0" />
+                                <span>{account.phone}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    </div>
-
-                    <div className="mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
-                      <span>Last login: {account.lastActive}</span>
-                      <span>UID: {account.id}</span>
                     </div>
                   </div>
                 );

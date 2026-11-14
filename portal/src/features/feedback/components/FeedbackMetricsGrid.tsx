@@ -1,39 +1,42 @@
 import React from 'react';
 import { MetricCard } from '../../shared';
+import { useLanguage } from '../../shared/i18n';
 import type { FeedbackMetricsGridProps } from '../types/feedback.types';
 
 export const FeedbackMetricsGrid: React.FC<FeedbackMetricsGridProps> = ({
   metrics,
   isLoading,
 }) => {
+  const { t } = useLanguage();
+
   return (
-    <div className="metric-grid compact-metrics">
+    <div className="metric-grid">
       <MetricCard
         icon="message"
-        label="All responses"
+        label={t('feedback.totalSubmissions', 'Total Submissions')}
         value={isLoading ? '...' : metrics.total}
-        note="Active feedback queue"
+        note="Active citizen queue"
         tone="teal"
       />
       <MetricCard
         icon="clock"
-        label="Open items"
+        label={t('feedback.openCases', 'Open Cases')}
         value={isLoading ? '...' : metrics.open}
-        note="Awaiting first review"
+        note="Awaiting review"
         tone="gold"
       />
       <MetricCard
         icon="activity"
-        label="In review"
+        label={t('feedback.underReview', 'Under Review')}
         value={isLoading ? '...' : metrics.inReview}
-        note="Actively being resolved"
+        note="Actively investigated"
         tone="blue"
       />
       <MetricCard
         icon="check"
-        label="Resolution rate"
+        label={t('feedback.resolvedRate', 'Resolution Rate')}
         value={isLoading ? '...' : `${metrics.resolutionRate}%`}
-        note="Resolved responses"
+        note={`${metrics.resolved} resolved cases`}
         tone="sage"
       />
     </div>
@@ -41,4 +44,3 @@ export const FeedbackMetricsGrid: React.FC<FeedbackMetricsGridProps> = ({
 };
 
 export default FeedbackMetricsGrid;
-

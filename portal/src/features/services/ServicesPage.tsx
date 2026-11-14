@@ -1,18 +1,17 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   Folder,
-  FileText,
-  Building2,
-  CheckCircle2,
   Search,
   Plus,
   ChevronsUpDown,
   Filter,
+  Download,
 } from 'lucide-react';
 import { usePortal, usePermissions } from '../shared';
 import { useLanguage, getLocalizedText } from '../shared/i18n';
 import { ServiceEditorModal } from './components/ServiceEditorModal';
 import { ServiceRow } from './components/ServiceRow';
+import { ServiceStatsGrid } from './components/ServiceStatsGrid';
 import type { RouteStep } from '../../types/portal.types';
 import {
   useGetServicesQuery,
@@ -357,10 +356,33 @@ export const ServicesPage: React.FC = () => {
     0
   );
 
+  const handleExportServices = () => {
+    const allServices = apiServices?.data || [];
+    const headers = ['ID', 'Code', 'Name', 'Description', 'Type', 'Active', 'Fee', 'DurationMinutes'];
+    const rows = allServices.map((s) => [
+      s.id,
+      `"${s.code || ''}"`,
+      `"${getLocalizedText(s.name, language) || ''}"`,
+      `"${getLocalizedText(s.description, language) || ''}"`,
+      s.is_master ? 'Master Category' : 'Subservice',
+      s.is_active ? 'Active' : 'Draft',
+      `"${s.fee_amount || 0} ${s.fee_currency || 'ETB'}"`,
+      s.estimated_duration_minutes || 0,
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `services_catalog_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="page-heading">
+      <div className="page-heading !mb-8 sm:!mb-9">
         <div>
           <div className="eyebrow">
             <span />
@@ -370,76 +392,32 @@ export const ServicesPage: React.FC = () => {
           <p>{t('services.subtitle')}</p>
         </div>
 
-        {canCreate && (
+        <div className="heading-actions">
           <button
             type="button"
-            onClick={handleAddMaster}
-            className="primary-button"
+            onClick={handleExportServices}
+            className="button secondary"
+            title="Export service catalog to CSV"
           >
-            <Plus size={16} />
-            <span>{t('services.createButton', 'Create service')}</span>
+            <Download size={15} />
+            <span>{t('common.export', 'Export catalog')}</span>
           </button>
-        )}
+
+          {canCreate && (
+            <button
+              type="button"
+              onClick={handleAddMaster}
+              className="primary-button"
+            >
+              <Plus size={16} />
+              <span>{t('services.createButton', 'Create service')}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center text-[#064552]">
-            <Folder size={22} className="stroke-[2.2]" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-              {stats.masterCount}
-            </div>
-            <div className="text-xs font-semibold text-slate-500 mt-1">
-              Master Categories
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700">
-            <FileText size={22} className="stroke-[2.2]" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-              {stats.subserviceCount}
-            </div>
-            <div className="text-xs font-semibold text-slate-500 mt-1">
-              Citizen Services
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-700">
-            <Building2 size={22} className="stroke-[2.2]" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-              {stats.officesCount}
-            </div>
-            <div className="text-xs font-semibold text-slate-500 mt-1">
-              Delivery Offices
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700">
-            <CheckCircle2 size={22} className="stroke-[2.2]" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-              {stats.activeRate}%
-            </div>
-            <div className="text-xs font-semibold text-slate-500 mt-1">
-              Published & Active
-            </div>
-          </div>
-        </div>
-      </div>
+      <ServiceStatsGrid stats={stats} />
 
       {/* Main Catalog Card */}
       <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">

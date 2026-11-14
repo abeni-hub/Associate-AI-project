@@ -64,7 +64,9 @@ export interface AccountsToolbarProps {
 export interface AccountsMetricsGridProps {
   total: number | string;
   active: number | string;
-  inactive: number | string;
+  inactive?: number | string;
+  admins?: number | string;
+  offices?: number | string;
 }
 
 export interface AccountsTableProps {

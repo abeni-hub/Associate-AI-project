@@ -56,13 +56,15 @@
 .mobile-menu { display: none; }
 .main-content { width: min(100%, 1570px); min-height: calc(100vh - 67px); display: flex; flex-direction: column; margin: 0 auto; padding: 31px clamp(22px, 3.2vw, 49px) 0; animation: content-in .28s ease both; }
 @keyframes content-in { from { opacity: .5; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-.page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 25px; margin-bottom: 25px; }
+.page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 25px; margin-bottom: 34px !important; }
 .page-heading h1 { margin: 11px 0 7px; color: var(--ink-deep); font: 650 clamp(31px, 2.45vw, 39px)/1.1 'Manrope', 'Segoe UI', sans-serif; letter-spacing: -.065em; }
 .page-heading h1 > span { color: var(--gold); }
 .page-heading > div:first-child > p { color: #788780; font-size: 14px; line-height: 1.6; }
 .page-eyebrow { font-size: 12px; }
-.heading-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
-.heading-actions .button { min-height: 38px; }
+.heading-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.heading-actions .button,
+.heading-actions .primary-button,
+.heading-actions .outline-button { min-height: 40px; height: 40px; }
 .app-footer { min-height: 53px; display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: auto; padding: 12px 0 14px; border-top: 1px solid #e5ebe5; color: #96a198; font-size: 12.5px; }
 .app-footer > span:nth-child(2), .app-footer > span:last-child { display: inline-flex; align-items: center; gap: 6px; }
 .app-footer svg { color: #7f9b92; }
@@ -317,7 +319,7 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 25px;
+  margin-bottom: 34px !important;
 }
 
 .eyebrow {

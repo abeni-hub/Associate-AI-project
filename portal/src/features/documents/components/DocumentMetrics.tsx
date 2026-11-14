@@ -1,7 +1,8 @@
 import React from 'react';
 import { MetricCard } from '../../shared';
+import { useLanguage } from '../../shared/i18n';
 
-interface DocumentMetricsProps {
+export interface DocumentMetricsProps {
   isLoading: boolean;
   totalCount: number;
   activeCount: number;
@@ -16,37 +17,40 @@ export const DocumentMetrics: React.FC<DocumentMetricsProps> = ({
   linkedDocsCount,
   totalServiceLinks,
 }) => {
+  const { t } = useLanguage();
+
   return (
     <section className="metric-grid" aria-label="Documents statistics">
       <MetricCard
         icon="file"
-        label="Catalogued documents"
+        label={t('documents.totalDocs', 'Total documents')}
         value={isLoading ? '...' : totalCount}
         note="Standard citizen requirements"
         tone="teal"
       />
       <MetricCard
         icon="check"
-        label="Active requirements"
+        label={t('documents.activeDocs', 'Active requirements')}
         value={isLoading ? '...' : activeCount}
         note="Ready for service checklists"
-        tone="gold"
-      />
-      <MetricCard
-        icon="layers"
-        label="Attached to services"
-        value={isLoading ? '...' : `${linkedDocsCount} docs`}
-        note={`${totalServiceLinks} total service associations`}
         tone="sage"
       />
       <MetricCard
-        icon="shield"
-        label="Standard compliance"
-        value="100%"
-        note="City-wide verification standard"
+        icon="layers"
+        label={t('documents.linkedDocs', 'Attached to services')}
+        value={isLoading ? '...' : `${linkedDocsCount} docs`}
+        note={`${totalServiceLinks} total associations`}
         tone="blue"
+      />
+      <MetricCard
+        icon="shield"
+        label={t('documents.totalLinks', 'Service links')}
+        value={isLoading ? '...' : totalServiceLinks}
+        note="Standard compliance"
+        tone="gold"
       />
     </section>
   );
 };
 
+export default DocumentMetrics;
