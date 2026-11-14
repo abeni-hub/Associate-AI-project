@@ -218,6 +218,20 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
 
     const chosenTier = scopeTiers.find((t) => t.id === scope) || DEFAULT_SCOPE_TIERS[0];
 
+    // Synchronize permissions with selected modules while preserving any non-module permissions
+    let finalPermIds = [];
+    if (role?.permission_ids && Array.isArray(role.permission_ids) && role.permission_ids.length > 0) {
+      const allModulePermKeys = new Set();
+      Object.values(NAV_ITEM_TO_PERMS).forEach((keys) => keys.forEach((k) => allModulePermKeys.add(k)));
+      const nonModulePermIds = role.permission_ids.filter((id) => {
+        const p = allPermissions.find((perm) => perm.id === id);
+        return p && !allModulePermKeys.has(p.key);
+      });
+      finalPermIds = Array.from(new Set([...nonModulePermIds, ...derivedPermIds]));
+    } else {
+      finalPermIds = derivedPermIds;
+    }
+
     const payload = {
       name: name.trim(),
       slug: slug || `role_${Date.now()}`,
@@ -225,7 +239,7 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
       scope_level: scope,
       description: description.trim() || `Administrative role for ${chosenTier.label}.`,
       navigation_items: selectedNavIds,
-      permission_ids: role?.permission_ids?.length ? role.permission_ids : derivedPermIds,
+      permission_ids: finalPermIds,
     };
 
     if (role?.id) {

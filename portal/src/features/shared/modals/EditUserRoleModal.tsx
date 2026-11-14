@@ -256,11 +256,11 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
       return allPermissions.map((p) => p.id);
     }
 
-    if (roleDetailResponse?.data?.permissions && roleDetailResponse.data.permissions.length > 0) {
-      return (roleDetailResponse.data.permissions as any[]).map((p: any) => p.id);
+    if (Array.isArray(roleDetailResponse?.data?.permissions)) {
+      return (roleDetailResponse.data.permissions as any[]).map((p: any) => (typeof p === 'number' ? p : p.id));
     }
 
-    if (roleDetailResponse?.data?.permission_ids && roleDetailResponse.data.permission_ids.length > 0) {
+    if (Array.isArray(roleDetailResponse?.data?.permission_ids)) {
       return roleDetailResponse.data.permission_ids;
     }
 

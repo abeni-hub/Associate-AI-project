@@ -127,7 +127,7 @@ export const useRolesPermissions = (props: UseRolesPermissionsProps = {}) => {
   }, [roles, selectedRoleId]);
 
   const activeRoleQueryId = activeRole && !isNaN(Number(activeRole.id)) ? Number(activeRole.id) : '';
-  const { data: activeRoleDetail, isLoading: isLoadingRoleDetail } = useGetRoleByIdQuery(activeRoleQueryId, {
+  const { data: activeRoleDetail, isLoading: isLoadingRoleDetail, refetch: refetchRoleDetail } = useGetRoleByIdQuery(activeRoleQueryId, {
     skip: !activeRoleQueryId,
   });
 
@@ -142,13 +142,13 @@ export const useRolesPermissions = (props: UseRolesPermissionsProps = {}) => {
       return allPermissions.map((p) => p.id);
     }
     const detailData: any = (activeRoleDetail as any)?.data?.data || (activeRoleDetail as any)?.data || activeRoleDetail;
-    if (detailData?.permissions && Array.isArray(detailData.permissions) && detailData.permissions.length > 0) {
+    if (Array.isArray(detailData?.permissions)) {
       return detailData.permissions.map((p: any) => (typeof p === 'number' ? p : p.id));
     }
-    if (detailData?.permission_ids && Array.isArray(detailData.permission_ids) && detailData.permission_ids.length > 0) {
+    if (Array.isArray(detailData?.permission_ids)) {
       return detailData.permission_ids;
     }
-    if (activeRole.permissionIds && activeRole.permissionIds.length > 0) {
+    if (Array.isArray(activeRole.permissionIds)) {
       return activeRole.permissionIds;
     }
     return [];
@@ -272,6 +272,9 @@ export const useRolesPermissions = (props: UseRolesPermissionsProps = {}) => {
       if (refetchNavItems) {
         await refetchNavItems();
       }
+      if (refetchRoleDetail) {
+        await refetchRoleDetail();
+      }
 
       if (action === 'granted') {
         setSaveStatus(`"${itemName}" enabled in sidebar for "${activeRole.name}".`);
@@ -350,6 +353,9 @@ export const useRolesPermissions = (props: UseRolesPermissionsProps = {}) => {
         }).unwrap();
 
         await refetchRoles();
+        if (refetchRoleDetail) {
+          await refetchRoleDetail();
+        }
         if (result.success) {
           setSaveStatus(
             `Role permissions updated successfully (${newPermissionIds.length} permissions active).`
@@ -494,11 +500,14 @@ export const useRolesPermissions = (props: UseRolesPermissionsProps = {}) => {
             name: saved.name,
             scope_level: scopeLevel,
             description: saved.description,
-            permission_ids: resolvedPermissionIds.length > 0 ? resolvedPermissionIds : undefined,
+            permission_ids: resolvedPermissionIds,
             navigation_items: navItems,
           }).unwrap();
 
           await refetchRoles();
+        if (refetchRoleDetail) {
+          await refetchRoleDetail();
+        }
           setSelectedRoleId(String(res.data?.id || editingRole.id));
           if (onUpdateRole && res.data) {
             onUpdateRole({
@@ -535,6 +544,9 @@ export const useRolesPermissions = (props: UseRolesPermissionsProps = {}) => {
         }).unwrap();
 
         await refetchRoles();
+        if (refetchRoleDetail) {
+          await refetchRoleDetail();
+        }
         if (res.data?.id) {
           setSelectedRoleId(String(res.data.id));
         }
@@ -576,6 +588,9 @@ export const useRolesPermissions = (props: UseRolesPermissionsProps = {}) => {
         try {
           await deleteRoleTrigger(Number(roleToDelete.id)).unwrap();
           await refetchRoles();
+        if (refetchRoleDetail) {
+          await refetchRoleDetail();
+        }
           if (onDeleteRole) {
             onDeleteRole(String(roleToDelete.id));
           }

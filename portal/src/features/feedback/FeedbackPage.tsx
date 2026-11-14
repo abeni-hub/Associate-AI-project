@@ -12,6 +12,7 @@ import {
   Mail,
   Building2,
   FileText,
+  MapPin,
   Send,
   Check,
   RefreshCw,
@@ -46,6 +47,68 @@ function toBackendFeedbackStatus(uiStatus: string): string {
   if (s === 'resolved') return 'resolved';
   if (s === 'closed') return 'closed';
   return 'submitted';
+}
+
+export interface ParsedFeedbackContent {
+  actualMessage: string;
+  context: {
+    subCity?: string;
+    office?: string;
+    service?: string;
+    rating?: string;
+    aspects?: string;
+    attached?: string;
+    otherTags: string[];
+  };
+}
+
+export function parseFeedbackContent(rawContent?: string | null): ParsedFeedbackContent {
+  const content = String(rawContent || '').trim();
+  const match = content.match(/^\[(.*?)\]\s*([\s\S]*)$/);
+
+  if (!match) {
+    return {
+      actualMessage: content,
+      context: { otherTags: [] },
+    };
+  }
+
+  const tagString = match[1];
+  const actualMessage = match[2].trim();
+
+  const context: ParsedFeedbackContent['context'] = { otherTags: [] };
+  const parts = tagString.split(/·|,/).map((p) => p.trim()).filter(Boolean);
+
+  for (const part of parts) {
+    const colonIdx = part.indexOf(':');
+    if (colonIdx !== -1) {
+      const key = part.slice(0, colonIdx).trim().toLowerCase();
+      const val = part.slice(colonIdx + 1).trim();
+
+      if (key === 'sub-city' || key === 'subcity') {
+        context.subCity = val;
+      } else if (key === 'office' || key === 'department' || key === 'bureau') {
+        context.office = val;
+      } else if (key === 'service') {
+        context.service = val;
+      } else if (key === 'rating') {
+        context.rating = val;
+      } else if (key === 'aspects') {
+        context.aspects = val;
+      } else if (key === 'attached') {
+        context.attached = val;
+      } else {
+        context.otherTags.push(part);
+      }
+    } else {
+      context.otherTags.push(part);
+    }
+  }
+
+  return {
+    actualMessage: actualMessage || content,
+    context,
+  };
 }
 
 export const FeedbackPage: React.FC = () => {
@@ -123,6 +186,15 @@ export const FeedbackPage: React.FC = () => {
     return items.find((i) => i.id === selectedId) || null;
   }, [items, selectedId]);
 
+  const activeParsed = useMemo(() => {
+    if (!activeItem) return { actualMessage: '', context: { otherTags: [] } };
+    const raw =
+      getLocalizedText(activeItem.feedback_content as any, language) ||
+      (typeof activeItem.feedback_content === 'string' ? activeItem.feedback_content : '') ||
+      (typeof activeItem.message === 'string' ? activeItem.message : '');
+    return parseFeedbackContent(raw);
+  }, [activeItem, language]);
+
   // Keep response text pre-filled with existing response if available
   useEffect(() => {
     if (activeItem) {
@@ -186,17 +258,24 @@ export const FeedbackPage: React.FC = () => {
   };
 
   const handleExportFeedback = () => {
-    const headers = ['TrackingNumber', 'Type', 'Status', 'FullName', 'Phone', 'Content', 'Bureau', 'Date'];
-    const rows = items.map((f) => [
-      `"${f.tracking_number || ''}"`,
-      `"${f.feedback_type || f.type || ''}"`,
-      `"${normalizeFeedbackStatus(f.status, Boolean(f.response))}"`,
-      `"${f.full_name || ''}"`,
-      `"${f.phone_number || ''}"`,
-      `"${(typeof f.message === 'string' ? f.message : getLocalizedText(f.feedback_content as any, language) || '').replace(/"/g, '""')}"`,
-      `"${(typeof f.bureau === 'string' ? f.bureau : getLocalizedText(f.organization?.name as any, language) || '')}"`,
-      `"${f.created_at || ''}"`,
-    ]);
+    const headers = ['TrackingNumber', 'Type', 'Status', 'FullName', 'Phone', 'SubCity', 'Office', 'Service', 'Message', 'Date'];
+    const rows = items.map((f) => {
+      const raw = typeof f.message === 'string' ? f.message : getLocalizedText(f.feedback_content as any, language) || '';
+      const parsed = parseFeedbackContent(raw);
+      const bureau = parsed.context.office || (typeof f.bureau === 'string' ? f.bureau : getLocalizedText(f.organization?.name as any, language) || '');
+      return [
+        `"${f.tracking_number || ''}"`,
+        `"${f.feedback_type || f.type || ''}"`,
+        `"${normalizeFeedbackStatus(f.status, Boolean(f.response))}"`,
+        `"${f.full_name || ''}"`,
+        `"${f.phone_number || ''}"`,
+        `"${parsed.context.subCity || ''}"`,
+        `"${bureau.replace(/"/g, '""')}"`,
+        `"${(parsed.context.service || '').replace(/"/g, '""')}"`,
+        `"${parsed.actualMessage.replace(/"/g, '""')}"`,
+        `"${f.created_at || ''}"`,
+      ];
+    });
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
@@ -268,68 +347,57 @@ export const FeedbackPage: React.FC = () => {
         {/* Left Master List (5 cols) */}
         <div className="lg:col-span-5 border-b lg:border-b-0 lg:border-r border-slate-200/80 flex flex-col bg-slate-50/30">
           {/* Inbox Search & Filter Header */}
-          <div className="p-4 border-b border-slate-100 space-y-3 bg-white">
+          <div className="p-3.5 sm:p-4 border-b border-slate-100 space-y-2.5 bg-white">
             <div className="relative">
               <Search
-                size={16}
+                size={15}
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
               />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={t('feedback.searchPlaceholder', 'Search citizen name, tracking code, keywords...')}
-                className="w-full pl-9 pr-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#064552] transition-all"
+                placeholder={t('feedback.searchPlaceholder', 'Search by citizen, tracking #, or bureau...')}
+                className="w-full pl-9 pr-3.5 py-2 text-xs sm:text-sm bg-slate-50/80 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#064552] transition-all"
               />
             </div>
 
-            {/* Status Filter Tabs */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 text-xs">
-              {(['All', 'Open', 'In review', 'Resolved'] as const).map((status) => (
-                <button
-                  key={status}
-                  type="button"
-                  onClick={() => setStatusFilter(status)}
-                  className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition-all ${
-                    statusFilter === status
-                      ? 'bg-[#064552] text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
-                  }`}
-                >
-                  {status === 'All'
-                    ? t('common.all', 'All')
-                    : status === 'Open'
-                    ? t('feedback.open', 'Open')
-                    : status === 'In review'
-                    ? t('feedback.inReview', 'In review')
-                    : t('feedback.resolved', 'Resolved')}
-                </button>
-              ))}
-            </div>
+            {/* Streamlined Filter Row: Status Segmented Control + Type Select */}
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/60 font-medium">
+                {(['All', 'Open', 'In review', 'Resolved'] as const).map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => setStatusFilter(status)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-all ${
+                      statusFilter === status
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {status === 'All'
+                      ? t('common.all', 'All')
+                      : status === 'Open'
+                      ? t('feedback.open', 'Open')
+                      : status === 'In review'
+                      ? t('feedback.inReview', 'In review')
+                      : t('feedback.resolved', 'Resolved')}
+                  </button>
+                ))}
+              </div>
 
-            {/* Type Filter Pills */}
-            <div className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
-              <span className="text-slate-400 mr-1">{t('feedback.typeLabel', 'Type:')}</span>
-              {(['All', 'complaint', 'satisfaction', 'feedback'] as const).map((tCode) => (
-                <button
-                  key={tCode}
-                  type="button"
-                  onClick={() => setTypeFilter(tCode)}
-                  className={`px-2 py-0.5 rounded-md capitalize transition-colors ${
-                    typeFilter === tCode
-                      ? 'bg-slate-800 text-white font-semibold'
-                      : 'hover:bg-slate-200 text-slate-600'
-                  }`}
-                >
-                  {tCode === 'All'
-                    ? t('feedback.allTypes', 'All types')
-                    : tCode === 'complaint'
-                    ? t('feedback.complaint', 'Complaint')
-                    : tCode === 'satisfaction'
-                    ? t('feedback.satisfaction', 'Satisfaction')
-                    : t('feedback.feedbackType', 'Feedback')}
-                </button>
-              ))}
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value as any)}
+                aria-label="Filter feedback by type"
+                className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-600 font-medium focus:outline-none focus:border-[#064552] transition-colors"
+              >
+                <option value="All">{t('feedback.allTypes', 'All types')}</option>
+                <option value="complaint">{t('feedback.complaint', 'Complaints')}</option>
+                <option value="satisfaction">{t('feedback.satisfaction', 'Satisfaction')}</option>
+                <option value="feedback">{t('feedback.feedbackType', 'Suggestions')}</option>
+              </select>
             </div>
           </div>
 
@@ -344,7 +412,7 @@ export const FeedbackPage: React.FC = () => {
                 <MessageSquare size={32} className="mx-auto text-slate-300 mb-2" />
                 <p className="text-xs font-bold text-slate-600">{t('feedback.noSubmissions', 'No submissions found')}</p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  {t('feedback.adjustFilter', 'Try adjusting your filter or search query.')}
+                  {t('feedback.adjustFilter', 'No feedback matches the current filters.')}
                 </p>
               </div>
             ) : (
@@ -354,25 +422,30 @@ export const FeedbackPage: React.FC = () => {
                 const isComplaint = (item.feedback_type || item.type || '').toLowerCase() === 'complaint';
                 const isSatisfaction = (item.feedback_type || item.type || '').toLowerCase() === 'satisfaction';
                 const trackingNumber = item.tracking_number ? `#${item.tracking_number}` : `FB-${item.id}`;
+                const itemRaw =
+                  getLocalizedText(item.feedback_content as any, language) ||
+                  (typeof item.feedback_content === 'string' ? item.feedback_content : '') ||
+                  (typeof item.message === 'string' ? item.message : '');
+                const itemParsed = parseFeedbackContent(itemRaw);
 
                 return (
                   <div
                     key={item.id}
                     onClick={() => setSelectedId(item.id)}
-                    className={`p-3.5 sm:p-4 cursor-pointer transition-all border-l-4 ${
+                    className={`p-3 sm:p-3.5 cursor-pointer transition-all border-l-[3px] ${
                       isSelected
-                        ? 'bg-teal-50/40 border-l-[#064552]'
+                        ? 'bg-teal-50/50 border-l-[#064552]'
                         : 'bg-white hover:bg-slate-50/80 border-l-transparent'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <div className="flex items-center justify-between gap-2 mb-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                        <span className="font-mono text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
                           {trackingNumber}
                         </span>
 
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
                             isComplaint
                               ? 'bg-rose-50 text-rose-700 border border-rose-200/60'
                               : isSatisfaction
@@ -389,12 +462,12 @@ export const FeedbackPage: React.FC = () => {
                       </div>
 
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                           normStatus === 'Resolved'
-                            ? 'bg-emerald-100 text-emerald-800'
+                            ? 'bg-emerald-50 text-emerald-700'
                             : normStatus === 'In review'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-amber-100 text-amber-800'
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'bg-amber-50 text-amber-700'
                         }`}
                       >
                         {normStatus === 'Resolved'
@@ -406,10 +479,10 @@ export const FeedbackPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center justify-between gap-2">
-                      <h4 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                      <h4 className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
                         {getLocalizedText(item.full_name as any, language) || (typeof item.full_name === 'string' ? item.full_name : '') || t('feedback.anonymousCitizen', 'Anonymous Citizen')}
                       </h4>
-                      <span className="text-[10px] text-slate-400 whitespace-nowrap">
+                      <span className="text-[11px] text-slate-400 whitespace-nowrap">
                         {item.created_at
                           ? new Date(item.created_at).toLocaleDateString(language === 'am' ? 'am-ET' : language === 'om' ? 'om-ET' : 'en-US', {
                               month: 'short',
@@ -419,16 +492,21 @@ export const FeedbackPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-600 line-clamp-2 mt-1 leading-relaxed">
-                      {getLocalizedText(item.feedback_content as any, language) || (typeof item.feedback_content === 'string' ? item.feedback_content : '') || (typeof item.message === 'string' ? item.message : '') || t('feedback.noDescription', 'No description provided.')}
+                    <p className="text-xs text-slate-500 line-clamp-2 mt-1 leading-relaxed">
+                      {itemParsed.actualMessage || t('feedback.noDescription', 'No description provided.')}
                     </p>
 
-                    <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
+                    <div className="flex items-center justify-between gap-2 mt-2 pt-1.5 border-t border-slate-100 text-[11px] text-slate-400">
                       <span className="truncate flex items-center gap-1">
-                        <Building2 size={12} className="text-slate-400 flex-shrink-0" />
+                        <Building2 size={11} className="text-slate-400 flex-shrink-0" />
                         <span className="truncate">
-                          {getLocalizedText(item.organization?.name as any, language) || (typeof item.bureau === 'string' ? item.bureau : '') || t('feedback.publicServiceDesk', 'Public Service Desk')}
+                          {itemParsed.context.office || getLocalizedText(item.organization?.name as any, language) || (typeof item.bureau === 'string' ? item.bureau : '') || t('feedback.adminOffice', 'City Administration')}
                         </span>
+                        {itemParsed.context.service && (
+                          <span className="text-slate-400 truncate">
+                            · {itemParsed.context.service}
+                          </span>
+                        )}
                       </span>
 
                       {item.rating != null && (
@@ -436,7 +514,7 @@ export const FeedbackPage: React.FC = () => {
                           {Array.from({ length: 5 }).map((_, i) => (
                             <Star
                               key={i}
-                              size={11}
+                              size={10}
                               className={
                                 i < (item.rating || 0)
                                   ? 'fill-amber-400 text-amber-400'
@@ -459,32 +537,32 @@ export const FeedbackPage: React.FC = () => {
           {activeItem ? (
             <div className="flex-1 flex flex-col overflow-y-auto max-h-[700px]">
               {/* Header Info */}
-              <div className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/30 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/20 space-y-3">
+                <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                    <span className="font-mono text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                       {activeItem.tracking_number ? `#${activeItem.tracking_number}` : `FB-${activeItem.id}`}
                     </span>
 
                     <span
-                      className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
                         (activeItem.feedback_type || activeItem.type || '').toLowerCase() === 'complaint'
-                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          ? 'bg-rose-50 text-rose-700 border border-rose-200/80'
+                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
                       }`}
                     >
-                      {((activeItem.feedback_type || activeItem.type || '').toLowerCase() === 'complaint'
+                      {(activeItem.feedback_type || activeItem.type || '').toLowerCase() === 'complaint'
                         ? t('feedback.complaint', 'Complaint')
-                        : t('feedback.satisfaction', 'Satisfaction')).toUpperCase()}
+                        : t('feedback.satisfaction', 'Satisfaction')}
                     </span>
 
                     <span
-                      className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
                         normalizeFeedbackStatus(activeItem.status, Boolean(activeItem.response)) === 'Resolved'
-                          ? 'bg-emerald-100 text-emerald-800'
+                          ? 'bg-emerald-50 text-emerald-700'
                           : normalizeFeedbackStatus(activeItem.status, Boolean(activeItem.response)) === 'In review'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-amber-100 text-amber-800'
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'bg-amber-50 text-amber-700'
                       }`}
                     >
                       {normalizeFeedbackStatus(activeItem.status, Boolean(activeItem.response)) === 'Resolved'
@@ -498,25 +576,49 @@ export const FeedbackPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleDelete}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors self-end sm:self-auto"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                     title="Delete ticket"
                   >
                     <Trash2 size={16} />
                   </button>
                 </div>
 
-                <h3 className="text-lg font-black text-slate-900 tracking-tight">
-                  {getLocalizedText(activeItem.full_name as any, language) || (typeof activeItem.full_name === 'string' ? activeItem.full_name : '') || t('feedback.anonymousSubmission', 'Anonymous Citizen Submission')}
-                </h3>
+                <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                    {getLocalizedText(activeItem.full_name as any, language) || (typeof activeItem.full_name === 'string' ? activeItem.full_name : '') || t('feedback.anonymousCitizen', 'Anonymous Citizen')}
+                  </h3>
 
-                {/* Citizen Contacts & Location */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600 pt-1">
+                  {activeItem.rating != null && (
+                    <div className="flex items-center gap-1 text-amber-400">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          size={13}
+                          className={i < (activeItem.rating || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}
+                        />
+                      ))}
+                      <span className="text-xs font-bold text-slate-700 ml-1">
+                        {activeItem.rating}/5
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Citizen Metadata Chips */}
+                <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-600 pt-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <Building2 size={13} className="text-slate-400 flex-shrink-0" />
+                    <span className="truncate">
+                      {activeParsed.context.office || getLocalizedText(activeItem.organization?.name as any, language) || (typeof activeItem.bureau === 'string' ? activeItem.bureau : '') || t('feedback.adminOffice', 'City Administration')}
+                    </span>
+                  </div>
+
                   {activeItem.phone_number && (
-                    <div className="flex items-center gap-2">
-                      <Phone size={14} className="text-slate-400" />
+                    <div className="flex items-center gap-1.5">
+                      <Phone size={13} className="text-slate-400 flex-shrink-0" />
                       <a
                         href={`tel:${activeItem.phone_number}`}
-                        className="text-[#064552] font-semibold hover:underline"
+                        className="text-[#064552] font-medium hover:underline"
                       >
                         {activeItem.phone_number}
                       </a>
@@ -524,55 +626,84 @@ export const FeedbackPage: React.FC = () => {
                   )}
 
                   {activeItem.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail size={14} className="text-slate-400" />
+                    <div className="flex items-center gap-1.5">
+                      <Mail size={13} className="text-slate-400 flex-shrink-0" />
                       <a
                         href={`mailto:${activeItem.email}`}
-                        className="text-[#064552] font-semibold hover:underline truncate"
+                        className="text-[#064552] font-medium hover:underline truncate"
                       >
                         {activeItem.email}
                       </a>
                     </div>
                   )}
 
-                  <div className="flex items-center gap-2">
-                    <Building2 size={14} className="text-slate-400" />
-                    <span className="truncate">
-                      {getLocalizedText(activeItem.organization?.name as any, language) || (typeof activeItem.bureau === 'string' ? activeItem.bureau : '') || t('feedback.adminOffice', 'Addis Ababa City Administration')}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Clock size={14} className="text-slate-400" />
+                  <div className="flex items-center gap-1.5 text-slate-400">
+                    <Clock size={13} className="text-slate-400 flex-shrink-0" />
                     <span>
-                      {t('feedback.submitted', 'Submitted')}:{' '}
                       {activeItem.created_at
-                        ? new Date(activeItem.created_at).toLocaleString(language === 'am' ? 'am-ET' : language === 'om' ? 'om-ET' : 'en-US')
+                        ? new Date(activeItem.created_at).toLocaleDateString(language === 'am' ? 'am-ET' : language === 'om' ? 'om-ET' : 'en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })
                         : t('feedback.recent', 'Recent')}
                     </span>
                   </div>
                 </div>
+
+                {/* Structured Context Badges: Sub-city, Service, Aspects, Attached */}
+                {(activeParsed.context.subCity || activeParsed.context.service || activeParsed.context.aspects || activeParsed.context.attached) && (
+                  <div className="flex items-center flex-wrap gap-1.5 pt-1.5 border-t border-slate-100">
+                    {activeParsed.context.subCity && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-50 border border-teal-200/70 text-xs font-semibold text-[#064552]">
+                        <MapPin size={12} className="text-[#064552] flex-shrink-0" />
+                        <span>{activeParsed.context.subCity} {activeParsed.context.subCity.toLowerCase().includes('sub-city') ? '' : 'Sub-city'}</span>
+                      </span>
+                    )}
+
+                    {activeParsed.context.service && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200/60 text-xs font-medium text-blue-800">
+                        <FileText size={12} className="text-blue-500 flex-shrink-0" />
+                        <span>{activeParsed.context.service}</span>
+                      </span>
+                    )}
+
+                    {activeParsed.context.aspects && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 border border-purple-200/60 text-xs font-medium text-purple-700">
+                        <span className="text-[11px]">🏷️</span>
+                        <span>{activeParsed.context.aspects}</span>
+                      </span>
+                    )}
+
+                    {activeParsed.context.attached && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200/60 text-xs font-medium text-amber-800">
+                        <span className="text-[11px]">📎</span>
+                        <span>{activeParsed.context.attached}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Message Content Body */}
-              <div className="p-5 sm:p-6 space-y-6 flex-1">
+              <div className="p-5 sm:p-6 space-y-5 flex-1">
                 <div>
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    {t('feedback.citizenMessage', 'Citizen Message & Statement')}
+                  <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                    {t('feedback.citizenMessage', 'Citizen Statement')}
                   </h4>
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-sm text-slate-800 leading-relaxed font-normal">
-                    {getLocalizedText(activeItem.feedback_content as any, language) || (typeof activeItem.message === 'string' ? activeItem.message : '') || t('feedback.noDescription', 'No description was provided.')}
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-sm text-slate-800 leading-relaxed font-normal whitespace-pre-wrap">
+                    {activeParsed.actualMessage || t('feedback.noDescription', 'No description was provided.')}
                   </div>
                 </div>
 
                 {/* Existing Official Response if Any */}
                 {activeItem.response && (
                   <div>
-                    <h4 className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <ShieldCheck size={15} className="text-emerald-600" />
-                      {t('feedback.recordedResponse', 'Recorded Official Response')}
+                    <h4 className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <ShieldCheck size={14} className="text-emerald-600" />
+                      {t('feedback.recordedResponse', 'Official Response')}
                     </h4>
-                    <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200 text-sm text-slate-800 leading-relaxed">
+                    <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200 text-sm text-slate-800 leading-relaxed">
                       {getLocalizedText(activeItem.response as any, language) || (typeof activeItem.response === 'string' ? activeItem.response : '')}
                     </div>
                   </div>
@@ -580,21 +711,16 @@ export const FeedbackPage: React.FC = () => {
 
                 {/* Inline Official Action Form */}
                 <div className="pt-2 border-t border-slate-100 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-700">
-                      {t('feedback.composeResponse', 'Compose Official Resolution / Response')}
-                    </label>
-                    <span className="text-[11px] text-slate-400">
-                      {t('feedback.sentNotice', 'Sent directly to citizen inquiry record')}
-                    </span>
-                  </div>
+                  <label className="block text-xs font-bold text-slate-700">
+                    {t('feedback.composeResponse', 'Official Response')}
+                  </label>
 
                   <textarea
                     rows={4}
                     value={responseText}
                     onChange={(e) => setResponseText(e.target.value)}
-                    placeholder={t('feedback.responsePlaceholder', 'Type official investigation findings, resolution steps, or instructions for the citizen...')}
-                    className="w-full p-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#064552] focus:ring-2 focus:ring-[#064552]/10 transition-all"
+                    placeholder={t('feedback.responsePlaceholder', 'Write an official response or resolution notes for the citizen...')}
+                    className="w-full p-3.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#064552] focus:ring-1 focus:ring-[#064552]/20 transition-all"
                   />
 
                   {/* Action Buttons */}
@@ -604,18 +730,18 @@ export const FeedbackPage: React.FC = () => {
                         type="button"
                         onClick={() => handleSetStatus('in_review')}
                         disabled={isUpdatingStatus}
-                        className="px-3 py-2 text-xs font-semibold rounded-xl bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors disabled:opacity-50"
+                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors disabled:opacity-50"
                       >
-                        {t('feedback.markUnderReview', 'Mark as Under Review')}
+                        {t('feedback.markUnderReview', 'Mark in review')}
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleSetStatus('closed')}
                         disabled={isUpdatingStatus}
-                        className="px-3 py-2 text-xs font-semibold rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors disabled:opacity-50"
+                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors disabled:opacity-50"
                       >
-                        {t('feedback.closeTicket', 'Close Ticket')}
+                        {t('feedback.closeTicket', 'Close ticket')}
                       </button>
                     </div>
 
@@ -626,7 +752,7 @@ export const FeedbackPage: React.FC = () => {
                       className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-[#064552] text-white hover:bg-[#085a6a] transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
                     >
                       <Send size={14} />
-                      <span>{t('feedback.respondAndResolve', 'Submit Resolution')}</span>
+                      <span>{t('feedback.respondAndResolve', 'Send response')}</span>
                     </button>
                   </div>
                 </div>
@@ -634,10 +760,10 @@ export const FeedbackPage: React.FC = () => {
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
-              <MessageSquare size={48} className="text-slate-200 mb-3" />
-              <h3 className="text-sm font-bold text-slate-700">{t('feedback.noSelected', 'No submission selected')}</h3>
+              <MessageSquare size={44} className="text-slate-200 mb-3" />
+              <h3 className="text-sm font-bold text-slate-700">{t('feedback.noSelected', 'Select a submission')}</h3>
               <p className="text-xs text-slate-400 max-w-xs mt-1">
-                {t('feedback.noSelectedDesc', 'Select a citizen inquiry or grievance from the inbox list on the left to read and resolve.')}
+                {t('feedback.noSelectedDesc', 'Choose a citizen inquiry or grievance from the list to review and respond.')}
               </p>
             </div>
           )}

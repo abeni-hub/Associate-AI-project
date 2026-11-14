@@ -1,5 +1,12 @@
 import React from 'react';
-import { Icon } from '../../shared';
+import {
+  QrCode,
+  Printer,
+  Building2,
+  Link2,
+  Trash2,
+  BarChart2,
+} from 'lucide-react';
 import { StatusPill } from '../../shared';
 import { QREmptyState } from './QREmptyState';
 import type { QRTableProps } from '../types/qrCodes.types';
@@ -22,12 +29,12 @@ export const QRTable: React.FC<QRTableProps> = ({
       <table className={styles.table}>
         <thead>
           <tr>
-            <th style={{ width: '220px' }}>Code & Label</th>
-            <th>Office / Bureau</th>
+            <th style={{ width: '280px' }}>QR Poster & Label</th>
+            <th style={{ width: '230px' }}>Office / Bureau</th>
             <th>Destination Target URL</th>
-            <th style={{ width: '90px' }}>Scans</th>
-            <th style={{ width: '100px' }}>Status</th>
-            <th style={{ width: '140px', textAlign: 'right' }}>Actions</th>
+            <th style={{ width: '110px' }}>Scans</th>
+            <th style={{ width: '110px' }}>Status</th>
+            <th style={{ width: '130px', textAlign: 'right' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -39,53 +46,86 @@ export const QRTable: React.FC<QRTableProps> = ({
                 className={`${styles.row} ${isSelected ? styles.activeRow : ''}`.trim()}
                 onClick={() => onSelect(qr)}
               >
+                {/* QR Poster & Label */}
                 <td>
-                  <span className={styles.codeText}>{qr.code}</span>
-                  <p className={styles.labelText}>{qr.label}</p>
+                  <div className={styles.posterCell}>
+                    <div className={styles.posterIconWrapper}>
+                      <QrCode size={19} strokeWidth={2} />
+                    </div>
+                    <div className={styles.posterInfo}>
+                      <span className={styles.posterLabel}>{qr.label}</span>
+                      <span className={styles.codeBadge}>#{qr.code}</span>
+                    </div>
+                  </div>
                 </td>
+
+                {/* Office & Bureau */}
                 <td>
-                  <span className={styles.officeName}>
-                    {qr.organization?.name || 'Public Bureau'}
-                  </span>
-                  <span className={styles.officeCode}>
-                    {qr.organization?.code || 'bureau'}
-                  </span>
+                  <div className={styles.officeCell}>
+                    <Building2 size={15} className="text-slate-400 shrink-0" />
+                    <div className={styles.officeInfo}>
+                      <span className={styles.officeName}>
+                        {qr.organization?.name || 'Public Bureau'}
+                      </span>
+                      <span className={styles.officeCode}>
+                        {qr.organization?.code || 'public-office'}
+                      </span>
+                    </div>
+                  </div>
                 </td>
-                <td className={styles.targetUrl} title={qr.target_url}>
-                  {qr.target_url}
-                </td>
+
+                {/* Destination Target URL */}
                 <td>
-                  <strong>{qr.scan_count ?? 0}</strong>
+                  <div className={styles.urlCell} title={qr.target_url}>
+                    <Link2 size={13} className="text-teal-600/70 shrink-0" />
+                    <span className={styles.targetUrl}>{qr.target_url}</span>
+                  </div>
                 </td>
+
+                {/* Scans */}
+                <td>
+                  <div className={styles.scansCell}>
+                    <BarChart2 size={14} className="text-slate-400 shrink-0" />
+                    <span className={styles.scanCount}>
+                      {(qr.scan_count ?? 0).toLocaleString()}
+                    </span>
+                    <span className={styles.scanUnit}>scans</span>
+                  </div>
+                </td>
+
+                {/* Status */}
                 <td>
                   <StatusPill status={qr.status}>
                     {qr.status === 'active' ? 'Active' : 'Inactive'}
                   </StatusPill>
                 </td>
+
+                {/* Actions */}
                 <td className={styles.actionsCell}>
                   <div className={styles.actionButtonGroup}>
                     <button
                       type="button"
-                      className={styles.actionButton}
-                      title="Preview and Print"
+                      className={styles.posterButton}
+                      title="Preview and Print Poster"
                       onClick={(e) => {
                         e.stopPropagation();
                         onPreview(qr);
                       }}
                     >
-                      <Icon name="download" size={13} />
+                      <Printer size={13} strokeWidth={2.2} />
+                      <span>Poster</span>
                     </button>
                     {canManage && (
                       <button
                         type="button"
-                        className={`${styles.actionButton} ${styles.deleteButton}`}
+                        className={styles.deleteButton}
                         title="Delete poster"
                         onClick={(e) => {
                           e.stopPropagation();
                           onDelete(qr.id, qr.code);
                         }}
                       >
-                        <Icon name="close" size={13} />
+                        <Trash2 size={14} />
                       </button>
                     )}
                   </div>
@@ -98,6 +138,3 @@ export const QRTable: React.FC<QRTableProps> = ({
     </div>
   );
 };
-
-export default QRTable;
-
