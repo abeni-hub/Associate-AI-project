@@ -1,6 +1,5 @@
 import React from 'react';
-import { SearchBox } from '../../shared';
-import { Icon } from '../../shared';
+import { SearchBox, Icon, useLanguage, getLocalizedText } from '../../shared';
 import type { QRToolbarProps } from '../types/qrCodes.types';
 import styles from '../styles/qrToolbar.module.css';
 
@@ -15,6 +14,7 @@ export const QRToolbar: React.FC<QRToolbarProps> = ({
   canManage,
   onAddPoster,
 }) => {
+  const { language } = useLanguage();
   return (
     <div className={styles.toolbar}>
       <div className={styles.intro}>
@@ -38,11 +38,14 @@ export const QRToolbar: React.FC<QRToolbarProps> = ({
           aria-label="Filter by office"
         >
           <option>All offices</option>
-          {organizations.map((org) => (
-            <option key={org.id} value={org.name}>
-              {org.name}
-            </option>
-          ))}
+          {organizations.map((org) => {
+            const orgName = getLocalizedText(org.name, language) || (typeof org.name === 'string' ? org.name : '');
+            return (
+              <option key={org.id} value={orgName}>
+                {orgName}
+              </option>
+            );
+          })}
         </select>
 
         <select

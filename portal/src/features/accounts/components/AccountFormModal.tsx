@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon, SearchSelect, type SearchSelectOption } from '../../shared';
+import { Icon, SearchSelect, getModalContainer, type SearchSelectOption } from '../../shared';
 import { useLanguage, getLocalizedText } from '../../shared/i18n';
 import { useGetRolesQuery } from '../../roles-permissions/api/rolesApi';
 import { useGetOrganizationsQuery } from '../../organizations/api/organizationsApi';
@@ -26,6 +26,8 @@ const slugifyUsername = (text: string) =>
 
 export const AccountFormModal: React.FC<AccountModalProps> = ({
   account,
+  roles: propRoles,
+  organizations: propOrganizations,
   isOpen,
   onClose,
   onSave,
@@ -47,14 +49,16 @@ export const AccountFormModal: React.FC<AccountModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setName(account?.name || '');
-      setUsername(account?.username || (account?.name ? slugifyUsername(account.name) : ''));
+      const initialName = typeof account?.name === 'string' ? account.name : getLocalizedText(account?.name, language);
+      setName(initialName || '');
+      setUsername(account?.username || (initialName ? slugifyUsername(initialName) : ''));
       setEmail(account?.email || '');
       setPassword('');
       setPhone(account?.phone || '');
 
       const isAccountSuperAdmin =
-        account?.role === 'Super Admin' ||
+        (typeof account?.role === 'string' && account?.role === 'Super Admin') ||
+        (typeof account?.role?.name === 'string' && account?.role?.name === 'Super Admin') ||
         Number(account?.role_id) === 1 ||
         Number(account?.roleId) === 1;
 
@@ -78,7 +82,7 @@ export const AccountFormModal: React.FC<AccountModalProps> = ({
   }, [isOpen, account]);
 
   const organizationOptions: SearchSelectOption[] = useMemo(() => {
-    const orgsList = apiOrgs?.data || [];
+    const orgsList = (propOrganizations && propOrganizations.length > 0) ? propOrganizations : (apiOrgs?.data || []);
     return [
       {
         value: 0,
@@ -106,16 +110,16 @@ export const AccountFormModal: React.FC<AccountModalProps> = ({
 
   const selectedOrg = useMemo(() => {
     if (organizationId === null || organizationId === 0) return null;
-    const orgsList = (apiOrgs?.data as any[]) || [];
+    const orgsList = (propOrganizations && propOrganizations.length > 0) ? propOrganizations : ((apiOrgs?.data as any[]) || []);
     return orgsList.find((o: any) => o.id === Number(organizationId)) || null;
-  }, [organizationId, apiOrgs]);
+  }, [organizationId, propOrganizations, apiOrgs]);
 
   const filteredRoleOptions: SearchSelectOption[] = useMemo(() => {
     if (organizationId === null || organizationId === undefined) {
       return [];
     }
 
-    const rawRoles = (apiRoles?.data as any[]) || [];
+    const rawRoles = (propRoles && propRoles.length > 0) ? propRoles : ((apiRoles?.data as any[]) || []);
     let allowed = rawRoles;
 
     if (Number(organizationId) === 0) {
@@ -160,13 +164,13 @@ export const AccountFormModal: React.FC<AccountModalProps> = ({
     setOrganizationId(nextOrgId);
     setErrorMsg(null);
 
-    const rawRoles = (apiRoles?.data as any[]) || [];
+    const rawRoles = (propRoles && propRoles.length > 0) ? propRoles : ((apiRoles?.data as any[]) || []);
 
     if (nextOrgId === 0) {
       const superRole = rawRoles.find((r: any) => r.slug === 'super_admin') || { id: 1 };
       setRoleId(superRole.id);
     } else if (nextOrgId !== null) {
-      const orgsList = (apiOrgs?.data as any[]) || [];
+      const orgsList = (propOrganizations && propOrganizations.length > 0) ? propOrganizations : ((apiOrgs?.data as any[]) || []);
       const targetOrg = orgsList.find((o: any) => o.id === nextOrgId);
       if (targetOrg?.organization_type_id === 1) {
         const role = rawRoles.find((r: any) => r.slug === 'sub_city_admin') || { id: 2 };
@@ -378,7 +382,7 @@ export const AccountFormModal: React.FC<AccountModalProps> = ({
         </form>
       </section>
     </div>,
-    document.body
+    getModalContainer()
   );
 };
 

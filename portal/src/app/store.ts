@@ -34,8 +34,26 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        // Ignored actions for non-serializable payloads (e.g. FormData/File in document uploads)
-        ignoredActions: ['api/executeMutation/pending'],
+        // Ignored actions and paths for non-serializable payloads (e.g. FormData in uploads, callback handlers in ui.modal)
+        ignoredActions: [
+          'api/executeMutation/pending',
+          'ui/setModal',
+        ],
+        ignoredActionPaths: [
+          'meta.arg',
+          'meta.baseQueryMeta.request',
+          'meta.baseQueryMeta.response',
+          'meta.baseQueryMeta',
+          'payload.onCreated',
+          'payload.onSave',
+          'payload.onSubmit',
+          'payload.onUpdate',
+          'payload.onGenerate',
+          'payload.visibleWhen',
+        ],
+        ignoredPaths: [
+          'ui.modal',
+        ],
       },
     }).concat(baseApi.middleware),
   devTools: import.meta.env.DEV,

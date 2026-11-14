@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import { usePortal, usePermissions } from '../../shared';
+import { usePortal, usePermissions, useLanguage, getLocalizedText } from '../../shared';
 import { useGetQrCodesQuery, useDeleteQrCodeMutation } from '../api/qrCodesApi';
 import { useGetOrganizationsQuery, type OrganizationItem } from '../../organizations';
 import { getClientBaseUrl } from '../../../app/baseApi';
@@ -23,6 +23,7 @@ export function useQrCodes(
 ) {
   const portal = usePortal();
   const dispatch = useAppDispatch();
+  const { language } = useLanguage();
   const { hasPermission } = usePermissions();
   const canManageQrCodes = hasPermission('qr_codes.manage');
 
@@ -64,15 +65,17 @@ export function useQrCodes(
   const filteredItems = useMemo(() => {
     return qrList.filter((qr) => {
       const query = searchQuery.toLowerCase().trim();
+      const orgName = getLocalizedText(qr.organization?.name, language) || (typeof qr.organization?.name === 'string' ? qr.organization.name : '');
+      const qrLabel = getLocalizedText(qr.label, language) || (typeof qr.label === 'string' ? qr.label : '');
       const matchesSearch =
         !query ||
-        `${qr.label} ${qr.code} ${qr.organization?.name || ''} ${qr.target_url}`
+        `${qrLabel} ${qr.code} ${orgName} ${qr.target_url}`
           .toLowerCase()
           .includes(query);
 
       const matchesOffice =
         officeFilter === 'All offices' ||
-        (qr.organization?.name && qr.organization.name === officeFilter) ||
+        orgName === officeFilter ||
         (qr.organization?.code && qr.organization.code === officeFilter);
 
       const matchesStatus =
@@ -81,7 +84,7 @@ export function useQrCodes(
 
       return matchesSearch && matchesOffice && matchesStatus;
     });
-  }, [qrList, searchQuery, officeFilter, statusFilter]);
+  }, [qrList, searchQuery, officeFilter, statusFilter, language]);
 
   const activeQr = useMemo(() => {
     if (selectedId) {

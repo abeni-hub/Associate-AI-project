@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, Brand } from '../../shared';
+import { Icon, Brand, useLanguage, getLocalizedText } from '../../shared';
 import type { RoleItem } from '../../../types/portal.types';
 import type { RoleNavItemDisplay } from '../constants';
 
@@ -42,6 +42,8 @@ export const SidebarNavTab: React.FC<SidebarNavTabProps> = ({
   handleRevokeAllNavItems,
   handleResetNavScopeDefaults,
 }) => {
+  const { language } = useLanguage();
+  const roleName = getLocalizedText(activeRole.name, language) || (typeof activeRole.name === 'string' ? activeRole.name : 'Role');
   return (
     <div style={{ padding: '1.5rem', background: '#f8fafc' }}>
       <div
@@ -220,11 +222,11 @@ export const SidebarNavTab: React.FC<SidebarNavTabProps> = ({
                 flexShrink: 0,
               }}
             >
-              {activeRole.name.slice(0, 2).toUpperCase()}
+              {roleName.slice(0, 2).toUpperCase()}
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <b style={{ display: 'block', fontSize: '12px', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {activeRole.name}
+                {roleName}
               </b>
               <span style={{ fontSize: '10.5px', color: 'rgba(255,255,255,0.65)' }}>
                 {activeRole.scope}
@@ -263,7 +265,7 @@ export const SidebarNavTab: React.FC<SidebarNavTabProps> = ({
                 Sidebar Navigation Modules
               </h3>
               <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#64748b' }}>
-                Toggle modules below to configure what users holding <strong>{activeRole.name}</strong> will see in their portal sidebar.
+                Toggle modules below to configure what users holding <strong>{roleName}</strong> will see in their portal sidebar.
               </p>
             </div>
 

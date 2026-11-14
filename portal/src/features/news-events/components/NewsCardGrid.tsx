@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Icon, StatusPill } from '../../shared';
+import { useLanguage, getLocalizedText } from '../../shared/i18n';
 import type { PostItem } from '../../../types/portal.types';
 import { normalizeType, isPublished, formatDate, getSubCity } from '../hooks/useNewsList';
 
@@ -33,6 +34,7 @@ export const NewsCardGrid: React.FC<NewsCardGridProps> = ({
   onDelete,
   onResetFilters,
 }) => {
+  const { language } = useLanguage();
   if (isLoading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', gap: '12px' }}>
@@ -127,11 +129,11 @@ export const NewsCardGrid: React.FC<NewsCardGridProps> = ({
                     <span>{isEvent ? 'Event' : 'News'}</span>
                     {!isEvent && <span>{formatDate(date)}</span>}
                   </div>
-                  <h3>{item.title}</h3>
-                  <p>{summary}</p>
+                  <h3>{getLocalizedText(item.title, language) || (typeof item.title === 'string' ? item.title : '')}</h3>
+                  <p>{getLocalizedText(summary, language) || (typeof summary === 'string' ? summary : '')}</p>
                   <div className="news-card-byline">
-                    <span>{item.bureau || item.organizer || 'CivicLink Ethiopia'}</span>
-                    {subCity && <span>{subCity}</span>}
+                    <span>{getLocalizedText(item.bureau, language) || (typeof item.bureau === 'string' ? item.bureau : '') || item.organizer || 'CivicLink Ethiopia'}</span>
+                    {subCity && <span>{getLocalizedText(subCity, language) || (typeof subCity === 'string' ? subCity : '')}</span>}
                     {!isEvent && item.readTimeMinutes && (
                       <span>{item.readTimeMinutes} min read</span>
                     )}

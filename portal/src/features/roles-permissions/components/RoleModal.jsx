@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../../shared';
-import { useLanguage } from '../../shared/i18n';
+import { Icon, getModalContainer } from '../../shared';
+import { useLanguage, getLocalizedText } from '../../shared/i18n';
 import { useGetOrganizationTypesQuery } from '../../organizations/api/organizationsApi';
 import { useGetNavigationItemsQuery, useGetPermissionsQuery } from '../api/rolesApi';
 
@@ -75,7 +75,7 @@ const NAV_ITEM_TO_PERMS = {
 };
 
 function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const isEditing = Boolean(role?.id);
   const [activeTab, setActiveTab] = useState('details');
 
@@ -87,22 +87,25 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
   const scopeTiers = useMemo(() => {
     if (apiOrgTypes?.data && Array.isArray(apiOrgTypes.data) && apiOrgTypes.data.length > 0) {
       return apiOrgTypes.data.map((t) => {
+        const tName = getLocalizedText(t.name, language) || (typeof t.name === 'string' ? t.name : t.code || '');
+        const tSlug = (t.code || tName).toLowerCase().replace(/[^a-z0-9]+/g, '_');
         const canonical = DEFAULT_SCOPE_TIERS.find(
-          (d) => d.id === t.name.toLowerCase().replace(/[^a-z0-9]+/g, '_') || d.tier.includes(String(t.level))
+          (d) => d.id === tSlug || d.tier.includes(String(t.level))
         );
+        const tDesc = getLocalizedText(t.description, language) || (typeof t.description === 'string' ? t.description : `Administers ${tName} jurisdictional operations`);
         return {
-          id: t.name.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
-          scope: t.name,
-          label: `${t.name} Level`,
+          id: tSlug,
+          scope: tName,
+          label: `${tName} Level`,
           tier: `Tier ${t.level}`,
-          desc: t.description || `Administers ${t.name} jurisdictional operations`,
+          desc: tDesc,
           icon: canonical?.icon || 'layers',
           defaultNavIds: canonical?.defaultNavIds || [1, 6, 7, 8],
         };
       });
     }
     return DEFAULT_SCOPE_TIERS;
-  }, [apiOrgTypes]);
+  }, [apiOrgTypes, language]);
 
   // Merge backend navigation items
   const navModules = useMemo(() => {
@@ -132,12 +135,12 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
   }, [apiPermissions]);
 
   // Form states
-  const [name, setName] = useState(role?.name || '');
+  const [name, setName] = useState(() => (typeof role?.name === 'string' ? role?.name : getLocalizedText(role?.name, language) || ''));
   const [scope, setScope] = useState(() => {
     const s = role?.scope_level || role?.scope || 'sub_city';
-    return s.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+    return (typeof s === 'string' ? s : '').toLowerCase().replace(/[^a-z0-9]+/g, '_');
   });
-  const [description, setDescription] = useState(role?.description || '');
+  const [description, setDescription] = useState(() => (typeof role?.description === 'string' ? role?.description : getLocalizedText(role?.description, language) || ''));
   const [selectedNavIds, setSelectedNavIds] = useState(() => {
     if (role?.navigation_item_ids && Array.isArray(role.navigation_item_ids) && role.navigation_item_ids.length > 0) {
       return role.navigation_item_ids.map(Number);
@@ -628,7 +631,7 @@ export function RoleModal({ role, isOpen, onClose, onSave, isLoading = false }) 
         />
       </section>
     </div>,
-    document.body
+    getModalContainer()
   );
 }
 

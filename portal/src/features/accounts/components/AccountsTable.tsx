@@ -1,5 +1,5 @@
 import React from 'react';
-import { StatusPill } from '../../shared';
+import { StatusPill, useLanguage, getLocalizedText } from '../../shared';
 import type { AccountsTableProps } from '../types/accounts.types';
 import styles from '../styles/accountsTable.module.css';
 
@@ -12,6 +12,7 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const { language } = useLanguage();
   return (
     <div className={styles.tableScroll}>
       <table className={styles.table}>
@@ -27,12 +28,15 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
         </thead>
         <tbody>
           {items.map((item) => {
+            const roleStr = getLocalizedText(item.role, language) || (typeof item.role === 'string' ? item.role : '');
+            const nameStr = getLocalizedText(item.name, language) || (typeof item.name === 'string' ? item.name : 'User');
+            const orgStr = getLocalizedText(item.organization, language) || (typeof item.organization === 'string' ? item.organization : '—');
             const targetScope =
               (item as any).roleScope ||
-              (item.role?.toLowerCase().includes('super') ? 'global' : 'sub_city');
+              (roleStr.toLowerCase().includes('super') ? 'global' : 'sub_city');
             const canManageThisAccount = isSuperAdmin || canManageScope(targetScope);
 
-            const initials = (item.name || 'User')
+            const initials = nameStr
               .split(' ')
               .filter(Boolean)
               .map((n) => n[0])
@@ -44,15 +48,15 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
                   <span className={styles.personCell}>
                     <span className={styles.avatar}>{initials}</span>
                     <span className={styles.personInfo}>
-                      <b>{item.name}</b>
+                      <b>{nameStr}</b>
                       <small>@{item.username}</small>
                     </span>
                   </span>
                 </td>
                 <td>
-                  <span className={styles.roleBadge}>{item.role}</span>
+                  <span className={styles.roleBadge}>{roleStr}</span>
                 </td>
-                <td>{item.organization}</td>
+                <td>{orgStr}</td>
                 <td>
                   <StatusPill>{item.status}</StatusPill>
                 </td>

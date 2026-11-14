@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { usePortal, usePermissions } from '../../shared';
+import { useLanguage, getLocalizedText } from '../../shared/i18n';
 import type { PostItem } from '../../../types/portal.types';
 import {
   useGetNewsListQuery,
@@ -53,6 +54,7 @@ export const useNewsList = (options: UseNewsListOptions = {}) => {
   } = options;
 
   const portal = usePortal();
+  const { language } = useLanguage();
   const [typeFilter, setTypeFilter] = useState('all');
   const [publicationFilter, setPublicationFilter] = useState('all');
 
@@ -89,26 +91,30 @@ export const useNewsList = (options: UseNewsListOptions = {}) => {
             (c: any) => c.content_type !== 'image_url' && c.content_type !== 'image'
           ) || [];
 
+        const rawFirstText = textBlocks[0]?.content;
+        const firstTextStr = typeof rawFirstText === 'string' ? rawFirstText : getLocalizedText(rawFirstText, language) || '';
         const summaryText =
           textBlocks.length > 1
-            ? textBlocks[0].content
-            : textBlocks[0]?.content
-            ? (textBlocks[0].content.length > 160
-                ? textBlocks[0].content.slice(0, 160) + '...'
-                : textBlocks[0].content)
+            ? firstTextStr
+            : firstTextStr
+            ? (firstTextStr.length > 160
+                ? firstTextStr.slice(0, 160) + '...'
+                : firstTextStr)
             : 'Official Municipal Announcement';
 
-        const fullContent = textBlocks.map((c: any) => c.content).join('\n\n');
+        const fullContent = textBlocks.map((c: any) => typeof c.content === 'string' ? c.content : getLocalizedText(c.content, language) || '').join('\n\n');
+        const titleStr = typeof art.news_title === 'string' ? art.news_title : getLocalizedText(art.news_title, language) || 'Official Notice';
+        const subCityStr = typeof art.organization?.name === 'string' ? art.organization.name : getLocalizedText(art.organization?.name, language) || 'Addis Ababa City Administration';
 
         list.push({
           id: art.id,
-          title: art.news_title,
+          title: titleStr,
           titleAm: '',
           type: 'news' as const,
           date: art.created_at ? art.created_at.split('T')[0] : 'Recent',
           status: 'Published' as const,
           isPublished: true,
-          subCity: art.organization?.name || 'Addis Ababa City Administration',
+          subCity: subCityStr,
           category: 'Public notice',
           coverImage: imageBlocks[0]?.content,
           images: imageBlocks.map((b: any) => b.content),
@@ -132,9 +138,15 @@ export const useNewsList = (options: UseNewsListOptions = {}) => {
 
     if (eventsList.length > 0) {
       eventsList.forEach((evt) => {
+        const titleStr = typeof evt.title === 'string' ? evt.title : getLocalizedText(evt.title, language) || 'Public Event';
+        const rawDesc = typeof evt.description === 'string' ? evt.description : getLocalizedText(evt.description, language) || '';
+        const summaryText = rawDesc.length > 160 ? rawDesc.slice(0, 160) + '...' : rawDesc || 'Public Municipal Event';
+        const subCityStr = typeof evt.organization?.name === 'string' ? evt.organization.name : getLocalizedText(evt.organization?.name, language) || 'Addis Ababa City Administration';
+        const venueStr = typeof evt.location_name === 'string' ? evt.location_name : getLocalizedText(evt.location_name, language) || '';
+
         list.push({
           id: evt.id,
-          title: evt.title,
+          title: titleStr,
           titleAm: '',
           type: 'event' as const,
           date: evt.event_date ? evt.event_date.split('T')[0] : 'Upcoming',
@@ -142,24 +154,18 @@ export const useNewsList = (options: UseNewsListOptions = {}) => {
           endDate: evt.end_date ? evt.end_date.split('T')[0] : undefined,
           status: evt.status === 'published' ? ('Published' as const) : ('Draft' as const),
           isPublished: evt.status === 'published',
-          subCity: evt.organization?.name || 'Addis Ababa City Administration',
+          subCity: subCityStr,
           category: 'Public event',
           coverImage: evt.images?.[0]?.image_url,
           images: evt.images?.map((img: any) => img.image_url) || [],
-          summary:
-            evt.description && evt.description.length > 160
-              ? evt.description.slice(0, 160) + '...'
-              : evt.description || 'Public Municipal Event',
-          excerpt:
-            evt.description && evt.description.length > 160
-              ? evt.description.slice(0, 160) + '...'
-              : evt.description || 'Public Municipal Event',
-          content: evt.description,
+          summary: summaryText,
+          excerpt: summaryText,
+          content: rawDesc,
           organization_id: evt.organization_id,
           organization: evt.organization,
           location: {
-            venue: evt.location_name,
-            subCity: evt.organization?.name,
+            venue: venueStr,
+            subCity: subCityStr,
           },
           audience: evt.audience,
         });
@@ -167,7 +173,7 @@ export const useNewsList = (options: UseNewsListOptions = {}) => {
     }
 
     return list;
-  }, [propItems, newsApiResponse, eventsApiResponse]);
+  }, [propItems, newsApiResponse, eventsApiResponse, language]);
 
   const search = propSearch !== undefined ? propSearch : portal.search;
   const setSearch = propSetSearch || portal.setSearch;
@@ -283,11 +289,12 @@ export const useNewsList = (options: UseNewsListOptions = {}) => {
         item.location?.venue,
       ]
         .filter(Boolean)
+        .map((val) => typeof val === 'string' ? val : getLocalizedText(val, language) || '')
         .join(' ')
         .toLowerCase();
       return matchesType && matchesPublication && searchable.includes(search.toLowerCase());
     });
-  }, [items, typeFilter, publicationFilter, search]);
+  }, [items, typeFilter, publicationFilter, search, language]);
 
   const { hasPermission } = usePermissions();
   const canCreate = hasPermission(['news.create', 'events.create']);

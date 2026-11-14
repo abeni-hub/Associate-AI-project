@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { usePortal } from '../hooks/usePortal';
-import { useLanguage, type SupportedLanguage } from '../i18n';
+import { useLanguage, getLocalizedText, type SupportedLanguage } from '../i18n';
 import type { RoleKey } from '../../../types/portal.types';
 
 export interface TopbarProps {
@@ -29,6 +29,18 @@ export const Topbar: React.FC<TopbarProps> = ({
   const { language, setLanguage, t } = useLanguage();
   const [profileOpen, setProfileOpen] = useState(false);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+        setLangMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const role = (propRole || portal.role || 'super') as RoleKey;
   const onMenu = onOpenMobile || propOnMenu || (() => portal.setMobileOpen(true));
@@ -38,18 +50,19 @@ export const Topbar: React.FC<TopbarProps> = ({
   const breadcrumbTitle = t(`nav.${pathSegment}`, pathSegment.charAt(0).toUpperCase() + pathSegment.slice(1));
 
   const user = portal.session?.user || portal.authUser;
-  const displayName = user?.name || 'Administrator';
-  const displayOrg = user?.organization?.name || 'CivicLink Ethiopia';
+  const displayName = (typeof user?.name === 'string' ? user.name : getLocalizedText(user?.name, language)) || 'Administrator';
+  const displayOrg = (typeof user?.organization?.name === 'string' ? user.organization.name : getLocalizedText(user?.organization?.name, language)) || 'CivicLink Ethiopia';
   const displayRole = useMemo(() => {
+    const localizedRoleName = getLocalizedText(user?.role?.name, language) || (typeof user?.role?.name === 'string' ? user?.role?.name : '');
     const rawRole =
-      user?.role?.name ||
+      localizedRoleName ||
       (role === 'super' ? 'Super Admin' : role === 'subcity' ? 'Sub-City Admin' : 'Bureau Admin');
     const lower = String(rawRole).toLowerCase();
     if (lower.includes('super')) return t('roles.superAdmin', 'Super Admin');
     if (lower.includes('subcity') || lower.includes('sub-city')) return t('roles.subcityAdmin', 'Sub-city Admin');
     if (lower.includes('bureau')) return t('roles.bureauAdmin', 'Bureau Admin');
     return rawRole;
-  }, [user, role, t]);
+  }, [user, role, t, language]);
 
   const initials = displayName
     .split(' ')
@@ -62,7 +75,7 @@ export const Topbar: React.FC<TopbarProps> = ({
   const currentLangObj = LANGUAGES.find((l) => l.code === language) || LANGUAGES[0];
 
   return (
-    <header className="topbar">
+    <header className="topbar" ref={headerRef}>
       <div className="topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button className="mobile-menu" onClick={onMenu} type="button" aria-label="Open navigation">
           <Icon name="menu" />

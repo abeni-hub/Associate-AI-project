@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, PageHeading } from '../shared';
+import { Icon, PageHeading, useLanguage } from '../shared';
 import ActivityDetailsModal from './components/ActivityDetailsModal.jsx';
 import { ActivityMetrics } from './components/ActivityMetrics';
 import { ActivityFilters } from './components/ActivityFilters';
@@ -7,6 +7,7 @@ import { ActivityTable } from './components/ActivityTable';
 import { useActivityLogs } from './hooks/useActivityLogs';
 
 export const ActivityPage: React.FC = () => {
+  const { t } = useLanguage();
   const {
     activities,
     filteredActivities,
@@ -28,10 +29,10 @@ export const ActivityPage: React.FC = () => {
   return (
     <>
       <PageHeading
-        eyebrow="AUDIT TRAIL & SYSTEM COMPLIANCE"
-        title="Activity & audit log"
-        subtitle="Cryptographically verified record of system actions, state changes from what to what, and administrative access across all sub-cities."
-        secondary="Export CSV audit"
+        eyebrow={t('activity.eyebrow', 'AUDIT TRAILS & SECURITY LOGS')}
+        title={t('activity.title', 'Audit Activity Log')}
+        subtitle={t('activity.subtitle', 'Immutable record of administrative modifications, role changes, and citizen interactions.')}
+        secondary={t('activity.exportCsv', 'Export CSV audit')}
         onSecondary={handleExportCsv}
       />
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { usePermissions } from '../../shared';
+import { usePermissions, useLanguage, getLocalizedText } from '../../shared';
 import type { RoleItem } from '../../../types/portal.types';
 import {
   useGetRolesQuery,
@@ -30,6 +30,7 @@ export interface UseRolesPermissionsProps {
 
 export const useRolesPermissions = (props: UseRolesPermissionsProps = {}) => {
   const { roles: propRoles, onCreateRole, onUpdateRole, onDeleteRole } = props;
+  const { language } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'sidebar' | 'permissions'>('sidebar');
 
@@ -92,8 +93,8 @@ export const useRolesPermissions = (props: UseRolesPermissionsProps = {}) => {
         return {
           id: String(r.id),
           slug: r.slug,
-          name: r.name,
-          description: r.description || '',
+          name: getLocalizedText(r.name, language) || (typeof r.name === 'string' ? r.name : r.slug),
+          description: getLocalizedText(r.description, language) || (typeof r.description === 'string' ? r.description : ''),
           isSystem: Boolean(r.is_system),
           scope_level: sLevel,
           scope: scopeFormatted,
@@ -104,7 +105,7 @@ export const useRolesPermissions = (props: UseRolesPermissionsProps = {}) => {
       });
     }
     return [];
-  }, [propRoles, apiRoles]);
+  }, [propRoles, apiRoles, language]);
 
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -411,15 +412,15 @@ export const useRolesPermissions = (props: UseRolesPermissionsProps = {}) => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const domain = DOMAIN_GROUPS.find((d) => d.id === perm.group);
-        const matchName = perm.name.toLowerCase().includes(q);
-        const matchKey = perm.key.toLowerCase().includes(q);
-        const matchDesc = (perm.description || '').toLowerCase().includes(q);
+        const matchName = (getLocalizedText(perm.name, language) || (typeof perm.name === 'string' ? perm.name : '')).toLowerCase().includes(q);
+        const matchKey = (perm.key || '').toLowerCase().includes(q);
+        const matchDesc = (getLocalizedText(perm.description, language) || (typeof perm.description === 'string' ? perm.description : '')).toLowerCase().includes(q);
         const matchDomain = domain ? domain.label.toLowerCase().includes(q) : false;
         return matchName || matchKey || matchDesc || matchDomain;
       }
       return true;
     });
-  }, [allPermissions, selectedDomainFilter, statusFilter, searchQuery, effectivePermissionIds]);
+  }, [allPermissions, selectedDomainFilter, statusFilter, searchQuery, effectivePermissionIds, language]);
 
   const handleBulkToggleFiltered = async (grant: boolean) => {
     if (!canManageRoles || !activeRole || isSuperAdmin) return;

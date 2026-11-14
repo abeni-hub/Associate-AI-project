@@ -1,7 +1,7 @@
 import React from 'react';
-import { PageHeading, Icon } from '../shared';
+import { PageHeading, Icon, useLanguage } from '../shared';
 import { OfficeModal } from './components/OfficeModal';
-import { useOffices, type UseOfficesOptions } from './hooks/useOffices';
+import { useOffices } from './hooks/useOffices';
 import { OfficeMetrics } from './components/OfficeMetrics';
 import { OfficeTable } from './components/OfficeTable';
 import type { OfficeItem, OfficeType } from '../../types/portal.types';
@@ -17,6 +17,7 @@ export interface OfficesPageProps {
 }
 
 export const OfficesPage: React.FC<OfficesPageProps> = (props) => {
+  const { t } = useLanguage();
   const {
     role,
     search,
@@ -60,12 +61,12 @@ export const OfficesPage: React.FC<OfficesPageProps> = (props) => {
   return (
     <>
       <PageHeading
-        eyebrow="PUBLIC ADMINISTRATION DIRECTORY"
-        title={role === 'subcity' ? 'Bureaus & local offices' : 'Offices & administrative tree'}
-        subtitle="Manage sub-cities, bureaus, and municipal branches connected to the platform."
-        action={canCreate ? 'Add office' : undefined}
+        eyebrow={t('offices.eyebrow', 'PUBLIC ADMINISTRATION DIRECTORY')}
+        title={t('offices.title', role === 'subcity' ? 'Bureaus & local offices' : 'Offices & administrative tree')}
+        subtitle={t('offices.subtitle', 'Manage sub-cities, bureaus, and municipal branches connected to the platform.')}
+        action={canCreate ? t('offices.addOffice', 'Add office') : undefined}
         onAction={canCreate ? handleOpenAdd : undefined}
-        secondary="Export directory"
+        secondary={t('common.export', 'Export directory')}
         onSecondary={() => window.alert('Office directory report generated.')}
       />
 

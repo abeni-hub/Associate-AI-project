@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, StatusPill } from '../../shared';
+import { Icon, StatusPill, useLanguage, getLocalizedText } from '../../shared';
 import type { DocumentItem } from '../api/documentsApi';
 
 interface DocumentTableProps {
@@ -37,6 +37,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
   onToggleStatus,
   onDelete,
 }) => {
+  const { language } = useLanguage();
   return (
     <div className="panel activity-table-panel">
       <div className="table-toolbar">
@@ -147,7 +148,9 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                     {/* Name & Code */}
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        <b style={{ color: '#264b4c', fontSize: '13.5px' }}>{doc.name}</b>
+                        <b style={{ color: '#264b4c', fontSize: '13.5px' }}>
+                          {getLocalizedText(doc.name, language) || (typeof doc.name === 'string' ? doc.name : '')}
+                        </b>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span
                             style={{
@@ -170,7 +173,7 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                     {/* Description */}
                     <td style={{ maxWidth: '380px', whiteSpace: 'normal' }}>
                       <p style={{ margin: 0, color: '#5b7167', fontSize: '12.5px', lineHeight: 1.45 }}>
-                        {doc.description || <span style={{ color: '#9bb0a4', fontStyle: 'italic' }}>No criteria description specified.</span>}
+                        {getLocalizedText(doc.description, language) || (typeof doc.description === 'string' ? doc.description : '') || <span style={{ color: '#9bb0a4', fontStyle: 'italic' }}>No criteria description specified.</span>}
                       </p>
                     </td>
 

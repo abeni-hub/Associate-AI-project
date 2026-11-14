@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePortal } from '../../shared';
+import { useLanguage, getLocalizedText } from '../../shared/i18n';
 import type { PostItem } from '../../../types/portal.types';
 import {
   useGetNewsByIdQuery,
@@ -34,7 +35,10 @@ export function formatDetailDate(value?: string, language = 'en'): string {
 export const useNewsDetail = () => {
   const { id } = useParams();
   const portal = usePortal();
-  const [language, setLanguage] = useState<'en' | 'am'>('en');
+  const { language: currentAppLang } = useLanguage();
+  const [language, setLanguage] = useState<'en' | 'am'>(
+    currentAppLang === 'am' ? 'am' : 'en'
+  );
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const { data: apiArticle, isLoading: isNewsLoading, refetch: refetchNews } = useGetNewsByIdQuery(id!, { skip: !id });
@@ -59,30 +63,46 @@ export const useNewsDetail = () => {
           (c: any) => c.content_type !== 'image_url' && c.content_type !== 'image'
         ) || [];
 
+      const rawTitle = art.news_title;
+      const titleStr = typeof rawTitle === 'string' ? rawTitle : getLocalizedText(rawTitle, language) || 'Official Notice';
+      const rawOrgName = art.organization?.name;
+      const subCityStr = typeof rawOrgName === 'string' ? rawOrgName : getLocalizedText(rawOrgName, language) || 'City Administration';
+      const rawFirstText = textBlocks[0]?.content;
+      const firstTextStr = typeof rawFirstText === 'string' ? rawFirstText : getLocalizedText(rawFirstText, language) || '';
+      const fullContent = textBlocks.map((c: any) => typeof c.content === 'string' ? c.content : getLocalizedText(c.content, language) || '').join('\n\n');
+
       return {
         id: art.id,
-        title: art.news_title,
+        title: titleStr,
         titleAm: '',
         type: 'news' as const,
         date: art.created_at ? art.created_at.split('T')[0] : 'Recent',
         status: 'Published' as const,
         isPublished: true,
-        subCity: art.organization?.name || 'City Administration',
+        subCity: subCityStr,
         category: 'Public notice',
         coverImage: imageBlocks[0]?.content,
         images: imageBlocks.map((b: any) => b.content),
-        summary: textBlocks[0]?.content || '',
-        excerpt: textBlocks[0]?.content || '',
-        content: textBlocks.map((c: any) => c.content).join('\n\n') || '',
+        summary: firstTextStr,
+        excerpt: firstTextStr,
+        content: fullContent,
         views: 0,
       };
     }
 
     if (apiEvent?.data) {
       const evt = apiEvent.data;
+      const rawTitle = evt.title;
+      const titleStr = typeof rawTitle === 'string' ? rawTitle : getLocalizedText(rawTitle, language) || 'Public Event';
+      const rawOrgName = evt.organization?.name;
+      const subCityStr = typeof rawOrgName === 'string' ? rawOrgName : getLocalizedText(rawOrgName, language) || 'City Administration';
+      const rawDesc = typeof evt.description === 'string' ? evt.description : getLocalizedText(evt.description, language) || '';
+      const summaryStr = rawDesc.length > 160 ? rawDesc.slice(0, 160) + '...' : rawDesc;
+      const venueStr = typeof evt.location_name === 'string' ? evt.location_name : getLocalizedText(evt.location_name, language) || '';
+
       return {
         id: evt.id,
-        title: evt.title,
+        title: titleStr,
         titleAm: '',
         type: 'event' as const,
         date: evt.event_date ? evt.event_date.split('T')[0] : 'Upcoming',
@@ -90,16 +110,16 @@ export const useNewsDetail = () => {
         endDate: evt.end_date ? evt.end_date.split('T')[0] : undefined,
         status: evt.status === 'published' ? ('Published' as const) : ('Draft' as const),
         isPublished: evt.status === 'published',
-        subCity: evt.organization?.name || 'City Administration',
+        subCity: subCityStr,
         category: 'Public event',
         coverImage: evt.images?.[0]?.image_url,
         images: evt.images?.map((img: any) => img.image_url) || [],
-        summary: evt.description?.slice(0, 160) || '',
-        excerpt: evt.description?.slice(0, 160) || '',
-        content: evt.description || '',
+        summary: summaryStr,
+        excerpt: summaryStr,
+        content: rawDesc,
         location: {
-          venue: evt.location_name,
-          subCity: evt.organization?.name,
+          venue: venueStr,
+          subCity: subCityStr,
         },
         audience: evt.audience,
         views: 0,
@@ -107,7 +127,7 @@ export const useNewsDetail = () => {
     }
 
     return undefined;
-  }, [apiArticle, apiEvent, id]);
+  }, [apiArticle, apiEvent, id, language]);
 
   const handleSaveItem = async (payload: any) => {
     try {

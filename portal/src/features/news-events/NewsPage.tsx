@@ -1,7 +1,7 @@
 import React from 'react';
-import { PageHeading } from '../shared';
+import { PageHeading, useLanguage } from '../shared';
 import { NewsModal } from './components/NewsModal';
-import { useNewsList, type UseNewsListOptions } from './hooks/useNewsList';
+import { useNewsList } from './hooks/useNewsList';
 import { NewsOverviewMetrics } from './components/NewsOverviewMetrics';
 import { NewsToolbar } from './components/NewsToolbar';
 import { NewsCardGrid } from './components/NewsCardGrid';
@@ -17,6 +17,7 @@ export interface NewsPageProps {
 }
 
 export const NewsPage: React.FC<NewsPageProps> = (props) => {
+  const { t } = useLanguage();
   const {
     items,
     filtered,
@@ -55,10 +56,10 @@ export const NewsPage: React.FC<NewsPageProps> = (props) => {
   return (
     <>
       <PageHeading
-        eyebrow="PUBLIC INFORMATION"
-        title="News & events"
-        subtitle="Manage the bilingual updates and public events shown to residents in the client app."
-        action={canCreate ? 'Create an update' : undefined}
+        eyebrow={t('news.eyebrow', 'PUBLIC INFORMATION')}
+        title={t('news.title', 'News & events')}
+        subtitle={t('news.subtitle', 'Manage the updates and public events shown to residents in the client app.')}
+        action={canCreate ? t('news.createPost', 'Create an update') : undefined}
         onAction={canCreate ? handleOpenAdd : undefined}
       />
 

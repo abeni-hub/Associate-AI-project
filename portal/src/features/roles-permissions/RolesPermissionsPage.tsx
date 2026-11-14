@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, PageHeading } from '../shared';
+import { Icon, PageHeading, useLanguage } from '../shared';
 import RoleModal from './components/RoleModal';
 import { RoleHeaderBanner } from './components/RoleHeaderBanner';
 import { SidebarNavTab } from './components/SidebarNavTab';
@@ -12,6 +12,7 @@ export { DOMAIN_GROUPS };
 export interface RolesPermissionsPageProps extends UseRolesPermissionsProps {}
 
 export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = (props) => {
+  const { t } = useLanguage();
   const {
     activeTab,
     setActiveTab,
@@ -70,10 +71,10 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = (props)
   return (
     <>
       <PageHeading
-        eyebrow="ACCESS CONTROL & GOVERNANCE"
-        title="Roles & permissions"
-        subtitle="Configure role-based access control (RBAC), sidebar module visibility, and detailed security policies."
-        action={canManageRoles ? '+ New role' : undefined}
+        eyebrow={t('roles.eyebrow', 'ACCESS CONTROL & GOVERNANCE')}
+        title={t('roles.title', 'Roles & permissions')}
+        subtitle={t('roles.subtitle', 'Configure role-based access control (RBAC), sidebar module visibility, and detailed security policies.')}
+        action={canManageRoles ? t('roles.newRoleButton', '+ New role') : undefined}
         onAction={
           canManageRoles
             ? () => {
@@ -99,15 +100,15 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = (props)
         >
           <div className="loading-spinner" />
           <h3 style={{ margin: 0, color: '#00485a', fontSize: '17px', fontWeight: 600 }}>
-            Loading security roles & permissions...
+            {t('roles.loadingRoles', 'Loading security roles & permissions...')}
           </h3>
           <p style={{ margin: 0, color: '#64748b', fontSize: '13px' }}>
-            Connecting to role-based access control policies
+            {t('roles.connectingRbac', 'Connecting to role-based access control policies')}
           </p>
         </section>
       ) : !activeRole ? (
         <section className="panel" style={{ padding: '2.5rem', textAlign: 'center' }}>
-          <p>No roles available.</p>
+          <p>{t('roles.noRoles', 'No roles available.')}</p>
         </section>
       ) : (
         <section
@@ -162,7 +163,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = (props)
               }}
             >
               <Icon name="layers" size={17} />
-              <span>Sidebar Navigation</span>
+              <span>{t('roles.sidebarNav', 'Sidebar Navigation')}</span>
               <span
                 style={{
                   fontSize: '11px',
@@ -197,7 +198,7 @@ export const RolesPermissionsPage: React.FC<RolesPermissionsPageProps> = (props)
               }}
             >
               <Icon name="shield" size={17} />
-              <span>Detailed Permissions</span>
+              <span>{t('roles.detailedPerms', 'Detailed Permissions')}</span>
               <span
                 style={{
                   fontSize: '11px',

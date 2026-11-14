@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
+import { useLanguage, getLocalizedText } from '../../shared';
 import { useGetAuditLogsQuery } from '../api/auditLogsApi';
 
 export const useActivityLogs = () => {
+  const { language } = useLanguage();
   const { data: apiLogs, isLoading } = useGetAuditLogsQuery();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -27,9 +29,9 @@ export const useActivityLogs = () => {
         else if (log.entity_type === 'Complaint' || log.entity_type === 'Feedback') category = 'Citizen voice';
         else if (log.entity_type === 'Cms' || log.entity_type === 'Post') category = 'CMS & Landing';
 
-        const actorName = log.actor?.name || 'Administrator';
+        const actorName = getLocalizedText(log.actor?.name, language) || (typeof log.actor?.name === 'string' ? log.actor.name : 'Administrator');
         const actorUsername = log.actor?.username ? `@${log.actor.username}` : '@admin';
-        const actorRole = log.organization?.name || 'Addis Ababa City Administration';
+        const actorRole = getLocalizedText(log.organization?.name, language) || (typeof log.organization?.name === 'string' ? log.organization.name : 'Addis Ababa City Administration');
         const initials = actorName
           .split(' ')
           .map((n) => n[0])
@@ -123,7 +125,7 @@ export const useActivityLogs = () => {
           },
           target: {
             name: `${log.entity_type} #${log.entity_id || log.id}`,
-            jurisdiction: log.organization?.name || 'City Central Administration',
+            jurisdiction: getLocalizedText(log.organization?.name, language) || (typeof log.organization?.name === 'string' ? log.organization.name : 'City Central Administration'),
           },
           change: {
             field: changeField,
@@ -156,7 +158,7 @@ export const useActivityLogs = () => {
       });
     }
     return [];
-  }, [apiLogs]);
+  }, [apiLogs, language]);
 
   const filteredActivities = useMemo(() => {
     return activities.filter((item) => {

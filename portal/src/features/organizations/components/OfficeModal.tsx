@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon, SearchSelect, type SearchSelectOption } from '../../shared';
+import { Icon, SearchSelect, getModalContainer, type SearchSelectOption } from '../../shared';
 import type { OfficeType } from '../../../types/portal.types';
 import { useLanguage, getLocalizedText } from '../../shared/i18n';
 import {
@@ -173,7 +173,8 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
   }, [allTypes, isRootType, currentLevel, rootType]);
 
   const targetParentLevel = parentTier?.level != null ? Number(parentTier.level) : currentLevel - 1;
-  const parentTierName = parentTier?.name || `Level ${targetParentLevel}`;
+  const parentTierName = (typeof parentTier?.name === 'string' ? parentTier.name : getLocalizedText(parentTier?.name, language)) || `Level ${targetParentLevel}`;
+  const selTypeName = (typeof selectedType?.name === 'string' ? selectedType.name : getLocalizedText(selectedType?.name, language)) || 'unit';
 
   // Filter eligible parents strictly for the immediate supervising parent tier (Level - 1)
   const parentOptions: SearchSelectOption[] = useMemo(() => {
@@ -409,17 +410,17 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
                 disabled={isRootType}
                 placeholder={
                   isRootType
-                    ? `None (${selectedType?.name || 'Tier'} is a Root Organization)`
+                    ? `None (${selTypeName} is a Root Organization)`
                     : parentOptions.some((o) => !o.disabled && o.value !== 0)
-                      ? `Select governing ${parentTierName} parent office for this ${selectedType?.name || 'unit'}...`
+                      ? `Select governing ${parentTierName} parent office for this ${selTypeName}...`
                       : `No ${parentTierName} (Level ${targetParentLevel}) parent offices exist yet`
                 }
                 helperText={
                   isRootType
-                    ? `${selectedType?.name || 'Root organizations'} have the highest administrative authority and have no parent.`
+                    ? `${selTypeName} has the highest administrative authority and has no parent.`
                     : parentOptions.some((o) => !o.disabled && o.value !== 0)
-                      ? `Select an office of ${parentTierName} authority that supervises this ${selectedType?.name || 'office'}.`
-                      : `A ${parentTierName} (Level ${targetParentLevel}) office must be created first before a ${selectedType?.name || 'child office'} can be registered.`
+                      ? `Select an office of ${parentTierName} authority that supervises this ${selTypeName}.`
+                      : `A ${parentTierName} (Level ${targetParentLevel}) office must be created first before a ${selTypeName} can be registered.`
                 }
               />
               {!isRootType && !parentOptions.some((o) => !o.disabled && o.value !== 0) && (
@@ -455,7 +456,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      Create {parentTier.name} first
+                      Create {parentTierName} first
                     </button>
                   )}
                 </div>
@@ -530,7 +531,7 @@ export const OfficeModal: React.FC<OfficeModalProps> = ({
         </form>
       </section>
     </div>,
-    document.body
+    getModalContainer()
   );
 };
 

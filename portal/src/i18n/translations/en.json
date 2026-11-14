@@ -5,6 +5,9 @@
     "documents": "Required documents",
     "routes": "Office locations",
     "offices": "Offices & directory",
+    "subcities": "Offices & directory",
+    "bureaus": "Offices & directory",
+    "organizations": "Offices & directory",
     "feedback": "Citizen feedback",
     "qr": "Feedback QR codes",
     "news": "News & events",
@@ -747,5 +750,23 @@
     "configuredRoutes": "Configured Steps",
     "coverage": "Step Coverage",
     "searchPlaceholder": "Search service, room number, floor, bureau..."
+  },
+  "office": {
+    "eyebrow": "BUREAU SETTINGS",
+    "title": "Office profile",
+    "subtitle": "Keep your bureau details clear and consistent for the citizens you serve.",
+    "editProfile": "Edit profile",
+    "activeBureau": "ACTIVE BUREAU",
+    "publicOffice": "PUBLIC OFFICE",
+    "serviceHours": "PUBLIC SERVICE HOURS",
+    "location": "LOCATION",
+    "administrator": "BUREAU ADMINISTRATOR",
+    "publicContact": "PUBLIC CONTACT",
+    "reviewNote": "Public profile changes should be reviewed by your sub-city administrator before publishing.",
+    "supportDesc": "Support for public citizen services, verification, and administrative clearance.",
+    "defaultHours": "Monday – Friday · 8:30 AM – 5:30 PM",
+    "defaultBureau": "Public Service Bureau",
+    "defaultLocation": "Addis Ababa City Administration",
+    "defaultAdmin": "Bureau Administrator"
   }
 }

@@ -106,7 +106,7 @@ export const FeedbackPage: React.FC = () => {
         String(item.id).includes(q)
       );
     });
-  }, [items, search, statusFilter, typeFilter]);
+  }, [items, search, statusFilter, typeFilter, language]);
 
   // Auto-select first item if none selected or if selected was deleted
   useEffect(() => {
@@ -224,7 +224,7 @@ export const FeedbackPage: React.FC = () => {
           <button
             type="button"
             onClick={handleExportFeedback}
-            className="button secondary"
+            className="button secondary outline-button"
             title="Export feedback submissions to CSV"
           >
             <Download size={15} />
@@ -234,7 +234,7 @@ export const FeedbackPage: React.FC = () => {
           <button
             type="button"
             onClick={() => refetch()}
-            className="button secondary"
+            className="button secondary outline-button"
             title="Refresh feedback submissions"
           >
             <RefreshCw size={14} />

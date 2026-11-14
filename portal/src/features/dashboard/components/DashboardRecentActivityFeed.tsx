@@ -88,7 +88,7 @@ export const DashboardRecentActivityFeed: React.FC<DashboardRecentActivityFeedPr
 
         {!isLoading &&
           activities.slice(0, 5).map((act) => {
-            const orgName = getLocalizedText((act.organization as any)?.name_localized, language) || act.organization?.name || 'Municipal Unit';
+            const orgName = getLocalizedText((act.organization as any)?.name_localized || act.organization?.name, language) || (typeof act.organization?.name === 'string' ? act.organization.name : 'Municipal Unit');
             return (
               <div key={act.id} className={styles.activityItem}>
                 <span className={styles.activityIcon}>

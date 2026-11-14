@@ -5,6 +5,9 @@
     "documents": "አስፈላጊ ሰነዶች",
     "routes": "የቢሮ መገኛ ቦታዎች",
     "offices": "ቢሮዎች እና ማውጫ",
+    "subcities": "ቢሮዎች እና ማውጫ",
+    "bureaus": "ቢሮዎች እና ማውጫ",
+    "organizations": "ቢሮዎች እና ማውጫ",
     "feedback": "የዜጎች አስተያየት",
     "qr": "የአስተያየት ኪውአር ኮዶች",
     "news": "ዜናዎች እና ሁነቶች",
@@ -747,5 +750,23 @@
     "configuredRoutes": "የተዋቀሩ ቅደም ተከተሎች",
     "coverage": "የሽፋን መጠን",
     "searchPlaceholder": "አገልግሎትን፣ የክፍል ቁጥርን፣ ፎቅን ወይም ቢሮን ይፈልጉ..."
+  },
+  "office": {
+    "eyebrow": "የቢሮ ቅንብሮች",
+    "title": "የቢሮ መረጃ",
+    "subtitle": "ለሚያገለግሏቸው ዜጎች የቢሮዎን መረጃ ግልጽ እና ወጥ ያድርጉ።",
+    "editProfile": "መገለጫ አርትዕ",
+    "activeBureau": "ንቁ ቢሮ",
+    "publicOffice": "የህዝብ ቢሮ",
+    "serviceHours": "የህዝብ አገልግሎት ሰዓታት",
+    "location": "አድራሻ",
+    "administrator": "የቢሮ አስተዳዳሪ",
+    "publicContact": "የህዝብ ግንኙነት",
+    "reviewNote": "የህዝብ መገለጫ ለውጦች ከመታተማቸው በፊት በክፍለ ከተማዎ አስተዳዳሪ መገምገም አለባቸው።",
+    "supportDesc": "ለዜጎች ህዝባዊ አገልግሎቶች፣ ማረጋገጫ እና አስተዳደራዊ ፈቃድ ድጋፍ።",
+    "defaultHours": "ሰኞ – አርብ · ከጠዋቱ 2:30 – ከሰዓት 11:30",
+    "defaultBureau": "የህዝብ አገልግሎት ቢሮ",
+    "defaultLocation": "የአዲስ አበባ ከተማ አስተዳደር",
+    "defaultAdmin": "የቢሮ አስተዳዳሪ"
   }
 }

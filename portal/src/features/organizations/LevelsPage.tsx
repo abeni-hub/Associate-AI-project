@@ -1,11 +1,12 @@
 import React from 'react';
-import { PageHeading } from '../shared';
+import { PageHeading, useLanguage } from '../shared';
 import { LevelModal } from './components/LevelModal';
 import { useLevels } from './hooks/useLevels';
 import { LevelMetrics } from './components/LevelMetrics';
 import { LevelTable } from './components/LevelTable';
 
 export const LevelsPage: React.FC = () => {
+  const { t } = useLanguage();
   const {
     search,
     setSearch,
@@ -37,10 +38,10 @@ export const LevelsPage: React.FC = () => {
   return (
     <>
       <PageHeading
-        eyebrow="SUPER ADMIN · HIERARCHY STRUCTURE"
-        title="Organization levels"
-        subtitle="Manage the hierarchy ranks and classification tiers (Sub-City, Woreda, Bureau, etc.) used when registering offices."
-        action={canCreate ? 'Add tier level' : undefined}
+        eyebrow={t('levels.eyebrow', 'ORGANIZATIONAL GOVERNANCE & TIER DEPTH')}
+        title={t('levels.title', 'Organization Levels')}
+        subtitle={t('levels.subtitle', 'Configure municipal administrative tiers (Sub-Cities, Bureaus, Woredas, Kebeles) and hierarchy depth.')}
+        action={canCreate ? t('levels.addLevel', 'Add tier level') : undefined}
         onAction={canCreate ? handleOpenAdd : undefined}
       />
 

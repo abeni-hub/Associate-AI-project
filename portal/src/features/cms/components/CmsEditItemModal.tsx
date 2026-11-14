@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../../shared';
+import { Icon, getModalContainer } from '../../shared';
 
 export interface CmsEditItemModalProps {
   modalItem: any;
@@ -20,6 +20,13 @@ export const CmsEditItemModal: React.FC<CmsEditItemModalProps> = ({
   uploadImageTrigger,
 }) => {
   if (!modalItem) return null;
+
+  const getStr = (val: any) => {
+    if (!val) return '';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object') return val.en || val.eng || val.am || val.amh || '';
+    return String(val);
+  };
 
   return createPortal(
     <div
@@ -112,7 +119,7 @@ export const CmsEditItemModal: React.FC<CmsEditItemModalProps> = ({
                   </span>
                   <input
                     required
-                    value={modalItem.title || ''}
+                    value={getStr(modalItem.title)}
                     onChange={(e) => setModalItem((m: any) => ({ ...m, title: e.target.value }))}
                     placeholder="e.g. Business tax registration"
                   />
@@ -123,7 +130,7 @@ export const CmsEditItemModal: React.FC<CmsEditItemModalProps> = ({
                   </span>
                   <input
                     required
-                    value={modalItem.bureau || ''}
+                    value={getStr(modalItem.bureau)}
                     onChange={(e) => setModalItem((m: any) => ({ ...m, bureau: e.target.value }))}
                     placeholder="e.g. Revenues Bureau"
                   />
@@ -134,7 +141,7 @@ export const CmsEditItemModal: React.FC<CmsEditItemModalProps> = ({
                   </span>
                   <input
                     required
-                    value={modalItem.category || ''}
+                    value={getStr(modalItem.category)}
                     onChange={(e) => setModalItem((m: any) => ({ ...m, category: e.target.value }))}
                     placeholder="Describe the bureau spotlight"
                   />
@@ -204,7 +211,7 @@ export const CmsEditItemModal: React.FC<CmsEditItemModalProps> = ({
                   </span>
                   <input
                     required
-                    value={(copyLang === 'am' ? modalItem.titleAm : modalItem.title) || ''}
+                    value={getStr(copyLang === 'am' ? modalItem.titleAm : modalItem.title)}
                     onChange={(e) =>
                       setModalItem((m: any) => ({
                         ...m,
@@ -221,7 +228,7 @@ export const CmsEditItemModal: React.FC<CmsEditItemModalProps> = ({
                   <textarea
                     required
                     rows={3}
-                    value={(copyLang === 'am' ? modalItem.detailAm : modalItem.detail) || ''}
+                    value={getStr(copyLang === 'am' ? modalItem.detailAm : modalItem.detail)}
                     onChange={(e) =>
                       setModalItem((m: any) => ({
                         ...m,
@@ -253,7 +260,7 @@ export const CmsEditItemModal: React.FC<CmsEditItemModalProps> = ({
         </form>
       </section>
     </div>,
-    document.body
+    getModalContainer()
   );
 };
 

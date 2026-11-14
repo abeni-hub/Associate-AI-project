@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon } from '../../shared';
+import { Icon, useLanguage } from '../../shared';
 import type { DashboardHeadingProps } from '../types/dashboard.types';
 import styles from '../styles/dashboardHeading.module.css';
 
@@ -12,6 +12,8 @@ export const DashboardHeading: React.FC<DashboardHeadingProps> = ({
   onExport,
   onCreate,
 }) => {
+  const { t } = useLanguage();
+
   return (
     <div className={styles.heading}>
       <div className={styles.titleArea}>
@@ -28,12 +30,12 @@ export const DashboardHeading: React.FC<DashboardHeadingProps> = ({
 
       <div className={styles.actions}>
         <button
-          className="button secondary"
+          className="button secondary outline-button"
           onClick={onExport}
           title="Download executive CSV report"
           disabled={isPageLoading}
         >
-          <Icon name="download" size={16} /> Export report
+          <Icon name="download" size={16} /> {t('common.export', 'Export report')}
         </button>
 
         {role !== 'super' && (
@@ -43,7 +45,9 @@ export const DashboardHeading: React.FC<DashboardHeadingProps> = ({
             disabled={isPageLoading}
           >
             <Icon name="plus" size={16} />{' '}
-            {role === 'subcity' ? 'Create a service' : 'Update room route'}
+            {role === 'subcity'
+              ? t('services.createButton', 'Create a service')
+              : t('routes.configureRoute', 'Update room route')}
           </button>
         )}
       </div>

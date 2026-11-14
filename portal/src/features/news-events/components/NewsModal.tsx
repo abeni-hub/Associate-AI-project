@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon, SearchSelect, type SearchSelectOption } from '../../shared';
+import { Icon, SearchSelect, getModalContainer, type SearchSelectOption } from '../../shared';
 import { useGetOrganizationsQuery } from '../../organizations/api/organizationsApi';
 import { useUploadCmsImageMutation } from '../../cms/api/cmsApi';
-import { useLanguage } from '../../shared/i18n';
+import { useLanguage, getLocalizedText } from '../../shared/i18n';
 import { usePortal } from '../../shared';
 import { useGetMeQuery } from '../../auth/api/authApi';
 import { tokenStorage } from '../../../utils/tokenStorage';
@@ -132,7 +132,8 @@ export const NewsModal: React.FC<NewsModalProps> = ({
         !!item?.eventDate;
       setContentType(isEvt ? 'event' : 'news');
 
-      setTitle(item?.title || item?.news_title || '');
+      const rawTitle = item?.title || item?.news_title || '';
+      setTitle(typeof rawTitle === 'string' ? rawTitle : getLocalizedText(rawTitle, language) || '');
 
       // Existing item org > super-admin root org > logged-in user org > first platform org
       const autoOrgId =
@@ -192,18 +193,23 @@ export const NewsModal: React.FC<NewsModalProps> = ({
         ) || [];
 
       if (textBlocks.length > 1) {
-        setSummary(textBlocks[0].content);
-        setContent(textBlocks.slice(1).map((b: any) => b.content).join('\n\n'));
+        setSummary(typeof textBlocks[0].content === 'string' ? textBlocks[0].content : getLocalizedText(textBlocks[0].content, language) || '');
+        setContent(textBlocks.slice(1).map((b: any) => typeof b.content === 'string' ? b.content : getLocalizedText(b.content, language) || '').join('\n\n'));
       } else if (textBlocks.length === 1) {
-        setSummary(item?.summary && item?.summary !== textBlocks[0].content ? item.summary : '');
-        setContent(textBlocks[0].content);
+        const textVal = typeof textBlocks[0].content === 'string' ? textBlocks[0].content : getLocalizedText(textBlocks[0].content, language) || '';
+        const rawSum = item?.summary && item?.summary !== textBlocks[0].content ? item.summary : '';
+        setSummary(typeof rawSum === 'string' ? rawSum : getLocalizedText(rawSum, language) || '');
+        setContent(textVal);
       } else {
-        setSummary(item?.summary || '');
-        setContent(item?.content || item?.description || '');
+        const rawSum = item?.summary || '';
+        setSummary(typeof rawSum === 'string' ? rawSum : getLocalizedText(rawSum, language) || '');
+        const rawCnt = item?.content || item?.description || '';
+        setContent(typeof rawCnt === 'string' ? rawCnt : getLocalizedText(rawCnt, language) || '');
       }
 
       // Event-specific fields
-      setLocationName(item?.location_name || item?.location?.venue || '');
+      const rawLoc = item?.location_name || item?.location?.venue || '';
+      setLocationName(typeof rawLoc === 'string' ? rawLoc : getLocalizedText(rawLoc, language) || '');
       setEventDate(
         item?.event_date
           ? item.event_date.split('T')[0]
@@ -218,13 +224,13 @@ export const NewsModal: React.FC<NewsModalProps> = ({
           ? item.endDate.split('T')[0]
           : ''
       );
-      setAudience(item?.audience || '');
+      setAudience(typeof item?.audience === 'string' ? item.audience : getLocalizedText(item?.audience, language) || '');
 
       setErrorMsg(null);
       setShowUrlInput(false);
       setUrlInputValue('');
     }
-  }, [isOpen, item?.id]);
+  }, [isOpen, item?.id, language]);
 
   // Automatically fill publishing organization (root org for super admin, home org for scoped users)
   useEffect(() => {
@@ -673,7 +679,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                       <Icon name="check" size={12} /> {
                         isSuperAdmin
                           ? `Defaulted to root organization (${getLocalizedText(defaultOrg?.name, language) || 'City Administration'})`
-                          : (userOrg ? `Pre-filled with your organization (${getLocalizedText(userOrg.name, language) || userOrg.name})` : 'Autofetched default organization')
+                          : (userOrg ? `Pre-filled with your organization (${getLocalizedText(userOrg.name, language) || (typeof userOrg.name === 'string' ? userOrg.name : 'Your Organization')})` : 'Autofetched default organization')
                       }
                     </span>
                     {defaultOrg && organizationId !== Number(defaultOrg.id) && (
@@ -694,7 +700,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
                           textDecoration: 'underline',
                         }}
                       >
-                        Reset to {isSuperAdmin ? 'root organization' : 'my organization'} ({getLocalizedText(defaultOrg.name, language) || defaultOrg.name})
+                        Reset to {isSuperAdmin ? 'root organization' : 'my organization'} ({getLocalizedText(defaultOrg.name, language) || (typeof defaultOrg.name === 'string' ? defaultOrg.name : 'City Administration')})
                       </button>
                     )}
                   </div>
@@ -1108,7 +1114,7 @@ export const NewsModal: React.FC<NewsModalProps> = ({
         </form>
       </section>
     </div>,
-    document.body
+    getModalContainer()
   );
 };
 

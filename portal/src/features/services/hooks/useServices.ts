@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { usePortal, usePermissions } from '../../shared';
+import { usePortal, usePermissions, useLanguage, getLocalizedText } from '../../shared';
 import type { RouteStep, ServiceItem } from '../../../types/portal.types';
 import {
   useGetServicesQuery,
@@ -36,6 +36,7 @@ export const useServices = ({
 }: UseServicesProps = {}) => {
   const portal = usePortal();
   const { hasPermission, isSuperAdmin } = usePermissions();
+  const { language } = useLanguage();
   const authUser = portal.authUser;
 
   const [serviceFilter, setServiceFilter] = useState<'All services' | 'Published' | 'Drafts'>('All services');
@@ -77,9 +78,10 @@ export const useServices = ({
     const subcities: typeof organizations = [];
     const bureaus: typeof organizations = [];
     organizations.forEach((org) => {
+      const orgName = (getLocalizedText(org.name, language) || (typeof org.name === 'string' ? org.name : '')).toLowerCase();
       const isSubcity =
         org.type?.code === 'sub_city' ||
-        org.name.toLowerCase().includes('sub-city');
+        orgName.includes('sub-city');
       if (isSubcity) {
         subcities.push(org);
       } else {
@@ -87,7 +89,7 @@ export const useServices = ({
       }
     });
     return { subcitiesList: subcities, bureausList: bureaus };
-  }, [organizations]);
+  }, [organizations, language]);
 
   const masterTreeNodes: MasterTreeNode[] = useMemo(() => {
     const services = apiServices?.data || [];
@@ -287,23 +289,32 @@ export const useServices = ({
 
     return masterTreeNodes
       .map((master) => {
+        const masterName = (getLocalizedText(master.name, language) || (typeof master.name === 'string' ? master.name : '')).toLowerCase();
+        const masterTitleAm = ((master as any).title_am && typeof (master as any).title_am === 'string' ? (master as any).title_am.toLowerCase() : '');
+        const masterCode = (master.code && typeof master.code === 'string' ? master.code.toLowerCase() : '');
+        const masterDesc = (getLocalizedText(master.description, language) || (typeof master.description === 'string' ? master.description : '')).toLowerCase();
+
         const matchesMasterText =
           !q ||
-          master.name.toLowerCase().includes(q) ||
-          ((master as any).title_am && (master as any).title_am.toLowerCase().includes(q)) ||
-          (master.code && master.code.toLowerCase().includes(q)) ||
-          (master.description && master.description.toLowerCase().includes(q));
+          masterName.includes(q) ||
+          masterTitleAm.includes(q) ||
+          masterCode.includes(q) ||
+          masterDesc.includes(q);
 
         const filteredChildren = master.children.filter((sub) => {
           if (serviceFilter === 'Published' && !sub.is_active) return false;
           if (serviceFilter === 'Drafts' && sub.is_active) return false;
 
           if (!q) return true;
+          const subName = (getLocalizedText(sub.name, language) || (typeof sub.name === 'string' ? sub.name : '')).toLowerCase();
+          const subTitleAm = ((sub as any).title_am && typeof (sub as any).title_am === 'string' ? (sub as any).title_am.toLowerCase() : '');
+          const subCode = (sub.code && typeof sub.code === 'string' ? sub.code.toLowerCase() : '');
+          const subDesc = (getLocalizedText(sub.description, language) || (typeof sub.description === 'string' ? sub.description : '')).toLowerCase();
           return (
-            sub.name.toLowerCase().includes(q) ||
-            ((sub as any).title_am && (sub as any).title_am.toLowerCase().includes(q)) ||
-            (sub.code && sub.code.toLowerCase().includes(q)) ||
-            (sub.description && sub.description.toLowerCase().includes(q))
+            subName.includes(q) ||
+            subTitleAm.includes(q) ||
+            subCode.includes(q) ||
+            subDesc.includes(q)
           );
         });
 
@@ -329,7 +340,7 @@ export const useServices = ({
         return null;
       })
       .filter((node): node is MasterTreeNode => node !== null);
-  }, [masterTreeNodes, search, serviceFilter]);
+  }, [masterTreeNodes, search, serviceFilter, language]);
 
   const items = useMemo(() => {
     if (propItems) return propItems;
@@ -344,16 +355,16 @@ export const useServices = ({
 
     return list.map((raw) => ({
       id: raw.id,
-      name: (raw as any).title || raw.name,
+      name: getLocalizedText((raw as any).title || raw.name, language) || (typeof ((raw as any).title || raw.name) === 'string' ? ((raw as any).title || raw.name) : ''),
       nameAm: (raw as any).title_am || raw.name_amh || '',
-      bureau: (raw as any).organizations?.[0]?.name || raw.organization?.name || (raw.is_master ? 'Master Category' : 'General Public Service'),
+      bureau: getLocalizedText((raw as any).organizations?.[0]?.name || raw.organization?.name, language) || (typeof ((raw as any).organizations?.[0]?.name || raw.organization?.name) === 'string' ? ((raw as any).organizations?.[0]?.name || raw.organization?.name) : (raw.is_master ? 'Master Category' : 'General Public Service')),
       category: raw.is_master ? 'Master Service' : 'Citizen Subservice',
       completion: raw.is_active ? 100 : 45,
       status: raw.is_active ? 'Published' : 'Draft',
       updated: (raw as any).updated_at ? new Date((raw as any).updated_at).toLocaleDateString() : 'Recently',
       raw,
     }));
-  }, [propItems, apiServices, serviceFilter]);
+  }, [propItems, apiServices, serviceFilter, language]);
 
   const filteredItems = useMemo(() => {
     if (!search.trim()) return items;

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useLanguage } from '../../i18n/i18nContext';
-import { getLocalizedText } from '../../i18n/utils/getLocalized';
-import { Icon } from '../shared/Icon';
-import { SearchBox } from '../shared/SearchBox';
-import type { AccountItem } from '../../types/portal.types';
+import { useLanguage, getLocalizedText } from '../i18n';
+import { Icon } from '../components/Icon';
+import { SearchBox } from '../components/SearchBox';
+import { getModalContainer } from '../utils/portalRoot';
+import type { AccountItem } from '../../../types/portal.types';
 import {
   useGetRolesQuery,
   useGetRoleByIdQuery,
@@ -53,64 +53,6 @@ interface RoleOption {
   description: string;
   isSystem: boolean;
 }
-
-const DEFAULT_ROLE_OPTIONS: RoleOption[] = [
-  {
-    id: 1,
-    name: 'Super Admin',
-    slug: 'super_admin',
-    scope: 'Platform-wide (Root)',
-    scopeTone: '#047857',
-    scopeBg: '#ecfdf5',
-    scopeBorder: '#a7f3d0',
-    description: 'Platform-wide administrator with full authority across all modules and sub-cities.',
-    isSystem: true,
-  },
-  {
-    id: 2,
-    name: 'Sub-City Admin',
-    slug: 'sub_city_admin',
-    scope: 'Sub-City Jurisdiction',
-    scopeTone: '#1d4ed8',
-    scopeBg: '#eff6ff',
-    scopeBorder: '#bfdbfe',
-    description: 'Sub-City administrator managing own chartered jurisdiction and child Woredas/Bureaus.',
-    isSystem: true,
-  },
-  {
-    id: 3,
-    name: 'Woreda Admin',
-    slug: 'woreda_admin',
-    scope: 'Woreda District',
-    scopeTone: '#6d28d9',
-    scopeBg: '#f5f3ff',
-    scopeBorder: '#ddd6fe',
-    description: 'Local Woreda district administrator managing community inquiries, desks, and queues.',
-    isSystem: true,
-  },
-  {
-    id: 4,
-    name: 'Bureau Admin',
-    slug: 'bureau_admin',
-    scope: 'Bureau / Sector',
-    scopeTone: '#b45309',
-    scopeBg: '#fffbeb',
-    scopeBorder: '#fde68a',
-    description: 'Sectoral bureau administrator managing service guides, room routes, and desk operators.',
-    isSystem: true,
-  },
-  {
-    id: 5,
-    name: 'Staff',
-    slug: 'staff',
-    scope: 'Operational Desk',
-    scopeTone: '#475569',
-    scopeBg: '#f8fafc',
-    scopeBorder: '#e2e8f0',
-    description: 'Front-desk attendant receiving citizen visits, checking documents, and updating room steps.',
-    isSystem: true,
-  },
-];
 
 const ROLE_FALLBACK_PERMISSION_KEYS: Record<string, string[]> = {
   super_admin: [],
@@ -217,32 +159,34 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
 
         return {
           id: r.id,
-          name: r.name,
+          name: getLocalizedText(r.name, language) || (typeof r.name === 'string' ? r.name : r.slug),
           slug: r.slug,
           scope,
           scopeTone,
           scopeBg,
           scopeBorder,
-          description: r.description || 'Configurable administrative role.',
+          description: getLocalizedText(r.description, language) || (typeof r.description === 'string' ? r.description : 'Configurable administrative role.'),
           isSystem: r.is_system,
         };
       });
     }
     return [];
-  }, [rolesResponse]);
+  }, [rolesResponse, language]);
 
   // Determine initial role ID
   const [selectedRoleId, setSelectedRoleId] = useState<number>(() => {
     if (!user) return 0;
     if (user.roleId) return user.roleId;
+    const userRoleLower = (typeof user.role === 'string' ? user.role : getLocalizedText(user.role, language) || '').toLowerCase();
     const match = roleOptions.find(
-      (r) => r.name.toLowerCase() === user.role.toLowerCase() || r.slug === user.role.toLowerCase()
+      (r) => r.name.toLowerCase() === userRoleLower || r.slug === userRoleLower
     );
     return match ? match.id : (roleOptions[0]?.id || 0);
   });
 
+  const userRoleStr = (typeof user?.role === 'string' ? user.role : getLocalizedText(user?.role, language) || '').toLowerCase();
   const currentRoleObj = roleOptions.find(
-    (r) => r.name.toLowerCase() === user?.role.toLowerCase() || r.slug === user?.role.toLowerCase() || r.id === user?.roleId
+    (r) => r.name.toLowerCase() === userRoleStr || r.slug === userRoleStr || r.id === user?.roleId
   );
   const selectedRoleObj = roleOptions.find((r) => r.id === selectedRoleId) || currentRoleObj || roleOptions[0];
 
@@ -301,14 +245,15 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
       if (user.roleId) {
         initialRoleId = user.roleId;
       } else {
+        const uRoleLower = (typeof user.role === 'string' ? user.role : getLocalizedText(user.role, language) || '').toLowerCase();
         const match = roleOptions.find(
-          (r) => r.name.toLowerCase() === user.role.toLowerCase() || r.slug === user.role.toLowerCase()
+          (r) => r.name.toLowerCase() === uRoleLower || r.slug === uRoleLower
         );
         initialRoleId = match ? match.id : 2;
       }
       setSelectedRoleId(initialRoleId);
     }
-  }, [user, roleOptions]);
+  }, [user, roleOptions, language]);
 
   // When default permissions for the role change, set active child user permissions
   useEffect(() => {
@@ -323,16 +268,22 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
     const q = permissionSearch.toLowerCase().trim();
     return allPermissions.filter((p) => {
       const domainObj = DOMAIN_GROUPS.find((d) => d.id === p.group);
+      const pName = (getLocalizedText(p.name, language) || (typeof p.name === 'string' ? p.name : '')).toLowerCase();
+      const pDesc = (getLocalizedText(p.description, language) || (typeof p.description === 'string' ? p.description : '')).toLowerCase();
       return (
-        p.name.toLowerCase().includes(q) ||
+        pName.includes(q) ||
         p.key.toLowerCase().includes(q) ||
-        (p.description && p.description.toLowerCase().includes(q)) ||
+        pDesc.includes(q) ||
         (domainObj && domainObj.label.toLowerCase().includes(q))
       );
     });
-  }, [allPermissions, permissionSearch]);
+  }, [allPermissions, permissionSearch, language]);
 
   if (!isOpen || !user) return null;
+
+  const userName = (typeof user.name === 'string' ? user.name : getLocalizedText(user.name, language)) || 'User';
+  const userRole = (typeof user.role === 'string' ? user.role : getLocalizedText(user.role, language)) || 'Staff';
+  const userOrg = (typeof user.organization === 'string' ? user.organization : getLocalizedText(user.organization, language)) || 'Unassigned';
 
   /**
    * Toggles permission state for the child user
@@ -341,12 +292,13 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
     const isGranted = activePermissionIds.includes(perm.id);
     const nextGranted = !isGranted;
     const actionWord = nextGranted ? 'Granting' : 'Revoking';
+    const permDisplayName = getLocalizedText(perm.name, language) || (typeof perm.name === 'string' ? perm.name : perm.key);
 
     setSyncingPermId(perm.id);
     setStatusMessage({
       type: 'syncing',
-      text: `Changing state: ${actionWord} "${perm.name}" (${perm.key}) for ${user.name}...`,
-      permName: perm.name,
+      text: `Changing state: ${actionWord} "${permDisplayName}" (${perm.key}) for ${userName}...`,
+      permName: permDisplayName,
     });
 
     const nextIds = isGranted
@@ -358,13 +310,13 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
     setTimeout(() => {
       setStatusMessage({
         type: 'success',
-        text: `State updated: Permission "${perm.name}" is now ${nextGranted ? 'granted to' : 'revoked from'} ${user.name}.`,
-        permName: perm.name,
+        text: `State updated: Permission "${permDisplayName}" is now ${nextGranted ? 'granted to' : 'revoked from'} ${userName}.`,
+        permName: permDisplayName,
       });
       setSyncingPermId(null);
 
       setTimeout(() => {
-        setStatusMessage((curr) => (curr?.permName === perm.name ? null : curr));
+        setStatusMessage((curr) => (curr?.permName === permDisplayName ? null : curr));
       }, 3500);
     }, 280);
   };
@@ -377,7 +329,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
     setActivePermissionIds(allIds);
     setStatusMessage({
       type: 'success',
-      text: `Granted all ${allIds.length} system permissions to ${user.name}.`,
+      text: `Granted all ${allIds.length} system permissions to ${userName}.`,
     });
     setTimeout(() => setStatusMessage(null), 3500);
   };
@@ -389,7 +341,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
     setActivePermissionIds([]);
     setStatusMessage({
       type: 'success',
-      text: `Revoked all permissions from ${user.name}. (Access suspended)`,
+      text: `Revoked all permissions from ${userName}. (Access suspended)`,
     });
     setTimeout(() => setStatusMessage(null), 3500);
   };
@@ -401,7 +353,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
     setActivePermissionIds(defaultRolePermissionIds);
     setStatusMessage({
       type: 'success',
-      text: `Reset permissions for ${user.name} to ${selectedRoleObj.name} standard (${defaultRolePermissionIds.length} active).`,
+      text: `Reset permissions for ${userName} to ${selectedRoleObj.name} standard (${defaultRolePermissionIds.length} active).`,
     });
     setTimeout(() => setStatusMessage(null), 3500);
   };
@@ -450,17 +402,12 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
       if (onRoleUpdated) {
         onRoleUpdated(user, selectedRoleObj.name, selectedRoleObj.id, activePermissionIds);
       }
-      setFeedbackSuccess(`Role and ${activePermissionIds.length} permissions saved locally for "${user.name}".`);
+      setFeedbackSuccess(`Role and ${activePermissionIds.length} permissions saved locally for "${userName}".`);
       setTimeout(() => {
         onClose();
       }, 700);
     }
   };
-
-  const isRoleOrPermChanged =
-    currentRoleObj?.id !== selectedRoleId ||
-    activePermissionIds.length !== defaultRolePermissionIds.length ||
-    activePermissionIds.some((id) => !defaultRolePermissionIds.includes(id));
 
   return createPortal(
     <div
@@ -471,7 +418,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
         className="modal-card modal-form"
         role="dialog"
         aria-modal="true"
-        aria-label={`Edit role and permissions for ${user.name}`}
+        aria-label={`Edit role and permissions for ${userName}`}
         style={{
           maxWidth: '1020px',
           width: '96%',
@@ -586,17 +533,19 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
                     flexShrink: 0,
                   }}
                 >
-                  {user.name
+                  {userName
                     .split(' ')
                     .map((n) => n[0])
+                    .filter(Boolean)
+                    .slice(0, 2)
                     .join('')
-                    .toUpperCase()}
+                    .toUpperCase() || 'U'}
                 </span>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <b style={{ fontSize: '14.5px', color: '#0f172a' }}>{user.name}</b>
+                    <b style={{ fontSize: '14.5px', color: '#0f172a' }}>{userName}</b>
                     <code style={{ fontSize: '11px', color: '#64748b', background: '#e2e8f0', padding: '1px 6px', borderRadius: '4px' }}>
-                      @{user.username}
+                      @{user.username || 'user'}
                     </code>
                     <span
                       style={{
@@ -612,8 +561,8 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
                     </span>
                   </div>
                   <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '3px' }}>
-                    {getLocalizedText(user.organization, language) || user.organization} · {t('common.status', 'Status')}: <strong style={{ color: user.status === 'Active' ? '#16a34a' : '#64748b' }}>{user.status === 'Active' ? t('common.active', 'Active') : t('common.inactive', 'Inactive')}</strong> · {t('accounts.tableRole', 'Role')}:{' '}
-                    <strong>{user.role}</strong>
+                    {userOrg} · {t('common.status', 'Status')}: <strong style={{ color: user.status === 'Active' ? '#16a34a' : '#64748b' }}>{user.status === 'Active' ? t('common.active', 'Active') : t('common.inactive', 'Inactive')}</strong> · {t('accounts.tableRole', 'Role')}:{' '}
+                    <strong>{userRole}</strong>
                   </div>
                 </div>
               </div>
@@ -1063,7 +1012,7 @@ export const EditUserRoleModal: React.FC<EditUserRoleModalProps> = ({
         `}</style>
       </section>
     </div>,
-    document.body
+    getModalContainer()
   );
 };
 

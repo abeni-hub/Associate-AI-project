@@ -1,6 +1,5 @@
 import React from 'react';
-import { Icon } from '../../shared';
-import { StatusPill } from '../../shared';
+import { Icon, StatusPill, useLanguage, getLocalizedText } from '../../shared';
 import { QREmptyState } from './QREmptyState';
 import type { QRTableProps } from '../types/qrCodes.types';
 import styles from '../styles/qrCodes.module.css';
@@ -13,6 +12,7 @@ export const QRTable: React.FC<QRTableProps> = ({
   onPreview,
   onDelete,
 }) => {
+  const { language } = useLanguage();
   if (items.length === 0) {
     return <QREmptyState hasPosters={false} />;
   }
@@ -41,11 +41,13 @@ export const QRTable: React.FC<QRTableProps> = ({
               >
                 <td>
                   <span className={styles.codeText}>{qr.code}</span>
-                  <p className={styles.labelText}>{qr.label}</p>
+                  <p className={styles.labelText}>
+                    {getLocalizedText(qr.label, language) || (typeof qr.label === 'string' ? qr.label : '')}
+                  </p>
                 </td>
                 <td>
                   <span className={styles.officeName}>
-                    {qr.organization?.name || 'Public Bureau'}
+                    {getLocalizedText(qr.organization?.name, language) || (typeof qr.organization?.name === 'string' ? qr.organization.name : 'Public Bureau')}
                   </span>
                   <span className={styles.officeCode}>
                     {qr.organization?.code || 'bureau'}

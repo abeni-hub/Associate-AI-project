@@ -5,6 +5,9 @@
     "documents": "Waraqaalee Barbaachisan",
     "routes": "Bakkeewwan Waajjiraa",
     "offices": "Waajjiraalee & Galmee",
+    "subcities": "Waajjiraalee & Galmee",
+    "bureaus": "Waajjiraalee & Galmee",
+    "organizations": "Waajjiraalee & Galmee",
     "feedback": "Yaada Lammiilee",
     "qr": "Koodii QR Yaadaa",
     "news": "Oduu fi Sagantaalee",
@@ -747,5 +750,23 @@
     "configuredRoutes": "Tarkaanfiiwwan Qindaa'an",
     "coverage": "Hamma Dhaqqabummaa",
     "searchPlaceholder": "Tajaajila, lakkoofsa kutaa, darbii, waajjira barbaadi..."
+  },
+  "office": {
+    "eyebrow": "QINDDAA'INA BIYROO",
+    "title": "Ibsa biiroo",
+    "subtitle": "Odeeffannoo biiroo keessanii lammiilee tajaajiltaniif ifaa fi walsimsiisaa godhaa.",
+    "editProfile": "Ibsa gulaali",
+    "activeBureau": "BIIROO HOJIRRA JIRU",
+    "publicOffice": "BIIROO UMMATAA",
+    "serviceHours": "SA'AATII TAJAAJILA UMMATAA",
+    "location": "BAKKA",
+    "administrator": "BULCHAA BIIROO",
+    "publicContact": "QUUNNAMTII UMMATAA",
+    "reviewNote": "Jijjiiramoonni ibsa ummataa maxxanfamuu dura bulchaa kifle katamaa keessaniin ilaalamaa ta'uu qaba.",
+    "supportDesc": "Tajaajila ummataa, mirkaneessaa fi heyyama bulchiinsaatiif deeggarsa.",
+    "defaultHours": "Wiixata – Jimmata · 2:30 WD – 11:30 WB",
+    "defaultBureau": "Biiroo Tajaajila Ummataa",
+    "defaultLocation": "Bulchiinsa Magaalaa Finfinnee",
+    "defaultAdmin": "Bulchaa Biiroo"
   }
 }

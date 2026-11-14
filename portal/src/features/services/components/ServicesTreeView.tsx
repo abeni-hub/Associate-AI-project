@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, StatusPill } from '../../shared';
+import { Icon, StatusPill, useLanguage, getLocalizedText } from '../../shared';
 import type { MasterTreeNode } from '../hooks/useServices';
 
 export interface ServicesTreeViewProps {
@@ -33,6 +33,7 @@ export const ServicesTreeView: React.FC<ServicesTreeViewProps> = ({
   handleOpenRoute,
   isLoading,
 }) => {
+  const { language } = useLanguage();
   return (
     <section className="service-tree-container">
       {filteredTreeNodes.map((master) => {
@@ -65,12 +66,14 @@ export const ServicesTreeView: React.FC<ServicesTreeViewProps> = ({
                     <span className="master-code-badge">{master.code}</span>
                     {master.organization && (
                       <span className="master-bureau-badge">
-                        🏛 {master.organization.name}
+                        🏛 {getLocalizedText(master.organization.name, language) || (typeof master.organization.name === 'string' ? master.organization.name : '')}
                       </span>
                     )}
                     <StatusPill>{master.is_active ? 'Active' : 'Inactive'}</StatusPill>
                   </div>
-                  <h3 className="master-node-title">{master.name}</h3>
+                  <h3 className="master-node-title">
+                    {getLocalizedText(master.name, language) || (typeof master.name === 'string' ? master.name : '')}
+                  </h3>
                   {master.description && (
                     <p
                       style={{
@@ -80,7 +83,7 @@ export const ServicesTreeView: React.FC<ServicesTreeViewProps> = ({
                         maxWidth: '750px',
                       }}
                     >
-                      {master.description}
+                      {getLocalizedText(master.description, language) || (typeof master.description === 'string' ? master.description : '')}
                     </p>
                   )}
                 </div>
@@ -127,7 +130,7 @@ export const ServicesTreeView: React.FC<ServicesTreeViewProps> = ({
                     <button
                       className="button secondary small-button"
                       style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
-                      onClick={() => handleDelete(master.id, master.name)}
+                      onClick={() => handleDelete(master.id, getLocalizedText(master.name, language) || (typeof master.name === 'string' ? master.name : ''))}
                       title="Delete master service"
                     >
                       <Icon name="trash" size={13} />
@@ -176,11 +179,13 @@ export const ServicesTreeView: React.FC<ServicesTreeViewProps> = ({
                               >
                                 {subservice.code}
                               </span>
-                              <h4 className="tree-subservice-title">{subservice.name}</h4>
+                              <h4 className="tree-subservice-title">
+                                {getLocalizedText(subservice.name, language) || (typeof subservice.name === 'string' ? subservice.name : '')}
+                              </h4>
                               <StatusPill>{subservice.is_active ? 'Active' : 'Inactive'}</StatusPill>
                             </div>
                             <p className="tree-subservice-desc">
-                              {subservice.description || 'Public municipal citizen service.'}
+                              {getLocalizedText(subservice.description, language) || (typeof subservice.description === 'string' ? subservice.description : 'Public municipal citizen service.')}
                             </p>
 
                             {/* Specification Badges */}
@@ -199,7 +204,7 @@ export const ServicesTreeView: React.FC<ServicesTreeViewProps> = ({
                               <span
                                 className="tree-badge"
                                 title={
-                                  subservice.required_documents?.map((d: any) => d.name).join(', ') ||
+                                  subservice.required_documents?.map((d: any) => getLocalizedText(d.name, language) || (typeof d.name === 'string' ? d.name : '')).join(', ') ||
                                   'Required documents'
                                 }
                               >
@@ -209,7 +214,7 @@ export const ServicesTreeView: React.FC<ServicesTreeViewProps> = ({
                               <span
                                 className="tree-badge"
                                 title={
-                                  subservice.offering_organizations?.map((o: any) => o.name).join(', ') ||
+                                  subservice.offering_organizations?.map((o: any) => getLocalizedText(o.name, language) || (typeof o.name === 'string' ? o.name : '')).join(', ') ||
                                   'Delivery offices'
                                 }
                               >
@@ -252,7 +257,7 @@ export const ServicesTreeView: React.FC<ServicesTreeViewProps> = ({
                               <button
                                 className="button secondary small-button"
                                 style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
-                                onClick={() => handleDelete(subservice.id, subservice.name)}
+                                onClick={() => handleDelete(subservice.id, getLocalizedText(subservice.name, language) || (typeof subservice.name === 'string' ? subservice.name : ''))}
                                 title="Delete subservice"
                               >
                                 <Icon name="trash" size={13} />

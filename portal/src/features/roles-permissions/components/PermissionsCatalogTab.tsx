@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon } from '../../shared';
+import { Icon, useLanguage, getLocalizedText } from '../../shared';
 import { DOMAIN_GROUPS } from '../constants';
 import type { PermissionItem } from '../api/rolesApi';
 
@@ -42,6 +42,7 @@ export const PermissionsCatalogTab: React.FC<PermissionsCatalogTabProps> = ({
   handleToggleDomainAll,
   handleToggleDomainPermission,
 }) => {
+  const { language } = useLanguage();
   const hasActivePermFilters =
     searchQuery.trim().length > 0 || selectedDomainFilter !== 'all' || statusFilter !== 'all';
 
@@ -484,7 +485,7 @@ export const PermissionsCatalogTab: React.FC<PermissionsCatalogTabProps> = ({
                                   color: isGranted ? '#14532d' : '#1e293b',
                                 }}
                               >
-                                {perm.name}
+                                {getLocalizedText(perm.name, language) || (typeof perm.name === 'string' ? perm.name : perm.key)}
                               </span>
                               <code
                                 style={{
@@ -506,7 +507,7 @@ export const PermissionsCatalogTab: React.FC<PermissionsCatalogTabProps> = ({
                                 lineHeight: 1.4,
                               }}
                             >
-                              {perm.description}
+                              {getLocalizedText(perm.description, language) || (typeof perm.description === 'string' ? perm.description : '')}
                             </p>
                           </div>
                         </div>

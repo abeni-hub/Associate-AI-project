@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../Icon';
+import { getModalContainer } from '../../utils/portalRoot';
 import type { ModalShellProps } from './ModalShell.types';
 import styles from './ModalShell.module.css';
 
@@ -70,7 +71,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
         {footer && <footer className={styles.footer}>{footer}</footer>}
       </section>
     </div>,
-    document.body
+    getModalContainer()
   );
 };
 

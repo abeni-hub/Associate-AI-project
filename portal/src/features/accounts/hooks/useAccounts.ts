@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { usePortal, usePermissions } from '../../shared';
+import { usePortal, usePermissions, useLanguage, getLocalizedText } from '../../shared';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import type { AccountItem } from '../../../types/portal.types';
 import type {
@@ -28,6 +28,7 @@ import {
 export const useAccounts = (props?: AccountsPageProps) => {
   const portal = usePortal();
   const dispatch = useAppDispatch();
+  const { language } = useLanguage();
 
   const reduxSearch = useAppSelector(selectAccountsSearch);
   const roleFilter = useAppSelector(selectAccountsRoleFilter);
@@ -51,16 +52,18 @@ export const useAccounts = (props?: AccountsPageProps) => {
     if (usersResponse?.data) {
       return usersResponse.data.map((u) => ({
         id: u.id,
-        name: u.name,
+        name: getLocalizedText(u.name, language) || (typeof u.name === 'string' ? u.name : 'User'),
         username: u.username,
         email: u.email,
         phone: u.phone || undefined,
-        role: u.role?.name || 'Staff',
+        role: getLocalizedText(u.role?.name, language) || (typeof u.role?.name === 'string' ? u.role.name : 'Staff'),
         role_id: u.role?.id,
         roleId: u.role?.id,
         organization:
-          u.organization?.name ||
-          (u.role?.slug === 'super_admin' ? 'Global Platform' : 'Unassigned'),
+          getLocalizedText(u.organization?.name, language) ||
+          (typeof u.organization?.name === 'string'
+            ? u.organization.name
+            : (u.role?.slug === 'super_admin' ? 'Global Platform' : 'Unassigned')),
         organization_id: u.organization?.id,
         status: u.status === 'active' ? 'Active' : 'Inactive',
         lastActive: u.last_login_at
@@ -73,7 +76,7 @@ export const useAccounts = (props?: AccountsPageProps) => {
     }
 
     return [];
-  }, [props?.items, usersResponse]);
+  }, [props?.items, usersResponse, language]);
 
   const selectedAccountForEdit = useMemo(() => {
     if (!selectedAccountId) return null;
@@ -117,9 +120,10 @@ export const useAccounts = (props?: AccountsPageProps) => {
   };
 
   const handleDeleteUser = async (user: AccountItem) => {
+    const displayName = getLocalizedText(user.name, language) || (typeof user.name === 'string' ? user.name : 'User');
     if (
       window.confirm(
-        `Are you sure you want to delete administrator account "${user.name}" (@${user.username})?`
+        `Are you sure you want to delete administrator account "${displayName}" (@${user.username})?`
       )
     ) {
       try {

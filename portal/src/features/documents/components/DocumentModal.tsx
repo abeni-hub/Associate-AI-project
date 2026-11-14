@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../../shared';
+import { Icon, getModalContainer } from '../../shared';
 import { useLanguage, getLocalizedText } from '../../shared/i18n';
 import type { DocumentItem } from '../api/documentsApi';
 
@@ -301,6 +301,6 @@ export const DocumentModal: React.FC<DocumentModalProps> = ({
         </form>
       </section>
     </div>,
-    window.document.body
+    getModalContainer()
   );
 };

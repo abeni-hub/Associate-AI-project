@@ -26,4 +26,5 @@ export * from './api/notificationsApi';
 export * from './components/Brand/BrandMark';
 export * from './hooks/usePortal';
 export * from './hooks/usePermissions';
+export * from './utils/portalRoot';
 export * from './i18n';

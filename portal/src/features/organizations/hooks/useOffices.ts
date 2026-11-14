@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { usePortal, usePermissions } from '../../shared';
+import { usePortal, usePermissions, useLanguage, getLocalizedText } from '../../shared';
 import { getOfficeParentSummary } from '../components/officeHierarchy';
 import type { OfficeItem, OfficeType } from '../../../types/portal.types';
 import {
@@ -32,6 +32,7 @@ export const useOffices = (options: UseOfficesOptions = {}) => {
   } = options;
 
   const portal = usePortal();
+  const { language } = useLanguage();
   const [internalSearch, setInternalSearch] = useState('');
   const [selectedTypeId, setSelectedTypeId] = useState<string>('all');
   const [selectedView, setSelectedView] = useState<'list' | 'tree'>('list');
@@ -50,14 +51,14 @@ export const useOffices = (options: UseOfficesOptions = {}) => {
     if (apiOrgTypes?.data) {
       return apiOrgTypes.data.map((t) => ({
         id: t.id,
-        name: t.name,
+        name: getLocalizedText(t.name, language) || (typeof t.name === 'string' ? t.name : t.code),
         level: t.level,
         can_be_root: t.can_be_root,
-        description: t.description || '',
+        description: getLocalizedText(t.description, language) || (typeof t.description === 'string' ? t.description : ''),
       }));
     }
     return [];
-  }, [propOfficeTypes, apiOrgTypes]);
+  }, [propOfficeTypes, apiOrgTypes, language]);
 
   const offices: OfficeItem[] = useMemo(() => {
     if (propOffices && propOffices.length > 0) return propOffices;
@@ -69,22 +70,23 @@ export const useOffices = (options: UseOfficesOptions = {}) => {
       return apiOrgs.data.map((o: any) => {
         const typeFromRef = o.type || typesById.get(Number(o.organization_type_id || 0));
         const resolvedTypeId = Number(typeFromRef?.id || o.organization_type_id || (typesList[0]?.id ?? 1));
-        const resolvedTypeName = typeFromRef?.name || (resolvedTypeId === 1 ? 'Root Tier' : 'Office');
+        const rawTypeName = typeFromRef?.name ?? (resolvedTypeId === 1 ? 'Root Tier' : 'Office');
+        const resolvedTypeName = getLocalizedText(rawTypeName, language) || (typeof rawTypeName === 'string' ? rawTypeName : 'Office');
 
         return {
           id: o.id,
-          name: o.name,
+          name: getLocalizedText(o.name, language) || (typeof o.name === 'string' ? o.name : (o.code || 'Office')),
           code: o.code,
           logo: o.logo || null,
           typeId: resolvedTypeId,
           typeName: resolvedTypeName,
           typeCode: typeFromRef?.code || o.code,
           parentId: o.parent?.id ?? o.parent_organization_id ?? null,
-          parentName: o.parent?.name,
+          parentName: o.parent?.name ? (getLocalizedText(o.parent.name, language) || (typeof o.parent.name === 'string' ? o.parent.name : '')) : undefined,
           admin: o.email || o.phone || 'Administrative Desk',
           email: o.email || '',
           phone: o.phone || '',
-          address: o.address || '',
+          address: getLocalizedText(o.address, language) || (typeof o.address === 'string' ? o.address : ''),
           status: o.status === 'active' ? 'Active' : 'Inactive',
           services: o.services_count ?? 0,
           completion: 100,
@@ -93,7 +95,7 @@ export const useOffices = (options: UseOfficesOptions = {}) => {
       });
     }
     return [];
-  }, [propOffices, apiOrgs, apiOrgTypes]);
+  }, [propOffices, apiOrgs, apiOrgTypes, language]);
 
   const role = propRole || portal.role || 'super';
   const search = propSearch !== undefined ? propSearch : (portal.search !== undefined ? portal.search : internalSearch);

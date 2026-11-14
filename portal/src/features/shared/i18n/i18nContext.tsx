@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 import type { SupportedLanguage } from './utils/getLocalized';
 import { getLocalizedText } from './utils/getLocalized';
 import enTranslations from './translations/en.json';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, StatusPill } from '../../shared';
+import { Icon, StatusPill, useLanguage, getLocalizedText } from '../../shared';
 
 export interface ServicesTableViewProps {
   items: any[];
@@ -22,6 +22,7 @@ export const ServicesTableView: React.FC<ServicesTableViewProps> = ({
   onTogglePublish,
   isLoading,
 }) => {
+  const { language } = useLanguage();
   return (
     <section className="service-list">
       {items.map((item) => {
@@ -44,8 +45,8 @@ export const ServicesTableView: React.FC<ServicesTableViewProps> = ({
                   </span>
                   <StatusPill>{isPublished ? 'Active' : 'Inactive'}</StatusPill>
                 </div>
-                <h2>{item.name}</h2>
-                <p>{raw.description || 'Public government service.'}</p>
+                <h2>{getLocalizedText(item.name, language) || (typeof item.name === 'string' ? item.name : '')}</h2>
+                <p>{getLocalizedText(raw.description, language) || (typeof raw.description === 'string' ? raw.description : 'Public government service.')}</p>
                 <div className="service-meta">
                   <span>
                     <Icon name="check" size={14} /> {docs.length} required documents
@@ -59,7 +60,7 @@ export const ServicesTableView: React.FC<ServicesTableViewProps> = ({
                     {docs.slice(0, 3).map((d: any, idx: number) => (
                       <span key={d.id || idx}>
                         <Icon name="check" size={11} />
-                        {d.name}
+                        {getLocalizedText(d.name, language) || (typeof d.name === 'string' ? d.name : '')}
                       </span>
                     ))}
                     {docs.length > 3 && <small>+{docs.length - 3} more</small>}
@@ -82,7 +83,7 @@ export const ServicesTableView: React.FC<ServicesTableViewProps> = ({
                   type="button"
                   className="button secondary small-button"
                   style={{ color: '#e53e3e', borderColor: '#feb2b2' }}
-                  onClick={() => handleDelete(item.id, item.name)}
+                  onClick={() => handleDelete(item.id, getLocalizedText(item.name, language) || (typeof item.name === 'string' ? item.name : ''))}
                   title="Delete service standard"
                 >
                   Delete

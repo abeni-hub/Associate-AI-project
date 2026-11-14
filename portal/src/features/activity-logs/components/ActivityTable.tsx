@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon } from '../../shared';
+import { Icon, useLanguage, getLocalizedText } from '../../shared';
 
 export interface ActivityTableProps {
   filteredActivities: any[];
@@ -40,6 +40,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
   setCategoryFilter,
   setActionTypeFilter,
 }) => {
+  const { language } = useLanguage();
   return (
     <div className="panel activity-table-panel">
       <div className="table-scroll">
@@ -111,10 +112,10 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                           {event.actor?.avatar}
                         </span>
                         <div>
-                          <b>{event.actor?.name}</b>
+                          <b>{getLocalizedText(event.actor?.name, language) || (typeof event.actor?.name === 'string' ? event.actor.name : 'Administrator')}</b>
                           <small>
                             {event.actor?.username} ·{' '}
-                            <span className="role-subpill">{event.actor?.role}</span>
+                            <span className="role-subpill">{getLocalizedText(event.actor?.role, language) || (typeof event.actor?.role === 'string' ? event.actor.role : '')}</span>
                           </small>
                         </div>
                       </div>
@@ -143,9 +144,9 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({
                     {/* Resource / Target */}
                     <td>
                       <div className="activity-target-column">
-                        <b>{event.target?.name}</b>
+                        <b>{getLocalizedText(event.target?.name, language) || (typeof event.target?.name === 'string' ? event.target.name : '')}</b>
                         <div className="activity-target-meta">
-                          <small>{event.target?.jurisdiction}</small>
+                          <small>{getLocalizedText(event.target?.jurisdiction, language) || (typeof event.target?.jurisdiction === 'string' ? event.target.jurisdiction : '')}</small>
                         </div>
                       </div>
                     </td>

@@ -3,6 +3,7 @@ import { Icon } from '../components/Icon';
 import type { RouteItem, RouteStep, RouteModalConfig } from '../../../types/portal.types';
 import { useGetOrganizationsQuery } from '../../organizations/api/organizationsApi';
 import { useGetServiceStepsQuery } from '../../services/api/servicesApi';
+import { useLanguage, getLocalizedText } from '../i18n';
 
 export interface RouteEditorProps {
   route?: RouteItem;
@@ -19,7 +20,7 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({
 }) => {
   const route = propRoute || modal?.route;
   const onSave = propOnSave || modal?.onSave || (() => {});
-  const { language, t } = useLanguage();
+  const { language } = useLanguage();
 
   const { data: orgsResponse } = useGetOrganizationsQuery({ per_page: 100 });
   const organizations = useMemo(() => orgsResponse?.data || [], [orgsResponse]);
@@ -198,7 +199,7 @@ export const RouteEditor: React.FC<RouteEditorProps> = ({
             Physical Route & Room Guide
           </h2>
           <p style={{ margin: '2px 0 0', color: '#627c72', fontSize: '13px' }}>
-            <strong>{route.service}</strong> — Configure room numbers, floors, and departmental desks for citizen guidance.
+            <strong>{getLocalizedText(route.service, language) || (typeof route.service === 'string' ? route.service : '')}</strong> — Configure room numbers, floors, and departmental desks for citizen guidance.
           </p>
         </div>
         <button

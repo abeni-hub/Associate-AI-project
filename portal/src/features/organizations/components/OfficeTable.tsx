@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, SearchBox, StatusPill } from '../../shared';
+import { Icon, SearchBox, StatusPill, useLanguage, getLocalizedText } from '../../shared';
 import { OfficeHierarchyTree } from './OfficeHierarchyTree';
 import { getOfficeParentSummary } from './officeHierarchy';
 import type { OfficeItem, OfficeType } from '../../../types/portal.types';
@@ -43,6 +43,7 @@ export const OfficeTable: React.FC<OfficeTableProps> = ({
   onOpenEdit,
   onDeleteOffice,
 }) => {
+  const { language } = useLanguage();
   return (
     <section className="panel table-panel offices-panel">
       <div className="table-toolbar">
@@ -61,7 +62,7 @@ export const OfficeTable: React.FC<OfficeTableProps> = ({
             <option value="all">All classifications</option>
             {officeTypes.map((type: OfficeType) => (
               <option key={type.id} value={String(type.id)}>
-                {type.name}
+                {getLocalizedText(type.name, language) || (typeof type.name === 'string' ? type.name : '')}
               </option>
             ))}
           </select>
@@ -126,11 +127,11 @@ export const OfficeTable: React.FC<OfficeTableProps> = ({
                         <img
                           className="entity-icon"
                           src={item.logo || '/favicon.svg'}
-                          alt={`${item.name} logo`}
+                          alt={`${getLocalizedText(item.name, language) || (typeof item.name === 'string' ? item.name : '')} logo`}
                           style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover' }}
                         />
                         <div>
-                          <b>{item.name}</b>
+                          <b>{getLocalizedText(item.name, language) || (typeof item.name === 'string' ? item.name : '')}</b>
                           {item.code && (
                             <small style={{ display: 'block', fontSize: '11px', color: '#64748b' }}>
                               Code: {item.code}
@@ -158,7 +159,7 @@ export const OfficeTable: React.FC<OfficeTableProps> = ({
                           display: 'inline-block',
                         }}
                       >
-                        {item.typeName || type?.name || (item.typeId === 1 ? 'Sub-City' : item.typeId === 2 ? 'Woreda' : 'Bureau')}
+                        {getLocalizedText(item.typeName || type?.name, language) || (typeof (item.typeName || type?.name) === 'string' ? (item.typeName || type?.name) : (item.typeId === 1 ? 'Sub-City' : item.typeId === 2 ? 'Woreda' : 'Bureau'))}
                       </span>
                     </td>
                     <td>

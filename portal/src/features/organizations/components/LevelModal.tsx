@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../../shared';
+import { Icon, getModalContainer } from '../../shared';
 import { useLanguage, getLocalizedText } from '../../shared/i18n';
 import type { OrganizationTypeItem } from '../api/organizationsApi';
 
@@ -215,7 +215,7 @@ export const LevelModal: React.FC<LevelModalProps> = ({
         </form>
       </section>
     </div>,
-    document.body
+    getModalContainer()
   );
 };
 

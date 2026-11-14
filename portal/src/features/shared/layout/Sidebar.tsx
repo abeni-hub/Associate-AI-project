@@ -4,7 +4,7 @@ import { Icon } from '../components/Icon';
 import { Brand } from '../components/Brand';
 import { usePortal } from '../hooks/usePortal';
 import { usePermissions } from '../hooks/usePermissions';
-import { useLanguage } from '../i18n';
+import { useLanguage, getLocalizedText } from '../i18n';
 import type { RoleKey } from '../../../types/portal.types';
 import { useGetSidebarNavigationQuery } from '../api/navigationApi';
 import { tokenStorage } from '../../../utils/tokenStorage';
@@ -60,7 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const portal = usePortal();
   const { hasPermission } = usePermissions();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const role = (propRole || portal.role || 'super') as RoleKey;
   const mobileOpen = propMobileOpen !== undefined ? propMobileOpen : portal.mobileOpen;
@@ -94,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             .replace(/^\/portal\/?/, '')
             .replace(/^\//, '') || 'overview';
 
-          if (pathId === 'organizations') pathId = 'subcities';
+          if (pathId === 'organizations' || pathId === 'subcities' || pathId === 'bureaus') pathId = 'offices';
           if (pathId === 'users') pathId = 'accounts';
           if (pathId === 'dashboard') pathId = 'overview';
 
@@ -140,17 +140,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [apiNavResponse, hasPermission, t]);
 
   const user = portal.session?.user || portal.authUser;
-  const displayName = user?.name || 'Administrator';
+  const displayName = (typeof user?.name === 'string' ? user.name : getLocalizedText(user?.name, language)) || 'Administrator';
   const displayRole = React.useMemo(() => {
+    const localizedRoleName = getLocalizedText(user?.role?.name, language) || (typeof user?.role?.name === 'string' ? user?.role?.name : '');
     const rawRole =
-      user?.role?.name ||
+      localizedRoleName ||
       (role === 'super' ? 'Super Admin' : role === 'subcity' ? 'Sub-City Admin' : 'Bureau Admin');
     const lower = String(rawRole).toLowerCase();
     if (lower.includes('super')) return t('roles.superAdmin', 'Super Admin');
     if (lower.includes('subcity') || lower.includes('sub-city')) return t('roles.subcityAdmin', 'Sub-city Admin');
     if (lower.includes('bureau')) return t('roles.bureauAdmin', 'Bureau Admin');
     return rawRole;
-  }, [user, role, t]);
+  }, [user, role, t, language]);
 
   const initials = displayName
     .split(' ')

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from '../../shared';
+import { Icon, useLanguage, getLocalizedText, getModalContainer } from '../../shared';
 import { useGetDocumentsQuery } from '../../documents';
 import { useGetOrganizationsQuery } from '../../organizations';
 import { useGetServicesQuery } from '../api/servicesApi';
@@ -32,6 +32,7 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
   onSave,
   isLoading = false,
 }) => {
+  const { language } = useLanguage();
   const { data: docsResponse, isLoading: isLoadingDocs } = useGetDocumentsQuery();
   const availableDocuments = useMemo(() => docsResponse?.data || [], [docsResponse]);
 
@@ -57,7 +58,7 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
     });
 
     organizations.forEach((o: any) => {
-      const oName = (typeof o.name === 'string' ? o.name : (o.name?.eng || o.name?.en || '')).toLowerCase();
+      const oName = (getLocalizedText(o.name, language) || (typeof o.name === 'string' ? o.name : '')).toLowerCase();
       const isSub =
         o.type?.code === 'sub_city' ||
         oName.includes('sub-city') ||
@@ -84,7 +85,7 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
       subcityHierarchy: subList,
       bureauHierarchy: burList,
     };
-  }, [organizations]);
+  }, [organizations, language]);
 
   const { data: allServicesResponse } = useGetServicesQuery({ per_page: 100 });
   const masterServices = useMemo(() => {
@@ -113,9 +114,11 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
     if (isOpen) {
       if (service) {
         const raw = service.raw || service;
-        setName(raw.name || service.name || '');
+        const initialName = typeof raw.name === 'string' ? raw.name : (getLocalizedText(raw.name, language) || service.name || '');
+        const initialDesc = typeof raw.description === 'string' ? raw.description : (getLocalizedText(raw.description, language) || service.description || '');
+        setName(initialName);
         setCode(raw.code || '');
-        setDescription(raw.description || service.description || '');
+        setDescription(initialDesc);
         setFeeAmount(raw.fee_amount !== undefined ? raw.fee_amount : 0);
         setEstimatedDuration(raw.estimated_duration_minutes !== undefined ? raw.estimated_duration_minutes : 30);
         setIsActive(raw.is_active !== undefined ? Boolean(raw.is_active) : (service.published ?? true));
@@ -222,8 +225,8 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
     const q = docSearch.toLowerCase();
     return availableDocuments.filter(
       (d) => {
-        const dName = (typeof d.name === 'string' ? d.name : ((d.name as any)?.eng || (d.name as any)?.en || '')).toLowerCase();
-        const dDesc = (typeof d.description === 'string' ? d.description : ((d.description as any)?.eng || (d.description as any)?.en || '')).toLowerCase();
+        const dName = (getLocalizedText(d.name, language) || (typeof d.name === 'string' ? d.name : '')).toLowerCase();
+        const dDesc = (getLocalizedText(d.description, language) || (typeof d.description === 'string' ? d.description : '')).toLowerCase();
         return (
           dName.includes(q) ||
           String(d.code || '').toLowerCase().includes(q) ||
@@ -231,7 +234,7 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
         );
       }
     );
-  }, [availableDocuments, docSearch]);
+  }, [availableDocuments, docSearch, language]);
 
   const selectedDocsCount = Object.keys(selectedDocs).length;
   const selectedOrgsCount = selectedOfferingOrgs.length;
@@ -639,7 +642,7 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                         <option value="">Select Parent Master Service Category...</option>
                         {masterServices.map((ms: any) => (
                           <option key={ms.id} value={ms.id}>
-                            🏛 {ms.name} ({ms.code})
+                            🏛 {getLocalizedText(ms.name, language) || (typeof ms.name === 'string' ? ms.name : '')} ({ms.code})
                           </option>
                         ))}
                       </select>
@@ -688,32 +691,44 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                     >
                       <option value="">Select Governing Organization (Required)...</option>
                       <optgroup label="🏛 Municipal Sub-cities & Local Offices">
-                        {subcityHierarchy.map((sub: any) => (
-                          <React.Fragment key={sub.id}>
-                            <option value={sub.id} style={{ fontWeight: 700 }}>
-                              🏛 {sub.name}
-                            </option>
-                            {sub.children?.map((child: any) => (
-                              <option key={child.id} value={child.id}>
-                                &nbsp;&nbsp;&nbsp;&nbsp;↳ {child.name} ({sub.name})
+                        {subcityHierarchy.map((sub: any) => {
+                          const subName = getLocalizedText(sub.name, language) || (typeof sub.name === 'string' ? sub.name : '');
+                          return (
+                            <React.Fragment key={sub.id}>
+                              <option value={sub.id} style={{ fontWeight: 700 }}>
+                                🏛 {subName}
                               </option>
-                            ))}
-                          </React.Fragment>
-                        ))}
+                              {sub.children?.map((child: any) => {
+                                const childName = getLocalizedText(child.name, language) || (typeof child.name === 'string' ? child.name : '');
+                                return (
+                                  <option key={child.id} value={child.id}>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;↳ {childName} ({subName})
+                                  </option>
+                                );
+                              })}
+                            </React.Fragment>
+                          );
+                        })}
                       </optgroup>
                       <optgroup label="🏢 Central Bureaus & Sector Agencies">
-                        {bureauHierarchy.map((bur: any) => (
-                          <React.Fragment key={bur.id}>
-                            <option value={bur.id} style={{ fontWeight: 700 }}>
-                              🏢 {bur.name}
-                            </option>
-                            {bur.children?.map((child: any) => (
-                              <option key={child.id} value={child.id}>
-                                &nbsp;&nbsp;&nbsp;&nbsp;↳ {child.name}
+                        {bureauHierarchy.map((bur: any) => {
+                          const burName = getLocalizedText(bur.name, language) || (typeof bur.name === 'string' ? bur.name : '');
+                          return (
+                            <React.Fragment key={bur.id}>
+                              <option value={bur.id} style={{ fontWeight: 700 }}>
+                                🏢 {burName}
                               </option>
-                            ))}
-                          </React.Fragment>
-                        ))}
+                              {bur.children?.map((child: any) => {
+                                const childName = getLocalizedText(child.name, language) || (typeof child.name === 'string' ? child.name : '');
+                                return (
+                                  <option key={child.id} value={child.id}>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;↳ {childName}
+                                  </option>
+                                );
+                              })}
+                            </React.Fragment>
+                          );
+                        })}
                       </optgroup>
                     </select>
                   </label>
@@ -901,7 +916,9 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                                   style={{ width: '16px', height: '16px', accentColor: '#00485a' }}
                                 />
                                 <div>
-                                  <b style={{ fontSize: '13.5px', color: '#0f172a' }}>{doc.name}</b>
+                                  <b style={{ fontSize: '13.5px', color: '#0f172a' }}>
+                                    {getLocalizedText(doc.name, language) || (typeof doc.name === 'string' ? doc.name : '')}
+                                  </b>
                                   <span
                                     style={{
                                       marginLeft: '8px',
@@ -1098,7 +1115,7 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                                 }}
                                 style={{ width: '16px', height: '16px', accentColor: '#00485a' }}
                               />
-                              <span>🏛 {sub.name}</span>
+                              <span>🏛 {getLocalizedText(sub.name, language) || (typeof sub.name === 'string' ? sub.name : '')}</span>
                             </label>
 
                             {sub.children && sub.children.length > 0 && (
@@ -1132,7 +1149,7 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                                         }}
                                         style={{ accentColor: '#00485a' }}
                                       />
-                                      <span>↳ {child.name}</span>
+                                      <span>↳ {getLocalizedText(child.name, language) || (typeof child.name === 'string' ? child.name : '')}</span>
                                     </label>
                                   );
                                 })}
@@ -1186,7 +1203,7 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                                 }}
                                 style={{ accentColor: '#00485a' }}
                               />
-                              <span>{org.name}</span>
+                              <span>{getLocalizedText(org.name, language) || (typeof org.name === 'string' ? org.name : '')}</span>
                             </label>
                           );
                         })}
@@ -1238,7 +1255,7 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
         </form>
       </section>
     </div>,
-    window.document.body
+    getModalContainer()
   );
 };
 

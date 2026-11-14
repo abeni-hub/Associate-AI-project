@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { usePortal } from '../hooks/usePortal';
-import { useLanguage } from '../i18n';
+import { useLanguage, getLocalizedText } from '../i18n';
 import { Icon } from '../components/Icon';
 import { QRPattern } from '../components/QRPattern';
 import type { QRModalConfig } from '../../../types/portal.types';
@@ -49,7 +49,8 @@ export const QRDialog: React.FC<QRDialogProps> = ({
       org: org.code || String(org.id),
       bureau: String(org.id),
     });
-    const subCityName = org.parent?.name || (org.type?.code === 'sub_city' ? org.name : '');
+    const rawSubCity = org.parent?.name || (org.type?.code === 'sub_city' ? org.name : '');
+    const subCityName = typeof rawSubCity === 'string' ? rawSubCity : getLocalizedText(rawSubCity, language) || '';
     if (subCityName) {
       params.set('sub_city', subCityName);
     }
@@ -260,12 +261,13 @@ export const QRDialog: React.FC<QRDialogProps> = ({
           >
             {organizations.length === 0 && (
               <option value={effectiveOrgId}>
-                {getLocalizedText(userOrg?.name, language) || t('qr.defaultOrg', 'Default Administrative Office')}
+                {getLocalizedText(userOrg?.name, language) || (typeof userOrg?.name === 'string' ? userOrg.name : '') || t('qr.defaultOrg', 'Default Administrative Office')}
               </option>
             )}
             {organizations.map((org) => {
-              const orgName = getLocalizedText(org.name, language);
-              const orgTypeName = org.type?.name ? getLocalizedText(org.type.name, language) : org.code;
+              const orgName = getLocalizedText(org.name, language) || (typeof org.name === 'string' ? org.name : 'Office');
+              const rawTypeName = org.type?.name;
+              const orgTypeName = rawTypeName ? (getLocalizedText(rawTypeName, language) || (typeof rawTypeName === 'string' ? rawTypeName : '')) : (org.code || '');
               return (
                 <option key={org.id} value={org.id}>
                   {orgName} {orgTypeName ? `(${orgTypeName})` : ''}

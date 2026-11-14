@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Icon } from '../../shared';
+import { Icon, useLanguage, getLocalizedText } from '../../shared';
 import type { OfficeItem, OfficeType } from '../../../types/portal.types';
 
 export interface OfficeTreeNode {
@@ -366,12 +366,12 @@ const TreeNodeCard: React.FC<TreeNodeCardProps> = ({
             </div>
 
             <h3 className="text-base font-extrabold text-slate-900 truncate">
-              {getLocalizedText(office.name, language) || office.name}
+              {getLocalizedText(office.name, language) || (typeof office.name === 'string' ? office.name : '')}
             </h3>
 
             {office.address && (
               <p className="text-xs text-slate-500 truncate mt-0.5">
-                {getLocalizedText(office.address, language) || office.address}
+                {getLocalizedText(office.address, language) || (typeof office.address === 'string' ? office.address : '')}
               </p>
             )}
           </div>
@@ -384,7 +384,7 @@ const TreeNodeCard: React.FC<TreeNodeCardProps> = ({
               type="button"
               onClick={() => onEdit(office)}
               className="p-1.5 text-slate-400 hover:text-[#064552] hover:bg-white rounded-lg transition-colors border border-transparent hover:border-slate-200"
-              title={`Edit ${office.name}`}
+              title={`Edit ${getLocalizedText(office.name, language) || (typeof office.name === 'string' ? office.name : '')}`}
             >
               <Pencil size={15} />
             </button>
@@ -480,7 +480,7 @@ const ChildOfficeItem: React.FC<ChildOfficeItemProps> = ({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-xs font-bold text-slate-900 truncate">
-                {getLocalizedText(office.name, language) || office.name}
+                {getLocalizedText(office.name, language) || (typeof office.name === 'string' ? office.name : '')}
               </span>
               <span className="font-mono text-[9px] font-semibold text-slate-500 bg-slate-100 px-1 py-0.2 rounded">
                 {office.code}
@@ -507,7 +507,7 @@ const ChildOfficeItem: React.FC<ChildOfficeItemProps> = ({
               type="button"
               onClick={() => onEdit(office)}
               className="p-1 text-slate-400 hover:text-[#064552] rounded hover:bg-slate-50 transition-colors"
-              title={`Edit ${office.name}`}
+              title={`Edit ${getLocalizedText(office.name, language) || (typeof office.name === 'string' ? office.name : '')}`}
             >
               <Pencil size={13} />
             </button>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon } from '../../shared';
+import { useLanguage, getLocalizedText } from '../../shared/i18n';
 import type { PostItem } from '../../../types/portal.types';
 import { formatDetailDate } from '../hooks/useNewsDetail';
 
@@ -26,12 +27,20 @@ export const NewsDetailHeader: React.FC<NewsDetailHeaderProps> = ({
   subCity,
   bureau,
 }) => {
+  const displayTitle = getLocalizedText(title, language) || (typeof title === 'string' ? title : '');
+  const displaySummary = getLocalizedText(summary, language) || (typeof summary === 'string' ? summary : '');
+  const displayCategory = getLocalizedText(category, language) || (typeof category === 'string' ? category : '');
+  const displayBureau = getLocalizedText(bureau, language) || (typeof bureau === 'string' ? bureau : '');
+  const displaySubCity = getLocalizedText(subCity, language) || (typeof subCity === 'string' ? subCity : '');
+  const rawAuthor = language === 'am' ? item.author?.nameAm || item.author?.name : item.author?.name;
+  const displayAuthor = getLocalizedText(rawAuthor, language) || (typeof rawAuthor === 'string' ? rawAuthor : '') || (language === 'am' ? 'የአዲስ አበባ ከተማ አስተዳደር' : 'Addis Ababa City Administration');
+
   return (
     <>
       {/* Top Hero Cover Media */}
       {item.coverImage && (
         <figure className="news-detail-hero-frame">
-          <img src={item.coverImage} alt={title} />
+          <img src={item.coverImage} alt={displayTitle} />
           {event && (
             <div className="news-detail-event-float-badge">
               <span className="float-badge-month">
@@ -60,22 +69,22 @@ export const NewsDetailHeader: React.FC<NewsDetailHeaderProps> = ({
 
       <header className="news-detail-header">
         <div className="news-detail-badges">
-          <span className="news-detail-category">{category || (event ? 'Community event' : 'Public notice')}</span>
+          <span className="news-detail-category">{displayCategory || (event ? 'Community event' : 'Public notice')}</span>
           <span className="news-detail-kind">{event ? 'Event' : 'Official Notice'}</span>
-          {bureau && (
+          {displayBureau && (
             <span className="news-detail-meta">
-              <Icon name="building" size={13} /> {bureau}
+              <Icon name="building" size={13} /> {displayBureau}
             </span>
           )}
-          {subCity && (
+          {displaySubCity && (
             <span className="news-detail-meta">
-              <Icon name="map" size={13} /> {subCity}
+              <Icon name="map" size={13} /> {displaySubCity}
             </span>
           )}
         </div>
 
-        <h1 className="news-detail-title">{title}</h1>
-        {summary && <p className="news-detail-lead">{summary}</p>}
+        <h1 className="news-detail-title">{displayTitle}</h1>
+        {displaySummary && <p className="news-detail-lead">{displaySummary}</p>}
 
         <div className="news-detail-meta-bar">
           <div className="news-detail-author-slot">
@@ -83,10 +92,8 @@ export const NewsDetailHeader: React.FC<NewsDetailHeaderProps> = ({
               <Icon name="user" size={15} />
             </div>
             <div>
-              <strong>
-                {language === 'am' ? item.author?.nameAm || item.author?.name || 'የአዲስ አበባ ከተማ አስተዳደር' : item.author?.name || 'Addis Ababa City Administration'}
-              </strong>
-              <small>{bureau || (language === 'am' ? 'የህዝብ መረጃ ክፍል' : 'Public Information Desk')}</small>
+              <strong>{displayAuthor}</strong>
+              <small>{displayBureau || (language === 'am' ? 'የህዝብ መረጃ ክፍል' : 'Public Information Desk')}</small>
             </div>
           </div>
 

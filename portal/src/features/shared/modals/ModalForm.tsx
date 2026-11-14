@@ -10,7 +10,16 @@ export interface ModalFormProps {
 export const ModalForm: React.FC<ModalFormProps> = ({ modal, onClose }) => {
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(
-      modal.fields.map((field) => [field.name, field.value ?? ''])
+      modal.fields.map((field) => {
+        const rawVal = field.value ?? '';
+        const valStr =
+          typeof rawVal === 'string'
+            ? rawVal
+            : typeof rawVal === 'object' && rawVal !== null
+            ? (rawVal.en || rawVal.eng || (Object.values(rawVal)[0] as string) || '')
+            : String(rawVal);
+        return [field.name, valStr];
+      })
     )
   );
 
@@ -34,8 +43,8 @@ export const ModalForm: React.FC<ModalFormProps> = ({ modal, onClose }) => {
           <span className="panel-eyebrow">
             {modal.eyebrow || 'WORKSPACE UPDATE'}
           </span>
-          <h2>{modal.title}</h2>
-          {modal.description && <p>{modal.description}</p>}
+          <h2>{typeof modal.title === 'string' ? modal.title : ''}</h2>
+          {modal.description && <p>{typeof modal.description === 'string' ? modal.description : ''}</p>}
         </div>
         <button
           type="button"
@@ -47,59 +56,63 @@ export const ModalForm: React.FC<ModalFormProps> = ({ modal, onClose }) => {
         </button>
       </div>
       <div className="modal-form-grid">
-        {visibleFields.map((field: FormFieldConfig) => (
-          <label
-            className={`modal-field${field.full ? ' full' : ''}`}
-            key={field.name}
-          >
-            <span>
-              {field.label}
-              {field.required && <i> *</i>}
-            </span>
-            {field.type === 'select' ? (
-              <select
-                required={field.required}
-                value={values[field.name]}
-                onChange={(e) => update(field.name, e.target.value)}
-              >
-                <option value="" disabled>
-                  Select {field.label.toLowerCase()}
-                </option>
-                {field.options?.map((option) => {
-                  const value =
-                    typeof option === 'string' ? option : option.value;
-                  const label =
-                    typeof option === 'string' ? option : option.label;
-                  return (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  );
-                })}
-              </select>
-            ) : field.type === 'textarea' ? (
-              <textarea
-                required={field.required}
-                rows={field.rows || 3}
-                placeholder={
-                  field.placeholder || `Enter ${field.label.toLowerCase()}`
-                }
-                value={values[field.name]}
-                onChange={(e) => update(field.name, e.target.value)}
-              />
-            ) : (
-              <input
-                required={field.required}
-                type={field.type || 'text'}
-                placeholder={
-                  field.placeholder || `Enter ${field.label.toLowerCase()}`
-                }
-                value={values[field.name]}
-                onChange={(e) => update(field.name, e.target.value)}
-              />
-            )}
-          </label>
-        ))}
+        {visibleFields.map((field: FormFieldConfig) => {
+          const fieldLabel = typeof field.label === 'string' ? field.label : '';
+          return (
+            <label
+              className={`modal-field${field.full ? ' full' : ''}`}
+              key={field.name}
+            >
+              <span>
+                {fieldLabel}
+                {field.required && <i> *</i>}
+              </span>
+              {field.type === 'select' ? (
+                <select
+                  required={field.required}
+                  value={values[field.name]}
+                  onChange={(e) => update(field.name, e.target.value)}
+                >
+                  <option value="" disabled>
+                    Select {fieldLabel.toLowerCase()}
+                  </option>
+                  {field.options?.map((option) => {
+                    const value =
+                      typeof option === 'string' ? option : option.value;
+                    const rawOptLabel =
+                      typeof option === 'string' ? option : option.label;
+                    const label = typeof rawOptLabel === 'string' ? rawOptLabel : '';
+                    return (
+                      <option key={String(value)} value={String(value)}>
+                        {label}
+                      </option>
+                    );
+                  })}
+                </select>
+              ) : field.type === 'textarea' ? (
+                <textarea
+                  required={field.required}
+                  rows={field.rows || 3}
+                  placeholder={
+                    field.placeholder || (fieldLabel ? `Enter ${fieldLabel.toLowerCase()}` : '')
+                  }
+                  value={values[field.name]}
+                  onChange={(e) => update(field.name, e.target.value)}
+                />
+              ) : (
+                <input
+                  required={field.required}
+                  type={field.type || 'text'}
+                  placeholder={
+                    field.placeholder || (fieldLabel ? `Enter ${fieldLabel.toLowerCase()}` : '')
+                  }
+                  value={values[field.name]}
+                  onChange={(e) => update(field.name, e.target.value)}
+                />
+              )}
+            </label>
+          );
+        })}
       </div>
       <div className="modal-footer">
         <span>

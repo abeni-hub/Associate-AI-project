@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { usePortal, usePermissions, Icon, PageHeading, SearchBox, StatusPill } from '../shared';
+import { usePortal, usePermissions, Icon, PageHeading, SearchBox, StatusPill, useLanguage, getLocalizedText } from '../shared';
 import type { RouteItem, RouteStep } from '../../types/portal.types';
 import {
   useGetServicesQuery,
@@ -109,7 +109,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
     }
 
     return [];
-  }, [propItems, apiServices, selectedOrgFilter]);
+  }, [propItems, apiServices, selectedOrgFilter, language]);
 
   const onEdit =
     propOnEdit ||
@@ -150,10 +150,10 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
   return (
     <>
       <PageHeading
-        eyebrow="BUREAU OPERATIONS"
-        title="Room routes"
-        subtitle="Give citizens a clear path through your office, one room at a time."
-        secondary="Preview public guide"
+        eyebrow={t('routes.eyebrow', 'ROOM NAVIGATION & PHYSICAL STEPS')}
+        title={t('routes.title', 'Office Locations & Steps')}
+        subtitle={t('routes.subtitle', 'Physical room-by-room directions and building steps for public service fulfillment.')}
+        secondary={t('common.preview', 'Preview public guide')}
         onSecondary={() =>
           window.alert('Public guide preview is active in Citizen App Live Preview.')
         }

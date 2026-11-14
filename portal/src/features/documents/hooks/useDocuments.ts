@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { usePermissions } from '../../shared';
+import { usePermissions, useLanguage, getLocalizedText } from '../../shared';
 import {
   useGetDocumentsQuery,
   useCreateDocumentMutation,
@@ -13,6 +13,7 @@ export const useDocuments = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [usageFilter, setUsageFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
 
+  const { language } = useLanguage();
   const { data: response, isLoading, refetch } = useGetDocumentsQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });
@@ -34,11 +35,15 @@ export const useDocuments = () => {
   const filteredDocuments = useMemo(() => {
     return documents.filter((doc) => {
       const q = search.trim().toLowerCase();
+      const docName = (getLocalizedText(doc.name, language) || (typeof doc.name === 'string' ? doc.name : '')).toLowerCase();
+      const docCode = (doc.code || '').toLowerCase();
+      const docDesc = (getLocalizedText(doc.description, language) || (typeof doc.description === 'string' ? doc.description : '')).toLowerCase();
+
       const matchSearch =
         q === '' ||
-        doc.name.toLowerCase().includes(q) ||
-        doc.code.toLowerCase().includes(q) ||
-        (doc.description && doc.description.toLowerCase().includes(q));
+        docName.includes(q) ||
+        docCode.includes(q) ||
+        docDesc.includes(q);
 
       const matchStatus =
         statusFilter === 'all' ||
@@ -51,7 +56,7 @@ export const useDocuments = () => {
 
       return matchSearch && matchStatus && matchUsage;
     });
-  }, [documents, search, statusFilter, usageFilter]);
+  }, [documents, search, statusFilter, usageFilter, language]);
 
   const activeCount = documents.filter((d) => d.is_active).length;
   const linkedDocsCount = documents.filter((d) => (d.services_count ?? 0) > 0).length;
@@ -101,10 +106,11 @@ export const useDocuments = () => {
     const servicesNote = (doc.services_count ?? 0) > 0
       ? ` Warning: This document is currently linked to ${doc.services_count} active service(s).`
       : '';
+    const docDisplayName = getLocalizedText(doc.name, language) || (typeof doc.name === 'string' ? doc.name : doc.code);
 
     if (
       window.confirm(
-        `Are you sure you want to remove "${doc.name}" (${doc.code}) from the document catalog?${servicesNote}`
+        `Are you sure you want to remove "${docDisplayName}" (${doc.code}) from the document catalog?${servicesNote}`
       )
     ) {
       try {

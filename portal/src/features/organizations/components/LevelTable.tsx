@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, SearchBox, StatusPill } from '../../shared';
+import { Icon, SearchBox, StatusPill, useLanguage, getLocalizedText } from '../../shared';
 import type { OrganizationTypeItem } from '../api/organizationsApi';
 
 interface LevelTableProps {
@@ -44,6 +44,7 @@ export const LevelTable: React.FC<LevelTableProps> = ({
   onOpenEdit,
   onDelete,
 }) => {
+  const { language } = useLanguage();
   return (
     <section className="panel table-panel">
       <div className="table-toolbar">
@@ -112,7 +113,9 @@ export const LevelTable: React.FC<LevelTableProps> = ({
                   </td>
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                      <b style={{ fontSize: '13.5px', color: '#0f172a' }}>{lvl.name}</b>
+                      <b style={{ fontSize: '13.5px', color: '#0f172a' }}>
+                        {getLocalizedText(lvl.name, language) || (typeof lvl.name === 'string' ? lvl.name : lvl.code)}
+                      </b>
                       <code style={{ fontSize: '11px', color: '#64748b', background: '#f8fafc', padding: '1px 5px', borderRadius: '3px', width: 'fit-content' }}>
                         {lvl.code}
                       </code>
@@ -140,7 +143,7 @@ export const LevelTable: React.FC<LevelTableProps> = ({
                   </td>
                   <td>
                     <span style={{ fontSize: '12.5px', color: '#475569' }}>
-                      {lvl.description || '—'}
+                      {getLocalizedText(lvl.description, language) || (typeof lvl.description === 'string' ? lvl.description : '—')}
                     </span>
                   </td>
                   <td>

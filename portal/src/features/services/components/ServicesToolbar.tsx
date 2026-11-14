@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, SearchBox } from '../../shared';
+import { Icon, SearchBox, useLanguage, getLocalizedText } from '../../shared';
 
 export interface ServicesToolbarProps {
   search: string;
@@ -36,6 +36,7 @@ export const ServicesToolbar: React.FC<ServicesToolbarProps> = ({
   handleToggleExpandAll,
   totalCount,
 }) => {
+  const { language } = useLanguage();
   return (
     <>
       {/* Organization Scope Indicator & Selector */}
@@ -48,7 +49,7 @@ export const ServicesToolbar: React.FC<ServicesToolbarProps> = ({
             </span>
           ) : (
             <span>
-              <strong>Scoped to:</strong> {authUser?.organization?.name || 'Your Assigned Government Office'} (and local branch offices).
+              <strong>Scoped to:</strong> {getLocalizedText(authUser?.organization?.name, language) || (typeof authUser?.organization?.name === 'string' ? authUser?.organization?.name : 'Your Assigned Government Office')} (and local branch offices).
             </span>
           )}
         </div>
@@ -68,7 +69,7 @@ export const ServicesToolbar: React.FC<ServicesToolbarProps> = ({
                 <optgroup label="── Sub-city Administrations ──">
                   {subcitiesList.map((org) => (
                     <option key={org.id} value={org.id}>
-                      🏛 {org.name}
+                      🏛 {getLocalizedText(org.name, language) || (typeof org.name === 'string' ? org.name : '')}
                     </option>
                   ))}
                 </optgroup>
@@ -77,7 +78,7 @@ export const ServicesToolbar: React.FC<ServicesToolbarProps> = ({
                 <optgroup label="── Bureaus & Agencies ──">
                   {bureausList.map((org) => (
                     <option key={org.id} value={org.id}>
-                      🏢 {org.name}
+                      🏢 {getLocalizedText(org.name, language) || (typeof org.name === 'string' ? org.name : '')}
                     </option>
                   ))}
                 </optgroup>

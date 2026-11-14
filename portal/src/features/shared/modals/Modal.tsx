@@ -5,6 +5,7 @@ import { ModalForm } from './ModalForm';
 import { RouteEditor } from './RouteEditor';
 import { FeedbackDetail } from './FeedbackDetail';
 import { QRDialog } from './QRDialog';
+import { getModalContainer } from '../utils/portalRoot';
 
 export interface ModalProps {
   modal: ModalConfig | any;
@@ -50,7 +51,7 @@ export const Modal: React.FC<ModalProps> = ({ modal, onClose }) => {
         )}
       </section>
     </div>,
-    document.body
+    getModalContainer()
   );
 };
 

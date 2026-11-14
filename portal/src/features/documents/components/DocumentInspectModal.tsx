@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, StatusPill } from '../../shared';
+import { Icon, StatusPill, useLanguage, getLocalizedText } from '../../shared';
 import type { DocumentItem } from '../api/documentsApi';
 
 interface DocumentInspectModalProps {
@@ -15,6 +15,7 @@ export const DocumentInspectModal: React.FC<DocumentInspectModalProps> = ({
   onClose,
   onEdit,
 }) => {
+  const { language } = useLanguage();
   if (!doc) return null;
 
   return (
@@ -29,7 +30,7 @@ export const DocumentInspectModal: React.FC<DocumentInspectModalProps> = ({
         <div className="modal-header">
           <div>
             <span className="panel-eyebrow">DOCUMENT SPECIFICATION</span>
-            <h2>{doc.name}</h2>
+            <h2>{getLocalizedText(doc.name, language) || (typeof doc.name === 'string' ? doc.name : '')}</h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
               <code style={{ background: '#edf3ef', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', color: '#315a51', fontWeight: 700 }}>
                 {doc.code}
@@ -50,7 +51,7 @@ export const DocumentInspectModal: React.FC<DocumentInspectModalProps> = ({
               Prerequisite Description & Citizen Guidelines
             </h4>
             <p style={{ margin: 0, color: '#566e64', fontSize: '13px', lineHeight: 1.5, background: '#f8faf7', padding: '12px 14px', borderRadius: '6px', border: '1px solid #e5ede7' }}>
-              {doc.description || 'No detailed citizen guidelines have been recorded for this prerequisite.'}
+              {getLocalizedText(doc.description, language) || (typeof doc.description === 'string' ? doc.description : 'No detailed citizen guidelines have been recorded for this prerequisite.')}
             </p>
           </div>
 

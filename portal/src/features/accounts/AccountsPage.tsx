@@ -167,7 +167,7 @@ export const AccountsPage: React.FC = () => {
           <button
             type="button"
             onClick={handleExportAccounts}
-            className="button secondary"
+            className="button secondary outline-button"
             title="Export staff directory to CSV"
           >
             <Download size={15} />

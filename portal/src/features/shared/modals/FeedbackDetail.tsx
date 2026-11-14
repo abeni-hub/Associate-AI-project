@@ -59,18 +59,19 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
           <span className="panel-eyebrow">{t('feedback.ticketResponse', 'CITIZEN RESPONSE')} · {item.id}</span>
           <h2>
             {(() => {
-              const rawType = String(item.type || '').toLowerCase();
+              const rawType = typeof item.type === 'string' ? item.type.toLowerCase() : '';
               if (rawType.includes('complaint')) return `${t('feedback.complaint', 'Complaint')} ${t('feedback.ticketReceived', 'received')}`;
               if (rawType.includes('suggestion')) return `${t('feedback.suggestion', 'Suggestion')} ${t('feedback.ticketReceived', 'received')}`;
               if (rawType.includes('satisfaction')) return `${t('feedback.satisfaction', 'Satisfaction')} ${t('feedback.ticketReceived', 'received')}`;
-              return `${item.type} ${t('feedback.ticketReceived', 'received')}`;
+              const displayType = typeof item.type === 'string' ? item.type : getLocalizedText(item.type as any, language) || 'Feedback';
+              return `${displayType} ${t('feedback.ticketReceived', 'received')}`;
             })()}
           </h2>
-          <p>{item.time}</p>
+          <p>{typeof item.time === 'string' ? item.time : (item.created_at ? new Date(item.created_at).toLocaleString() : '')}</p>
           <div className="feedback-tracking-ref">
             <span>
               <small>{t('feedback.trackingNumber', 'TRACKING NUMBER')}</small>
-              <b>{item.trackingNumber || t('common.notAssigned', 'Not assigned')}</b>
+              <b>{typeof item.trackingNumber === 'string' ? item.trackingNumber : t('common.notAssigned', 'Not assigned')}</b>
             </span>
             {item.trackingNumber && (
               <button
@@ -123,7 +124,7 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
           {citizenName && (
             <span>
               <small>{t('feedback.citizenNameLabel', 'CITIZEN NAME')}</small>
-              <b>{citizenName}</b>
+              <b>{typeof citizenName === 'string' ? citizenName : getLocalizedText(citizenName as any, language) || ''}</b>
             </span>
           )}
           {citizenPhone && (
@@ -135,7 +136,7 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
                   style={{ color: '#0369a1', textDecoration: 'none' }}
                   title="Call citizen"
                 >
-                  {citizenPhone}
+                  {String(citizenPhone)}
                 </a>
               </b>
             </span>

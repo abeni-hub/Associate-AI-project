@@ -1,14 +1,30 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Icon } from '../../shared';
-import { useLanguage } from '../../shared/i18n';
+import { Icon, getModalContainer } from '../../shared';
+import { useLanguage, getLocalizedText } from '../../shared/i18n';
 
 function ActivityDetailsModal({ event, onClose }) {
-  const { t } = useLanguage()
+  const { language, t } = useLanguage()
   const [activeTab, setActiveTab] = useState('diff')
   const [copiedReq, setCopiedReq] = useState(false)
   const [copiedRes, setCopiedRes] = useState(false)
   const [copiedFull, setCopiedFull] = useState(false)
+
+  const renderLocalized = (val, fallback = '') => {
+    if (!val) return fallback;
+    if (typeof val === 'string') return val;
+    return getLocalizedText(val, language) || fallback;
+  };
+
+  const renderDiffValue = (val) => {
+    if (val === null || val === undefined) return '—';
+    if (typeof val === 'object') {
+      const loc = getLocalizedText(val, language);
+      if (loc) return loc;
+      return JSON.stringify(val);
+    }
+    return String(val);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -84,10 +100,10 @@ function ActivityDetailsModal({ event, onClose }) {
               </span>
             </div>
             <h2 id="audit-modal-title">
-              {event.communicativeTitle || event.actionLabel}
+              {renderLocalized(event.communicativeTitle || event.actionLabel)}
             </h2>
             <p className="modal-timestamp">
-              <Icon name="clock" size={14} /> Recorded on {event.fullTimestamp} · Actor: <b>{event.actor?.name}</b> ({event.actor?.username})
+              <Icon name="clock" size={14} /> Recorded on {event.fullTimestamp} · Actor: <b>{renderLocalized(event.actor?.name)}</b> ({event.actor?.username})
             </p>
           </div>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close dialog">
@@ -172,7 +188,7 @@ function ActivityDetailsModal({ event, onClose }) {
                             <small>Previous value</small>
                           </div>
                           <div className="pane-content">
-                            <code>{d.from}</code>
+                            <code>{renderDiffValue(d.from)}</code>
                           </div>
                         </div>
 
@@ -188,7 +204,7 @@ function ActivityDetailsModal({ event, onClose }) {
                             <small>Updated value</small>
                           </div>
                           <div className="pane-content">
-                            <code>{d.to}</code>
+                            <code>{renderDiffValue(d.to)}</code>
                           </div>
                         </div>
                       </div>
@@ -198,7 +214,7 @@ function ActivityDetailsModal({ event, onClose }) {
                   {event.change?.summary && (
                     <div className="audit-change-rationale">
                       <Icon name="info" size={15} />
-                      <p><b>Summary:</b> {event.change.summary}</p>
+                      <p><b>Summary:</b> {renderDiffValue(event.change.summary)}</p>
                     </div>
                   )}
                 </div>
@@ -258,7 +274,7 @@ function ActivityDetailsModal({ event, onClose }) {
                     <span className="diff-auth-pill">Authenticated</span>
                   </div>
                   <p style={{ margin: '0 0 12px', color: '#4c425c', fontSize: '13px' }}>
-                    User <b>{event.actor?.name}</b> ({event.actor?.username}) successfully authenticated from IP <code>{event.network?.ip}</code>.
+                    User <b>{renderLocalized(event.actor?.name)}</b> ({event.actor?.username}) successfully authenticated from IP <code>{event.network?.ip}</code>.
                   </p>
                 </div>
               ) : (
@@ -276,7 +292,7 @@ function ActivityDetailsModal({ event, onClose }) {
                         <span className="pane-tag old">STATE BEFORE</span>
                       </div>
                       <div className="pane-content">
-                        <code>{event.change?.from || '—'}</code>
+                        <code>{renderDiffValue(event.change?.from)}</code>
                       </div>
                     </div>
                     <div className="audit-diff-divider">
@@ -289,7 +305,7 @@ function ActivityDetailsModal({ event, onClose }) {
                         <span className="pane-tag new">STATE AFTER</span>
                       </div>
                       <div className="pane-content">
-                        <code>{event.change?.to || '—'}</code>
+                        <code>{renderDiffValue(event.change?.to)}</code>
                       </div>
                     </div>
                   </div>
@@ -405,9 +421,9 @@ function ActivityDetailsModal({ event, onClose }) {
                       {event.actor?.initials}
                     </span>
                     <div>
-                      <strong>{event.actor?.name}</strong>
+                      <strong>{renderLocalized(event.actor?.name)}</strong>
                       <span className="actor-meta-handle">
-                        {event.actor?.username} · <span className="role-pill">{event.actor?.role}</span>
+                        {event.actor?.username} · <span className="role-pill">{renderLocalized(event.actor?.role)}</span>
                       </span>
                     </div>
                   </div>
@@ -438,7 +454,7 @@ function ActivityDetailsModal({ event, onClose }) {
                   </h4>
                   <div className="audit-resource-profile">
                     <div>
-                      <strong>{event.target?.name}</strong>
+                      <strong>{renderLocalized(event.target?.name)}</strong>
                       <span className="resource-id-tag">{event.target?.id}</span>
                     </div>
                   </div>
@@ -452,7 +468,7 @@ function ActivityDetailsModal({ event, onClose }) {
                   </div>
                   <div className="audit-detail-row">
                     <span>Jurisdiction:</span>
-                    <span>{event.target?.jurisdiction}</span>
+                    <span>{renderLocalized(event.target?.jurisdiction)}</span>
                   </div>
                   <div className="audit-detail-row">
                     <span>Event Reference:</span>
@@ -495,7 +511,7 @@ function ActivityDetailsModal({ event, onClose }) {
         </div>
       </div>
     </div>,
-    document.body
+    getModalContainer()
   )
 }
 

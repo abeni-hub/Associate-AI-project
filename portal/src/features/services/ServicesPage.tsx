@@ -73,7 +73,7 @@ export const ServicesPage: React.FC = () => {
     organizations.forEach((org) => {
       const orgNameStr = (getLocalizedText(org.name, 'en') || (typeof org.name === 'string' ? org.name : '')).toLowerCase();
       const typeCode = String(org.type?.code || '').toLowerCase();
-      const typeNameStr = (getLocalizedText(org.type?.name, 'en') || (typeof org.type?.name === 'string' ? org.type?.name : '')).toLowerCase();
+      const typeNameStr = (getLocalizedText(org.type?.name, 'en') || (typeof org.type?.name === 'string' ? org.type.name : '')).toLowerCase();
       const isSubcity =
         typeCode === 'sub_city' ||
         typeCode === 'subcity' ||
@@ -393,7 +393,7 @@ export const ServicesPage: React.FC = () => {
         <div>
           <div className="eyebrow">
             <span />
-            SERVICE ARCHITECTURE & CATALOG
+            {t('services.eyebrow', 'SERVICE ARCHITECTURE & CATALOG')}
           </div>
           <h1>{t('services.title')}</h1>
           <p>{t('services.subtitle')}</p>
@@ -403,7 +403,7 @@ export const ServicesPage: React.FC = () => {
           <button
             type="button"
             onClick={handleExportServices}
-            className="button secondary"
+            className="button secondary outline-button"
             title="Export service catalog to CSV"
           >
             <Download size={15} />

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePortal } from '../../shared';
+import { useLanguage, getLocalizedText } from '../../shared/i18n';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import type { FeedbackItem, RoleKey } from '../../../types/portal.types';
 import type {
@@ -29,6 +30,7 @@ export const useDashboard = (props?: OverviewPageProps) => {
   const portal = usePortal();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { language } = useLanguage();
   const period = useAppSelector(selectDashboardPeriod);
 
   // Unified Dashboard API Queries (api.md Section 12)
@@ -104,25 +106,32 @@ export const useDashboard = (props?: OverviewPageProps) => {
     const hour = new Date().getHours();
     const timeGreeting =
       hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    const rawUser = portal.session?.user?.name || portal.authUser?.name;
     const userName =
-      portal.session?.user?.name || portal.authUser?.name || 'Administrator';
+      (typeof rawUser === 'string' ? rawUser : getLocalizedText(rawUser, language)) || 'Administrator';
     return `${timeGreeting}, ${userName}`;
-  }, [portal.session?.user?.name, portal.authUser?.name]);
+  }, [portal.session?.user?.name, portal.authUser?.name, language]);
 
   const subtitle = useMemo(() => {
-    const orgName =
+    const rawOrg =
       dData?.scope?.organization_name ||
       portal.session?.user?.organization?.name ||
       portal.authUser?.organization?.name;
-    const roleName =
+    const orgName =
+      typeof rawOrg === 'string' ? rawOrg : getLocalizedText(rawOrg, language);
+
+    const rawRole =
       portal.session?.user?.role?.name ||
       portal.authUser?.role?.name ||
       'Administrative';
+    const roleName =
+      typeof rawRole === 'string' ? rawRole : getLocalizedText(rawRole, language);
+
     if (orgName) {
       return `Here’s what’s happening across ${orgName} (${roleName}) today.`;
     }
     return 'Live overview of citizen services, administrative offices, and community feedback.';
-  }, [dData?.scope?.organization_name, portal.session?.user, portal.authUser]);
+  }, [dData?.scope?.organization_name, portal.session?.user, portal.authUser, language]);
 
   const formattedDate = useMemo(() => {
     return new Date()
@@ -390,9 +399,9 @@ export const useDashboard = (props?: OverviewPageProps) => {
     dispatch(toggleDashboardPeriod());
   };
 
+  const rawUserRole = portal.session?.user?.role?.name || portal.authUser?.role?.name;
   const displayRoleLabel =
-    portal.session?.user?.role?.name ||
-    portal.authUser?.role?.name ||
+    (typeof rawUserRole === 'string' ? rawUserRole : getLocalizedText(rawUserRole, language)) ||
     (role === 'super' ? 'Super Admin' : role === 'subcity' ? 'Sub-City Admin' : 'Bureau Admin');
 
   return {

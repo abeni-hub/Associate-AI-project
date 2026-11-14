@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { usePermissions } from '../../shared';
+import { usePermissions, useLanguage, getLocalizedText } from '../../shared';
 import {
   useGetOrganizationTypesQuery,
   useCreateOrganizationTypeMutation,
@@ -19,6 +19,7 @@ export const useLevels = () => {
   const [deleteType, { isLoading: isDeleting }] = useDeleteOrganizationTypeMutation();
 
   const { hasPermission } = usePermissions();
+  const { language } = useLanguage();
   const canCreate = hasPermission('organizations.create');
   const canUpdate = hasPermission('organizations.update');
   const canDelete = hasPermission('organizations.delete');
@@ -32,11 +33,16 @@ export const useLevels = () => {
 
   const filteredLevels = useMemo(() => {
     return levels.filter((lvl) => {
+      const lvlName = (getLocalizedText(lvl.name, language) || (typeof lvl.name === 'string' ? lvl.name : '')).toLowerCase();
+      const lvlCode = (lvl.code || '').toLowerCase();
+      const lvlDesc = (getLocalizedText(lvl.description, language) || (typeof lvl.description === 'string' ? lvl.description : '')).toLowerCase();
+      const searchLower = search.toLowerCase();
+
       const matchSearch =
         search.trim() === '' ||
-        lvl.name.toLowerCase().includes(search.toLowerCase()) ||
-        lvl.code.toLowerCase().includes(search.toLowerCase()) ||
-        (lvl.description && lvl.description.toLowerCase().includes(search.toLowerCase()));
+        lvlName.includes(searchLower) ||
+        lvlCode.includes(searchLower) ||
+        lvlDesc.includes(searchLower);
 
       const matchStatus =
         statusFilter === 'all' ||
@@ -48,7 +54,7 @@ export const useLevels = () => {
 
       return matchSearch && matchStatus && matchRoot;
     });
-  }, [levels, search, statusFilter, rootFilter]);
+  }, [levels, search, statusFilter, rootFilter, language]);
 
   const rootCount = levels.filter((l) => l.can_be_root).length;
   const activeCount = levels.filter((l) => l.is_active).length;
@@ -87,9 +93,10 @@ export const useLevels = () => {
   };
 
   const handleDelete = async (lvl: OrganizationTypeItem) => {
+    const displayName = getLocalizedText(lvl.name, language) || (typeof lvl.name === 'string' ? lvl.name : lvl.code);
     if (
       window.confirm(
-        `Are you sure you want to delete the "${lvl.name}" tier level? Organizations using this level will be affected.`
+        `Are you sure you want to delete the "${displayName}" tier level? Organizations using this level will be affected.`
       )
     ) {
       try {

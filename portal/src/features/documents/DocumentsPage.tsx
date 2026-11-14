@@ -37,7 +37,7 @@ export const DocumentsPage: React.FC = () => {
 
   const [createDoc, { isLoading: isCreating }] = useCreateDocumentMutation();
   const [updateDoc, { isLoading: isUpdating }] = useUpdateDocumentMutation();
-  const [deleteDoc, { isLoading: isDeleting }] = useDeleteDocumentMutation();
+  const [deleteDoc] = useDeleteDocumentMutation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<DocumentItem | null>(null);
@@ -173,7 +173,7 @@ export const DocumentsPage: React.FC = () => {
           <button
             type="button"
             onClick={handleExportDocuments}
-            className="button secondary"
+            className="button secondary outline-button"
             title="Export document checklist to CSV"
           >
             <Download size={15} />

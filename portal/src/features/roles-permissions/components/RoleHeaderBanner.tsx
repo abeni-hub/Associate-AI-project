@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon } from '../../shared';
+import { Icon, useLanguage, getLocalizedText } from '../../shared';
 import type { RoleItem } from '../../../types/portal.types';
 
 export interface RoleHeaderBannerProps {
@@ -32,6 +32,7 @@ export const RoleHeaderBanner: React.FC<RoleHeaderBannerProps> = ({
   saveStatus,
   errorStatus,
 }) => {
+  const { language } = useLanguage();
   return (
     <>
       <div
@@ -63,11 +64,11 @@ export const RoleHeaderBanner: React.FC<RoleHeaderBannerProps> = ({
               <Icon name={isSuperAdmin ? 'shield' : 'users'} size={18} />
             </span>
             <h2 style={{ fontSize: '18px', margin: 0, color: '#164a54' }}>
-              {activeRole.name}
+              {getLocalizedText(activeRole.name, language) || (typeof activeRole.name === 'string' ? activeRole.name : '')}
             </h2>
           </div>
           <p style={{ margin: '5px 0 0', fontSize: '13px', color: '#64748b' }}>
-            {activeRole.description}
+            {getLocalizedText(activeRole.description, language) || (typeof activeRole.description === 'string' ? activeRole.description : '')}
           </p>
         </div>
 
@@ -100,7 +101,7 @@ export const RoleHeaderBanner: React.FC<RoleHeaderBannerProps> = ({
             >
               {roles.map((roleItem: RoleItem) => (
                 <option key={roleItem.id} value={roleItem.id}>
-                  {roleItem.name} {roleItem.isSystem ? '(System)' : '(Custom)'}
+                  {getLocalizedText(roleItem.name, language) || (typeof roleItem.name === 'string' ? roleItem.name : '')} {roleItem.isSystem ? '(System)' : '(Custom)'}
                 </option>
               ))}
             </select>
