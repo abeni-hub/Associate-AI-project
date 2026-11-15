@@ -56,24 +56,15 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
     <div>
       <div className="modal-header">
         <div>
-          <span className="panel-eyebrow">{t('feedback.ticketResponse', 'CITIZEN RESPONSE')} · {item.id}</span>
-          <h2>
-            {(() => {
-              const rawType = typeof item.type === 'string' ? item.type.toLowerCase() : '';
-              if (rawType.includes('complaint')) return `${t('feedback.complaint', 'Complaint')} ${t('feedback.ticketReceived', 'received')}`;
-              if (rawType.includes('suggestion')) return `${t('feedback.suggestion', 'Suggestion')} ${t('feedback.ticketReceived', 'received')}`;
-              if (rawType.includes('satisfaction')) return `${t('feedback.satisfaction', 'Satisfaction')} ${t('feedback.ticketReceived', 'received')}`;
-              const displayType = typeof item.type === 'string' ? item.type : getLocalizedText(item.type as any, language) || 'Feedback';
-              return `${displayType} ${t('feedback.ticketReceived', 'received')}`;
-            })()}
-          </h2>
-          <p>{typeof item.time === 'string' ? item.time : (item.created_at ? new Date(item.created_at).toLocaleString() : '')}</p>
-          <div className="feedback-tracking-ref">
-            <span>
-              <small>{t('feedback.trackingNumber', 'TRACKING NUMBER')}</small>
-              <b>{typeof item.trackingNumber === 'string' ? item.trackingNumber : t('common.notAssigned', 'Not assigned')}</b>
-            </span>
-            {item.trackingNumber && (
+          <span className="panel-eyebrow">CITIZEN RESPONSE · {item.id}</span>
+          <h2>{item.type} received</h2>
+          <p>{item.time}</p>
+          {item.trackingNumber && item.type?.toLowerCase() !== 'satisfaction' && (
+            <div className="feedback-tracking-ref">
+              <span>
+                <small>TRACKING NUMBER</small>
+                <b>{item.trackingNumber}</b>
+              </span>
               <button
                 type="button"
                 onClick={copyTrackingNumber}
@@ -83,8 +74,8 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
                 <Icon name={trackingCopied ? 'check' : 'copy'} size={14} />
                 {trackingCopied ? t('common.copied', 'Copied') : t('common.copy', 'Copy')}
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
         <button
           type="button"
@@ -155,7 +146,7 @@ export const FeedbackDetail: React.FC<FeedbackDetailProps> = ({
             </span>
           )}
         </div>
-        <blockquote>"{getLocalizedText(item.message as any, language) || (typeof item.message === 'string' ? item.message : '')}"</blockquote>
+        <blockquote>"{getLocalizedText((item as any).feedback_content_localized || (item as any).feedback_content || item.message, language) || (typeof item.message === 'string' ? item.message : '')}"</blockquote>
         <div className="detail-status-section" style={{ margin: '1rem 0' }}>
           <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '8px' }}>
             {t('feedback.followupStatus', 'Follow-up Resolution Status')}

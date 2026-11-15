@@ -283,6 +283,95 @@
   flex: 0 0 auto;
 }
 
+/* Citizens' Charter Cards (Rights & Obligations) */
+.charter-cards-stack {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.charter-card {
+  border-radius: 9px;
+  padding: 13px 15px;
+  border: 1px solid #e1ebe5;
+  transition: all 0.2s ease;
+}
+
+.charter-card.rights-card {
+  background: #f7faf8;
+  border-color: #d6e8dc;
+}
+
+.charter-card.obligations-card {
+  background: #faf8f3;
+  border-color: #ede2cd;
+}
+
+.charter-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.charter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.charter-badge.rights-badge {
+  background: #e6f4ed;
+  color: #0f6150;
+  border: 1px solid #c2e5d3;
+}
+
+.charter-badge.obligations-badge {
+  background: #f5eedf;
+  color: #8c6319;
+  border: 1px solid #e8dac0;
+}
+
+.charter-card-header small {
+  font-size: 10px;
+  color: #7a8c88;
+}
+
+.charter-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.charter-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #334b52;
+}
+
+.charter-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #637c78;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
 .room-route {
   list-style: none;
   display: grid;

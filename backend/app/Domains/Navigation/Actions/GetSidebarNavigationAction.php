@@ -31,19 +31,35 @@ class GetSidebarNavigationAction
                 ? $role->permissions->pluck('key')->all()
                 : $role->permissions()->pluck('key')->all();
 
-            $items = NavigationItem::query()
-                ->where(function ($query) use ($role, $permissionKeys) {
-                    $query->whereHas('roles', function ($q) use ($role) {
-                        $q->where('roles.id', $role->id);
-                    });
-
-                    if (! empty($permissionKeys)) {
-                        $query->orWhereIn('required_permission', $permissionKeys);
-                    }
-                })
+            $query = NavigationItem::query()
                 ->active()
-                ->ordered()
-                ->get();
+                ->ordered();
+
+            if ($role->navigationItems()->exists()) {
+                // Must be explicitly assigned to this role in role_navigation_items
+                $query->whereHas('roles', function ($q) use ($role) {
+                    $q->where('roles.id', $role->id);
+                });
+
+                // AND must satisfy required_permission if one is defined on the item
+                if (! empty($permissionKeys)) {
+                    $query->where(function ($q) use ($permissionKeys) {
+                        $q->whereNull('required_permission')
+                            ->orWhereIn('required_permission', $permissionKeys);
+                    });
+                } else {
+                    $query->whereNull('required_permission');
+                }
+            } else {
+                // Fallback for custom roles without explicit navigation items configured
+                if (! empty($permissionKeys)) {
+                    $query->whereIn('required_permission', $permissionKeys);
+                } else {
+                    return [];
+                }
+            }
+
+            $items = $query->get();
         }
 
         return $items->map(fn (NavigationItem $item) => [

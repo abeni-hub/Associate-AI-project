@@ -131,6 +131,7 @@ export const rolesApi = baseApi.injectEndpoints({
         'Role',
         'Navigation',
         'Auth',
+        'User',
       ],
     }),
 
@@ -148,7 +149,7 @@ export const rolesApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'Role', id: 'LIST' }, 'Role'],
+      invalidatesTags: [{ type: 'Role', id: 'LIST' }, 'Role', 'Navigation', 'Auth', 'User'],
     }),
 
     updateRole: builder.mutation<ApiResponse<RoleDetailItem>, {
@@ -171,6 +172,7 @@ export const rolesApi = baseApi.injectEndpoints({
         'Role',
         'Navigation',
         'Auth',
+        'User',
       ],
     }),
 
@@ -219,6 +221,7 @@ export const rolesApi = baseApi.injectEndpoints({
         'Role',
         'Navigation',
         'Auth',
+        'User',
       ],
     }),
   }),

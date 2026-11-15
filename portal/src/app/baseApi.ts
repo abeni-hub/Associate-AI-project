@@ -2,7 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { API_TAG_TYPES } from '../types/api.types';
 import { getCookie, tokenStorage } from '../utils/tokenStorage';
 
-export const DEFAULT_BACKEND_URL = 'http://127.0.0.1:8000';
+export const DEFAULT_BACKEND_URL = 'https://civillink.jobaleengineering.com';
 
 export const BACKEND_URL: string = (() => {
   const proc = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined;

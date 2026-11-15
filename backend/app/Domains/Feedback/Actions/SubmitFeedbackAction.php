@@ -16,6 +16,8 @@ class SubmitFeedbackAction
     public function execute(FeedbackData $data): Feedback
     {
         return DB::transaction(function () use ($data) {
+            $isSatisfaction = $data->feedbackType === 'satisfaction';
+
             $payload = [
                 'feedback_for_organization' => $data->feedbackForOrganization,
                 'feedback_content' => $data->feedbackContent,
@@ -25,7 +27,7 @@ class SubmitFeedbackAction
                 'full_name' => $data->fullName,
                 'phone_number' => $data->phoneNumber,
                 'status' => 'submitted',
-                'tracking_number' => $this->generateTrackingNumber(),
+                'tracking_number' => $isSatisfaction ? null : $this->generateTrackingNumber(),
             ];
 
             return Feedback::create($payload);

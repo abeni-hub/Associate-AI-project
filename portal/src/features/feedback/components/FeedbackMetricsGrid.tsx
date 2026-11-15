@@ -15,28 +15,28 @@ export const FeedbackMetricsGrid: React.FC<FeedbackMetricsGridProps> = ({
         icon="message"
         label={t('feedback.totalSubmissions', 'Total Submissions')}
         value={isLoading ? '...' : metrics.total}
-        note="Active citizen queue"
+        note={t('feedback.queueNote', 'Active citizen queue')}
         tone="teal"
       />
       <MetricCard
         icon="clock"
         label={t('feedback.openCases', 'Open Cases')}
         value={isLoading ? '...' : metrics.open}
-        note="Awaiting review"
+        note={t('feedback.awaitingReviewNote', 'Awaiting review')}
         tone="gold"
       />
       <MetricCard
         icon="activity"
         label={t('feedback.underReview', 'Under Review')}
         value={isLoading ? '...' : metrics.inReview}
-        note="Actively investigated"
+        note={t('feedback.investigatedNote', 'Actively investigated')}
         tone="blue"
       />
       <MetricCard
         icon="check"
         label={t('feedback.resolvedRate', 'Resolution Rate')}
         value={isLoading ? '...' : `${metrics.resolutionRate}%`}
-        note={`${metrics.resolved} resolved cases`}
+        note={`${metrics.resolved} ${t('feedback.resolvedCasesNote', 'resolved cases')}`}
         tone="sage"
       />
     </div>

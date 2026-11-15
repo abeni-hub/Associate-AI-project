@@ -55,25 +55,29 @@ export function normalizeFeedback(raw: any): CitizenFeedback {
     ? raw.feedback_content_localized
     : (raw.content_localized && typeof raw.content_localized === 'object')
       ? raw.content_localized
-      : null;
+      : (typeof raw.feedback_content === 'object' && raw.feedback_content !== null)
+        ? raw.feedback_content
+        : null;
 
   const respObj = (raw.response_localized && typeof raw.response_localized === 'object')
     ? raw.response_localized
-    : null;
+    : (typeof raw.response === 'object' && raw.response !== null)
+      ? raw.response
+      : null;
 
   return {
     ...raw,
     feedback_content: contentObj
-      ? (contentObj.eng || contentObj.amh || contentObj.oro || '')
+      ? (contentObj.eng || contentObj.en || contentObj.amh || contentObj.am || contentObj.oro || contentObj.om || '')
       : String(raw.feedback_content || ''),
-    feedback_content_amh: contentObj?.amh || raw.feedback_content_amh || '',
-    feedback_content_oro: contentObj?.oro || raw.feedback_content_oro || '',
+    feedback_content_amh: contentObj?.amh || contentObj?.am || raw.feedback_content_amh || '',
+    feedback_content_oro: contentObj?.oro || contentObj?.om || raw.feedback_content_oro || '',
     feedback_content_localized: contentObj || { eng: String(raw.feedback_content || '') },
     response: respObj
-      ? (respObj.eng || respObj.amh || respObj.oro || '')
+      ? (respObj.eng || respObj.en || respObj.amh || respObj.am || respObj.oro || respObj.om || '')
       : (raw.response != null ? String(raw.response) : undefined),
-    response_amh: respObj?.amh || raw.response_amh || '',
-    response_oro: respObj?.oro || raw.response_oro || '',
+    response_amh: respObj?.amh || respObj?.am || raw.response_amh || '',
+    response_oro: respObj?.oro || respObj?.om || raw.response_oro || '',
     response_localized: respObj || (raw.response != null ? { eng: String(raw.response) } : null),
   };
 }
@@ -159,11 +163,15 @@ export const feedbackApi = baseApi.injectEndpoints({
       ],
     }),
 
-    respondToFeedback: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; response: string }>({
-      query: ({ id, response }) => ({
+    respondToFeedback: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; response: string; response_amh?: string; response_oro?: string }>({
+      query: ({ id, response, response_amh, response_oro }) => ({
         url: `/feedbacks/${id}/respond`,
         method: 'POST',
-        body: { response },
+        body: {
+          response,
+          ...(response_amh !== undefined ? { response_amh } : {}),
+          ...(response_oro !== undefined ? { response_oro } : {}),
+        },
       }),
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Feedback', id },
@@ -180,13 +188,15 @@ export const feedbackApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: 'Feedback', id: 'LIST' }, 'Feedback'],
     }),
 
-    updateFeedbackStatus: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; status?: string; response?: string }>({
-      query: ({ id, status, response }) => ({
+    updateFeedbackStatus: builder.mutation<ApiResponse<CitizenFeedback>, { id: string | number; status?: string; response?: string; response_amh?: string; response_oro?: string }>({
+      query: ({ id, status, response, response_amh, response_oro }) => ({
         url: `/feedbacks/${id}`,
         method: 'PUT',
         body: {
           ...(status ? { status } : {}),
           ...(response !== undefined ? { response } : {}),
+          ...(response_amh !== undefined ? { response_amh } : {}),
+          ...(response_oro !== undefined ? { response_oro } : {}),
         },
       }),
       invalidatesTags: (_result, _error, { id }) => [

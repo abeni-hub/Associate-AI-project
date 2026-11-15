@@ -333,6 +333,7 @@ export default function FeedbackFormCard({ t, onTrack }: FeedbackFormCardProps) 
           ? 'satisfaction'
           : 'feedback';
 
+    const isSatisfaction = normalizedType === 'satisfaction';
     let tracking: string | null = null;
 
     try {
@@ -343,16 +344,16 @@ export default function FeedbackFormCard({ t, onTrack }: FeedbackFormCardProps) 
         full_name: feedbackFullName.trim() || undefined,
         phone_number: feedbackPhoneNumber.trim() || undefined,
       }).unwrap();
-      tracking = response?.data?.tracking_number;
+      tracking = isSatisfaction ? null : response?.data?.tracking_number;
     } catch (err) {
       console.warn('Backend feedback submission error, providing fallback:', err);
     }
 
-    if (!tracking) {
+    if (!isSatisfaction && !tracking) {
       tracking = createFeedbackTrackingNumber();
     }
 
-    dispatch(setSubmittedFeedback({ trackingNumber: tracking }));
+    dispatch(setSubmittedFeedback({ trackingNumber: isSatisfaction ? undefined : tracking }));
   }
 
   function handleReset() {

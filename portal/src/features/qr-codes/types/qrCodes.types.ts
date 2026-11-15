@@ -60,8 +60,8 @@ export interface QRToolbarProps {
   statusFilter: string;
   onStatusFilterChange: (value: string) => void;
   organizations: OrganizationItem[];
-  canManage: boolean;
-  onAddPoster: () => void;
+  canManage?: boolean;
+  onAddPoster?: () => void;
 }
 
 export interface QRTableProps {

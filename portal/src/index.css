@@ -34,5 +34,6 @@ html { min-width: 320px; min-height: 100%; background: var(--paper); }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, input, select, textarea { font: inherit; }
 button, a, select { -webkit-tap-highlight-color: transparent; }
-button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid #b28b47; outline-offset: 3px; }
+button:focus-visible, a:focus-visible { outline: 2px solid #00485a; outline-offset: 2px; }
+input:focus, select:focus, textarea:focus, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; }
 ::selection { color: #15372e; background: #e3d4a8; }

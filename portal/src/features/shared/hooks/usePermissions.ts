@@ -219,13 +219,13 @@ export function usePermissions() {
       return [...ALL_SYSTEM_PERMISSIONS];
     }
     // Check if live profile has explicit permissions array directly from backend
-    if (authUser?.permissions && Array.isArray(authUser.permissions) && authUser.permissions.length > 0) {
+    if (Array.isArray(authUser?.permissions)) {
       if (authUser.permissions.includes('*')) {
         return [...ALL_SYSTEM_PERMISSIONS];
       }
       return authUser.permissions;
     }
-    // Check role default fallback only when permissions array is undefined or empty
+    // Check role default fallback only when live profile has not loaded or permissions are undefined
     const roleSlug = authUser?.role?.slug || role;
     return ROLE_DEFAULT_PERMISSIONS[roleSlug] || [];
   }, [authUser, isSuperAdmin, role]);
