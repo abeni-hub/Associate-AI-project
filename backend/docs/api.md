@@ -575,23 +575,69 @@ Retrieve the complete hierarchical tree rooted in the user's scope.
 ---
 
 ### `POST /api/v1/organizations`
-Create a new government organization.
+Create a new government organization with trilingual localization support (English, Amharic, Afaan Oromoo).
 - **Authentication**: `auth:sanctum` + `account.active`
 - **Permission Required**: `organizations.create`
 - **Request Body**:
 ```json
 {
   "name": "Woreda 02",
+  "name_amh": "ወረዳ 02",
+  "name_oro": "Aanaa 02",
   "code": "woreda-02-bole",
   "organization_type_id": 2,
   "parent_organization_id": 1,
+  "description": "Administrative office for Woreda 02",
+  "description_amh": "የወረዳ 02 አስተዳደር ቢሮ",
+  "description_oro": "Waajjira Bulchiinsa Aanaa 02",
   "address": "Bole Road, Near Airport",
+  "address_amh": "ቦሌ መንገድ፣ ኤርፖርት አጠገብ",
+  "address_oro": "Daandii Boolee, Buufata Xiyyaaraa Cinaa",
   "phone": "+251911223344",
   "email": "woreda02@bole.gov.et",
   "status": "active"
 }
 ```
 - **Response (201 Created)**: Returns created `OrganizationResource`.
+```json
+{
+  "success": true,
+  "message": "Organization created successfully.",
+  "data": {
+    "id": 2,
+    "name": {
+      "eng": "Woreda 02",
+      "amh": "ወረዳ 02",
+      "oro": "Aanaa 02"
+    },
+    "name_amh": "ወረዳ 02",
+    "name_oro": "Aanaa 02",
+    "code": "woreda-02-bole",
+    "description": {
+      "eng": "Administrative office for Woreda 02",
+      "amh": "የወረዳ 02 አስተዳደር ቢሮ",
+      "oro": "Waajjira Bulchiinsa Aanaa 02"
+    },
+    "description_amh": "የወረዳ 02 አስተዳደር ቢሮ",
+    "description_oro": "Waajjira Bulchiinsa Aanaa 02",
+    "address": {
+      "eng": "Bole Road, Near Airport",
+      "amh": "ቦሌ መንገድ፣ ኤርፖርት አጠገብ",
+      "oro": "Daandii Boolee, Buufata Xiyyaaraa Cinaa"
+    },
+    "address_amh": "ቦሌ መንገድ፣ ኤርፖርት አጠገብ",
+    "address_oro": "Daandii Boolee, Buufata Xiyyaaraa Cinaa",
+    "phone": "+251911223344",
+    "email": "woreda02@bole.gov.et",
+    "logo": null,
+    "status": "active",
+    "organization_type_id": 2,
+    "parent_organization_id": 1,
+    "is_root": false
+  },
+  "errors": null
+}
+```
 
 ---
 
