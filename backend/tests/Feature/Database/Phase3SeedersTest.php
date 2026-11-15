@@ -59,12 +59,14 @@ class Phase3SeedersTest extends TestCase
         // Super Admin has all 13 navigation items
         $this->assertCount(13, $superAdmin->navigationItems);
 
-        // Sub-City Admin has 9 items
+        // Sub-City Admin has 11 items
         $subCityRoutes = $subCityAdmin->navigationItems->pluck('route')->toArray();
-        $this->assertCount(9, $subCityRoutes);
+        $this->assertCount(11, $subCityRoutes);
         $this->assertContains('/admin/subcities', $subCityRoutes);
         $this->assertContains('/admin/accounts', $subCityRoutes);
         $this->assertContains('/admin/documents', $subCityRoutes);
+        $this->assertContains('/admin/levels', $subCityRoutes);
+        $this->assertContains('/admin/activity', $subCityRoutes);
         $this->assertNotContains('/admin/cms', $subCityRoutes);
 
         // Staff has 5 items (Overview, Feedback, Services, Documents, Routes)

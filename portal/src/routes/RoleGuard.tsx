@@ -1,11 +1,10 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { usePortal } from '../context';
-import { usePermissions } from '../hooks/usePermissions';
-import { useGetSidebarNavigationQuery } from '../services/navigationApi';
+import { usePortal, usePermissions, useGetSidebarNavigationQuery, Icon } from '../features/shared';
+import { useLanguage } from '../features/shared/i18n';
 import { tokenStorage } from '../utils/tokenStorage';
-import { Icon } from '../components/shared/Icon';
 import type { RoleKey } from '../types/portal.types';
+import styles from './roleGuard.module.css';
 
 export interface RoleGuardProps {
   allowedRoles?: RoleKey[];
@@ -59,23 +58,23 @@ export const getFirstAuthorizedPath = (
  */
 export const AccessDeniedScreen: React.FC = () => {
   const portal = usePortal();
+  const { t } = useLanguage();
   return (
-    <div className="panel" style={{ maxWidth: '540px', margin: '4rem auto', padding: '2.5rem 2rem', textAlign: 'center' }}>
-      <div style={{ display: 'inline-flex', padding: '16px', background: '#fee2e2', color: '#dc2626', borderRadius: '50%', marginBottom: '1.25rem' }}>
+    <div className={styles.accessDeniedPanel}>
+      <div className={styles.shieldIconWrapper}>
         <Icon name="shield" size={36} />
       </div>
-      <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>
-        Access Restricted
-      </h2>
-      <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.75rem' }}>
-        Your role ({portal.authUser?.role?.name || portal.role}) does not have permission to access this page, or all administrative modules have been restricted by your platform administrator.
+      <h2 className={styles.title}>Access Restricted</h2>
+      <p className={styles.description}>
+        Your role ({portal.authUser?.role?.name || portal.role}) does not have permission to access
+        this page, or this administrative module has been restricted.
       </p>
       <button
         type="button"
         className="button primary"
         onClick={() => portal.signOut()}
       >
-        Sign out
+        {t('nav.signOut', 'Sign out')}
       </button>
     </div>
   );
@@ -98,21 +97,17 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
     refetchOnMountOrArgChange: true,
   });
 
-  // Super Admin has full platform authority across all administrative pages
   if (isSuperAdmin) {
     return children;
   }
 
-  // Determine current page key
   const currentPathKey =
     pageKey ||
     location.pathname.replace(/^\/admin\/?/, '').replace(/^\//, '').split('/')[0].toLowerCase() ||
     'overview';
 
-  // Locate the user's first permitted route as a dynamic fallback
   const fallbackPath = getFirstAuthorizedPath(apiNavResponse?.data, hasPermission);
 
-  // Helper to safely navigate away or display the restricted screen if no valid routes exist
   const denyAccess = () => {
     if (fallbackPath && fallbackPath !== `/${currentPathKey}`) {
       return <Navigate to={fallbackPath} replace />;
@@ -120,34 +115,29 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
     return <AccessDeniedScreen />;
   };
 
-  // 1. Check required permission: If specified, permission is the primary authorization check
   if (requiredPermission && !hasPermission(requiredPermission)) {
     return denyAccess();
   }
 
-  // 2. Check role restriction if explicitly specified
   if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(role)) {
     return denyAccess();
   }
 
-  // 3. Check required scope level rank if configured
   if (requiredScope && !canManageScope(requiredScope)) {
     return denyAccess();
   }
 
-  // 4. Loading state protection: prevent unauthorized flash while navigation loads
   if (!isSuperAdmin && hasToken && isNavLoading && !apiNavResponse) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px', color: '#64748b' }}>
+      <div className={styles.verifyingState}>
         <span>Verifying page access…</span>
       </div>
     );
   }
 
-  // 5. Check navigation/page authorization from live backend sidebar navigation items
   if (apiNavResponse?.data && Array.isArray(apiNavResponse.data)) {
     const authorizedKeys = new Set<string>();
-    apiNavResponse.data.forEach((item) => {
+    (apiNavResponse.data as any[]).forEach((item: any) => {
       const key = item.route.replace(/^\/admin\/?/, '').replace(/^\//, '').split('/')[0].toLowerCase();
       authorizedKeys.add(key);
       if (key === 'organizations' || key === 'subcities') {

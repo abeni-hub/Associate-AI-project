@@ -220,7 +220,9 @@ class OrganizationManagementTest extends TestCase
             ->assertJson([
                 'success' => true,
                 'data' => [
-                    'name' => 'Yeka Sub-City',
+                    'name' => [
+                        'eng' => 'Yeka Sub-City',
+                    ],
                     'code' => 'subcity-yeka',
                     'is_root' => true,
                 ],
@@ -404,7 +406,9 @@ class OrganizationManagementTest extends TestCase
             ->getJson('/api/v1/organizations?search=Bole');
 
         $response->assertStatus(200);
-        $names = collect($response->json('data'))->pluck('name')->all();
+        $names = collect($response->json('data'))->map(function ($org) {
+            return is_array($org['name'] ?? null) ? ($org['name']['eng'] ?? '') : ($org['name'] ?? '');
+        })->all();
 
         $this->assertContains('Bole Sub-City', $names);
     }

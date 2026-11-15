@@ -1,15 +1,15 @@
 import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import { PortalProvider } from './context';
+import { I18nProvider } from './features/shared/i18n';
 import { AppRoutes } from './routes/AppRoutes';
 import './App.css';
 
 export default function App() {
   return (
     <BrowserRouter>
-      <PortalProvider>
+      <I18nProvider>
         <AppRoutes />
-      </PortalProvider>
+      </I18nProvider>
     </BrowserRouter>
   );
 }

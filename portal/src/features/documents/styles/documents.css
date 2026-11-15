@@ -1,0 +1,108 @@
+/* ==========================================================================
+   Roles & Custom Permissions Studio Matrix
+   ========================================================================== */
+.permissions-matrix-panel .table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.permissions-table { table-layout: fixed; }
+.permissions-table thead .permission-group-head th {
+  height: 30px;
+  background: #edf3ef;
+  color: #526e65;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+.permissions-table thead .permission-group-head th:first-child {
+  color: #526e65;
+  text-align: left;
+}
+.permissions-table thead .permission-group-head th:not(:first-child) { border-left: 1px solid #dfe8e1; }
+.permissions-table thead .permission-action-head th {
+  height: 34px;
+  background: #f8faf6;
+  color: #718178;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.permissions-table thead .permission-action-head th:first-child,
+.permissions-table thead .permission-action-head th:nth-child(2),
+.permissions-table thead .permission-action-head th:nth-child(5),
+.permissions-table tbody td:nth-child(2),
+.permissions-table tbody td:nth-child(3),
+.permissions-table tbody td:nth-child(6) { border-left: 1px solid #e8eee9; }
+.permissions-table tbody tr:hover { background: #fbfcfa; }
+.permissions-table tbody td:first-child { white-space: normal; }
+.permissions-toolbar-tools { justify-content: flex-end; flex-wrap: wrap; margin-left: auto; }
+.role-picker-control { display: inline-flex; align-items: center; gap: 8px; color: #62786d; font-size: 12px; font-weight: 700; }
+.role-picker-control select { min-width: 190px; height: 36px; padding: 0 30px 0 10px; border: 1px solid #d6e2da; border-radius: 4px; background: #fff; color: #21474e; font: 600 13px 'Manrope', 'Segoe UI', sans-serif; cursor: pointer; }
+.role-picker-control select:focus-visible { outline: none; border-color: #6f9c96; box-shadow: 0 0 0 3px rgba(0, 72, 90, 0.15); }
+.role-scope-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #6c7e74;
+}
+.role-scope-indicator strong {
+  color: #00485a;
+}
+.module-info-cell b {
+  display: block;
+  font-size: 13px;
+  color: #21474e;
+  margin-bottom: 2px;
+}
+.module-info-cell p {
+  font-size: 11px;
+  color: #7b8981;
+  margin: 0;
+  line-height: 1.4;
+}
+.permission-not-applicable { color: #a0aaa1 !important; }
+.perm-status-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.perm-status-icon.granted {
+  background: rgba(82, 138, 116, 0.15);
+  color: #528a74;
+}
+.perm-status-icon.denied {
+  background: #f3f6f3;
+  color: #9aa79f;
+}
+.perm-toggle-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #dbe5de;
+  background: #fff;
+  color: #96a39b;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.perm-toggle-btn:hover {
+  border-color: #79a7a1;
+  background: #eef5f1;
+  color: #00485a;
+}
+.perm-toggle-btn.granted {
+  background: #367b7d;
+  border-color: #367b7d;
+  color: #ffffff;
+}
+

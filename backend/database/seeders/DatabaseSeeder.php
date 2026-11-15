@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             QrCodeSeeder::class,
             LandingPageCmsSeeder::class,
             UserSeeder::class,
+            RichPortalSeedData::class,
         ]);
     }
 }

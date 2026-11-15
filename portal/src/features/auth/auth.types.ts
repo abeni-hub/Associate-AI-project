@@ -133,7 +133,7 @@ export function mapBackendRoleToPortalRole(roleSlug?: string | null): 'super' | 
   if (!roleSlug) return 'bureau';
   const slug = roleSlug.toLowerCase().trim();
   if (slug === 'super_admin' || slug === 'super') return 'super';
-  if (slug === 'sub_city_admin' || slug === 'subcity' || slug === 'sub_city') return 'subcity';
+  if (slug === 'sub_city_admin' || slug === 'subcity' || slug === 'sub_city' || slug === 'subadmin' || slug === 'woreda_admin') return 'subcity';
   return 'bureau';
 }
 

@@ -1,0 +1,27 @@
+/* ==========================================================================
+   Isolated client landing page frame
+   ========================================================================== */
+.preview-viewport {
+  width: 100%;
+  overflow: hidden;
+  background: #f8f9f4;
+}
+.client-frame-stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #f8f9f4;
+}
+.client-landing-frame {
+  display: block;
+  flex: 0 0 auto;
+  border: 0;
+  background: #f8f9f4;
+  transform-origin: top left;
+}
+.client-frame-stage.is-mobile .client-landing-frame {
+  width: 100%;
+  height: 780px;
+  transform: none;
+}
+

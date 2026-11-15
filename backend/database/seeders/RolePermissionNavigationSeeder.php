@@ -240,7 +240,7 @@ class RolePermissionNavigationSeeder extends Seeder
                     'icon' => 'Layers',
                     'display_order' => 3,
                     'required_permission' => 'organizations.view',
-                    'roles' => ['super_admin'],
+                    'roles' => ['super_admin', 'sub_city_admin'],
                 ],
                 [
                     'label' => 'Accounts',
@@ -320,7 +320,7 @@ class RolePermissionNavigationSeeder extends Seeder
                     'icon' => 'Activity',
                     'display_order' => 13,
                     'required_permission' => 'audit_logs.view',
-                    'roles' => ['super_admin'],
+                    'roles' => ['super_admin', 'sub_city_admin'],
                 ],
             ];
 

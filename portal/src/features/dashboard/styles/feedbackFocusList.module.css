@@ -1,0 +1,201 @@
+.panel {
+  min-width: 0;
+  padding: 17px 18px 14px;
+  border: 1px solid var(--border-color, #e5ede7);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-surface, #ffffff);
+  min-height: 236px;
+}
+
+.panelHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.eyebrow {
+  display: block;
+  color: var(--text-tertiary, #87948c);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 3px 0 0;
+  color: var(--primary-deep, #184e57);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.intro {
+  margin: 5px 0 0;
+  color: var(--text-secondary, #87958d);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.panelLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--primary-accent, #578286);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.panelLink:hover {
+  color: var(--primary-deep, #003946);
+}
+
+.focusList {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.focusItem {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0 11px;
+  padding: 11px 12px;
+  border: 1px solid #e8eee8;
+  border-left: 2px solid var(--brand-accent, #d6a854);
+  border-radius: var(--radius-sm, 5px);
+  background: var(--bg-surface, #ffffff);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s, background-color 0.16s;
+}
+
+.focusItem:hover {
+  border-color: #cbdcd2;
+  background: #fbfcf9;
+}
+
+.focusItem:focus-visible {
+  outline-offset: 2px;
+}
+
+.focusType {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  grid-row: 1 / span 3;
+  border: 1px solid #f0ded8;
+  border-radius: var(--radius-sm, 5px);
+  background: #fbf2ee;
+  color: #ab725f;
+}
+
+.focusTypeComplaint {
+  border-color: #f0ded8;
+  background: #fbf2ee;
+  color: #ab725f;
+}
+
+.focusTypeSatisfaction {
+  border-color: #eee4c9;
+  background: #faf5e8;
+  color: #a88745;
+}
+
+.focusTypeSuggestion {
+  border-color: #e0ebe0;
+  background: #eff5ef;
+  color: #6c967b;
+}
+
+.focusCopy {
+  min-width: 0;
+}
+
+.focusTopline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.focusTopline > b {
+  color: var(--primary-deep, #36575b);
+  font-family: var(--font-heading, 'Manrope', sans-serif);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.focusCopy p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 6px 0 8px;
+  color: var(--text-secondary, #61776e);
+  font-size: 12.5px;
+  line-height: 1.45;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.focusMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  color: var(--text-tertiary, #89968e);
+  font-size: 11.5px;
+}
+
+.focusMeta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.focusMeta svg {
+  flex: 0 0 auto;
+  color: #8eaaa0;
+}
+
+.priorityTag {
+  align-self: start;
+  margin-left: 8px;
+  padding: 4px 7px;
+  border: 1px solid #eee6d5;
+  background: #faf6eb;
+  color: #927b49;
+  font-size: 10.5px;
+  font-weight: 700;
+  border-radius: 3px;
+}
+
+.priorityHigh {
+  border-color: #f0d9d0;
+  background: #fbf0eb;
+  color: #a36b59;
+}
+
+.priorityLow {
+  border-color: #dfebdf;
+  background: #f0f6ef;
+  color: #698d73;
+}
+
+.quietState {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+  color: var(--text-secondary, #608288);
+  font-size: 13px;
+}
+

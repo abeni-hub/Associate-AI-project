@@ -163,18 +163,18 @@ class Phase5EndToEndIntegrationTest extends TestCase
         $this->assertContains('/admin/subcities', array_column($resSubCity->json('data'), 'route'));
         $this->assertContains('/admin/documents', array_column($resSubCity->json('data'), 'route'));
 
-        // 3. Woreda Admin receives 10 items (no roles, no cms, no activity)
+        // 3. Woreda Admin receives 8 items (no roles, no cms, no activity, no offices, no levels)
         Sanctum::actingAs($this->woredaAdmin);
         $resWoreda = $this->getJson('/api/v1/navigation/sidebar');
         $resWoreda->assertStatus(200);
-        $this->assertCount(10, $resWoreda->json('data'));
+        $this->assertCount(8, $resWoreda->json('data'));
         $this->assertNotContains('/admin/cms', array_column($resWoreda->json('data'), 'route'));
 
-        // 4. Bureau Admin receives 10 items
+        // 4. Bureau Admin receives 7 items
         Sanctum::actingAs($this->bureauAdmin);
         $resBureau = $this->getJson('/api/v1/navigation/sidebar');
         $resBureau->assertStatus(200);
-        $this->assertCount(10, $resBureau->json('data'));
+        $this->assertCount(7, $resBureau->json('data'));
         $this->assertContains('/admin/qr', array_column($resBureau->json('data'), 'route'));
 
         // 5. Staff receives 5 operational items

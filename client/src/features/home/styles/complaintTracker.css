@@ -1,0 +1,470 @@
+/* ==========================================================================
+   Home Feature: Complaint Tracker Component Styles
+   ========================================================================== */
+
+.complaint-tracker {
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--line);
+}
+
+.tracker-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.tracker-header-info h3 {
+  margin: 6px 0 4px;
+  font-size: 22px;
+  color: var(--ink-deep);
+}
+
+.tracker-header-info p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.switch-view-btn {
+  border: 1px solid var(--line);
+  background: #f7f9f8;
+  color: var(--ink);
+  padding: 6px 12px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.switch-view-btn:hover {
+  background: #fff;
+  border-color: var(--ink);
+}
+
+.tracker-search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.tracker-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #f8faf9;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 14px;
+  position: relative;
+  transition: border-color 0.2s;
+}
+
+.tracker-input-wrap:focus-within {
+  border-color: var(--ink);
+  background: #fff;
+}
+
+.tracker-input-wrap input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 12px 10px;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.track-btn {
+  padding: 0 20px;
+  min-height: 44px;
+  font-size: 13px;
+}
+
+.tracker-empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  background: #fdfaf7;
+  border: 1px dashed #e8d7c3;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+.empty-state-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #fceded;
+  color: #b33939;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 14px;
+}
+
+.tracker-empty-state h4 {
+  margin: 0 0 6px;
+  color: var(--ink-deep);
+}
+
+.tracker-empty-state p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.tracker-result-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 24px;
+  background: #fafcfb;
+  margin-top: 10px;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.reference-tag {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+}
+
+.reference-number-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+
+.reference-number-row h4 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--ink-deep);
+  font-family: monospace;
+  letter-spacing: 1px;
+  word-break: break-all;
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #d4deda;
+  background: #fff;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.copy-btn:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.status-pill .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-submitted {
+  background: #e8f3f8;
+  color: #176585;
+  border: 1px solid #c7e1ed;
+}
+
+.status-submitted .status-dot {
+  background: #176585;
+}
+
+.status-under_review,
+.status-in_progress {
+  background: #fdf6e7;
+  color: #9c6c10;
+  border: 1px solid #fae6ba;
+}
+
+.status-under_review .status-dot {
+  background: #d9910d;
+}
+
+.status-resolved,
+.status-closed {
+  background: #eaf6ec;
+  color: #1c7232;
+  border: 1px solid #cdecd2;
+}
+
+.status-resolved .status-dot {
+  background: #238b3f;
+}
+
+.tracker-timeline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 24px 0;
+  position: relative;
+}
+
+.timeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  z-index: 1;
+}
+
+.timeline-node {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e6edea;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  transition: all 0.25s ease;
+}
+
+.timeline-step.is-complete .timeline-node {
+  background: var(--ink);
+  color: #fff;
+}
+
+.timeline-step.is-active .timeline-node {
+  background: var(--gold);
+  color: #fff;
+  box-shadow: 0 0 0 4px var(--gold-pale);
+}
+
+.timeline-text strong {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-deep);
+}
+
+.timeline-text small {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.timeline-connector {
+  flex: 1;
+  height: 3px;
+  background: #e0eae7;
+  margin: 0 10px;
+  margin-bottom: 24px;
+  transition: background 0.25s ease;
+}
+
+.timeline-connector.is-complete {
+  background: var(--ink);
+}
+
+.tracker-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+  background: #fff;
+  padding: 14px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.meta-item strong {
+  font-size: 13px;
+  color: var(--ink-deep);
+}
+
+.tracker-submission-box {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+}
+
+.box-title {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.tracker-submission-box p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.tracker-response-box {
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+}
+
+.tracker-response-box.has-response {
+  background: #edf7ef;
+  border: 1px solid #c8e9cf;
+  color: #175727;
+}
+
+.tracker-response-box.awaiting-response {
+  background: #fbf8f0;
+  border: 1px solid #fae8c6;
+  color: #8c6418;
+}
+
+.response-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.response-body p,
+.response-awaiting-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tracker-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Responsive Styles */
+@media (max-width: 760px) {
+  .complaint-tracker {
+    padding: 22px 18px;
+  }
+  .tracker-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .tracker-search-bar {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .tracker-search-bar .track-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .tracker-result-card {
+    padding: 18px 14px;
+  }
+  .result-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding-bottom: 14px;
+  }
+  .tracker-timeline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    margin: 18px 0;
+    padding-left: 6px;
+  }
+  .timeline-step {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: 12px;
+    width: 100%;
+  }
+  .timeline-node {
+    flex-shrink: 0;
+  }
+  .timeline-connector {
+    width: 2px;
+    height: 22px;
+    flex: none;
+    margin: 2px 0 2px 15px;
+  }
+  .tracker-meta-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+  .tracker-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .tracker-actions button,
+  .tracker-actions a {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .complaint-tracker {
+    padding: 16px 12px;
+    border-radius: 8px;
+  }
+  .tracker-header-info h3 {
+    font-size: 17px;
+  }
+  .reference-number-row h4 {
+    font-size: 16px;
+  }
+}
+

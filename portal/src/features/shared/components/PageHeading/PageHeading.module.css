@@ -1,0 +1,178 @@
+.root {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin-bottom: var(--space-8, 34px);
+}
+
+.textGroup {
+  min-width: 0;
+  flex: 1;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-1);
+}
+
+.eyebrowLine {
+  width: 24px;
+  height: 1px;
+  background: var(--gold);
+  flex-shrink: 0;
+}
+
+.title {
+  margin: var(--space-2) 0 var(--space-1);
+  color: var(--ink-deep);
+  font-family: var(--font-family-display);
+  font-size: clamp(1.85rem, 2.45vw, 2.4rem);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.065em;
+}
+
+.dot {
+  color: var(--gold);
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.actionButton {
+  min-height: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 15px;
+  border-radius: 8px;
+  font-family: var(--font-family-sans, 'DM Sans', sans-serif);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.16s ease,
+              border-color 0.16s ease,
+              box-shadow 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.16s ease;
+}
+
+.actionButton:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.actionButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Primary "Add / Create" Button */
+.primaryButton {
+  color: #ffffff;
+  background: linear-gradient(180deg, #09596a 0%, #00485a 100%);
+  border: 1px solid rgba(0, 36, 46, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22),
+              0 2px 4px rgba(0, 40, 50, 0.12),
+              0 6px 14px -2px rgba(0, 48, 59, 0.16);
+}
+
+.primaryButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, #0c6578 0%, #005063 100%);
+  border-color: rgba(0, 36, 46, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28),
+              0 4px 8px rgba(0, 40, 50, 0.15),
+              0 10px 22px -3px rgba(0, 48, 59, 0.22);
+  color: #ffffff;
+}
+
+.primaryButton:active:not(:disabled) {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 40, 50, 0.1);
+}
+
+.primaryButton svg {
+  width: 15px;
+  height: 15px;
+  color: rgba(255, 255, 255, 0.95);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.primaryButton:hover:not(:disabled) svg {
+  transform: scale(1.1);
+  color: #ffffff;
+}
+
+/* Secondary "Export" Button */
+.secondaryButton {
+  color: #17424b;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbfb 100%);
+  border: 1px solid #d4e1de;
+  box-shadow: 0 1px 2px rgba(0, 36, 46, 0.04),
+              0 3px 8px -2px rgba(0, 36, 46, 0.04);
+}
+
+.secondaryButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #ffffff;
+  border-color: #00485a;
+  color: #00485a;
+  box-shadow: 0 4px 12px -2px rgba(0, 72, 90, 0.12),
+              0 1px 3px rgba(0, 36, 46, 0.04);
+}
+
+.secondaryButton:active:not(:disabled) {
+  background: #f0f5f4;
+  box-shadow: 0 1px 2px rgba(0, 36, 46, 0.04);
+}
+
+.secondaryButton svg {
+  width: 15px;
+  height: 15px;
+  color: #426971;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.18s ease;
+}
+
+.secondaryButton:hover:not(:disabled) svg {
+  color: #00485a;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .root {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .actions {
+    width: 100%;
+    justify-content: flex-start;
+    margin-top: var(--space-3);
+  }
+}
+
