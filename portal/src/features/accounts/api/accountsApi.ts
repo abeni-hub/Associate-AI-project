@@ -7,8 +7,30 @@ import type {
   UpdateUserPayload,
 } from '../types/accounts.types';
 
+export interface LoginLockout {
+  id: number;
+  identifier: string;
+  ip_address: string;
+  locked_until: string;
+  remaining_seconds: number;
+}
+
 export const accountsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    getLoginLockouts: builder.query<ApiResponse<LoginLockout[]>, void>({
+      query: () => ({
+        url: '/users/locked-logins',
+        method: 'GET',
+      }),
+    }),
+
+    unlockLoginLockout: builder.mutation<ApiResponse<null>, number>({
+      query: (id) => ({
+        url: `/users/locked-logins/${id}/unlock`,
+        method: 'POST',
+      }),
+    }),
+
     getUsers: builder.query<PaginatedResponse<AuthUser>, UserFilterParams | void>({
       query: (params) => ({
         url: '/users',
@@ -77,6 +99,8 @@ export const accountsApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetLoginLockoutsQuery,
+  useUnlockLoginLockoutMutation,
   useGetUsersQuery,
   useLazyGetUsersQuery,
   useGetUserByIdQuery,

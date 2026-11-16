@@ -172,6 +172,56 @@
   animation: fadeIn var(--duration-fast) var(--ease-standard);
 }
 
+.lockoutBanner {
+  background: #fdf3f2;
+  border-left: 3px solid #b83a30;
+  color: #791f19;
+  padding: 12px 14px;
+}
+
+.lockoutContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lockoutHeader {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  font-size: var(--font-size-xs, 0.75rem);
+  color: #9c2a22;
+}
+
+.lockoutMessage {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: #791f19;
+}
+
+.countdownBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #f7dedc;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #8c2018;
+  width: fit-content;
+}
+
+.countdownTimer {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  color: #6a140f;
+}
+
 .submitButton {
   width: 100%;
   height: 47px;

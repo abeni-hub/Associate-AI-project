@@ -7,6 +7,8 @@ import {
   Trash2,
   Mail,
   Phone,
+  LockKeyhole,
+  Unlock,
 } from 'lucide-react';
 import { usePermissions } from '../shared/hooks/usePermissions';
 import { useLanguage, getLocalizedText } from '../shared/i18n';
@@ -16,6 +18,8 @@ import { AccountsToolbar } from './components/AccountsToolbar';
 import { PageHeading, PageLoadingState, StatusPill } from '../shared';
 import type { AccountItem } from '../../types/portal.types';
 import {
+  useGetLoginLockoutsQuery,
+  useUnlockLoginLockoutMutation,
   useGetUsersQuery,
   useCreateUserMutation,
   useUpdateUserMutation,
@@ -40,6 +44,13 @@ export const AccountsPage: React.FC = () => {
   const { data: usersResponse, isLoading, isError, error, refetch } = useGetUsersQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });
+  const {
+    data: lockoutsResponse,
+    isLoading: areLockoutsLoading,
+    isError: lockoutsFailed,
+    refetch: refetchLockouts,
+  } = useGetLoginLockoutsQuery(undefined, { skip: !canResetTwoFactor });
+  const [unlockLoginLockout] = useUnlockLoginLockoutMutation();
   const isTwoFactorSetupRequired =
     isError
     && typeof error === 'object'
@@ -128,6 +139,16 @@ export const AccountsPage: React.FC = () => {
     }
   };
 
+  const handleUnlockLogin = async (id: number) => {
+    if (!window.confirm(t('accounts.unlockLoginConfirm'))) return;
+    try {
+      await unlockLoginLockout(id).unwrap();
+      await refetchLockouts();
+    } catch (err: any) {
+      window.alert(err?.data?.message || t('accounts.unlockLoginFailed'));
+    }
+  };
+
   const handleOpenEdit = (item: AccountItem) => {
     setSelectedAccountForEdit(item);
     setIsAccountModalOpen(true);
@@ -192,6 +213,57 @@ export const AccountsPage: React.FC = () => {
         actionIcon="plus"
         secondaryIcon="download"
       />
+
+      {canResetTwoFactor && (
+        <section className="panel table-panel">
+          <div className="table-toolbar">
+            <div>
+              <h2 className="flex items-center gap-2">
+                <LockKeyhole size={17} aria-hidden="true" />
+                {t('accounts.lockedLoginsTitle')}
+              </h2>
+              <p className="mt-1 text-xs text-slate-500">{t('accounts.lockedLoginsDescription')}</p>
+            </div>
+          </div>
+          <div className="p-4 sm:p-5">
+            {lockoutsFailed ? (
+              <div role="alert" className="flex flex-wrap items-center justify-between gap-3 text-sm text-rose-700">
+                <span>{t('accounts.lockoutsLoadError')}</span>
+                <button type="button" className="button secondary" onClick={() => void refetchLockouts()}>
+                  {t('accounts.retry')}
+                </button>
+              </div>
+            ) : areLockoutsLoading ? (
+              <p className="text-sm text-slate-500">{t('common.loading')}</p>
+            ) : (lockoutsResponse?.data || []).length === 0 ? (
+              <p className="text-sm text-slate-500">{t('accounts.noLockedLogins')}</p>
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {lockoutsResponse?.data.map((lockout) => (
+                  <li key={lockout.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-800">{lockout.identifier}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {t('accounts.lockedLoginIp')}: {lockout.ip_address}
+                        {' · '}
+                        {t('accounts.lockedUntil')}: {new Date(lockout.locked_until).toLocaleTimeString(language === 'am' ? 'am-ET' : 'en-US')}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="button secondary inline-flex items-center gap-2"
+                      onClick={() => void handleUnlockLogin(lockout.id)}
+                    >
+                      <Unlock size={14} aria-hidden="true" />
+                      {t('accounts.unlockLogin')}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* KPI Stats Grid */}
       {!isError && (

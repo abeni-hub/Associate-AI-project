@@ -59,15 +59,20 @@ class AppServiceProvider extends ServiceProvider
 
             return rtrim($frontendUrl, '/').'/reset-password?token='.$token.'&email='.urlencode($notifiable->getEmailForPasswordReset());
         });
+
         RateLimiter::for('login', function (Request $request) {
-            $identifier = (string) $request->input('login', $request->input('username', ''));
+            $identifier = (string) ($request->input('login') ?? $request->input('username') ?? '');
             $key = Str::transliterate(Str::lower($identifier).'|'.$request->ip());
 
             return Limit::perMinute(5)->by($key)->response(function (Request $request, array $headers) {
+                $retryAfter = (int) ($headers['Retry-After'] ?? 60);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Too many login attempts. Please try again later.',
-                    'data' => null,
+                    'data' => [
+                        'retry_after' => $retryAfter,
+                    ],
                     'errors' => null,
                 ], 429, $headers);
             });

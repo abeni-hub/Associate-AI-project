@@ -165,6 +165,7 @@ export interface LoginFormProps {
   onToggleRecoveryCode?: () => void;
   onTwoFactorCodeChange?: (value: string) => void;
   onRecoveryCodeChange?: (value: string) => void;
+  lockoutSeconds?: number;
   labels?: Record<string, string>;
 }
 

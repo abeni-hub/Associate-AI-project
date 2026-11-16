@@ -119,9 +119,9 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(422)
             ->assertJson([
                 'success' => false,
-                'message' => 'Validation failed.',
+                'message' => __('login_security.invalid_credentials'),
                 'errors' => [
-                    'login' => ['These credentials do not match our records.'],
+                    'login' => [__('login_security.invalid_credentials')],
                 ],
             ]);
 
@@ -138,9 +138,9 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(422)
             ->assertJson([
                 'success' => false,
-                'message' => 'Validation failed.',
+                'message' => __('login_security.invalid_credentials'),
                 'errors' => [
-                    'login' => ['These credentials do not match our records.'],
+                    'login' => [__('login_security.invalid_credentials')],
                 ],
             ]);
 
@@ -158,7 +158,7 @@ class AuthenticationTest extends TestCase
             ->assertJson([
                 'success' => false,
                 'errors' => [
-                    'login' => ['Your account is deactivated. Please contact your organization administrator.'],
+                    'login' => [__('login_security.invalid_credentials')],
                 ],
             ]);
 

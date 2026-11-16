@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePortal } from '../../shared';
 import { useLoginMutation, useTwoFactorChallengeMutation } from '../api/authApi';
@@ -21,7 +21,24 @@ export function useAuth() {
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
   const busy = isLoading || isChallengeLoading;
+
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+
+    const timer = setInterval(() => {
+      setLockoutSeconds((prev) => {
+        if (prev <= 1) {
+          setError('');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [lockoutSeconds > 0]);
 
   const handleUsernameChange = useCallback((val: string) => {
     setUsername(val);
@@ -44,6 +61,10 @@ export function useAuth() {
   const handleSubmit = useCallback(
     async (event: React.FormEvent) => {
       event.preventDefault();
+      if (lockoutSeconds > 0) {
+        return;
+      }
+
       const cleanUsername = username.trim();
       const cleanPassword = password.trim();
 
@@ -84,9 +105,30 @@ export function useAuth() {
           setError(response.message || 'Login failed. Please verify your credentials.');
         }
       } catch (err: unknown) {
-        const errObj = err as { data?: { errors?: ValidationErrorMap | { exception?: string }; message?: string } };
+        const errObj = err as {
+          status?: number;
+          data?: {
+            errors?: ValidationErrorMap | { exception?: string };
+            message?: string;
+            data?: { retry_after?: number };
+          };
+        };
+        const status = errObj?.status;
+        const apiData = errObj?.data?.data;
         const apiErrors = errObj?.data?.errors as Record<string, unknown> | undefined;
         const apiMessage = errObj?.data?.message;
+
+        const retrySeconds =
+          Number(apiData?.retry_after) ||
+          Number(apiErrors?.retry_after_seconds) ||
+          (status === 429 ? 60 : 0);
+
+        if (status === 429 || retrySeconds > 0 || apiMessage?.toLowerCase().includes('too many') || apiMessage?.toLowerCase().includes('sign-in attempts')) {
+          const seconds = retrySeconds > 0 ? retrySeconds : 60;
+          setLockoutSeconds(seconds);
+          setError(apiMessage || 'Too many sign-in attempts. Access is temporarily locked.');
+          return;
+        }
 
         if (apiErrors && typeof apiErrors === 'object' && !('exception' in apiErrors)) {
           const firstField = Object.keys(apiErrors)[0];
@@ -105,7 +147,7 @@ export function useAuth() {
         }
       }
     },
-    [username, password, challengeToken, twoFactorCode, recoveryCode, useRecoveryCode, loginTrigger, challengeTrigger, portal, navigate, location.state]
+    [username, password, challengeToken, twoFactorCode, recoveryCode, useRecoveryCode, lockoutSeconds, loginTrigger, challengeTrigger, portal, navigate, location.state]
   );
 
   return {
@@ -118,6 +160,7 @@ export function useAuth() {
     isLoading: busy,
     showPassword,
     error,
+    lockoutSeconds,
     handleUsernameChange,
     handlePasswordChange,
     handleToggleShowPassword,

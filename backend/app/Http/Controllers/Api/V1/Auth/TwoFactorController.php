@@ -152,7 +152,16 @@ class TwoFactorController extends Controller
 
         $attemptKey = 'two-factor:attempts:'.$userId;
         if (RateLimiter::tooManyAttempts($attemptKey, (int) config('two-factor.challenge_attempts', 5))) {
-            return ApiResponse::error(__('two_factor.rate_limited'), statusCode: 429);
+            $seconds = RateLimiter::availableIn($attemptKey);
+
+            return response()->json([
+                'success' => false,
+                'message' => __('two_factor.rate_limited'),
+                'data' => [
+                    'retry_after' => $seconds,
+                ],
+                'errors' => null,
+            ], 429, ['Retry-After' => $seconds]);
         }
         RateLimiter::hit($attemptKey, (int) config('two-factor.challenge_ttl', 5) * 60);
 
@@ -197,8 +206,16 @@ class TwoFactorController extends Controller
 
             if (RateLimiter::tooManyAttempts($attemptKey, (int) config('two-factor.challenge_attempts', 5))) {
                 Cache::forget($cacheKey);
+                $seconds = RateLimiter::availableIn($attemptKey);
 
-                return ApiResponse::error(__('two_factor.rate_limited'), statusCode: 429);
+                return response()->json([
+                    'success' => false,
+                    'message' => __('two_factor.rate_limited'),
+                    'data' => [
+                        'retry_after' => $seconds,
+                    ],
+                    'errors' => null,
+                ], 429, ['Retry-After' => $seconds]);
             }
 
             return ApiResponse::error(__('two_factor.invalid_code'), statusCode: 422);

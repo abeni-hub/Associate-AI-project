@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Auth\LoginLockoutController;
 use App\Http\Controllers\Api\V1\Auth\PasswordResetController;
 use App\Http\Controllers\Api\V1\Auth\TwoFactorController;
 use App\Http\Controllers\Api\V1\Authorization\PermissionController;
@@ -64,7 +65,6 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::prefix('auth')->name('auth.')->group(function () {
         // Public Authentication
         Route::post('/login', [AuthController::class, 'login'])
-            ->middleware('throttle:login')
             ->name('login');
 
         Route::post('/two-factor/challenge', [TwoFactorController::class, 'challenge'])
@@ -165,6 +165,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         // User Management
         Route::prefix('users')->name('users.')->group(function () {
+            Route::get('/locked-logins', [LoginLockoutController::class, 'index'])
+                ->middleware('permission:users.reset_password')
+                ->name('locked-logins.index');
+            Route::post('/locked-logins/{loginLockout}/unlock', [LoginLockoutController::class, 'unlock'])
+                ->middleware('permission:users.reset_password')
+                ->name('locked-logins.unlock');
             Route::get('/', [UserController::class, 'index'])
                 ->middleware('permission:users.view')
                 ->name('index');

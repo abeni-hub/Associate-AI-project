@@ -43,14 +43,14 @@ class AuthenticationService
         // Always check hash or perform dummy check to prevent timing attacks and username enumeration
         if (! $user || ! Hash::check($password, $user->password)) {
             throw ValidationException::withMessages([
-                'login' => ['These credentials do not match our records.'],
+                'login' => [__('login_security.invalid_credentials')],
             ]);
         }
 
         // Account status check
         if (! $user->isActive()) {
             throw ValidationException::withMessages([
-                'login' => ['Your account is deactivated. Please contact your organization administrator.'],
+                'login' => [__('login_security.invalid_credentials')],
             ]);
         }
 

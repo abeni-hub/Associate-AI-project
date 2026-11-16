@@ -27,6 +27,7 @@ export const LoginPage: React.FC = () => {
     handleToggleRecoveryCode,
     showPassword,
     error,
+    lockoutSeconds,
     isLoading,
     handleUsernameChange,
     handlePasswordChange,
@@ -83,6 +84,7 @@ export const LoginPage: React.FC = () => {
             onTwoFactorCodeChange={handleTwoFactorCodeChange}
             onRecoveryCodeChange={handleRecoveryCodeChange}
             onToggleRecoveryCode={handleToggleRecoveryCode}
+            lockoutSeconds={lockoutSeconds}
             labels={{
               verificationCode: t('twoFactor.verificationCode'),
               recoveryCode: t('twoFactor.recoveryCode'),
@@ -90,6 +92,10 @@ export const LoginPage: React.FC = () => {
               useAuthenticator: t('twoFactor.useAuthenticator'),
               verify: t('twoFactor.verify'),
               verifying: t('twoFactor.verifying'),
+              lockedTitle: t('twoFactor.lockedTitle', 'Sign-in Temporarily Locked'),
+              lockedMessage: t('twoFactor.lockedMessage', 'Too many unsuccessful sign-in attempts. For your security, access is temporarily locked.'),
+              tryAgainIn: t('twoFactor.tryAgainIn', 'Try again in'),
+              lockedButton: t('twoFactor.lockedButton', 'Locked'),
             }}
           />
 

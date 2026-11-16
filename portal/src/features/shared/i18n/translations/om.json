@@ -18,6 +18,24 @@
     "activity": "Galmee Hojiiwwanii",
     "signOut": "Bahi"
   },
+  "twoFactor": {
+    "securityEyebrow": "NAGEENYA HERREGA",
+    "title": "Mirkaneessa Sadarkaa Lammaffaa",
+    "description": "Nageenya herrega keessanii eeguuf appilikeeshinii mirkaneessaa kan akka Google Authenticator fayyadamaa.",
+    "challengePrompt": "Koodii dijiitii 6 appilikeeshinii mirkaneessaa keessanirraa galchaa.",
+    "verificationCode": "Koodii mirkaneessaa",
+    "recoveryCode": "Koodii deebisaa",
+    "useRecoveryCode": "Bakka kanaa koodii deebisaa fayyadamaa",
+    "useAuthenticator": "Koodii mirkaneessaa fayyadamaa",
+    "verify": "Mirkaneessii gali",
+    "verifying": "Mirkaneessaa jira...",
+    "lockedTitle": "Seensi Yeroof Cufameera",
+    "lockedMessage": "Yaalii seensaa hin milkoofne hedduu. Nageenya keessaniif yeroof cufameera.",
+    "tryAgainIn": "Irra deebi'ii yaali",
+    "lockedButton": "Cufameera",
+    "enabled": "Mirkaneessi sadarkaa lammaffaa banameera.",
+    "disabled": "Mirkaneessi sadarkaa lammaffaa cufameera."
+  },
   "common": {
     "search": "Barbaadi",
     "searchPlaceholder": "Tajaajila, waajjira ykn sanada barbaadi...",

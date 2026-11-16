@@ -101,12 +101,19 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
-                return ApiResponse::error(
-                    message: $request->routeIs('api.v1.auth.two-factor.challenge')
+                $headers = $e->getHeaders();
+                $retryAfter = (int) ($headers['Retry-After'] ?? 60);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $request->routeIs('api.v1.auth.two-factor.challenge')
                         ? __('two_factor.rate_limited')
                         : 'Too many login attempts. Please try again later.',
-                    statusCode: 429,
-                );
+                    'data' => [
+                        'retry_after' => $retryAfter,
+                    ],
+                    'errors' => null,
+                ], 429, $headers);
             }
         });
 

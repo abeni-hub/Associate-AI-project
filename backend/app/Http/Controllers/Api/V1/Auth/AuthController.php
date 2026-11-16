@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Domains\AuditLogs\Actions\RecordAuditLogAction;
+use App\Domains\AuditLogs\Models\AuditLog;
 use App\Domains\Authentication\Actions\ChangePasswordAction;
+use App\Domains\Authentication\Models\LoginLockout;
 use App\Domains\Authentication\Services\AuthenticationService;
 use App\Domains\Users\Models\User;
 use App\Http\Controllers\Controller;
@@ -16,7 +18,9 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -28,10 +32,37 @@ class AuthController extends Controller
         AuthenticationService $authService,
         RecordAuditLogAction $auditLogger
     ): JsonResponse {
-        $user = $authService->verifyCredentials(
-            identifier: $request->getIdentifier(),
-            password: (string) $request->input('password'),
-        );
+        $identifier = trim($request->getIdentifier());
+        $limiterKey = LoginLockout::limiterKey($identifier, $request->ip());
+        $identifierHash = LoginLockout::identifierHash($identifier, $request->ip());
+        $activeLockout = LoginLockout::query()
+            ->where('identifier_hash', $identifierHash)
+            ->whereNull('unlocked_at')
+            ->where('locked_until', '>', now())
+            ->first();
+
+        if ($activeLockout) {
+            return $this->lockoutResponse(now()->diffInSeconds($activeLockout->locked_until));
+        }
+
+        if (RateLimiter::tooManyAttempts($limiterKey, (int) config('login-security.max_attempts', 5))) {
+            return $this->lockoutResponse(RateLimiter::availableIn($limiterKey));
+        }
+
+        try {
+            $user = $authService->verifyCredentials(
+                identifier: $identifier,
+                password: (string) $request->input('password'),
+            );
+        } catch (ValidationException) {
+            return $this->recordFailedLogin($request, $identifier, $limiterKey, $identifierHash);
+        }
+
+        RateLimiter::clear($limiterKey);
+        LoginLockout::query()
+            ->where('identifier_hash', $identifierHash)
+            ->whereNull('unlocked_at')
+            ->update(['unlocked_at' => now(), 'updated_at' => now()]);
 
         if ($user->two_factor_confirmed_at) {
             $challengeToken = Str::random(64);
@@ -48,6 +79,87 @@ class AuthController extends Controller
         }
 
         return $this->completeLogin($user, $request, $authService, $auditLogger);
+    }
+
+    private function recordFailedLogin(
+        Request $request,
+        string $identifier,
+        string $limiterKey,
+        string $identifierHash
+    ): JsonResponse {
+        $lockoutSeconds = (int) config('login-security.lockout_minutes', 5) * 60;
+        RateLimiter::hit($limiterKey, $lockoutSeconds);
+        $attempts = RateLimiter::attempts($limiterKey);
+        $locked = $attempts >= (int) config('login-security.max_attempts', 5);
+
+        AuditLog::create([
+            'action' => 'login_failed',
+            'entity_type' => 'LoginAttempt',
+            'entity_id' => $identifierHash,
+            'status' => 'failed',
+            'status_code' => $locked ? 429 : 422,
+            'error_message' => __('login_security.invalid_credentials'),
+            'request_payload' => ['identifier' => $identifier],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
+        if (! $locked) {
+            return ApiResponse::error(
+                message: __('login_security.invalid_credentials'),
+                statusCode: 422,
+                errors: ['login' => [__('login_security.invalid_credentials')]]
+            );
+        }
+
+        $lockedUntil = now()->addSeconds($lockoutSeconds);
+        $lockout = LoginLockout::updateOrCreate(
+            ['identifier_hash' => $identifierHash],
+            [
+                'login_identifier' => $identifier,
+                'ip_address' => $request->ip() ?? '',
+                'user_agent' => $request->userAgent(),
+                'failed_attempts' => $attempts,
+                'locked_until' => $lockedUntil,
+                'unlocked_at' => null,
+                'unlocked_by' => null,
+            ]
+        );
+
+        AuditLog::create([
+            'action' => 'login_locked_out',
+            'entity_type' => 'LoginLockout',
+            'entity_id' => (string) $lockout->id,
+            'status' => 'locked',
+            'status_code' => 429,
+            'request_payload' => ['identifier' => $identifier],
+            'new_values' => [
+                'failed_attempts' => $attempts,
+                'locked_until' => $lockedUntil->toIso8601String(),
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
+        return $this->lockoutResponse(now()->diffInSeconds($lockout->locked_until));
+    }
+
+    private function lockoutResponse(int|float $remainingSeconds): JsonResponse
+    {
+        $seconds = max(1, (int) ceil($remainingSeconds));
+
+        return response()->json([
+            'success' => false,
+            'message' => __('login_security.locked', ['seconds' => $seconds]),
+            'data' => [
+                'retry_after' => $seconds,
+            ],
+            'errors' => [
+                'retry_after_seconds' => $seconds,
+            ],
+        ], 429, ['Retry-After' => (string) $seconds]);
     }
 
     private function completeLogin(
