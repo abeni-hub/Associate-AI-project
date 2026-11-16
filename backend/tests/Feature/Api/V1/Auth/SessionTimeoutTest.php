@@ -40,6 +40,11 @@ class SessionTimeoutTest extends TestCase
             'role_id' => $adminRole->id,
             'status' => 'active',
         ]);
+        $this->admin->forceFill([
+            'two_factor_secret' => 'JBSWY3DPEHPK3PXP',
+            'two_factor_recovery_codes' => [],
+            'two_factor_confirmed_at' => now(),
+        ])->save();
 
         $this->staff = User::create([
             'name' => 'Staff User',

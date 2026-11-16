@@ -14,59 +14,93 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   onToggleShowPassword,
   onSubmit,
   onForgotPassword,
+  twoFactorChallenge = false,
+  useRecoveryCode = false,
+  twoFactorCode = '',
+  recoveryCode = '',
+  onToggleRecoveryCode,
+  onTwoFactorCodeChange,
+  onRecoveryCodeChange,
+  labels = {},
 }) => {
   return (
     <form className={styles.form} onSubmit={onSubmit}>
-      <label htmlFor="username" className={styles.label}>
-        Username or email
-      </label>
-      <div className={styles.inputShell}>
-        <Icon name="users" size={17} />
-        <input
-          id="username"
-          className={styles.input}
-          autoComplete="username"
-          placeholder="Enter username or work email"
-          value={username}
-          disabled={isLoading}
-          onChange={(e) => onUsernameChange(e.target.value)}
-        />
-      </div>
+      {twoFactorChallenge ? (
+        <>
+          <label htmlFor="two-factor-code" className={styles.label}>
+            {useRecoveryCode ? labels.recoveryCode : labels.verificationCode}
+          </label>
+          <div className={styles.inputShell}>
+            <Icon name="lock" size={17} />
+            <input
+              id="two-factor-code"
+              className={styles.input}
+              autoComplete="one-time-code"
+              inputMode={useRecoveryCode ? 'text' : 'numeric'}
+              required
+              maxLength={useRecoveryCode ? 32 : 6}
+              pattern={useRecoveryCode ? undefined : '[0-9]{6}'}
+              value={useRecoveryCode ? recoveryCode : twoFactorCode}
+              disabled={isLoading}
+              onChange={(event) => (
+                useRecoveryCode ? onRecoveryCodeChange : onTwoFactorCodeChange
+              )?.(event.target.value)}
+            />
+          </div>
+          <button type="button" className={styles.forgotButton} onClick={onToggleRecoveryCode}>
+            {useRecoveryCode ? labels.useAuthenticator : labels.useRecoveryCode}
+          </button>
+        </>
+      ) : (
+        <>
+          <label htmlFor="username" className={styles.label}>
+            Username or email
+          </label>
+          <div className={styles.inputShell}>
+            <Icon name="users" size={17} />
+            <input
+              id="username"
+              className={styles.input}
+              autoComplete="username"
+              placeholder="Enter username or work email"
+              value={username}
+              disabled={isLoading}
+              onChange={(e) => onUsernameChange(e.target.value)}
+            />
+          </div>
 
-      <div className={styles.labelRow}>
-        <label htmlFor="password" className={styles.label}>
-          Password
-        </label>
-        <button
-          type="button"
-          className={styles.forgotButton}
-          onClick={onForgotPassword}
-        >
-          Forgot password?
-        </button>
-      </div>
+          <div className={styles.labelRow}>
+            <label htmlFor="password" className={styles.label}>
+              Password
+            </label>
+            <button type="button" className={styles.forgotButton} onClick={onForgotPassword}>
+              Forgot password?
+            </button>
+          </div>
 
-      <div className={styles.inputShell}>
-        <Icon name="lock" size={17} />
-        <input
-          id="password"
-          className={styles.input}
-          autoComplete="current-password"
-          type={showPassword ? 'text' : 'password'}
-          placeholder="Enter your password"
-          value={password}
-          disabled={isLoading}
-          onChange={(e) => onPasswordChange(e.target.value)}
-        />
-        <button
-          aria-label={showPassword ? 'Hide password' : 'Show password'}
-          type="button"
-          className={styles.eyeButton}
-          onClick={onToggleShowPassword}
-        >
-          <Icon name="eye" size={17} />
-        </button>
-      </div>
+          <div className={styles.inputShell}>
+            <Icon name="lock" size={17} />
+            <input
+              id="password"
+              className={styles.input}
+              autoComplete="current-password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Enter your password"
+              value={password}
+              disabled={isLoading}
+              onChange={(e) => onPasswordChange(e.target.value)}
+            />
+            <button
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              type="button"
+              className={styles.eyeButton}
+              onClick={onToggleShowPassword}
+            >
+              <Icon name="eye" size={17} />
+            </button>
+          </div>
+        </>
+      )}
 
       {error && (
         <div className={styles.errorBanner} role="status">
@@ -79,7 +113,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         type="submit"
         disabled={isLoading}
       >
-        <span>{isLoading ? 'Authenticating...' : 'Sign in'}</span>
+        <span>{isLoading ? labels.verifying || 'Verifying...' : twoFactorChallenge ? labels.verify || 'Verify code' : 'Sign in'}</span>
         <Icon name="arrow" size={17} />
       </button>
     </form>
@@ -87,4 +121,3 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 };
 
 export default LoginForm;
-

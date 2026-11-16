@@ -20,6 +20,19 @@ class AuthenticationService
      */
     public function authenticate(string $identifier, string $password, Request $request): User
     {
+        $user = $this->verifyCredentials($identifier, $password);
+        $this->establishSession($user, $request);
+
+        return $user;
+    }
+
+    /**
+     * Verify credentials without establishing an authenticated session.
+     *
+     * @throws ValidationException
+     */
+    public function verifyCredentials(string $identifier, string $password): User
+    {
         $user = User::with(['organization.type', 'role'])
             ->where(function ($query) use ($identifier) {
                 $query->where('username', $identifier)
@@ -41,7 +54,11 @@ class AuthenticationService
             ]);
         }
 
-        // Establish session authentication for first-party React SPA
+        return $user;
+    }
+
+    public function establishSession(User $user, Request $request): void
+    {
         Auth::guard('web')->login($user);
 
         if ($request->hasSession()) {
@@ -56,8 +73,6 @@ class AuthenticationService
         $user->forceFill([
             'last_login_at' => now(),
         ])->saveQuietly();
-
-        return $user;
     }
 
     /**

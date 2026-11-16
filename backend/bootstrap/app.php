@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\EnforceRequiredTwoFactor;
+use App\Http\Middleware\EnforceSessionTimeout;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureHasPermission;
-use App\Http\Middleware\EnforceSessionTimeout;
 use App\Support\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -39,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'account.active' => EnsureAccountIsActive::class,
             'permission' => EnsureHasPermission::class,
             'session.timeout' => EnforceSessionTimeout::class,
+            'two-factor.required' => EnforceRequiredTwoFactor::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -99,7 +101,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return ApiResponse::error(
-                    message: 'Too many login attempts. Please try again later.',
+                    message: $request->routeIs('api.v1.auth.two-factor.challenge')
+                        ? __('two_factor.rate_limited')
+                        : 'Too many login attempts. Please try again later.',
                     statusCode: 429,
                 );
             }

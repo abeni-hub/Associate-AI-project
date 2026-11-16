@@ -29,6 +29,8 @@ class UserResource extends JsonResource
             'last_login_at' => $this->last_login_at?->toIso8601String(),
             'session_timeout' => $this->session_timeout,
             'effective_session_timeout' => $this->effectiveSessionTimeout(),
+            'two_factor_enabled' => (bool) $this->two_factor_confirmed_at,
+            'two_factor_required' => $this->requiresTwoFactor(),
             'absolute_session_lifetime' => (int) config('session-timeout.absolute_lifetime'),
             'session_expires_at' => $request->user()?->is($this->resource)
                 ? $this->sessionExpiresAt($request)

@@ -99,6 +99,7 @@ export interface AccountItem {
   organization: string;
   organization_id?: number | null;
   session_timeout?: number | null;
+  two_factor_enabled?: boolean;
   status: string;
   lastActive: string;
 }

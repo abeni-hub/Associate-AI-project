@@ -1,20 +1,27 @@
 import { useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePortal } from '../../shared';
-import { useLoginMutation } from '../api/authApi';
+import { useLoginMutation, useTwoFactorChallengeMutation } from '../api/authApi';
 import type { ValidationErrorMap } from '../../../types/api.types';
 import { tokenStorage } from '../../../utils/tokenStorage';
+import type { LoginResponseData } from '../types/auth.types';
 
 export function useAuth() {
   const portal = usePortal();
   const navigate = useNavigate();
   const location = useLocation();
   const [loginTrigger, { isLoading }] = useLoginMutation();
+  const [challengeTrigger, { isLoading: isChallengeLoading }] = useTwoFactorChallengeMutation();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [challengeToken, setChallengeToken] = useState('');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const busy = isLoading || isChallengeLoading;
 
   const handleUsernameChange = useCallback((val: string) => {
     setUsername(val);
@@ -40,23 +47,36 @@ export function useAuth() {
       const cleanUsername = username.trim();
       const cleanPassword = password.trim();
 
-      if (!cleanUsername || !cleanPassword) {
+      if (!challengeToken && (!cleanUsername || !cleanPassword)) {
         setError('Please enter your username or email and password.');
         return;
       }
 
       try {
-        const response = await loginTrigger({
-          username: cleanUsername,
-          password: cleanPassword,
-        }).unwrap();
+        const response = challengeToken
+          ? await challengeTrigger({
+              challenge_token: challengeToken,
+              ...(useRecoveryCode ? { recovery_code: recoveryCode.trim() } : { code: twoFactorCode.trim() }),
+            }).unwrap()
+          : await loginTrigger({ username: cleanUsername, password: cleanPassword }).unwrap();
 
         if (response.success && response.data) {
+          if ('two_factor_required' in response.data) {
+            setChallengeToken(response.data.challenge_token);
+            setPassword('');
+            setError('');
+            return;
+          }
+
+          const user = response.data as LoginResponseData;
           tokenStorage.clearSessionDraftsForOtherUsers(response.data.id);
-          portal.signInLive(response.data, response.data.token);
+          portal.signInLive(user, user.token);
           tokenStorage.clearSessionExpired();
+          setChallengeToken('');
           const from = (location.state as { from?: { pathname?: string; search?: string; hash?: string } } | null)?.from;
-          const returnPath = from?.pathname?.startsWith('/') && !from.pathname.startsWith('//') && from.pathname !== '/login'
+          const returnPath = user.two_factor_setup_required
+            ? '/security'
+            : from?.pathname?.startsWith('/') && !from.pathname.startsWith('//') && from.pathname !== '/login'
             ? `${from.pathname}${from.search || ''}${from.hash || ''}`
             : '/overview';
           navigate(returnPath, { replace: true });
@@ -83,20 +103,32 @@ export function useAuth() {
         }
       }
     },
-    [username, password, loginTrigger, portal, navigate, location.state]
+    [username, password, challengeToken, twoFactorCode, recoveryCode, useRecoveryCode, loginTrigger, challengeTrigger, portal, navigate, location.state]
   );
 
   return {
     username,
     password,
+    twoFactorChallenge: Boolean(challengeToken),
+    twoFactorCode,
+    recoveryCode,
+    useRecoveryCode,
+    isLoading: busy,
     showPassword,
     error,
-    isLoading,
     handleUsernameChange,
     handlePasswordChange,
     handleToggleShowPassword,
     handleSubmit,
     handleForgotPassword,
+    handleTwoFactorCodeChange: setTwoFactorCode,
+    handleRecoveryCodeChange: setRecoveryCode,
+    handleToggleRecoveryCode: () => {
+      setUseRecoveryCode((value) => !value);
+      setTwoFactorCode('');
+      setRecoveryCode('');
+      setError('');
+    },
   };
 }
 

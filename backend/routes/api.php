@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\PasswordResetController;
+use App\Http\Controllers\Api\V1\Auth\TwoFactorController;
 use App\Http\Controllers\Api\V1\Authorization\PermissionController;
 use App\Http\Controllers\Api\V1\Authorization\RoleController;
 use App\Http\Controllers\Api\V1\Cms\CmsController;
@@ -66,6 +67,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             ->middleware('throttle:login')
             ->name('login');
 
+        Route::post('/two-factor/challenge', [TwoFactorController::class, 'challenge'])
+            ->middleware('throttle:5,1')
+            ->name('two-factor.challenge');
+
         Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword'])
             ->middleware('throttle:password-reset')
             ->name('forgot-password');
@@ -83,11 +88,17 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
             Route::post('/activity', [AuthController::class, 'activity'])->name('activity');
             Route::put('/change-password', [AuthController::class, 'changePassword'])->name('change-password');
+            Route::get('/two-factor', [TwoFactorController::class, 'status'])->name('two-factor.status');
+            Route::post('/two-factor/setup', [TwoFactorController::class, 'beginSetup'])->name('two-factor.setup');
+            Route::post('/two-factor/confirm', [TwoFactorController::class, 'confirmSetup'])->name('two-factor.confirm');
+            Route::post('/two-factor/recovery-codes', [TwoFactorController::class, 'regenerateRecoveryCodes'])
+                ->name('two-factor.recovery-codes');
+            Route::delete('/two-factor', [TwoFactorController::class, 'disable'])->name('two-factor.disable');
         });
     });
 
     // Authenticated Administration Endpoints
-    Route::middleware(['auth:sanctum', 'session.timeout', 'account.active'])->group(function () {
+    Route::middleware(['auth:sanctum', 'session.timeout', 'account.active', 'two-factor.required'])->group(function () {
         // Dynamic Navigation Items
         Route::get('/navigation/items', [NavigationController::class, 'index'])
             ->name('navigation.items');
@@ -172,6 +183,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             Route::post('/{user}/reset-password', [UserController::class, 'resetPassword'])
                 ->middleware('permission:users.reset_password')
                 ->name('reset-password');
+            Route::post('/{user}/two-factor/reset', [TwoFactorController::class, 'adminReset'])
+                ->middleware('permission:users.reset_password')
+                ->name('two-factor.reset');
         });
 
         // Service Administrative Management

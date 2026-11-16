@@ -15,6 +15,7 @@ const OverviewPage = lazy(() => import('../features/dashboard/OverviewPage'));
 const OfficesPage = lazy(() => import('../features/organizations/OfficesPage'));
 const OfficePage = lazy(() => import('../features/organizations/OfficePage'));
 const AccountsPage = lazy(() => import('../features/accounts/AccountsPage'));
+const TwoFactorSettingsPage = lazy(() => import('../features/auth/components/TwoFactorSettingsPage'));
 const RolesPermissionsPage = lazy(() => import('../features/roles-permissions/RolesPermissionsPage'));
 const LevelsPage = lazy(() => import('../features/organizations/LevelsPage'));
 const LandingPageCms = lazy(() => import('../features/cms/LandingPageCms'));
@@ -80,6 +81,7 @@ export const AppRoutes: React.FC = () => {
           }
         >
           <Route index element={<RootIndexRedirect />} />
+          <Route path="security" element={<TwoFactorSettingsPage />} />
 
           {/* Overview Dashboard */}
           <Route

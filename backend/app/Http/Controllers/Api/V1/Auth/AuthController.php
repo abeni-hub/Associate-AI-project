@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1\Auth;
 use App\Domains\AuditLogs\Actions\RecordAuditLogAction;
 use App\Domains\Authentication\Actions\ChangePasswordAction;
 use App\Domains\Authentication\Services\AuthenticationService;
+use App\Domains\Users\Models\User;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Auth\ChangePasswordRequest;
 use App\Http\Requests\Api\V1\Auth\LoginRequest;
@@ -14,6 +15,8 @@ use App\Http\Resources\Api\V1\UserResource;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -25,12 +28,35 @@ class AuthController extends Controller
         AuthenticationService $authService,
         RecordAuditLogAction $auditLogger
     ): JsonResponse {
-        $user = $authService->authenticate(
+        $user = $authService->verifyCredentials(
             identifier: $request->getIdentifier(),
             password: (string) $request->input('password'),
-            request: $request
         );
 
+        if ($user->two_factor_confirmed_at) {
+            $challengeToken = Str::random(64);
+            Cache::put(
+                'two-factor:challenge:'.hash('sha256', $challengeToken),
+                $user->id,
+                now()->addMinutes((int) config('two-factor.challenge_ttl', 5))
+            );
+
+            return ApiResponse::success(
+                data: ['two_factor_required' => true, 'challenge_token' => $challengeToken],
+                message: __('two_factor.challenge_required')
+            );
+        }
+
+        return $this->completeLogin($user, $request, $authService, $auditLogger);
+    }
+
+    private function completeLogin(
+        User $user,
+        Request $request,
+        AuthenticationService $authService,
+        RecordAuditLogAction $auditLogger
+    ): JsonResponse {
+        $authService->establishSession($user, $request);
         $issuedToken = $user->createToken('auth-token');
         $token = $issuedToken->plainTextToken;
 
@@ -38,19 +64,16 @@ class AuthController extends Controller
             action: 'login',
             entity: $user,
             actor: $user,
-            newValues: [
-                'username' => $user->username,
-                'email' => $user->email,
-                'role' => $user->role?->name ?? 'User',
-            ],
+            newValues: ['username' => $user->username, 'role' => $user->role?->name ?? 'User'],
             request: $request,
             status: 'success',
-            statusCode: 200
+            statusCode: 200,
+            requestPayload: []
         );
-
         $userData = (new UserResource($user))->toArray($request);
         $userData['token'] = $token;
         $userData['token_type'] = 'Bearer';
+        $userData['two_factor_setup_required'] = $user->requiresTwoFactor() && ! $user->two_factor_confirmed_at;
         $userData['effective_session_timeout'] = $user->effectiveSessionTimeout();
         $userData['absolute_session_lifetime'] = (int) config('session-timeout.absolute_lifetime');
         $userData['session_expires_at'] = $issuedToken->accessToken->created_at

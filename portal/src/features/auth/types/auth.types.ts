@@ -41,6 +41,9 @@ export interface AuthUser {
   last_login_at: string | null;
   session_timeout: number | null;
   effective_session_timeout: number;
+  two_factor_enabled?: boolean;
+  two_factor_required?: boolean;
+  two_factor_setup_required?: boolean;
   absolute_session_lifetime?: number;
   session_expires_at?: string | null;
   organization: UserOrganization | null;
@@ -64,6 +67,25 @@ export interface LoginRequest {
 export interface LoginResponseData extends AuthUser {
   token: string;
   token_type: 'Bearer' | string;
+}
+
+export interface TwoFactorChallengeData {
+  two_factor_required: true;
+  challenge_token: string;
+}
+
+export interface TwoFactorSetupData {
+  secret: string;
+  otpauth_url: string;
+}
+
+export interface TwoFactorRecoveryCodes {
+  recovery_codes: string[];
+}
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  required: boolean;
 }
 
 export interface RegisterRequest {
@@ -136,6 +158,14 @@ export interface LoginFormProps {
   onToggleShowPassword: () => void;
   onSubmit: (e: React.FormEvent) => void;
   onForgotPassword: () => void;
+  twoFactorChallenge?: boolean;
+  useRecoveryCode?: boolean;
+  twoFactorCode?: string;
+  recoveryCode?: string;
+  onToggleRecoveryCode?: () => void;
+  onTwoFactorCodeChange?: (value: string) => void;
+  onRecoveryCodeChange?: (value: string) => void;
+  labels?: Record<string, string>;
 }
 
 export interface LoginStoryProps {

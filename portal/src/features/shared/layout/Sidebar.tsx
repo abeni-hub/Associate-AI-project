@@ -30,15 +30,15 @@ const NAV_ITEM_PERMISSION_MAP: Record<string, string> = {
 
 const DEFAULT_NAV = [
   { id: 'overview', route: '/overview', label: 'Overview', icon: 'chart', perm: 'dashboard.view' },
+  { id: 'offices', route: '/offices', label: 'Offices & directory', icon: 'building', perm: 'organizations.view' },
+  { id: 'levels', route: '/levels', label: 'Organization levels', icon: 'layers', perm: 'organizations.view' },
+  { id: 'accounts', route: '/accounts', label: 'Accounts & access', icon: 'users', perm: 'users.view' },
+  { id: 'roles', route: '/roles', label: 'Roles & permissions', icon: 'shield', perm: 'roles.view' },
   { id: 'services', route: '/services', label: 'Services', icon: 'layers', perm: 'services.view' },
   { id: 'documents', route: '/documents', label: 'Required documents', icon: 'file', perm: 'documents.view' },
-  { id: 'offices', route: '/offices', label: 'Offices & directory', icon: 'building', perm: 'organizations.view' },
   { id: 'feedback', route: '/feedback', label: 'Citizen feedback', icon: 'message', perm: 'feedback.view_own' },
   { id: 'qr', route: '/qr', label: 'Feedback QR codes', icon: 'qr', perm: 'qr_codes.view' },
   { id: 'news', route: '/news', label: 'News & events', icon: 'news', perm: 'news.view' },
-  { id: 'accounts', route: '/accounts', label: 'Accounts & access', icon: 'users', perm: 'users.view' },
-  { id: 'roles', route: '/roles', label: 'Roles & permissions', icon: 'shield', perm: 'roles.view' },
-  { id: 'levels', route: '/levels', label: 'Organization levels', icon: 'layers', perm: 'organizations.view' },
   { id: 'cms', route: '/cms', label: 'Landing page CMS', icon: 'palette', perm: 'cms.manage' },
   { id: 'activity', route: '/activity', label: 'Activity log', icon: 'activity', perm: 'audit_logs.view' },
 ];

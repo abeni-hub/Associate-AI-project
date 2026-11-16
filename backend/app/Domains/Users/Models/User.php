@@ -38,6 +38,9 @@ class User extends Authenticatable
         'must_change_password',
         'last_login_at',
         'session_timeout',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+        'two_factor_confirmed_at',
     ];
 
     protected $hidden = [
@@ -52,8 +55,16 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'must_change_password' => 'boolean',
             'session_timeout' => 'integer',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted:array',
+            'two_factor_confirmed_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function requiresTwoFactor(): bool
+    {
+        return in_array($this->role?->slug, config('two-factor.required_roles', []), true);
     }
 
     public function effectiveSessionTimeout(): int

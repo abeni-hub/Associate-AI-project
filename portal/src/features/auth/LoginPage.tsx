@@ -18,6 +18,13 @@ export const LoginPage: React.FC = () => {
   const {
     username,
     password,
+    twoFactorChallenge,
+    twoFactorCode,
+    recoveryCode,
+    useRecoveryCode,
+    handleTwoFactorCodeChange,
+    handleRecoveryCodeChange,
+    handleToggleRecoveryCode,
     showPassword,
     error,
     isLoading,
@@ -47,7 +54,9 @@ export const LoginPage: React.FC = () => {
             workspace<span className={panelStyles.titleDot}>.</span>
           </h2>
           <p className={panelStyles.intro}>
-            Use your assigned administrative account to access platform directories, services, and citizen feedback.
+            {twoFactorChallenge
+              ? t('twoFactor.challengePrompt')
+              : 'Use your assigned administrative account to access platform directories, services, and citizen feedback.'}
           </p>
 
           {sessionExpired && (
@@ -67,6 +76,21 @@ export const LoginPage: React.FC = () => {
             onToggleShowPassword={handleToggleShowPassword}
             onSubmit={handleSubmit}
             onForgotPassword={handleForgotPassword}
+            twoFactorChallenge={twoFactorChallenge}
+            twoFactorCode={twoFactorCode}
+            recoveryCode={recoveryCode}
+            useRecoveryCode={useRecoveryCode}
+            onTwoFactorCodeChange={handleTwoFactorCodeChange}
+            onRecoveryCodeChange={handleRecoveryCodeChange}
+            onToggleRecoveryCode={handleToggleRecoveryCode}
+            labels={{
+              verificationCode: t('twoFactor.verificationCode'),
+              recoveryCode: t('twoFactor.recoveryCode'),
+              useRecoveryCode: t('twoFactor.useRecoveryCode'),
+              useAuthenticator: t('twoFactor.useAuthenticator'),
+              verify: t('twoFactor.verify'),
+              verifying: t('twoFactor.verifying'),
+            }}
           />
 
           <LoginSecurityNotice />

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { usePortal } from '../hooks/usePortal';
 import { useLanguage, getLocalizedText, type SupportedLanguage } from '../i18n';
@@ -182,6 +182,13 @@ export const Topbar: React.FC<TopbarProps> = ({
                   <small>{displayOrg}</small>
                 </span>
               </div>
+              <Link
+                className="popover-link"
+                to="/security"
+                onClick={() => setProfileOpen(false)}
+              >
+                <Icon name="lock" size={15} /> {t('twoFactor.title')}
+              </Link>
               <button
                 className="popover-link"
                 onClick={() => {

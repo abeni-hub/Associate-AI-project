@@ -61,6 +61,17 @@ export const accountsApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [{ type: 'User', id: 'LIST' }, 'User'],
     }),
+
+    resetUserTwoFactor: builder.mutation<ApiResponse<null>, number>({
+      query: (id) => ({
+        url: `/users/${id}/two-factor/reset`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'User', id },
+        { type: 'User', id: 'LIST' },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -72,4 +83,5 @@ export const {
   useCreateUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
+  useResetUserTwoFactorMutation,
 } = accountsApi;

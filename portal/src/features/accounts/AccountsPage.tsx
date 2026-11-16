@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Users,
   Building2,
@@ -20,6 +21,7 @@ import {
   useCreateUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
+  useResetUserTwoFactorMutation,
 } from './api/accountsApi';
 
 export const AccountsPage: React.FC = () => {
@@ -28,6 +30,7 @@ export const AccountsPage: React.FC = () => {
   const canCreate = isSuperAdmin || hasPermission('users.create') || hasPermission('users.view');
   const canUpdate = isSuperAdmin || hasPermission('users.update') || hasPermission('users.view');
   const canDelete = isSuperAdmin || hasPermission('users.delete');
+  const canResetTwoFactor = isSuperAdmin || hasPermission('users.reset_password');
 
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
@@ -35,12 +38,25 @@ export const AccountsPage: React.FC = () => {
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [selectedAccountForEdit, setSelectedAccountForEdit] = useState<AccountItem | null>(null);
 
-  const { data: usersResponse, isLoading, refetch } = useGetUsersQuery(undefined, {
+  const { data: usersResponse, isLoading, isError, error, refetch } = useGetUsersQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });
+  const isTwoFactorSetupRequired =
+    isError
+    && typeof error === 'object'
+    && error !== null
+    && 'data' in error
+    && typeof error.data === 'object'
+    && error.data !== null
+    && 'errors' in error.data
+    && typeof error.data.errors === 'object'
+    && error.data.errors !== null
+    && 'reason' in error.data.errors
+    && error.data.errors.reason === 'two_factor_setup_required';
   const [createUserTrigger, { isLoading: isCreatingUser }] = useCreateUserMutation();
   const [updateUserTrigger, { isLoading: isUpdatingUser }] = useUpdateUserMutation();
   const [deleteUserTrigger] = useDeleteUserMutation();
+  const [resetTwoFactorTrigger] = useResetUserTwoFactorMutation();
   const isSavingUser = isCreatingUser || isUpdatingUser;
 
   const items: AccountItem[] = useMemo(() => {
@@ -57,6 +73,7 @@ export const AccountsPage: React.FC = () => {
         organization: getLocalizedText(u.organization?.name as any, language) || (typeof u.organization?.name === 'string' ? u.organization.name : (u.role?.slug === 'super_admin' ? 'Global Platform' : 'Unassigned')),
         organization_id: u.organization?.id,
         session_timeout: u.session_timeout ?? null,
+        two_factor_enabled: Boolean(u.two_factor_enabled),
         status: u.status === 'active' ? 'Active' : 'Inactive',
         lastActive: u.last_login_at
           ? new Date(u.last_login_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -98,6 +115,18 @@ export const AccountsPage: React.FC = () => {
   const handleOpenAdd = () => {
     setSelectedAccountForEdit(null);
     setIsAccountModalOpen(true);
+  };
+
+  const handleResetTwoFactor = async (userId: number) => {
+    if (!canResetTwoFactor || !window.confirm(t('twoFactor.adminResetConfirm'))) return;
+    try {
+      await resetTwoFactorTrigger(userId).unwrap();
+      setIsAccountModalOpen(false);
+      setSelectedAccountForEdit(null);
+      await refetch();
+    } catch (err: any) {
+      window.alert(err?.data?.message || t('twoFactor.adminReset'));
+    }
   };
 
   const handleOpenEdit = (item: AccountItem) => {
@@ -170,6 +199,7 @@ export const AccountsPage: React.FC = () => {
             onClick={handleExportAccounts}
             className="button secondary outline-button"
             title="Export staff directory to CSV"
+            disabled={isError}
           >
             <Download size={15} />
             <span>{t('common.export', 'Export list')}</span>
@@ -189,12 +219,14 @@ export const AccountsPage: React.FC = () => {
       </div>
 
       {/* KPI Stats Grid */}
-      <AccountsMetricsGrid
-        total={items.length}
-        active={activeCount}
-        admins={adminCount}
-        offices={uniqueOrgs}
-      />
+      {!isError && (
+        <AccountsMetricsGrid
+          total={items.length}
+          active={activeCount}
+          admins={adminCount}
+          offices={uniqueOrgs}
+        />
+      )}
 
       {/* Main Catalog Card */}
       <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
@@ -205,9 +237,11 @@ export const AccountsPage: React.FC = () => {
               <span className="text-sm font-bold text-slate-900">
                 {t('accounts.directoryTitle', 'Staff Directory')}
               </span>
-              <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">
-                {filtered.length} {t('common.users', 'users')}
-              </span>
+              {!isError && (
+                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">
+                  {filtered.length} {t('common.users', 'users')}
+                </span>
+              )}
             </div>
 
             {/* Role Filter Dropdown */}
@@ -266,7 +300,25 @@ export const AccountsPage: React.FC = () => {
 
         {/* Content List */}
         <div className="p-4 sm:p-5">
-          {isLoading ? (
+          {isError ? (
+            <div className="py-12 text-center" role="alert">
+              <p className="text-sm font-semibold text-slate-800">
+                {isTwoFactorSetupRequired
+                  ? t('twoFactor.required')
+                  : t('accounts.loadError')}
+              </p>
+              <div className="mt-4 flex justify-center gap-3">
+                {isTwoFactorSetupRequired && (
+                  <Link to="/security" className="primary-button">
+                    {t('twoFactor.beginSetup', 'Set up authenticator')}
+                  </Link>
+                )}
+                <button type="button" className="button secondary" onClick={() => void refetch()}>
+                  {t('accounts.retry')}
+                </button>
+              </div>
+            </div>
+          ) : isLoading ? (
             <div className="py-16 text-center text-slate-400 text-sm">
               {t('common.loading', 'Loading staff accounts...')}
             </div>
@@ -389,6 +441,8 @@ export const AccountsPage: React.FC = () => {
             setSelectedAccountForEdit(null);
           }}
           onSave={handleSaveAccount}
+          canResetTwoFactor={canResetTwoFactor}
+          onResetTwoFactor={handleResetTwoFactor}
           isLoading={isSavingUser}
         />
       )}

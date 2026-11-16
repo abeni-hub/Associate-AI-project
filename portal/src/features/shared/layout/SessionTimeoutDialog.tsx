@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Clock3, LogOut, RotateCw, ShieldCheck } from 'lucide-react';
 import { useKeepAliveMutation } from '../../auth';
 import type { AuthUser } from '../../auth';
 import { useLanguage } from '../i18n';
@@ -279,21 +280,29 @@ export const SessionTimeoutDialog: React.FC<SessionTimeoutDialogProps> = ({ user
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="session-timeout-title"
-        aria-describedby="session-timeout-description"
+        aria-describedby="session-timeout-description session-timeout-draft"
         onKeyDown={handleKeyDown}
       >
-        <div className={styles.icon} aria-hidden="true">!</div>
-        <h2 id="session-timeout-title">{t('sessionTimeout.title')}</h2>
-        <p id="session-timeout-description">{t('sessionTimeout.warning')}</p>
-        <div className={styles.countdown} aria-live="polite" aria-atomic="true">{countdown}</div>
-        <p className={styles.draftNotice}>{t('sessionTimeout.unsavedWarning')}</p>
+        <div className={styles.dialogHeader}>
+          <div className={styles.icon} aria-hidden="true"><Clock3 size={22} strokeWidth={1.9} /></div>
+          <div className={styles.headingCopy}>
+            <h2 id="session-timeout-title">{t('sessionTimeout.title')}</h2>
+            <div id="session-timeout-description" className={styles.securityLabel}><ShieldCheck size={13} />{t('sessionTimeout.warning')}</div>
+          </div>
+        </div>
+        <div className={styles.countdownPanel}>
+          <div className={styles.countdown} aria-live="polite" aria-atomic="true">{countdown}</div>
+        </div>
+        <p id="session-timeout-draft" className={styles.draftNotice}>{t('sessionTimeout.unsavedWarning')}</p>
         {connectionError && <p className={styles.connectionError} role="alert">{t('sessionTimeout.connectionError')}</p>}
         <div className={styles.actions}>
           <button ref={stayButtonRef} type="button" className={styles.primaryButton} onClick={() => void handleStayLoggedIn()}>
-            {t('sessionTimeout.stayLoggedIn')}
+            <RotateCw size={16} aria-hidden="true" />
+            <span>{t('sessionTimeout.stayLoggedIn')}</span>
           </button>
           <button type="button" className={styles.secondaryButton} onClick={() => void signOut()}>
-            {t('sessionTimeout.logoutNow')}
+            <LogOut size={16} aria-hidden="true" />
+            <span>{t('sessionTimeout.logoutNow')}</span>
           </button>
         </div>
       </div>

@@ -147,6 +147,25 @@ Authenticates user credentials and establishes a session.
 
 ---
 
+### Two-factor authentication
+Google Authenticator-compatible TOTP is enabled for role slugs configured by
+`TWO_FACTOR_REQUIRED_ROLES` (default: `super_admin,sub_city_admin,woreda_admin,bureau_admin`).
+After password verification, enrolled users receive a short-lived challenge and must call
+`POST /api/v1/auth/two-factor/challenge` with its `challenge_token` and either a six-digit
+`code` or one-time `recovery_code`. No API token is issued until the challenge succeeds.
+Required-role users who are not enrolled can sign in only to complete setup; other protected
+API routes remain blocked until setup is confirmed.
+
+- `GET /api/v1/auth/two-factor`: get the current account's enabled/required state.
+- `POST /api/v1/auth/two-factor/setup`: create a setup secret and `otpauth_url`.
+- `POST /api/v1/auth/two-factor/confirm`: confirm `{ "code": "123456" }`; recovery codes are returned once.
+- `POST /api/v1/auth/two-factor/recovery-codes`: regenerate codes with `{ "password": "..." }`.
+- `DELETE /api/v1/auth/two-factor`: disable with `{ "password": "..." }`.
+- `POST /api/v1/users/{user}/two-factor/reset`: reset another user's enrollment; requires `users.reset_password`.
+
+Secrets and recovery codes are encrypted at rest. Do not retain or log setup secrets, challenge
+codes, or recovery codes. Challenge attempts are rate-limited.
+
 ### `GET /api/v1/auth/me`
 Retrieves the profile, organization context, and role of the currently authenticated user.
 - **Authentication**: `auth:sanctum` + `account.active`
@@ -2498,7 +2517,6 @@ Uploads a hero or spotlight image file for CMS use.
   "errors": null
 }
 ```
-
 
 
 

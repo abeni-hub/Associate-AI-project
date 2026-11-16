@@ -8,12 +8,16 @@ import type {
   LoginResponseData,
   RegisterRequest,
   ResetPasswordRequest,
+  TwoFactorChallengeData,
+  TwoFactorRecoveryCodes,
+  TwoFactorSetupData,
+  TwoFactorStatus,
 } from '../types/auth.types';
 import { clearAuth, setCredentials } from '../slice/authSlice';
 
 export const authFeatureApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    login: builder.mutation<ApiResponse<LoginResponseData>, LoginRequest>({
+    login: builder.mutation<ApiResponse<LoginResponseData | TwoFactorChallengeData>, LoginRequest>({
       query: (credentials) => ({
         url: '/auth/login',
         method: 'POST',
@@ -23,7 +27,7 @@ export const authFeatureApi = baseApi.injectEndpoints({
       async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          if (data.success && data.data) {
+          if (data.success && data.data && 'token' in data.data) {
             dispatch(
               setCredentials({
                 token: data.data.token,
@@ -64,6 +68,36 @@ export const authFeatureApi = baseApi.injectEndpoints({
         url: '/auth/activity',
         method: 'POST',
       }),
+    }),
+
+    twoFactorChallenge: builder.mutation<ApiResponse<LoginResponseData>, {
+      challenge_token: string;
+      code?: string;
+      recovery_code?: string;
+    }>({
+      query: (body) => ({ url: '/auth/two-factor/challenge', method: 'POST', body }),
+    }),
+
+    getTwoFactorStatus: builder.query<ApiResponse<TwoFactorStatus>, void>({
+      query: () => ({ url: '/auth/two-factor', method: 'GET' }),
+    }),
+
+    beginTwoFactorSetup: builder.mutation<ApiResponse<TwoFactorSetupData>, void>({
+      query: () => ({ url: '/auth/two-factor/setup', method: 'POST' }),
+    }),
+
+    confirmTwoFactorSetup: builder.mutation<ApiResponse<TwoFactorRecoveryCodes>, { code: string }>({
+      query: (body) => ({ url: '/auth/two-factor/confirm', method: 'POST', body }),
+      invalidatesTags: ['Auth'],
+    }),
+
+    regenerateTwoFactorRecoveryCodes: builder.mutation<ApiResponse<TwoFactorRecoveryCodes>, { password: string }>({
+      query: (body) => ({ url: '/auth/two-factor/recovery-codes', method: 'POST', body }),
+    }),
+
+    disableTwoFactor: builder.mutation<ApiResponse<null>, { password: string }>({
+      query: (body) => ({ url: '/auth/two-factor', method: 'DELETE', body }),
+      invalidatesTags: ['Auth'],
     }),
 
     logout: builder.mutation<ApiResponse<null>, void>({
@@ -121,6 +155,12 @@ export const {
   useLoginMutation,
   useGetMeQuery,
   useKeepAliveMutation,
+  useTwoFactorChallengeMutation,
+  useGetTwoFactorStatusQuery,
+  useBeginTwoFactorSetupMutation,
+  useConfirmTwoFactorSetupMutation,
+  useRegenerateTwoFactorRecoveryCodesMutation,
+  useDisableTwoFactorMutation,
   useLogoutMutation,
   useChangePasswordMutation,
   useForgotPasswordMutation,

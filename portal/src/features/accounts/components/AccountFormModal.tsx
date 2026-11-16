@@ -13,6 +13,8 @@ export interface AccountModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave?: (saved: any) => void;
+  canResetTwoFactor?: boolean;
+  onResetTwoFactor?: (userId: number) => void;
   isLoading?: boolean;
 }
 
@@ -31,6 +33,8 @@ export const AccountFormModal: React.FC<AccountModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  canResetTwoFactor = false,
+  onResetTwoFactor,
   isLoading,
 }) => {
   const { language, t } = useLanguage();
@@ -396,6 +400,18 @@ export const AccountFormModal: React.FC<AccountModalProps> = ({
                 </button>
               )}
             </div>
+            {account?.two_factor_enabled && canResetTwoFactor && onResetTwoFactor && (
+              <div className={`modal-field ${styles.fullWidth}`}>
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() => onResetTwoFactor(account.id)}
+                  disabled={isLoading}
+                >
+                  {t('twoFactor.adminReset')}
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="modal-footer">
