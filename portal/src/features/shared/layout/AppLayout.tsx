@@ -15,7 +15,7 @@ export const AppLayout: React.FC = () => {
   const hasToken = tokenStorage.hasToken();
 
   // Validate live session with backend /auth/me when token is present
-  const { data: meResponse, error: meError } = useGetMeQuery(undefined, {
+  const { data: meResponse, error: meError, isFetching } = useGetMeQuery(undefined, {
     skip: !hasToken,
     refetchOnMountOrArgChange: true,
   });
@@ -33,13 +33,13 @@ export const AppLayout: React.FC = () => {
   }, [meResponse, signInLive]);
 
   useEffect(() => {
-    if (meError) {
+    if (meError && !isFetching) {
       const status = (meError as { status?: number })?.status;
       if (status === 401 || status === 403) {
         void signOut();
       }
     }
-  }, [meError, signOut]);
+  }, [meError, isFetching, signOut]);
 
   const sessionUser = session?.user;
   const sessionPath = `${location.pathname}${location.search}${location.hash}`;

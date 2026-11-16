@@ -119,11 +119,13 @@ const baseQueryWithSessionExpiry: typeof rawBaseQuery = async (args, api, extraO
 
   if (
     (result.error?.status === 401 || result.error?.status === 419) &&
-    !requestUrl.endsWith('/auth/login') &&
+    !requestUrl.includes('/auth/login') &&
+    !requestUrl.includes('/auth/two-factor') &&
     tokenStorage.hasToken()
   ) {
     tokenStorage.markSessionExpired();
     api.dispatch(clearAuth());
+    api.dispatch(baseApi.util.resetApiState());
   }
 
   return result;

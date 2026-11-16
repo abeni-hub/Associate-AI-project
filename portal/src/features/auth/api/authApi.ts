@@ -76,6 +76,22 @@ export const authFeatureApi = baseApi.injectEndpoints({
       recovery_code?: string;
     }>({
       query: (body) => ({ url: '/auth/two-factor/challenge', method: 'POST', body }),
+      invalidatesTags: ['Auth'],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          if (data.success && data.data && 'token' in data.data) {
+            dispatch(
+              setCredentials({
+                token: data.data.token,
+                user: data.data,
+              })
+            );
+          }
+        } catch {
+          // Errors handled by caller or UI hooks
+        }
+      },
     }),
 
     getTwoFactorStatus: builder.query<ApiResponse<TwoFactorStatus>, void>({
