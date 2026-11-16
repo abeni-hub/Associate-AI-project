@@ -60,6 +60,17 @@ const satisfactionTags = [
   'Clean office',
 ];
 
+function resolveOrgName(val: any, lang?: string): string {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object') {
+    if (lang === 'am' && val.amh) return val.amh;
+    if ((lang === 'om' || lang === 'or') && val.oro) return val.oro;
+    return val.eng || val.en || Object.values(val)[0] || '';
+  }
+  return String(val);
+}
+
 export default function QrFeedbackPage({
   language,
   t,
@@ -162,16 +173,18 @@ export default function QrFeedbackPage({
 
   // Sub-cities list
   const liveSubCities = useMemo(() => {
-    const list = allOrganizations.filter(
-      (o: any) =>
+    const list = allOrganizations.filter((o: any) => {
+      const nameStr = resolveOrgName(o.name, language).toLowerCase();
+      return (
         o.parent_organization_id === null &&
         (o.type?.code === 'sub_city' ||
-          o.name?.toLowerCase().includes('sub-city') ||
-          o.name?.toLowerCase().includes('subcity'))
-    );
-    if (list.length > 0) return list.map((sc: any) => sc.name.replace(/ Sub-city/i, ''));
+          nameStr.includes('sub-city') ||
+          nameStr.includes('subcity'))
+      );
+    });
+    if (list.length > 0) return list.map((sc: any) => resolveOrgName(sc.name, language).replace(/ Sub-city/i, ''));
     return defaultSubCities;
-  }, [allOrganizations]);
+  }, [allOrganizations, language]);
 
   // Sync QR code scan with database and resolve organization names
   useEffect(() => {
@@ -188,7 +201,7 @@ export default function QrFeedbackPage({
         (o: any) =>
           String(o.id) === String(initialParams.orgParam) ||
           String(o.code).toLowerCase() === String(initialParams.orgParam).toLowerCase() ||
-          o.name.toLowerCase().includes(String(initialParams.orgParam).toLowerCase())
+          resolveOrgName(o.name, language).toLowerCase().includes(String(initialParams.orgParam).toLowerCase())
       );
 
       if (match) {
@@ -198,16 +211,16 @@ export default function QrFeedbackPage({
             setSelectedSubCity(initialParams.subCityParam);
           } else if (match.parent_organization_id) {
             const parent = allOrganizations.find((p: any) => p.id === match.parent_organization_id);
-            if (parent) setSelectedSubCity(parent.name.replace(/ Sub-city/i, ''));
-          } else if (match.name.toLowerCase().includes('sub-city')) {
-            setSelectedSubCity(match.name.replace(/ Sub-city/i, ''));
+            if (parent) setSelectedSubCity(resolveOrgName(parent.name, language).replace(/ Sub-city/i, ''));
+          } else if (resolveOrgName(match.name, language).toLowerCase().includes('sub-city')) {
+            setSelectedSubCity(resolveOrgName(match.name, language).replace(/ Sub-city/i, ''));
           } else {
             setSelectedSubCity('Bole');
           }
         }
       }
     }
-  }, [allOrganizations, initialParams, selectedSubCity]);
+  }, [allOrganizations, initialParams, language, selectedSubCity]);
 
   // Fallback sub-city if QR has none
   const effectiveSubCity = selectedSubCity || (isQrScan ? 'Bole' : '');
@@ -217,7 +230,7 @@ export default function QrFeedbackPage({
     if (!effectiveSubCity) return defaultOffices;
     const matchedSub = allOrganizations.find(
       (o: any) =>
-        o.name.toLowerCase().includes(effectiveSubCity.toLowerCase()) &&
+        resolveOrgName(o.name, language).toLowerCase().includes(effectiveSubCity.toLowerCase()) &&
         (o.parent_organization_id === null || o.type?.code === 'sub_city')
     );
 
@@ -226,7 +239,7 @@ export default function QrFeedbackPage({
       if (children.length > 0) {
         return children.map((c: any) => ({
           id: String(c.id),
-          name: c.name,
+          name: resolveOrgName(c.name, language),
           code: c.code || '',
           subtext: `Under ${effectiveSubCity}`,
         }));
@@ -234,12 +247,12 @@ export default function QrFeedbackPage({
     }
 
     const central = allOrganizations.filter(
-      (o: any) => o.type?.code === 'bureau' || o.name.toLowerCase().includes('bureau')
+      (o: any) => o.type?.code === 'bureau' || resolveOrgName(o.name, language).toLowerCase().includes('bureau')
     );
     if (central.length > 0) {
       return central.map((c: any) => ({
         id: String(c.id),
-        name: c.name,
+        name: resolveOrgName(c.name, language),
         code: c.code || '',
         subtext: `Municipal office · ${effectiveSubCity}`,
       }));
@@ -249,7 +262,7 @@ export default function QrFeedbackPage({
       ...off,
       subtext: `${effectiveSubCity} branch`,
     }));
-  }, [allOrganizations, effectiveSubCity]);
+  }, [allOrganizations, effectiveSubCity, language]);
 
   // Resolved active office object
   const activeOfficeObj = useMemo(() => {
@@ -710,7 +723,7 @@ export default function QrFeedbackPage({
                   <span className="qr-location-eyebrow">
                     <Icon name="check" size={13} /> {t('Office verified from QR code')}
                   </span>
-                  <h1>{activeOfficeObj.name}</h1>
+                  <h1>{resolveOrgName(activeOfficeObj?.name, language)}</h1>
                   <p>
                     📍 {effectiveSubCity} {effectiveSubCity.includes('Sub-city') ? '' : t('Sub-city')} · {t('Where you received service')}
                   </p>
@@ -801,7 +814,7 @@ export default function QrFeedbackPage({
                 <h2>{t('What would you like to do?')}</h2>
                 <p>{t('Choose one of the options below:')}</p>
                 <div className="qr-context-pill">
-                  📍 {effectiveSubCity} · {activeOfficeObj?.name}
+                  📍 {effectiveSubCity} · {resolveOrgName(activeOfficeObj?.name, language)}
                 </div>
               </div>
 
@@ -906,7 +919,7 @@ export default function QrFeedbackPage({
                 </h2>
                 <p>{t('Select the service you received or need guidance for:')}</p>
                 <div className="qr-context-pill">
-                  📍 {effectiveSubCity} · {activeOfficeObj?.name}
+                  📍 {effectiveSubCity} · {resolveOrgName(activeOfficeObj?.name, language)}
                 </div>
               </div>
 
@@ -1033,7 +1046,7 @@ export default function QrFeedbackPage({
                             : t('Rate Your Visit')}
                       </h2>
                       <div className="qr-context-pill">
-                        📍 {effectiveSubCity} · {activeOfficeObj?.name} · {t(activeServiceObj.name)}
+                        📍 {effectiveSubCity} · {resolveOrgName(activeOfficeObj?.name, language)} · {t(activeServiceObj.name)}
                       </div>
                     </div>
 

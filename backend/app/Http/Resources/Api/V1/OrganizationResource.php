@@ -17,9 +17,27 @@ class OrganizationResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $lang = (string) $request->header('Accept-Language', 'en');
+        $resolvedName = match ($lang) {
+            'am', 'amh' => $this->name_amh ?: $this->name,
+            'om', 'oro' => $this->name_oro ?: $this->name,
+            default => $this->name,
+        };
+        $resolvedDescription = match ($lang) {
+            'am', 'amh' => $this->description_amh ?: $this->description,
+            'om', 'oro' => $this->description_oro ?: $this->description,
+            default => $this->description,
+        };
+        $resolvedAddress = match ($lang) {
+            'am', 'amh' => $this->address_amh ?: $this->address,
+            'om', 'oro' => $this->address_oro ?: $this->address,
+            default => $this->address,
+        };
+
         return [
             'id' => $this->id,
-            'name' => [
+            'name' => $resolvedName,
+            'name_localized' => [
                 'eng' => $this->name,
                 'amh' => $this->name_amh ?: $this->name,
                 'oro' => $this->name_oro ?: $this->name,
@@ -27,14 +45,16 @@ class OrganizationResource extends JsonResource
             'name_amh' => $this->name_amh,
             'name_oro' => $this->name_oro,
             'code' => $this->code,
-            'description' => [
+            'description' => $resolvedDescription,
+            'description_localized' => [
                 'eng' => $this->description,
                 'amh' => $this->description_amh ?: $this->description,
                 'oro' => $this->description_oro ?: $this->description,
             ],
             'description_amh' => $this->description_amh,
             'description_oro' => $this->description_oro,
-            'address' => [
+            'address' => $resolvedAddress,
+            'address_localized' => [
                 'eng' => $this->address,
                 'amh' => $this->address_amh ?: $this->address,
                 'oro' => $this->address_oro ?: $this->address,
@@ -50,7 +70,8 @@ class OrganizationResource extends JsonResource
             'is_root' => $this->isRoot(),
             'type' => $this->relationLoaded('type') && $this->type ? [
                 'id' => $this->type->id,
-                'name' => [
+                'name' => $this->type->name,
+                'name_localized' => [
                     'eng' => $this->type->name,
                     'amh' => $this->type->name_amh ?: $this->type->name,
                     'oro' => $this->type->name_oro ?: $this->type->name,
@@ -60,11 +81,7 @@ class OrganizationResource extends JsonResource
             ] : null,
             'parent' => $this->relationLoaded('parent') && $this->parent ? [
                 'id' => $this->parent->id,
-                'name' => [
-                    'eng' => $this->parent->name,
-                    'amh' => $this->parent->name_amh ?: $this->parent->name,
-                    'oro' => $this->parent->name_oro ?: $this->parent->name,
-                ],
+                'name' => $this->parent->name,
                 'code' => $this->parent->code,
             ] : null,
             'children_count' => $this->whenCounted('children'),

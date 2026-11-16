@@ -214,7 +214,6 @@ export const AccountsPage: React.FC = () => {
               </span>
             )}
           </div>
-          </div>
 
           <div className="toolbar-tools">
             <AccountsToolbar
