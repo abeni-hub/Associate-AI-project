@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { API_TAG_TYPES } from '../types/api.types';
 import { getCookie, tokenStorage } from '../utils/tokenStorage';
+import { clearAuth } from '../features/auth/slice/authSlice';
 
 export const DEFAULT_BACKEND_URL = 'https://civillink.jobaleengineering.com';
 
@@ -67,9 +68,7 @@ const getBaseUrl = (): string => getBaseApiUrl(import.meta.env.DEV);
  * - Automatic X-XSRF-TOKEN header attachment when Sanctum CSRF cookie is present
  * - Central tag types for cross-module cache invalidation
  */
-export const baseApi = createApi({
-  reducerPath: 'api',
-  baseQuery: fetchBaseQuery({
+const rawBaseQuery = fetchBaseQuery({
     baseUrl: getBaseUrl(),
     credentials: 'include',
     prepareHeaders: (headers, { getState }) => {
@@ -91,10 +90,52 @@ export const baseApi = createApi({
       if (!headers.has('Accept')) {
         headers.set('Accept', 'application/json');
       }
+      if (!headers.has('Accept-Language')) {
+        let language = 'en';
+        try {
+          if (typeof window !== 'undefined' && window.localStorage.getItem('civiclink_portal_language') === 'am') {
+            language = 'am';
+          }
+        } catch {
+          // Keep the API locale at English if browser storage is unavailable.
+        }
+        headers.set('Accept-Language', language);
+      }
 
       return headers;
     },
-  }),
+  });
+
+const baseQueryWithSessionExpiry: typeof rawBaseQuery = async (args, api, extraOptions) => {
+  const result = await rawBaseQuery(args, api, extraOptions);
+  const requestUrl = typeof args === 'string' ? args : args.url;
+
+  if (
+    !result.error &&
+    tokenStorage.hasToken() &&
+    !requestUrl.endsWith('/auth/login') &&
+    !requestUrl.endsWith('/auth/activity') &&
+    !requestUrl.endsWith('/auth/logout') &&
+    typeof window !== 'undefined'
+  ) {
+    window.dispatchEvent(new Event('civiclink:api-activity'));
+  }
+
+  if (
+    (result.error?.status === 401 || result.error?.status === 419) &&
+    !requestUrl.endsWith('/auth/login') &&
+    tokenStorage.hasToken()
+  ) {
+    tokenStorage.markSessionExpired();
+    api.dispatch(clearAuth());
+  }
+
+  return result;
+};
+
+export const baseApi = createApi({
+  reducerPath: 'api',
+  baseQuery: baseQueryWithSessionExpiry,
   tagTypes: API_TAG_TYPES,
   endpoints: () => ({}),
 });

@@ -6,6 +6,8 @@ namespace App\Http\Resources\Api\V1;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Carbon;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class UserResource extends JsonResource
 {
@@ -25,6 +27,12 @@ class UserResource extends JsonResource
             'status' => $this->status,
             'must_change_password' => (bool) $this->must_change_password,
             'last_login_at' => $this->last_login_at?->toIso8601String(),
+            'session_timeout' => $this->session_timeout,
+            'effective_session_timeout' => $this->effectiveSessionTimeout(),
+            'absolute_session_lifetime' => (int) config('session-timeout.absolute_lifetime'),
+            'session_expires_at' => $request->user()?->is($this->resource)
+                ? $this->sessionExpiresAt($request)
+                : null,
             'organization' => $this->organization ? [
                 'id' => $this->organization->id,
                 'name' => $this->organization->name,
@@ -40,11 +48,31 @@ class UserResource extends JsonResource
                 'name' => $this->role->name,
                 'slug' => $this->role->slug,
                 'scope_level' => $this->role->scope_level ?? 'global',
+                'session_timeout' => $this->role->session_timeout,
             ] : null,
             'permissions' => $this->isSuperAdmin()
                 ? ['*']
                 : ($this->role ? $this->role->permissions()->pluck('key')->all() : []),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
+    }
+
+    private function sessionExpiresAt(Request $request): ?string
+    {
+        $middlewareExpiry = $request->attributes->get('session_expires_at');
+        if ($middlewareExpiry) {
+            return $middlewareExpiry;
+        }
+
+        $token = $this->currentAccessToken();
+        $startedAt = $token instanceof PersonalAccessToken
+            ? $token->created_at
+            : ($request->hasSession() ? $request->session()->get('session_started_at') : null);
+
+        return $startedAt
+            ? Carbon::parse($startedAt)
+                ->addMinutes((int) config('session-timeout.absolute_lifetime'))
+                ->toIso8601String()
+            : null;
     }
 }

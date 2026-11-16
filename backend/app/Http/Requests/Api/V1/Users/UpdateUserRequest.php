@@ -47,6 +47,25 @@ class UpdateUserRequest extends FormRequest
             'organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
             'status' => ['nullable', 'string', 'in:active,inactive,suspended'],
             'must_change_password' => ['nullable', 'boolean'],
+            'session_timeout' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                'min:'.config('session-timeout.minimum'),
+                'max:'.config('session-timeout.maximum'),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'session_timeout.integer' => __('session.timeout_range'),
+            'session_timeout.min' => __('session.timeout_range'),
+            'session_timeout.max' => __('session.timeout_range'),
         ];
     }
 

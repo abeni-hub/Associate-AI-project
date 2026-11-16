@@ -1,12 +1,14 @@
 import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { usePortal } from '../../shared';
 import { useLoginMutation } from '../api/authApi';
 import type { ValidationErrorMap } from '../../../types/api.types';
+import { tokenStorage } from '../../../utils/tokenStorage';
 
 export function useAuth() {
   const portal = usePortal();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loginTrigger, { isLoading }] = useLoginMutation();
 
   const [username, setUsername] = useState('');
@@ -50,8 +52,14 @@ export function useAuth() {
         }).unwrap();
 
         if (response.success && response.data) {
+          tokenStorage.clearSessionDraftsForOtherUsers(response.data.id);
           portal.signInLive(response.data, response.data.token);
-          navigate('/overview', { replace: true });
+          tokenStorage.clearSessionExpired();
+          const from = (location.state as { from?: { pathname?: string; search?: string; hash?: string } } | null)?.from;
+          const returnPath = from?.pathname?.startsWith('/') && !from.pathname.startsWith('//') && from.pathname !== '/login'
+            ? `${from.pathname}${from.search || ''}${from.hash || ''}`
+            : '/overview';
+          navigate(returnPath, { replace: true });
         } else {
           setError(response.message || 'Login failed. Please verify your credentials.');
         }
@@ -75,7 +83,7 @@ export function useAuth() {
         }
       }
     },
-    [username, password, loginTrigger, portal, navigate]
+    [username, password, loginTrigger, portal, navigate, location.state]
   );
 
   return {
@@ -93,4 +101,3 @@ export function useAuth() {
 }
 
 export default useAuth;
-

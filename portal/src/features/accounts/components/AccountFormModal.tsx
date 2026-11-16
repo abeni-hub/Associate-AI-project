@@ -45,6 +45,7 @@ export const AccountFormModal: React.FC<AccountModalProps> = ({
   const [organizationId, setOrganizationId] = useState<number | null>(null);
   const [roleId, setRoleId] = useState<number | null>(null);
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  const [sessionTimeout, setSessionTimeout] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -77,6 +78,7 @@ export const AccountFormModal: React.FC<AccountModalProps> = ({
       setRoleId(initialRoleId);
 
       setStatus(account?.status?.toLowerCase() === 'inactive' ? 'inactive' : 'active');
+      setSessionTimeout(account?.session_timeout == null ? '' : String(account.session_timeout));
       setErrorMsg(null);
     }
   }, [isOpen, account]);
@@ -207,6 +209,9 @@ export const AccountFormModal: React.FC<AccountModalProps> = ({
     if (!roleId) {
       return setErrorMsg(t('accounts.roleRequired', 'Please select an administrative role.'));
     }
+    if (sessionTimeout !== '' && (!/^\d+$/.test(sessionTimeout) || Number(sessionTimeout) < 5 || Number(sessionTimeout) > 120)) {
+      return setErrorMsg(t('accounts.sessionTimeoutRange', 'Session timeout must be between 5 and 120 minutes.'));
+    }
 
     const isGlobal = Number(organizationId) === 0 || Number(roleId) === 1;
 
@@ -219,6 +224,7 @@ export const AccountFormModal: React.FC<AccountModalProps> = ({
       phone: phone.trim() || undefined,
       role_id: Number(roleId),
       organization_id: isGlobal ? null : Number(organizationId),
+      session_timeout: sessionTimeout === '' ? null : Number(sessionTimeout),
       status,
     };
 
@@ -366,6 +372,30 @@ export const AccountFormModal: React.FC<AccountModalProps> = ({
                 <option value="inactive">{t('common.inactive', 'Inactive')}</option>
               </select>
             </label>
+
+            <div className="modal-field">
+              <span>
+                <label htmlFor="account-session-timeout">
+                  {t('accounts.sessionTimeout', 'Account idle timeout')}
+                </label>
+              </span>
+              <input
+                id="account-session-timeout"
+                type="number"
+                min={5}
+                max={120}
+                step={1}
+                value={sessionTimeout}
+                placeholder={t('accounts.sessionTimeoutInherit', 'Use role/default setting')}
+                onChange={(e) => setSessionTimeout(e.target.value)}
+              />
+              <small>{t('accounts.sessionTimeoutHelp', 'Choose 5–120 minutes. If unset, this account uses its role setting, then the system default.')}</small>
+              {sessionTimeout !== '' && (
+                <button type="button" className="button secondary" onClick={() => setSessionTimeout('')}>
+                  {t('accounts.sessionTimeoutInherit', 'Use role/default setting')}
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="modal-footer">
@@ -388,4 +418,3 @@ export const AccountFormModal: React.FC<AccountModalProps> = ({
 
 export const AccountModal = AccountFormModal;
 export default AccountFormModal;
-

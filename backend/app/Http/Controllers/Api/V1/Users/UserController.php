@@ -15,6 +15,7 @@ use App\Http\Resources\Api\V1\UserResource;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
@@ -41,7 +42,7 @@ class UserController extends Controller
         // 2. Filters
         if ($request->filled('search')) {
             $search = (string) $request->input('search');
-            $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
             $query->where(function ($q) use ($search, $like) {
                 $q->where('name', $like, "%{$search}%")
                     ->orWhere('username', $like, "%{$search}%")
@@ -131,17 +132,32 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
         $oldValues = $user->toArray();
-        $user->update($request->validated());
-        $user->load(['organization.type', 'role']);
+        $validated = $request->validated();
+        $oldTimeout = $user->session_timeout;
+        DB::transaction(function () use ($request, $user, $validated, $oldValues, $oldTimeout): void {
+            $user->update($validated);
+            $user->load(['organization.type', 'role']);
 
-        $this->auditLogAction->execute(
-            action: 'updated',
-            entity: $user,
-            actor: $request->user(),
-            oldValues: $oldValues,
-            newValues: $user->toArray(),
-            request: $request
-        );
+            $this->auditLogAction->execute(
+                action: 'updated',
+                entity: $user,
+                actor: $request->user(),
+                oldValues: $oldValues,
+                newValues: $user->toArray(),
+                request: $request
+            );
+
+            if (array_key_exists('session_timeout', $validated) && $oldTimeout !== $user->session_timeout) {
+                $this->auditLogAction->execute(
+                    action: 'session_timeout_changed',
+                    entity: $user,
+                    actor: $request->user(),
+                    oldValues: ['session_timeout' => $oldTimeout],
+                    newValues: ['session_timeout' => $user->session_timeout],
+                    request: $request
+                );
+            }
+        });
 
         return ApiResponse::success(
             data: new UserResource($user),

@@ -37,6 +37,7 @@ class User extends Authenticatable
         'status',
         'must_change_password',
         'last_login_at',
+        'session_timeout',
     ];
 
     protected $hidden = [
@@ -50,8 +51,14 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'must_change_password' => 'boolean',
+            'session_timeout' => 'integer',
             'password' => 'hashed',
         ];
+    }
+
+    public function effectiveSessionTimeout(): int
+    {
+        return (int) ($this->session_timeout ?? $this->role?->session_timeout ?? config('session-timeout.default'));
     }
 
     /**

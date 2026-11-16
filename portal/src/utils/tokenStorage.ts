@@ -11,6 +11,7 @@
 const SESSION_TOKEN_KEY = 'civiclink_session_token';
 const SESSION_ROLE_KEY = 'civiclink_session_role';
 const SESSION_USER_KEY = 'civiclink_session_user';
+const SESSION_EXPIRED_KEY = 'civiclink_session_expired';
 let inMemoryToken: string | null = null;
 
 export const tokenStorage = {
@@ -114,6 +115,55 @@ export const tokenStorage = {
       } catch {
         // sessionStorage access blocked or unavailable
       }
+    }
+  },
+
+  markSessionExpired(): void {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem(SESSION_EXPIRED_KEY, '1');
+      }
+    } catch {
+      // Session expiry still clears in-memory credentials when storage is unavailable.
+    }
+  },
+
+  consumeSessionExpired(): boolean {
+    try {
+      if (typeof window === 'undefined' || !window.sessionStorage) return false;
+      const expired = window.sessionStorage.getItem(SESSION_EXPIRED_KEY) === '1';
+      window.sessionStorage.removeItem(SESSION_EXPIRED_KEY);
+      return expired;
+    } catch {
+      return false;
+    }
+  },
+
+  clearSessionExpired(): void {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.removeItem(SESSION_EXPIRED_KEY);
+      }
+    } catch {
+      // Session expiry notices are best-effort when storage is unavailable.
+    }
+  },
+
+  clearSessionDraftsForOtherUsers(userId: number): void {
+    try {
+      if (typeof window === 'undefined' || !window.sessionStorage) return;
+      const prefix = 'civiclink_timeout_draft:';
+      const ownPrefix = `${prefix}${userId}:`;
+      const keys = Array.from({ length: window.sessionStorage.length }, (_, index) =>
+        window.sessionStorage.key(index)
+      );
+      keys.forEach((key) => {
+        if (key?.startsWith(prefix) && !key.startsWith(ownPrefix)) {
+          window.sessionStorage.removeItem(key);
+        }
+      });
+    } catch {
+      // Draft cleanup is best-effort when browser storage is unavailable.
     }
   },
 };

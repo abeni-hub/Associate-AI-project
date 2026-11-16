@@ -37,12 +37,12 @@ export const authFeatureApi = baseApi.injectEndpoints({
       },
     }),
 
-    getMe: builder.query<ApiResponse<AuthUser>, void>({
-      query: () => ({
-        url: '/auth/me',
-        method: 'GET',
-      }),
-      providesTags: ['Auth'],
+      getMe: builder.query<ApiResponse<AuthUser>, void>({
+        query: () => ({
+          url: '/auth/me',
+          method: 'GET',
+        }),
+        providesTags: ['Auth'],
       async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
@@ -57,6 +57,13 @@ export const authFeatureApi = baseApi.injectEndpoints({
           // If 401 or token expired, caller handles redirection
         }
       },
+    }),
+
+    keepAlive: builder.mutation<ApiResponse<{ active: boolean }>, void>({
+      query: () => ({
+        url: '/auth/activity',
+        method: 'POST',
+      }),
     }),
 
     logout: builder.mutation<ApiResponse<null>, void>({
@@ -113,10 +120,10 @@ export const authFeatureApi = baseApi.injectEndpoints({
 export const {
   useLoginMutation,
   useGetMeQuery,
+  useKeepAliveMutation,
   useLogoutMutation,
   useChangePasswordMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,
   useRegisterMutation,
 } = authFeatureApi;
-

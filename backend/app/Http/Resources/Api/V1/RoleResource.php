@@ -24,6 +24,7 @@ class RoleResource extends JsonResource
             'description' => $this->description,
             'is_system' => (bool) $this->is_system,
             'is_active' => (bool) $this->is_active,
+            'session_timeout' => $this->session_timeout,
             'permissions_count' => $this->whenCounted('permissions'),
             'permissions' => PermissionResource::collection($this->whenLoaded('permissions')),
             'permission_ids' => $this->whenLoaded('permissions', fn () => $this->permissions->pluck('id')),

@@ -1,6 +1,6 @@
 import { baseApi } from '../../../app/baseApi';
 import type { ApiResponse, PaginatedResponse } from '../../../types/api.types';
-import type { AuthUser } from '../../auth/auth.types';
+import type { AuthUser } from '../../auth/types/auth.types';
 import type {
   UserFilterParams,
   CreateUserPayload,
@@ -73,4 +73,3 @@ export const {
   useUpdateUserMutation,
   useDeleteUserMutation,
 } = accountsApi;
-

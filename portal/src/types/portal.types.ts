@@ -98,6 +98,7 @@ export interface AccountItem {
   roleId?: number;
   organization: string;
   organization_id?: number | null;
+  session_timeout?: number | null;
   status: string;
   lastActive: string;
 }

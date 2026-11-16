@@ -222,6 +222,20 @@ Terminates the authenticated session, invalidates session storage, and regenerat
 
 ---
 
+### Session timeout policy
+
+- Idle timeouts resolve in this order: account `session_timeout`, role `session_timeout`, then `SESSION_TIMEOUT_MINUTES` (default 30).
+- Account and role values may be `null` to inherit and otherwise must be whole minutes from 5 through 120.
+- `SESSION_ABSOLUTE_LIFETIME` (default 480 minutes) limits total token/session age regardless of activity.
+- Authenticated API requests count as activity. The portal also calls `POST /api/v1/auth/activity` while the user is active.
+- An expired session revokes its bearer token, invalidates a stateful session and its CSRF token, and returns HTTP 401 with `errors.reason = "session_timeout"`. The portal sends the user to sign-in and preserves a safe in-app return path.
+- Audit actions are `session_timeout`, `logout`, and `session_timeout_changed`; timeout changes include old/new values and request IP.
+- Session cookies are HttpOnly, SameSite=Lax by default, and Secure in production. Set `SESSION_SAME_SITE=none` only when cross-site cookies are required; production cookies remain Secure.
+
+Set `session_timeout` through the existing account create/update endpoints (permission `users.create`/`users.update`) or role create/update endpoints (permission `roles.manage`).
+
+---
+
 ### `PUT /api/v1/auth/change-password`
 Allows an authenticated user to change their password and clears the `must_change_password` flag.
 - **Authentication**: `auth:sanctum` + `account.active`
@@ -695,6 +709,7 @@ Provision a new government user account.
   "phone": "+251911334455",
   "role_id": 3,
   "organization_id": 2,
+  "session_timeout": null,
   "status": "active"
 }
 ```
@@ -713,6 +728,7 @@ Retrieve a single user's detailed profile.
 Update user profile, status, or role.
 - **Authentication**: `auth:sanctum` + `account.active`
 - **Permission Required**: `users.update`
+- Optional `session_timeout`: `null` to inherit the role/system value or an integer from 5 through 120 minutes.
 
 ---
 
@@ -2482,7 +2498,6 @@ Uploads a hero or spotlight image file for CMS use.
   "errors": null
 }
 ```
-
 
 
 

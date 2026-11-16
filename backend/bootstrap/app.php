@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureHasPermission;
+use App\Http\Middleware\EnforceSessionTimeout;
 use App\Support\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -37,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'account.active' => EnsureAccountIsActive::class,
             'permission' => EnsureHasPermission::class,
+            'session.timeout' => EnforceSessionTimeout::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

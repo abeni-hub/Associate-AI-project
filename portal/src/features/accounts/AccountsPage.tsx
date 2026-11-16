@@ -56,6 +56,7 @@ export const AccountsPage: React.FC = () => {
         roleId: u.role?.id,
         organization: getLocalizedText(u.organization?.name as any, language) || (typeof u.organization?.name === 'string' ? u.organization.name : (u.role?.slug === 'super_admin' ? 'Global Platform' : 'Unassigned')),
         organization_id: u.organization?.id,
+        session_timeout: u.session_timeout ?? null,
         status: u.status === 'active' ? 'Active' : 'Inactive',
         lastActive: u.last_login_at
           ? new Date(u.last_login_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -396,4 +397,3 @@ export const AccountsPage: React.FC = () => {
 };
 
 export default AccountsPage;
-

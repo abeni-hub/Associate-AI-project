@@ -31,7 +31,8 @@ class AuthController extends Controller
             request: $request
         );
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $issuedToken = $user->createToken('auth-token');
+        $token = $issuedToken->plainTextToken;
 
         $auditLogger->execute(
             action: 'login',
@@ -50,6 +51,12 @@ class AuthController extends Controller
         $userData = (new UserResource($user))->toArray($request);
         $userData['token'] = $token;
         $userData['token_type'] = 'Bearer';
+        $userData['effective_session_timeout'] = $user->effectiveSessionTimeout();
+        $userData['absolute_session_lifetime'] = (int) config('session-timeout.absolute_lifetime');
+        $userData['session_expires_at'] = $issuedToken->accessToken->created_at
+            ->copy()
+            ->addMinutes((int) config('session-timeout.absolute_lifetime'))
+            ->toIso8601String();
 
         return ApiResponse::success(
             data: $userData,
@@ -72,6 +79,17 @@ class AuthController extends Controller
         return ApiResponse::success(
             data: new UserResource($user),
             message: 'Authenticated user profile retrieved successfully.'
+        );
+    }
+
+    /**
+     * Keep an active browser session alive.
+     */
+    public function activity(): JsonResponse
+    {
+        return ApiResponse::success(
+            data: ['active' => true],
+            message: __('session.active')
         );
     }
 
@@ -104,7 +122,7 @@ class AuthController extends Controller
 
         return ApiResponse::success(
             data: null,
-            message: 'Logged out successfully.'
+            message: __('session.logged_out')
         );
     }
 

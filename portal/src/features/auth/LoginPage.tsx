@@ -9,8 +9,12 @@ import {
 } from './index';
 import layoutStyles from './styles/loginLayout.module.css';
 import panelStyles from './styles/loginForm.module.css';
+import { useLanguage } from '../shared/i18n';
+import { tokenStorage } from '../../utils/tokenStorage';
 
 export const LoginPage: React.FC = () => {
+  const { t } = useLanguage();
+  const [sessionExpired] = React.useState(() => tokenStorage.consumeSessionExpired());
   const {
     username,
     password,
@@ -46,6 +50,12 @@ export const LoginPage: React.FC = () => {
             Use your assigned administrative account to access platform directories, services, and citizen feedback.
           </p>
 
+          {sessionExpired && (
+            <div role="status" className={panelStyles.errorBanner}>
+              {t('sessionTimeout.expired')}
+            </div>
+          )}
+
           <LoginForm
             username={username}
             password={password}
@@ -67,4 +77,3 @@ export const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
-

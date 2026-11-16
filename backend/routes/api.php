@@ -78,15 +78,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
             ->name('password.reset');
 
         // Authenticated Session Endpoints (Stateful SPA / Bearer Token)
-        Route::middleware(['auth:sanctum', 'account.active'])->group(function () {
+        Route::middleware(['auth:sanctum', 'session.timeout', 'account.active'])->group(function () {
             Route::get('/me', [AuthController::class, 'me'])->name('me');
             Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+            Route::post('/activity', [AuthController::class, 'activity'])->name('activity');
             Route::put('/change-password', [AuthController::class, 'changePassword'])->name('change-password');
         });
     });
 
     // Authenticated Administration Endpoints
-    Route::middleware(['auth:sanctum', 'account.active'])->group(function () {
+    Route::middleware(['auth:sanctum', 'session.timeout', 'account.active'])->group(function () {
         // Dynamic Navigation Items
         Route::get('/navigation/items', [NavigationController::class, 'index'])
             ->name('navigation.items');

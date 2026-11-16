@@ -32,6 +32,7 @@ class Role extends Model
         'description',
         'is_system',
         'is_active',
+        'session_timeout',
     ];
 
     protected function casts(): array
@@ -39,6 +40,7 @@ class Role extends Model
         return [
             'is_system' => 'boolean',
             'is_active' => 'boolean',
+            'session_timeout' => 'integer',
         ];
     }
 

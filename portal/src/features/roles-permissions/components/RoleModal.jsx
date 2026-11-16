@@ -141,6 +141,7 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
     return (typeof s === 'string' ? s : '').toLowerCase().replace(/[^a-z0-9]+/g, '_');
   });
   const [description, setDescription] = useState(() => (typeof role?.description === 'string' ? role?.description : getLocalizedText(role?.description, language) || ''));
+  const [sessionTimeout, setSessionTimeout] = useState(() => role?.session_timeout == null ? '' : String(role.session_timeout));
   const [selectedNavIds, setSelectedNavIds] = useState(() => {
     if (role?.navigation_item_ids && Array.isArray(role.navigation_item_ids) && role.navigation_item_ids.length > 0) {
       return role.navigation_item_ids.map(Number);
@@ -193,13 +194,19 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim()) {
-      setErrorMsg('Please enter a role title.');
+      setErrorMsg(t('roles.titleRequired', 'Please enter a role title.'));
+      setActiveTab('details');
+      return;
+    }
+
+    if (sessionTimeout !== '' && (!/^\d+$/.test(sessionTimeout) || Number(sessionTimeout) < 5 || Number(sessionTimeout) > 120)) {
+      setErrorMsg(t('roles.sessionTimeoutRange', 'Session timeout must be between 5 and 120 minutes.'));
       setActiveTab('details');
       return;
     }
 
     if (selectedNavIds.length === 0) {
-      setErrorMsg('Please select at least one navigation module for this role.');
+      setErrorMsg(t('roles.navigationRequired', 'Please select at least one navigation module for this role.'));
       setActiveTab('navigation');
       return;
     }
@@ -241,6 +248,7 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
       scope: chosenTier.scope,
       scope_level: scope,
       description: description.trim() || `Administrative role for ${chosenTier.label}.`,
+      session_timeout: sessionTimeout === '' ? null : Number(sessionTimeout),
       navigation_items: selectedNavIds,
       permission_ids: finalPermIds,
     };
@@ -394,10 +402,11 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
         <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           {/* Role Title */}
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#1e293b', marginBottom: '6px' }}>
+            <label htmlFor="role-session-timeout" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#1e293b', marginBottom: '6px' }}>
               Role Title <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <input
+              id="role-session-timeout"
               required
               placeholder="e.g. Public Communications Officer, Sub-City Registrar"
               value={name}
@@ -496,6 +505,37 @@ function RoleFormInner({ role, onClose, onSave, isLoading = false }) {
                 resize: 'vertical',
               }}
             />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#1e293b', marginBottom: '6px' }}>
+              {t('roles.sessionTimeout', 'Role idle timeout')}
+            </label>
+            <input
+              type="number"
+              min="5"
+              max="120"
+              step="1"
+              value={sessionTimeout}
+              placeholder={t('roles.sessionTimeoutInherit', 'Use system default')}
+              onChange={(e) => setSessionTimeout(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '9px 12px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '13px',
+                boxSizing: 'border-box',
+              }}
+            />
+            <p style={{ margin: '5px 0 0', color: '#64748b', fontSize: '12px' }}>
+              {t('roles.sessionTimeoutHelp', 'Choose 5–120 minutes. Accounts can override this value.')}
+            </p>
+            {sessionTimeout !== '' && (
+              <button type="button" className="button secondary" onClick={() => setSessionTimeout('')}>
+                {t('roles.sessionTimeoutInherit', 'Use system default')}
+              </button>
+            )}
           </div>
         </div>
       )}

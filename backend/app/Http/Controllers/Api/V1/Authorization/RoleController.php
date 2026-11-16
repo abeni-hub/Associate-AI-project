@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Authorization;
 
+use App\Domains\AuditLogs\Actions\RecordAuditLogAction;
 use App\Domains\Authorization\Models\Role;
 use App\Domains\Navigation\Models\NavigationItem;
 use App\Http\Controllers\Controller;
@@ -17,6 +18,8 @@ use Illuminate\Support\Str;
 
 class RoleController extends Controller
 {
+    public function __construct(private readonly RecordAuditLogAction $auditLogAction) {}
+
     /**
      * List all platform roles with search and pagination.
      */
@@ -72,27 +75,37 @@ class RoleController extends Controller
             'scope_level' => ['nullable', 'string', 'max:32'],
             'description' => ['nullable', 'string', 'max:500'],
             'is_active' => ['nullable', 'boolean'],
+            'session_timeout' => [
+                'nullable',
+                'integer',
+                'min:'.config('session-timeout.minimum'),
+                'max:'.config('session-timeout.maximum'),
+            ],
             'permission_ids' => ['nullable', 'array'],
             'permission_ids.*' => ['integer', 'exists:permissions,id'],
             'navigation_items' => ['nullable', 'array'],
+        ], [
+            'session_timeout.integer' => __('session.timeout_range'),
+            'session_timeout.min' => __('session.timeout_range'),
+            'session_timeout.max' => __('session.timeout_range'),
         ]);
 
         $name = trim((string) $validated['name']);
-        $slug = !empty($validated['slug'])
+        $slug = ! empty($validated['slug'])
             ? Str::slug((string) $validated['slug'], '_')
             : Str::slug($name, '_');
 
         if (empty($slug)) {
-            $slug = 'role_' . time();
+            $slug = 'role_'.time();
         }
 
         $baseSlug = $slug;
         $counter = 1;
         while (Role::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '_' . $counter++;
+            $slug = $baseSlug.'_'.$counter++;
         }
 
-        $role = DB::transaction(function () use ($validated, $name, $slug) {
+        $role = DB::transaction(function () use ($validated, $name, $slug, $request) {
             $role = Role::create([
                 'name' => $name,
                 'slug' => $slug,
@@ -100,9 +113,10 @@ class RoleController extends Controller
                 'description' => $validated['description'] ?? null,
                 'is_system' => false,
                 'is_active' => $validated['is_active'] ?? true,
+                'session_timeout' => $validated['session_timeout'] ?? null,
             ]);
 
-            if (!empty($validated['permission_ids'])) {
+            if (! empty($validated['permission_ids'])) {
                 $role->permissions()->sync($validated['permission_ids']);
             }
 
@@ -111,6 +125,18 @@ class RoleController extends Controller
             }
 
             $role->load(['permissions', 'navigationItems']);
+
+            if (array_key_exists('session_timeout', $validated)) {
+                $this->auditLogAction->execute(
+                    action: 'session_timeout_changed',
+                    entity: $role,
+                    actor: $request->user(),
+                    oldValues: ['session_timeout' => null],
+                    newValues: ['session_timeout' => $role->session_timeout],
+                    request: $request
+                );
+            }
+
             return $role;
         });
 
@@ -131,17 +157,30 @@ class RoleController extends Controller
             'scope_level' => ['nullable', 'string', 'max:32'],
             'description' => ['nullable', 'string', 'max:500'],
             'is_active' => ['nullable', 'boolean'],
+            'session_timeout' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                'min:'.config('session-timeout.minimum'),
+                'max:'.config('session-timeout.maximum'),
+            ],
             'permission_ids' => ['nullable', 'array'],
             'permission_ids.*' => ['integer', 'exists:permissions,id'],
             'navigation_items' => ['nullable', 'array'],
+        ], [
+            'session_timeout.integer' => __('session.timeout_range'),
+            'session_timeout.min' => __('session.timeout_range'),
+            'session_timeout.max' => __('session.timeout_range'),
         ]);
 
-        DB::transaction(function () use ($role, $validated) {
+        $oldTimeout = $role->session_timeout;
+
+        DB::transaction(function () use ($role, $validated, $oldTimeout, $request) {
             $updateData = collect($validated)
-                ->only(['name', 'scope_level', 'description', 'is_active'])
+                ->only(['name', 'scope_level', 'description', 'is_active', 'session_timeout'])
                 ->all();
 
-            if (!empty($updateData)) {
+            if (! empty($updateData)) {
                 $role->update($updateData);
             }
 
@@ -154,6 +193,17 @@ class RoleController extends Controller
             }
 
             $role->load(['permissions', 'navigationItems']);
+
+            if (array_key_exists('session_timeout', $validated) && $oldTimeout !== $role->session_timeout) {
+                $this->auditLogAction->execute(
+                    action: 'session_timeout_changed',
+                    entity: $role,
+                    actor: $request->user(),
+                    oldValues: ['session_timeout' => $oldTimeout],
+                    newValues: ['session_timeout' => $role->session_timeout],
+                    request: $request
+                );
+            }
         });
 
         return ApiResponse::success(
@@ -243,7 +293,7 @@ class RoleController extends Controller
      */
     private function syncNavigationItems(Role $role, array $navInputs): void
     {
-        if (!method_exists($role, 'navigationItems')) {
+        if (! method_exists($role, 'navigationItems')) {
             return;
         }
 
@@ -251,13 +301,13 @@ class RoleController extends Controller
 
         // 1. Direct integer IDs
         $numericIds = array_filter($navInputs, fn ($i) => is_numeric($i));
-        if (!empty($numericIds)) {
+        if (! empty($numericIds)) {
             $navIds = $navIds->merge(NavigationItem::whereIn('id', array_map('intval', $numericIds))->pluck('id'));
         }
 
         // 2. String keys, routes, or aliases
-        $stringKeys = array_filter($navInputs, fn ($i) => !is_numeric($i) && is_string($i));
-        if (!empty($stringKeys)) {
+        $stringKeys = array_filter($navInputs, fn ($i) => ! is_numeric($i) && is_string($i));
+        if (! empty($stringKeys)) {
             $aliasMap = [
                 'overview' => '/admin/overview',
                 'dashboard' => '/admin/overview',
@@ -297,7 +347,7 @@ class RoleController extends Controller
                         $q->where('route', $targetRoute);
                     }
                     $q->orWhere('route', 'like', "%{$normalized}%")
-                      ->orWhere('required_permission', 'like', "%{$normalized}%");
+                        ->orWhere('required_permission', 'like', "%{$normalized}%");
                 })->pluck('id');
 
                 $navIds = $navIds->merge($matches);

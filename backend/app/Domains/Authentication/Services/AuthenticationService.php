@@ -46,6 +46,10 @@ class AuthenticationService
 
         if ($request->hasSession()) {
             $request->session()->regenerate();
+            $request->session()->put([
+                'session_started_at' => now()->toIso8601String(),
+                'session_last_activity_at' => now()->toIso8601String(),
+            ]);
         }
 
         // Update last login timestamp

@@ -39,6 +39,10 @@ export interface AuthUser {
   status: 'active' | 'inactive' | 'suspended' | string;
   must_change_password: boolean;
   last_login_at: string | null;
+  session_timeout: number | null;
+  effective_session_timeout: number;
+  absolute_session_lifetime?: number;
+  session_expires_at?: string | null;
   organization: UserOrganization | null;
   role: UserRole | null;
   permissions?: string[];
@@ -145,4 +149,3 @@ export interface LoginSecurityNoticeProps {
 export interface LoginPanelHeaderProps {
   className?: string;
 }
-

@@ -37,6 +37,12 @@ class CreateUserRequest extends FormRequest
             'organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
             'status' => ['nullable', 'string', 'in:active,inactive,suspended'],
             'must_change_password' => ['nullable', 'boolean'],
+            'session_timeout' => [
+                'nullable',
+                'integer',
+                'min:'.config('session-timeout.minimum'),
+                'max:'.config('session-timeout.maximum'),
+            ],
         ];
     }
 
@@ -102,6 +108,9 @@ class CreateUserRequest extends FormRequest
     {
         return [
             'username.regex' => 'The username may only contain letters, numbers, periods, dashes, and underscores.',
+            'session_timeout.integer' => __('session.timeout_range'),
+            'session_timeout.min' => __('session.timeout_range'),
+            'session_timeout.max' => __('session.timeout_range'),
         ];
     }
 }

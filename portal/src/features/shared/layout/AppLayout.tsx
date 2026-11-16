@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { Modal } from '../modals/Modal';
 import { useGetMeQuery } from '../../auth';
+import { SessionTimeoutDialog, restoreSessionDraft } from './SessionTimeoutDialog';
 import { tokenStorage } from '../../../utils/tokenStorage';
 
 export const AppLayout: React.FC = () => {
@@ -40,8 +41,16 @@ export const AppLayout: React.FC = () => {
     }
   }, [meError, signOut]);
 
-  if (!hasToken || !session) {
-    return <Navigate to="/login" replace />;
+  const sessionUser = session?.user;
+  const sessionPath = `${location.pathname}${location.search}${location.hash}`;
+
+  useEffect(() => {
+    if (!sessionUser?.id) return;
+    return restoreSessionDraft(sessionUser.id, sessionPath);
+  }, [sessionPath, sessionUser?.id]);
+
+  if (!hasToken || !sessionUser) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   return (
@@ -59,6 +68,7 @@ export const AppLayout: React.FC = () => {
         </div>
       </main>
       <Modal modal={modal} onClose={() => setModal(null)} />
+      <SessionTimeoutDialog user={sessionUser} path={sessionPath} />
     </div>
   );
 };

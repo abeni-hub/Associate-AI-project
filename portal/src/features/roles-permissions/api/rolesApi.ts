@@ -27,6 +27,7 @@ export interface RoleDetailItem {
   description?: string;
   is_system: boolean;
   is_active: boolean;
+  session_timeout: number | null;
   permissions_count?: number;
   permissions?: PermissionItem[];
   permission_ids?: number[];
@@ -141,6 +142,7 @@ export const rolesApi = baseApi.injectEndpoints({
       scope_level?: string;
       description?: string;
       is_active?: boolean;
+      session_timeout?: number | null;
       permission_ids?: number[];
       navigation_items?: string[];
     }>({
@@ -158,6 +160,7 @@ export const rolesApi = baseApi.injectEndpoints({
       scope_level?: string;
       description?: string;
       is_active?: boolean;
+      session_timeout?: number | null;
       permission_ids?: number[];
       navigation_items?: string[];
     }>({

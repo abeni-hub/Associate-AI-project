@@ -1,5 +1,5 @@
 import type { AccountItem } from '../../../types/portal.types';
-import type { AuthUser } from '../../auth/auth.types';
+import type { AuthUser } from '../../auth/types/auth.types';
 import type { PaginationQueryParams } from '../../../types/api.types';
 
 export type AccountRoleFilter =
@@ -24,6 +24,7 @@ export interface CreateUserPayload {
   phone?: string;
   role_id: number;
   organization_id: number | null;
+  session_timeout?: number | null;
   status?: 'active' | 'inactive';
 }
 
@@ -36,6 +37,7 @@ export interface UpdateUserPayload {
   phone?: string | null;
   role_id?: number;
   organization_id?: number | null;
+  session_timeout?: number | null;
   status?: 'active' | 'inactive' | 'suspended';
 }
 
@@ -86,4 +88,3 @@ export interface AccountFormModalProps {
   onSave: (payload: CreateUserPayload | UpdateUserPayload) => Promise<void>;
   isLoading: boolean;
 }
-
