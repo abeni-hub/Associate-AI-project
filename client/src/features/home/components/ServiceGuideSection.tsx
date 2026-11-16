@@ -30,10 +30,6 @@ export default function ServiceGuideSection({
   const defaultRouteHeading = serviceGuideContent?.routeHeading || 'Your room-by-room route'
   const disclaimerText = serviceGuideContent?.disclaimerText || 'Official public service delivery guide published and maintained by the Addis Ababa City Administration.'
 
-  function handlePrint() {
-    window.print()
-  }
-
   function handleLeaveFeedback(e: React.MouseEvent<HTMLAnchorElement>) {
     e.preventDefault()
     const target = document.getElementById('feedback')
@@ -64,38 +60,9 @@ export default function ServiceGuideSection({
             <p>{guideService ? t(guideService.summary) : t('Use the search above to pick an office and service.')}</p>
 
             {guideService && (
-              <div className="guide-badges-row">
-                {guideService.code && (
-                  <span className="guide-badge badge-code">
-                    <Icon name="file" size={13} />
-                    <span>#{guideService.code}</span>
-                  </span>
-                )}
-                <span className="guide-badge badge-duration">
-                  <Icon name="clock" size={13} />
-                  <span>
-                    {guideService.durationMinutes
-                      ? `${guideService.durationMinutes} min`
-                      : t('Standard processing')}
-                  </span>
-                </span>
-                <span className="guide-badge badge-fee">
-                  <span>
-                    {guideService.feeAmount
-                      ? `${guideService.feeAmount} ${guideService.feeCurrency || 'ETB'}`
-                      : t('Free')}
-                  </span>
-                </span>
-                {guideService.documents && guideService.documents.length > 0 && (
-                  <span className="guide-badge">
-                    <Icon name="check" size={13} />
-                    <span>{guideService.documents.length} {t('Required documents')}</span>
-                  </span>
-                )}
-              </div>
+              <div className="guide-badges-row" />
             )}
           </div>
-          <div className="sample-badge"><span /> {t(sampleBadgeText)}</div>
         </div>
 
         <div className="guide-content-grid scroll-reveal-group">
@@ -116,31 +83,17 @@ export default function ServiceGuideSection({
             <div className="expectations-note"><Icon name="shield" size={16} /><span>{t(expectationsNote)}</span></div>
           </div>
           <div className="route-panel">
-            <div className="panel-title">
-              <span className="panel-icon yellow-icon"><Icon name="shield" size={18} /></span>
-              <div>
-                <span className="panel-overline">{t('PUBLIC SERVICE CHARTER')}</span>
-                <h4>{t('Citizens’ Rights & Obligations')}</h4>
-              </div>
-            </div>
-
             <CitizensCharter t={t} variant="guide" />
           </div>
         </div>
 
         <div className="guide-card-bottom">
           <span><Icon name="clock" size={16} /> {t(guideService?.visitNote ?? 'Service information can change. Confirm with your bureau if you are unsure.')}</span>
-          <div className="guide-actions-bar">
-            <button type="button" className="guide-action-btn btn-print" onClick={handlePrint}>
-              <Icon name="copy" size={14} /> {t('Print or save guide')}
-            </button>
-            <a href="#feedback" className="guide-action-btn btn-feedback" onClick={handleLeaveFeedback}>
-              <Icon name="arrow" size={14} /> {t('Leave feedback for this service')}
-            </a>
-          </div>
+          <a href="#feedback" className="guide-action-btn btn-feedback" onClick={handleLeaveFeedback}>
+            <Icon name="arrow" size={14} /> {t('Leave feedback for this service')}
+          </a>
         </div>
       </article>
-      <p className="sample-disclaimer scroll-reveal">{t(disclaimerText)}</p>
     </section>
   )
 }

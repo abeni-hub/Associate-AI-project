@@ -21,7 +21,6 @@ const NAV_ITEM_PERMISSION_MAP: Record<string, string> = {
   news: 'news.view',
   services: 'services.view',
   documents: 'documents.view',
-  routes: 'service_steps.view',
   qr: 'qr_codes.view',
   office: 'services.view',
   feedback: 'feedback.view_own',

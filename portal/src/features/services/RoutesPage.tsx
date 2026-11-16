@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { usePortal, usePermissions, Icon, PageHeading, SearchBox, StatusPill, useLanguage, getLocalizedText } from '../shared';
+import { usePortal, usePermissions, Icon, PageHeading, SearchBox, StatusPill, useLanguage, getLocalizedText, PageLoadingState } from '../shared';
 import type { RouteItem, RouteStep } from '../../types/portal.types';
 import {
   useGetServicesQuery,
@@ -204,24 +204,12 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({
       </div>
       <div className="route-grid">
         {isLoading && !apiServices ? (
-          <div
-            style={{
-              gridColumn: '1 / -1',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '48px 24px',
-              gap: '12px',
-            }}
-          >
-            <div className="loading-spinner" />
-            <p style={{ margin: 0, color: '#00485a', fontWeight: 600, fontSize: '14px' }}>
-              Loading service routes...
-            </p>
-            <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>
-              Connecting to room navigation catalog
-            </p>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <PageLoadingState
+              title="Loading service routes..."
+              subtitle="Connecting to the room navigation catalog."
+              compact
+            />
           </div>
         ) : (
           filtered.map((item) => (

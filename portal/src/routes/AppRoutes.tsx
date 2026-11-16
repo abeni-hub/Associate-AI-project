@@ -24,7 +24,6 @@ const NewsPage = lazy(() => import('../features/news-events/NewsPage'));
 const NewsDetailPage = lazy(() => import('../features/news-events/NewsDetailPage'));
 const ServicesPage = lazy(() => import('../features/services/ServicesPage'));
 const DocumentsPage = lazy(() => import('../features/documents/DocumentsPage'));
-const RoutesPage = lazy(() => import('../features/services/RoutesPage'));
 const QRPage = lazy(() => import('../features/qr-codes/QRPage'));
 const FeedbackPage = lazy(() => import('../features/feedback/FeedbackPage'));
 
@@ -238,18 +237,6 @@ export const AppRoutes: React.FC = () => {
           />
 
           {/* Operations & Physical Touchpoints */}
-          <Route
-            path="routes"
-            element={
-              <RoleGuard
-                allowedRoles={['super', 'subcity', 'bureau']}
-                requiredPermission="service_steps.view"
-                pageKey="routes"
-              >
-                <RoutesPage />
-              </RoleGuard>
-            }
-          />
           <Route
             path="qr"
             element={

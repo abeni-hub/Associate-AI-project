@@ -1,5 +1,5 @@
 import React from 'react';
-import { PageHeading, useLanguage } from '../shared';
+import { PageHeading, PageLoadingState, useLanguage } from '../shared';
 import {
   useQrCodes,
   QRMetricsGrid,
@@ -32,6 +32,26 @@ export const QRPage: React.FC<QRPageProps> = ({
     handleOfficeFilterChange,
     handleStatusFilterChange,
   } = useQrCodes(propOnGenerate, propOnCopy);
+
+  if (isLoading && items.length === 0) {
+    return (
+      <>
+        <PageHeading
+          eyebrow="CITIZEN ACCESS"
+          title="Feedback QR codes"
+          subtitle="Help citizens open the right feedback form from a physical poster or service desk."
+          action={canManageQrCodes ? 'Generate QR code' : undefined}
+          onAction={handleGenerate}
+          secondary="Export list"
+          onSecondary={() => window.alert('QR poster access directory exported.')}
+        />
+        <PageLoadingState
+          title="Loading QR posters..."
+          subtitle="Preparing the poster directory, metrics, and destination links."
+        />
+      </>
+    );
+  }
 
   return (
     <>

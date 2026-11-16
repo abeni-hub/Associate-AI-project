@@ -59,6 +59,7 @@ export interface AccountsPageProps {
 export interface AccountsToolbarProps {
   search: string;
   roleFilter: string;
+  roleOptions?: string[];
   onSearchChange: (val: string) => void;
   onRoleFilterChange: (val: string) => void;
 }

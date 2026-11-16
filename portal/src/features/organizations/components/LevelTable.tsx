@@ -50,7 +50,6 @@ export const LevelTable: React.FC<LevelTableProps> = ({
       <div className="table-toolbar">
         <div>
           <h2>Hierarchy tier levels</h2>
-          <p>Offices choose from these tiers during registration to establish parent/child relationships.</p>
         </div>
         <div className="toolbar-tools">
           <SearchBox value={search} onChange={onSearchChange} placeholder="Search levels by name or slug..." />

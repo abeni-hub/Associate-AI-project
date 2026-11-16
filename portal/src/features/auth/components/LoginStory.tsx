@@ -77,12 +77,6 @@ export const LoginStory: React.FC<LoginStoryProps> = ({ className = '' }) => {
           </div>
         </div>
 
-        <div className={styles.storyFooter}>
-          <span>
-            <Icon name="shield" size={15} /> Role-based access for public service teams
-          </span>
-          <span>ADDIS ABABA · ETHIOPIA</span>
-        </div>
       </div>
     </section>
   );

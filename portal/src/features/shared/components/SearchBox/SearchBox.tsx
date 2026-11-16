@@ -12,13 +12,13 @@ export const SearchBox: React.FC<SearchBoxProps> = ({
   ariaLabel,
 }) => {
   return (
-    <label className={`${styles.root} ${disabled ? styles.disabled : ''} ${className}`.trim()}>
+    <label className={`${styles.root} search-box ${disabled ? styles.disabled : ''} ${className}`.trim()}>
       <span className={styles.icon}>
         <Icon name="search" size={17} />
       </span>
       <input
         type="search"
-        className={styles.input}
+        className={`${styles.input} search-box-input`}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -28,7 +28,7 @@ export const SearchBox: React.FC<SearchBoxProps> = ({
       {value && !disabled && (
         <button
           type="button"
-          className={styles.clearButton}
+          className={`${styles.clearButton} search-box-clear`}
           onClick={() => onChange('')}
           aria-label="Clear search query"
         >

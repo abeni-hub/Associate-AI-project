@@ -79,7 +79,6 @@ export const CitizensCharter: React.FC<CitizensCharterProps> = ({
             <Icon name="check" size={12} />
             <span>{t('Citizens’ Rights')}</span>
           </span>
-          <small>{t('Guaranteed entitlements during your public service visit')}</small>
         </div>
         <ul className="charter-list">
           {CITIZENS_RIGHTS.map((item, idx) => (
@@ -98,7 +97,6 @@ export const CitizensCharter: React.FC<CitizensCharterProps> = ({
             <Icon name="shield" size={12} />
             <span>{t('Citizens’ Obligations')}</span>
           </span>
-          <small>{t('Civic duties to ensure orderly and transparent service')}</small>
         </div>
         <ul className="charter-list">
           {CITIZENS_OBLIGATIONS.map((item, idx) => (

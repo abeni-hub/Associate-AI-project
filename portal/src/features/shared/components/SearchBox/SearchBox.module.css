@@ -1,31 +1,35 @@
 .root {
   min-width: 220px;
-  height: 39px;
+  height: 40px;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--white);
-  color: var(--muted);
-  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid #dfe8e3;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #6d7d78;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .root:focus-within {
-  border-color: var(--color-primary-400);
-  box-shadow: 0 0 0 3px rgba(118, 166, 165, 0.15);
+  border-color: #8aaea6;
+  box-shadow: 0 0 0 4px rgba(118, 166, 165, 0.14);
 }
 
 .disabled {
-  background: var(--color-paper-alt);
+  background: #f3f6f4;
   cursor: not-allowed;
   opacity: 0.7;
 }
 
 .icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  color: var(--muted);
+  color: #7d8d88;
 }
 
 .input {
@@ -35,8 +39,10 @@
   border: 0;
   outline: 0;
   background: transparent;
-  color: var(--ink-deep);
-  font-size: var(--font-size-sm);
+  color: #1f464f;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .input:focus,
@@ -46,7 +52,7 @@
 }
 
 .input::placeholder {
-  color: var(--muted);
+  color: #98a8a3;
 }
 
 .clearButton {
@@ -55,13 +61,14 @@
   padding: 2px;
   border: 0;
   background: transparent;
-  color: var(--muted);
+  color: #7f8d88;
   cursor: pointer;
-  border-radius: var(--radius-xs);
-  transition: color var(--duration-fast);
+  border-radius: 8px;
+  transition: color 0.18s ease, background 0.18s ease;
 }
 
 .clearButton:hover {
-  color: var(--ink);
+  color: #1f464f;
+  background: rgba(17, 77, 88, 0.04);
 }
 

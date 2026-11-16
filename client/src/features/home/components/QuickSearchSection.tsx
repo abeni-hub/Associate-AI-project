@@ -174,44 +174,8 @@ export default function QuickSearchSection({
           </button>
         </form>
 
-        {/* Streamlined Live Match Bar & Fast Service Chips */}
-        {activeServiceList && activeServiceList.length > 0 ? (
-          <div className="quick-search-match-bar">
-            <div className="match-bar-info">
-              <span className="match-count-pill">
-                <Icon name="check" size={13} />
-                <b>{activeServiceList.length}</b> {t(activeServiceList.length === 1 ? 'service available' : 'services available')}
-              </span>
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={handleResetFilters}
-                  className="filter-reset-link"
-                >
-                  <Icon name="close" size={12} /> {t('Clear filters')}
-                </button>
-              )}
-            </div>
-
-            {/* Quick Select Chips */}
-            <div className="quick-service-chips-row" role="tablist" aria-label={t('Matching services')}>
-              <span className="chips-label">{hasActiveFilters ? t('Matching:') : t('Quick Picks:')}</span>
-              <div className="chips-scroll-wrap">
-                {activeServiceList.slice(0, 7).map((srv) => (
-                  <button
-                    key={srv.id}
-                    type="button"
-                    className={`service-chip-btn ${srv.id === serviceId ? 'is-selected' : ''}`}
-                    onClick={() => handleSelectCard(srv.id)}
-                    title={srv.parentName ? `${srv.parentName} › ${srv.label}` : srv.label}
-                  >
-                    {srv.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : (
+        {/* Matching summary removed by design */}
+        {activeServiceList && activeServiceList.length === 0 && (
           <div className="quick-search-empty-state">
             <Icon name="search" size={20} />
             <div className="empty-state-copy">
