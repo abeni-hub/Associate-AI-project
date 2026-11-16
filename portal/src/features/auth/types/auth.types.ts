@@ -166,6 +166,7 @@ export interface LoginFormProps {
   onTwoFactorCodeChange?: (value: string) => void;
   onRecoveryCodeChange?: (value: string) => void;
   lockoutSeconds?: number;
+  remainingAttempts?: number | null;
   labels?: Record<string, string>;
 }
 

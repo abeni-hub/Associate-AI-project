@@ -28,6 +28,7 @@ export const LoginPage: React.FC = () => {
     showPassword,
     error,
     lockoutSeconds,
+    remainingAttempts,
     isLoading,
     handleUsernameChange,
     handlePasswordChange,
@@ -85,6 +86,7 @@ export const LoginPage: React.FC = () => {
             onRecoveryCodeChange={handleRecoveryCodeChange}
             onToggleRecoveryCode={handleToggleRecoveryCode}
             lockoutSeconds={lockoutSeconds}
+            remainingAttempts={remainingAttempts}
             labels={{
               verificationCode: t('twoFactor.verificationCode'),
               recoveryCode: t('twoFactor.recoveryCode'),
@@ -96,6 +98,8 @@ export const LoginPage: React.FC = () => {
               lockedMessage: t('twoFactor.lockedMessage', 'Too many unsuccessful sign-in attempts. For your security, access is temporarily locked.'),
               tryAgainIn: t('twoFactor.tryAgainIn', 'Try again in'),
               lockedButton: t('twoFactor.lockedButton', 'Locked'),
+              attemptsRemaining: t('twoFactor.attemptsRemaining', '{count} attempts remaining'),
+              oneAttemptRemaining: t('twoFactor.oneAttemptRemaining', '1 attempt remaining before temporary lockout!'),
             }}
           />
 

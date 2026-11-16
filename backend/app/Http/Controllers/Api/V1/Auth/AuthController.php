@@ -90,7 +90,8 @@ class AuthController extends Controller
         $lockoutSeconds = (int) config('login-security.lockout_minutes', 5) * 60;
         RateLimiter::hit($limiterKey, $lockoutSeconds);
         $attempts = RateLimiter::attempts($limiterKey);
-        $locked = $attempts >= (int) config('login-security.max_attempts', 5);
+        $maxAttempts = (int) config('login-security.max_attempts', 5);
+        $locked = $attempts >= $maxAttempts;
 
         AuditLog::create([
             'action' => 'login_failed',
@@ -106,11 +107,17 @@ class AuthController extends Controller
         ]);
 
         if (! $locked) {
-            return ApiResponse::error(
-                message: __('login_security.invalid_credentials'),
-                statusCode: 422,
-                errors: ['login' => [__('login_security.invalid_credentials')]]
-            );
+            $remaining = max(0, $maxAttempts - $attempts);
+
+            return response()->json([
+                'success' => false,
+                'message' => __('login_security.invalid_credentials'),
+                'data' => [
+                    'remaining_attempts' => $remaining,
+                    'max_attempts' => $maxAttempts,
+                ],
+                'errors' => ['login' => [__('login_security.invalid_credentials')]],
+            ], 422);
         }
 
         $lockedUntil = now()->addSeconds($lockoutSeconds);

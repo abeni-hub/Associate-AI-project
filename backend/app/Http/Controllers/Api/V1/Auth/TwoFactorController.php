@@ -218,7 +218,19 @@ class TwoFactorController extends Controller
                 ], 429, ['Retry-After' => $seconds]);
             }
 
-            return ApiResponse::error(__('two_factor.invalid_code'), statusCode: 422);
+            $maxAttempts = (int) config('two-factor.challenge_attempts', 5);
+            $attempts = RateLimiter::attempts($attemptKey);
+            $remaining = max(0, $maxAttempts - $attempts);
+
+            return response()->json([
+                'success' => false,
+                'message' => __('two_factor.invalid_code'),
+                'data' => [
+                    'remaining_attempts' => $remaining,
+                    'max_attempts' => $maxAttempts,
+                ],
+                'errors' => ['code' => [__('two_factor.invalid_code')]],
+            ], 422);
         }
 
         Cache::forget($cacheKey);

@@ -33,6 +33,8 @@
     "lockedMessage": "Yaalii seensaa hin milkoofne hedduu. Nageenya keessaniif yeroof cufameera.",
     "tryAgainIn": "Irra deebi'ii yaali",
     "lockedButton": "Cufameera",
+    "attemptsRemaining": "Yaaliin {count} hafeera",
+    "oneAttemptRemaining": "Osoo yeroof hin cufamin yaalii 1 qofatu hafe!",
     "enabled": "Mirkaneessi sadarkaa lammaffaa banameera.",
     "disabled": "Mirkaneessi sadarkaa lammaffaa cufameera."
   },

@@ -22,6 +22,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   onTwoFactorCodeChange,
   onRecoveryCodeChange,
   lockoutSeconds = 0,
+  remainingAttempts = null,
   labels = {},
 }) => {
   const isLocked = lockoutSeconds > 0;
@@ -134,7 +135,26 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               </div>
             </div>
           ) : (
-            error
+            <div className={styles.errorContent}>
+              <span className={styles.errorMessage}>{error}</span>
+              {remainingAttempts !== null && remainingAttempts !== undefined && (
+                <div
+                  className={`${styles.attemptsBadge} ${
+                    remainingAttempts <= 1 ? styles.attemptsDanger : styles.attemptsWarning
+                  }`}
+                >
+                  <Icon name="alertTriangle" size={14} />
+                  <span>
+                    {remainingAttempts === 1
+                      ? labels.oneAttemptRemaining || '1 attempt remaining before temporary lockout!'
+                      : (labels.attemptsRemaining || '{count} attempts remaining').replace(
+                          '{count}',
+                          String(remainingAttempts)
+                        )}
+                  </span>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

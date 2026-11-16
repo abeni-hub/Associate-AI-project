@@ -6,6 +6,46 @@ import type { ValidationErrorMap } from '../../../types/api.types';
 import { tokenStorage } from '../../../utils/tokenStorage';
 import type { LoginResponseData } from '../types/auth.types';
 
+const LOCKOUT_KEY = 'civiclink_lockout_until';
+const LOCKOUT_MSG_KEY = 'civiclink_lockout_msg';
+
+function getStoredLockoutRemaining(): number {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const stored = window.localStorage.getItem(LOCKOUT_KEY);
+    if (stored) {
+      const remaining = Math.ceil((Number(stored) - Date.now()) / 1000);
+      if (remaining > 0) return remaining;
+      window.localStorage.removeItem(LOCKOUT_KEY);
+      window.localStorage.removeItem(LOCKOUT_MSG_KEY);
+    }
+  } catch {
+    // Storage unavailable
+  }
+  return 0;
+}
+
+function setStoredLockout(seconds: number, message: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const until = Date.now() + seconds * 1000;
+    window.localStorage.setItem(LOCKOUT_KEY, String(until));
+    window.localStorage.setItem(LOCKOUT_MSG_KEY, message);
+  } catch {
+    // Storage unavailable
+  }
+}
+
+function clearStoredLockout(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(LOCKOUT_KEY);
+    window.localStorage.removeItem(LOCKOUT_MSG_KEY);
+  } catch {
+    // Storage unavailable
+  }
+}
+
 export function useAuth() {
   const portal = usePortal();
   const navigate = useNavigate();
@@ -20,21 +60,38 @@ export function useAuth() {
   const [recoveryCode, setRecoveryCode] = useState('');
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+  const [lockoutSeconds, setLockoutSeconds] = useState<number>(() => getStoredLockoutRemaining());
+  const [error, setError] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    try {
+      const remaining = getStoredLockoutRemaining();
+      if (remaining > 0) {
+        return (
+          window.localStorage.getItem(LOCKOUT_MSG_KEY) ||
+          'Too many sign-in attempts. Access is temporarily locked.'
+        );
+      }
+    } catch {
+      // Storage unavailable
+    }
+    return '';
+  });
+  const [remainingAttempts, setRemainingAttempts] = useState<number | null>(null);
   const busy = isLoading || isChallengeLoading;
 
   useEffect(() => {
     if (lockoutSeconds <= 0) return;
 
     const timer = setInterval(() => {
-      setLockoutSeconds((prev) => {
-        if (prev <= 1) {
-          setError('');
-          return 0;
-        }
-        return prev - 1;
-      });
+      const remaining = getStoredLockoutRemaining();
+      if (remaining <= 0) {
+        clearStoredLockout();
+        setLockoutSeconds(0);
+        setError('');
+        clearInterval(timer);
+      } else {
+        setLockoutSeconds(remaining);
+      }
     }, 1000);
 
     return () => clearInterval(timer);
@@ -90,6 +147,9 @@ export function useAuth() {
           }
 
           const user = response.data as LoginResponseData;
+          clearStoredLockout();
+          setLockoutSeconds(0);
+          setRemainingAttempts(null);
           tokenStorage.clearSessionDraftsForOtherUsers(response.data.id);
           portal.signInLive(user, user.token);
           tokenStorage.clearSessionExpired();
@@ -110,7 +170,7 @@ export function useAuth() {
           data?: {
             errors?: ValidationErrorMap | { exception?: string };
             message?: string;
-            data?: { retry_after?: number };
+            data?: { retry_after?: number; remaining_attempts?: number; max_attempts?: number };
           };
         };
         const status = errObj?.status;
@@ -125,9 +185,18 @@ export function useAuth() {
 
         if (status === 429 || retrySeconds > 0 || apiMessage?.toLowerCase().includes('too many') || apiMessage?.toLowerCase().includes('sign-in attempts')) {
           const seconds = retrySeconds > 0 ? retrySeconds : 60;
+          const msg = apiMessage || 'Too many sign-in attempts. Access is temporarily locked.';
+          setStoredLockout(seconds, msg);
           setLockoutSeconds(seconds);
-          setError(apiMessage || 'Too many sign-in attempts. Access is temporarily locked.');
+          setRemainingAttempts(0);
+          setError(msg);
           return;
+        }
+
+        if (apiData && typeof apiData === 'object' && 'remaining_attempts' in apiData) {
+          setRemainingAttempts(Number(apiData.remaining_attempts));
+        } else {
+          setRemainingAttempts(null);
         }
 
         if (apiErrors && typeof apiErrors === 'object' && !('exception' in apiErrors)) {
@@ -161,6 +230,7 @@ export function useAuth() {
     showPassword,
     error,
     lockoutSeconds,
+    remainingAttempts,
     handleUsernameChange,
     handlePasswordChange,
     handleToggleShowPassword,

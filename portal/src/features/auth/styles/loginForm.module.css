@@ -172,6 +172,40 @@
   animation: fadeIn var(--duration-fast) var(--ease-standard);
 }
 
+.errorContent {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.errorMessage {
+  display: block;
+}
+
+.attemptsBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  width: fit-content;
+  letter-spacing: 0.01em;
+}
+
+.attemptsWarning {
+  background: rgba(189, 129, 88, 0.16);
+  color: #85471d;
+  border: 1px solid rgba(189, 129, 88, 0.35);
+}
+
+.attemptsDanger {
+  background: #fde8e6;
+  color: #a31d14;
+  border: 1px solid #f2aba5;
+}
+
 .lockoutBanner {
   background: #fdf3f2;
   border-left: 3px solid #b83a30;

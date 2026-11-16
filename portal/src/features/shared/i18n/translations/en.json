@@ -91,6 +91,8 @@
     "lockedMessage": "Too many unsuccessful sign-in attempts. For your security, access is temporarily locked.",
     "tryAgainIn": "Try again in",
     "lockedButton": "Locked",
+    "attemptsRemaining": "{count} attempts remaining",
+    "oneAttemptRemaining": "1 attempt remaining before temporary lockout!",
     "enabled": "Two-factor authentication is enabled.",
     "disabled": "Two-factor authentication is disabled.",
     "required": "Your role requires two-factor authentication. Set it up before using the portal.",
