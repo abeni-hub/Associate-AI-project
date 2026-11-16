@@ -84,21 +84,23 @@ export function useAuth() {
           setError(response.message || 'Login failed. Please verify your credentials.');
         }
       } catch (err: unknown) {
-        const errObj = err as { data?: { errors?: ValidationErrorMap; message?: string } };
-        const apiErrors = errObj?.data?.errors;
-        if (apiErrors && typeof apiErrors === 'object') {
+        const errObj = err as { data?: { errors?: ValidationErrorMap | { exception?: string }; message?: string } };
+        const apiErrors = errObj?.data?.errors as Record<string, unknown> | undefined;
+        const apiMessage = errObj?.data?.message;
+
+        if (apiErrors && typeof apiErrors === 'object' && !('exception' in apiErrors)) {
           const firstField = Object.keys(apiErrors)[0];
           const firstMsg = Array.isArray(apiErrors[firstField])
-            ? apiErrors[firstField][0]
-            : apiErrors[firstField];
+            ? (apiErrors[firstField] as string[])[0]
+            : (apiErrors[firstField] as string);
           setError(
             firstMsg ||
-              errObj?.data?.message ||
+              apiMessage ||
               'Invalid credentials. Please verify your username and password.'
           );
         } else {
           setError(
-            errObj?.data?.message || 'Authentication failed. Please verify your credentials.'
+            apiMessage || 'Authentication failed. Please verify your credentials.'
           );
         }
       }

@@ -16,6 +16,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -105,6 +106,15 @@ return Application::configure(basePath: dirname(__DIR__))
                         ? __('two_factor.rate_limited')
                         : 'Too many login attempts. Please try again later.',
                     statusCode: 429,
+                );
+            }
+        });
+
+        $exceptions->render(function (TokenMismatchException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return ApiResponse::error(
+                    message: 'Your session or CSRF token has expired. Please refresh the page and try again.',
+                    statusCode: 419,
                 );
             }
         });
