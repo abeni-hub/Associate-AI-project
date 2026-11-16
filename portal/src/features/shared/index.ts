@@ -9,6 +9,7 @@ export * from './components/Brand';
 export * from './components/SearchSelect';
 export * from './components/PermissionGate';
 export * from './components/QRPattern';
+export * from './components/PageLoadingState';
 
 export * from './layout/AppLayout';
 export * from './layout/Sidebar';

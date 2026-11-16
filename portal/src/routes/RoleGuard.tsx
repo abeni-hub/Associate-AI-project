@@ -5,6 +5,7 @@ import { useLanguage } from '../features/shared/i18n';
 import { tokenStorage } from '../utils/tokenStorage';
 import type { RoleKey } from '../types/portal.types';
 import styles from './roleGuard.module.css';
+import { PageLoadingState } from '../features/shared';
 
 export interface RoleGuardProps {
   allowedRoles?: RoleKey[];
@@ -26,7 +27,6 @@ export const PAGE_ALIASES: Record<string, string[]> = {
   news: ['news', 'events'],
   services: ['services'],
   documents: ['documents'],
-  routes: ['routes', 'service_steps'],
   qr: ['qr', 'qr_codes'],
   office: ['office', 'bureaus', 'offices', 'services'],
   feedback: ['feedback'],
@@ -129,9 +129,11 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
 
   if (!isSuperAdmin && hasToken && isNavLoading && !apiNavResponse) {
     return (
-      <div className={styles.verifyingState}>
-        <span>Verifying page access…</span>
-      </div>
+      <PageLoadingState
+        compact
+        title="Verifying page access..."
+        subtitle="Checking your permissions and navigation access."
+      />
     );
   }
 

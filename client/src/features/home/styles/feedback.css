@@ -129,7 +129,8 @@
   gap: 8px;
   background: rgba(0, 72, 90, 0.08);
   padding: 4px;
-  border-radius: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(8, 55, 69, 0.08);
 }
 
 .feedback-tab-btn {
@@ -139,25 +140,36 @@
   justify-content: center;
   gap: 8px;
   padding: 10px 14px;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
-  border-radius: 6px;
+  border-radius: 7px;
   font-size: 13px;
   font-weight: 700;
-  color: var(--ink-soft);
+  color: #ffffff;
   cursor: pointer;
   transition: all 0.2s ease;
+  opacity: 0.9;
 }
 
 .feedback-tab-btn:hover {
-  color: var(--ink);
-  background: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.feedback-tab-btn:not(.is-active) {
+  background: transparent;
+  box-shadow: none;
+  border-color: transparent;
+  opacity: 1;
 }
 
 .feedback-tab-btn.is-active {
   background: #fff;
   color: var(--ink);
   box-shadow: 0 4px 12px rgba(0, 55, 68, 0.09);
+  border-color: rgba(8, 55, 69, 0.08);
+  opacity: 1;
 }
 
 /* Feedback Form Card */

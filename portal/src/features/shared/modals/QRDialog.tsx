@@ -6,6 +6,7 @@ import { QRPattern } from '../components/QRPattern';
 import type { QRModalConfig } from '../../../types/portal.types';
 import { useCreateQrCodeMutation } from '../../qr-codes/api/qrCodesApi';
 import { useGetOrganizationsQuery, type OrganizationItem } from '../../organizations/api/organizationsApi';
+import { useGetServicesQuery } from '../../services/api/servicesApi';
 import { getClientBaseUrl } from '../../../app/baseApi';
 
 export interface QRDialogProps {
@@ -37,11 +38,35 @@ export const QRDialog: React.FC<QRDialogProps> = ({
   const [selectedOrgId, setSelectedOrgId] = useState<number | null>(userOrg?.id || null);
   const effectiveOrgId = selectedOrgId || organizations[0]?.id || 1;
 
+  const { data: servicesData } = useGetServicesQuery(
+    { per_page: 100, organization_id: effectiveOrgId },
+    { skip: !effectiveOrgId }
+  );
+
   const activeOrg = useMemo(() => {
     return organizations.find((o) => o.id === effectiveOrgId) || userOrg || null;
   }, [organizations, effectiveOrgId, userOrg]);
 
-  const buildDefaultTargetUrl = (org?: OrganizationItem | null) => {
+  const serviceOptions = useMemo(() => {
+    const raw = Array.isArray(servicesData?.data) ? servicesData.data : [];
+    return raw.flatMap((service: any) => {
+      if (service.subservices && Array.isArray(service.subservices) && service.subservices.length > 0) {
+        return service.subservices.map((sub: any) => ({
+          id: String(sub.code || sub.id),
+          label: sub.name || sub.code || 'Service',
+        }));
+      }
+
+      return [{
+        id: String(service.code || service.id),
+        label: service.name || service.code || 'Service',
+      }];
+    });
+  }, [servicesData]);
+
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+
+  const buildDefaultTargetUrl = (org?: OrganizationItem | null, serviceId?: string | null) => {
     const clientBase = getClientBaseUrl();
     if (!org) return `${clientBase}/#feedback?type=complaint`;
     const params = new URLSearchParams({
@@ -53,6 +78,9 @@ export const QRDialog: React.FC<QRDialogProps> = ({
     if (subCityName) {
       params.set('sub_city', subCityName);
     }
+    if (serviceId) {
+      params.set('service', serviceId);
+    }
     return `${clientBase}/#feedback?${params.toString()}`;
   };
 
@@ -62,8 +90,38 @@ export const QRDialog: React.FC<QRDialogProps> = ({
       `QR-${(activeOrg?.code || userOrg?.code || 'OFFICE').toUpperCase().replace(/[^A-Z0-9]/g, '')}-${Date.now().toString().slice(-4)}`
   );
   const [targetUrl, setTargetUrl] = useState(
-    existingQr?.target_url || buildDefaultTargetUrl(activeOrg as any)
+    existingQr?.target_url || buildDefaultTargetUrl(activeOrg as any, selectedServiceId)
   );
+
+  const activeService = useMemo(() => {
+    if (!serviceOptions.length) return null;
+    return serviceOptions.find((service) => service.id === selectedServiceId) || serviceOptions[0];
+  }, [selectedServiceId, serviceOptions]);
+
+  const handleServiceChange = (newServiceId: string) => {
+    setSelectedServiceId(newServiceId);
+    if (activeOrg) {
+      setTargetUrl(buildDefaultTargetUrl(activeOrg, newServiceId));
+    }
+  };
+
+  React.useEffect(() => {
+    if (existingQr || !activeOrg) return;
+    if (!serviceOptions.length) {
+      setSelectedServiceId(null);
+      setTargetUrl(buildDefaultTargetUrl(activeOrg, null));
+      return;
+    }
+
+    const nextServiceId = serviceOptions.some((service) => service.id === selectedServiceId)
+      ? selectedServiceId
+      : serviceOptions[0].id;
+
+    if (selectedServiceId !== nextServiceId) {
+      setSelectedServiceId(nextServiceId);
+    }
+    setTargetUrl(buildDefaultTargetUrl(activeOrg, nextServiceId));
+  }, [activeOrg, existingQr, selectedServiceId, serviceOptions]);
   const [status, setStatus] = useState<'active' | 'inactive'>(
     (existingQr?.status as 'active' | 'inactive') || 'active'
   );
@@ -75,7 +133,8 @@ export const QRDialog: React.FC<QRDialogProps> = ({
     if (org) {
       const cleanPrefix = (org.code || 'OFFICE').toUpperCase().replace(/[^A-Z0-9]/g, '');
       setCode(`QR-${cleanPrefix}-${Date.now().toString().slice(-4)}`);
-      setTargetUrl(buildDefaultTargetUrl(org));
+      setSelectedServiceId(null);
+      setTargetUrl(buildDefaultTargetUrl(org, null));
     }
   };
 
@@ -284,6 +343,25 @@ export const QRDialog: React.FC<QRDialogProps> = ({
             required
           />
         </label>
+
+        {serviceOptions.length > 0 && (
+          <label className="modal-field full">
+            <span>
+              Service linked to this QR poster <i>*</i>
+            </span>
+            <select
+              value={activeService?.id ?? ''}
+              onChange={(e) => handleServiceChange(e.target.value)}
+              required
+            >
+              {serviceOptions.map((service) => (
+                <option key={service.id} value={service.id}>
+                  {service.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <label className="modal-field">
           <span>

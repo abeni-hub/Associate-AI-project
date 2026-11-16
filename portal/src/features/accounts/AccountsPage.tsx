@@ -2,18 +2,17 @@ import React, { useMemo, useState } from 'react';
 import {
   Users,
   Building2,
-  Search,
-  Plus,
   Pencil,
   Trash2,
   Mail,
   Phone,
-  Download,
 } from 'lucide-react';
 import { usePermissions } from '../shared/hooks/usePermissions';
 import { useLanguage, getLocalizedText } from '../shared/i18n';
 import { AccountModal } from './components/AccountFormModal';
 import { AccountsMetricsGrid } from './components/AccountsMetricsGrid';
+import { AccountsToolbar } from './components/AccountsToolbar';
+import { PageHeading, PageLoadingState, StatusPill } from '../shared';
 import type { AccountItem } from '../../types/portal.types';
 import {
   useGetUsersQuery,
@@ -152,40 +151,17 @@ export const AccountsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Heading */}
-      <div className="page-heading !mb-8 sm:!mb-9">
-        <div>
-          <div className="eyebrow">
-            <span />
-            {t('accounts.eyebrow')}
-          </div>
-          <h1>{t('accounts.title')}</h1>
-          <p>{t('accounts.subtitle')}</p>
-        </div>
-
-        <div className="heading-actions">
-          <button
-            type="button"
-            onClick={handleExportAccounts}
-            className="button secondary"
-            title="Export staff directory to CSV"
-          >
-            <Download size={15} />
-            <span>{t('common.export', 'Export list')}</span>
-          </button>
-
-          {canCreate && (
-            <button
-              type="button"
-              onClick={handleOpenAdd}
-              className="primary-button"
-            >
-              <Plus size={16} />
-              <span>{t('accounts.addAccount')}</span>
-            </button>
-          )}
-        </div>
-      </div>
+      <PageHeading
+        eyebrow={t('accounts.eyebrow', 'Staff directory')}
+        title={t('accounts.title', 'Accounts & staff')}
+        subtitle={t('accounts.subtitle', 'Manage administrator access, office assignments, and account activity across the platform.')}
+        secondary={t('common.export', 'Export list')}
+        onSecondary={handleExportAccounts}
+        action={canCreate ? t('accounts.addAccount', 'Add account') : undefined}
+        onAction={canCreate ? handleOpenAdd : undefined}
+        actionIcon="plus"
+        secondaryIcon="download"
+      />
 
       {/* KPI Stats Grid */}
       <AccountsMetricsGrid
@@ -196,65 +172,30 @@ export const AccountsPage: React.FC = () => {
       />
 
       {/* Main Catalog Card */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
-        {/* Card Toolbar */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-slate-900">
-                {t('accounts.directoryTitle', 'Staff Directory')}
-              </span>
-              <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">
-                {filtered.length} {t('common.users', 'users')}
-              </span>
-            </div>
-
-            {/* Role Filter Dropdown */}
-            {rolesList.length > 0 && (
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-400 font-medium">{t('accounts.filterRole', 'Filter role:')}</span>
-                <select
-                  value={roleFilter}
-                  onChange={(e) => setRoleFilter(e.target.value)}
-                  className="px-2.5 py-1 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:border-[#064552]"
-                >
-                  <option value="All">{t('accounts.allRolesOption', 'All assigned roles')}</option>
-                  {rolesList.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+      <div className="panel table-panel accounts-panel">
+        <div className="table-toolbar">
+          <div>
+            <h2>{t('accounts.directoryTitle', 'Staff Directory')}</h2>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
-            <div className="relative flex-1 max-w-md">
-              <Search
-                size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-              />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t('accounts.searchPlaceholder', 'Search staff by name, username, email, office...')}
-                className="w-full pl-9 pr-4 py-2 text-sm bg-slate-50/80 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#064552] transition-all"
-              />
-            </div>
+          <div className="toolbar-tools">
+            <AccountsToolbar
+              search={search}
+              roleFilter={roleFilter}
+              roleOptions={rolesList}
+              onSearchChange={setSearch}
+              onRoleFilterChange={setRoleFilter}
+            />
 
-            <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200/70 text-xs font-semibold self-end sm:self-auto">
+            <div className="segmented-control" role="tablist" aria-label="Filter by account status">
               {(['All', 'Active', 'Inactive'] as const).map((st) => (
                 <button
                   key={st}
                   type="button"
+                  role="tab"
+                  aria-selected={statusFilter === st}
                   onClick={() => setStatusFilter(st)}
-                  className={`px-3 py-1.5 rounded-lg capitalize transition-all ${
-                    statusFilter === st
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                  className={`segmented-button ${statusFilter === st ? 'active' : ''}`}
                 >
                   {st === 'All' ? t('accounts.allAccounts', 'All accounts') : st === 'Active' ? t('common.active', 'Active') : t('common.inactive', 'Inactive')}
                 </button>
@@ -266,9 +207,11 @@ export const AccountsPage: React.FC = () => {
         {/* Content List */}
         <div className="p-4 sm:p-5">
           {isLoading ? (
-            <div className="py-16 text-center text-slate-400 text-sm">
-              {t('common.loading', 'Loading staff accounts...')}
-            </div>
+            <PageLoadingState
+              title={t('common.loading', 'Loading staff accounts...')}
+              subtitle="Fetching staff directory, roles, and office assignments."
+              compact
+            />
           ) : filtered.length === 0 ? (
             <div className="py-16 text-center max-w-sm mx-auto">
               <Users size={36} className="mx-auto text-slate-300 mb-2" />
@@ -312,13 +255,9 @@ export const AccountsPage: React.FC = () => {
                               }`}>
                                 {account.role}
                               </span>
-                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
-                                account.status === 'Active'
-                                  ? 'bg-emerald-50 text-emerald-700'
-                                  : 'bg-slate-100 text-slate-500'
-                              }`}>
+                              <StatusPill status={account.status.toLowerCase()}>
                                 {account.status === 'Active' ? t('common.active', 'Active') : t('common.inactive', 'Inactive')}
-                              </span>
+                              </StatusPill>
                             </div>
                           </div>
                         </div>

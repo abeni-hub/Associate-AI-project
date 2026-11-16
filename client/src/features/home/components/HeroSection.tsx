@@ -51,21 +51,20 @@ export default function HeroSection({
   const subtitle = heroContent && (language === 'am' ? heroContent.subtitleAm : heroContent.subtitleEn)
   const eyebrow = (language === 'am' && heroContent?.badgeAm) || heroContent?.badge?.trim() || activeHeroSlide.bureau
   const primaryCta = (language === 'am' && heroContent?.primaryCtaTextAm) || heroContent?.primaryCtaText || 'Find a service'
-  const secondaryCta = (language === 'am' && heroContent?.secondaryCtaTextAm) || heroContent?.secondaryCtaText || 'I’ve already visited'
+  const subtitleText = subtitle?.trim() || (language === 'am'
+    ? 'አገልግሎቱን ይምረጡ፤ ከመሄድዎ በፊት የሚያስፈልጉትን ያዘጋጁ።'
+    : 'Find the right service and be ready before you go.')
 
   return (
     <section className="hero-section">
       <div className="hero-copy">
         <div className="eyebrow"><span className="eyebrow-line" /> {t(eyebrow)}</div>
         <h1>{t(titleLead)}{titleEmphasis && <><br /><em>{t(titleEmphasis)}</em></>}</h1>
-        <p className="hero-lede">{t(subtitle?.trim() || 'The right information makes every visit easier. Find your service, prepare your documents, and know exactly where to go before you leave home.')}</p>
+        <p className="hero-lede">{t(subtitleText)}</p>
         <div className="hero-actions">
           <a className="button button-primary" href={heroContent?.primaryCtaUrl || "#find-service"}>
             {t(primaryCta)} <Icon name="arrow" size={18} />
           </a>
-          <button className="button button-secondary" type="button" onClick={onGoToFeedback}>
-            <span className="feedback-play">↗</span> {t(secondaryCta)}
-          </button>
         </div>
       </div>
       <HeroBureauCarousel

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'react'
 import './App.css'
-import { SiteFooter, SiteHeader, translate } from './features/shared'
+import { AnnouncementBar, SiteFooter, SiteHeader, translate } from './features/shared'
 import { NewsEventsPage, ItemDetailPage } from './features/news-events'
 import './styles/newsEvents.css'
 import { HomePage } from './features/home'
@@ -237,16 +237,24 @@ function App() {
   return (
     <div className={`site-shell ${currentView === 'news-events' ? 'site-shell-hub' : currentView === 'detail' ? 'site-shell-detail' : currentView === 'feedback' ? 'site-shell-feedback' : ''}`} lang={language}>
       {currentView !== 'feedback' && (
-        <SiteHeader
-          currentView={currentView}
-          language={language}
-          t={t}
-          onNavigateToHome={navigateToHome}
-          onNavigateToHomeSection={navigateToHomeSection}
-          onNavigateToNews={navigateToNews}
-          onToggleLanguage={toggleLanguage}
-          onSelectLanguage={handleSelectLanguage}
-        />
+        <>
+          <AnnouncementBar
+            t={t}
+            language={language}
+            announcement={cmsConfig?.announcement}
+            onNavigateToHomeSection={navigateToHomeSection}
+          />
+          <SiteHeader
+            currentView={currentView}
+            language={language}
+            t={t}
+            onNavigateToHome={navigateToHome}
+            onNavigateToHomeSection={navigateToHomeSection}
+            onNavigateToNews={navigateToNews}
+            onToggleLanguage={toggleLanguage}
+            onSelectLanguage={handleSelectLanguage}
+          />
+        </>
       )}
 
       {currentView === 'detail' && detailItemId ? (

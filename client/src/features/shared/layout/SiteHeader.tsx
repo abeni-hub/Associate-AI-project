@@ -39,7 +39,7 @@ export default function SiteHeader({
         }}
       >
         <BrandMark />
-        <span className="brand-copy"><strong>Civic<span>Link</span></strong><small>{t('ETHIOPIA · CITIZEN SERVICES')}</small></span>
+        <span className="brand-copy"><strong>Civic<span>Link</span></strong></span>
       </a>
 
       <button

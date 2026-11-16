@@ -53,7 +53,6 @@ export default function HomeNewsSection({
           <div className="section-kicker"><span>{kickerNum}</span> {t(kicker)}</div>
           <h2>{t(mainTitle)} {lastWord && <><br /><em>{t(lastWord)}</em></>}</h2>
         </div>
-        <div className="update-source"><Icon name="building" size={16} /> {t(sourceLabel)}</div>
       </div>
       <HomeNewsEvents
         language={language}

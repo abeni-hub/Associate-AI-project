@@ -78,7 +78,7 @@ export default function QrFeedbackPage({
 
     const orgParam = getParam('org') || getParam('bureau') || getParam('office');
     const subCityParam = getParam('sub_city') || getParam('subcity') || getParam('city');
-    const serviceParam = getParam('service');
+    const serviceParam = getParam('service') || getParam('sub_service') || getParam('subservice');
     const typeParam = getParam('type');
     const qrCode = getParam('code');
 
@@ -110,7 +110,10 @@ export default function QrFeedbackPage({
   // Step 4: Service (DEDICATED STEP)
   // Step 5: Final Screen (Feedback Form OR Service Information Details)
   // If QR code provided location, skip Steps 1 and 2 and land directly on Step 3!
-  const [currentStep, setCurrentStep] = useState<number>(() => (initialParams.hasQrLocation ? 3 : 1));
+  const [currentStep, setCurrentStep] = useState<number>(() => {
+    if (initialParams.serviceParam) return 5;
+    return initialParams.hasQrLocation ? 3 : 1;
+  });
   const [isQrScan, setIsQrScan] = useState<boolean>(() => initialParams.hasQrLocation);
 
   const [selectedSubCity, setSelectedSubCity] = useState<string>(() => initialParams.subCityParam || '');

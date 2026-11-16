@@ -1,32 +1,12 @@
 import React from 'react';
+import { PageLoadingState } from '../features/shared';
 
 export const RouteLoadingFallback: React.FC = () => {
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '400px',
-        width: '100%',
-        gap: '14px',
-      }}
-    >
-      <div className="loading-spinner" />
-      <span
-        style={{
-          color: 'var(--ink)',
-          fontSize: '14px',
-          fontWeight: 600,
-          fontFamily: 'var(--font-family-sans)',
-        }}
-      >
-        Loading page…
-      </span>
-    </div>
+    <PageLoadingState
+      title="Loading page..."
+      subtitle="Preparing the requested portal section and data views."
+    />
   );
 };
 
